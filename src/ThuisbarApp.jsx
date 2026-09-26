@@ -1219,20 +1219,33 @@ function GuestSurveyView({ surveyId }) {
   const [strength, setStrength] = useState(3);
   const [alcoholFree, setAlcoholFree] = useState(false);
   const [favoriteSpirit, setFavoriteSpirit] = useState(null);
-  const [favoriteCocktail, setFavoriteCocktail] = useState("");
+  const [favoriteCocktailIds, setFavoriteCocktailIds] = useState([]);
+  const [cocktailQuery, setCocktailQuery] = useState("");
   const [dietary, setDietary] = useState([]);
   const [guestName, setGuestName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
+  // Social proof: hoeveel gasten al vóór jou hebben ingevuld — puur om het
+  // invullen aantrekkelijker te maken, telt verder nergens in mee.
+  const [existingCount, setExistingCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     supabase.from("party_surveys").select("id, title").eq("id", surveyId).maybeSingle()
       .then(({ data }) => { if (!cancelled) setSurvey(data || null); })
       .catch(() => { if (!cancelled) setSurvey(null); });
+    supabase.from("party_survey_responses").select("id", { count: "exact", head: true }).eq("survey_id", surveyId)
+      .then(({ count }) => { if (!cancelled && count != null) setExistingCount(count); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [surveyId]);
+
+  const cocktailSuggestions = cocktailQuery.trim().length > 0
+    ? RECIPES.filter(r => r.name.toLowerCase().includes(cocktailQuery.trim().toLowerCase()) && !favoriteCocktailIds.includes(r.id)).slice(0, 6)
+    : [];
+  const addFavoriteCocktail = (id) => { setFavoriteCocktailIds(ids => [...ids, id]); setCocktailQuery(""); };
+  const removeFavoriteCocktail = (id) => setFavoriteCocktailIds(ids => ids.filter(x => x !== id));
 
   const toggle = (setter) => (key) => setter(t => t.includes(key) ? t.filter(k => k !== key) : [...t, key]);
   const toggleTag = toggle(setTags);
@@ -1247,9 +1260,6 @@ function GuestSurveyView({ surveyId }) {
     if (submitting) return;
     setSubmitting(true);
     setError(null);
-    const matched = favoriteCocktail.trim()
-      ? RECIPES.find(r => r.name.toLowerCase() === favoriteCocktail.trim().toLowerCase())
-      : null;
     const { error: err } = await supabase.from("party_survey_responses").insert({
       survey_id: surveyId,
       guest_name: guestName.trim() || null,
@@ -1258,8 +1268,7 @@ function GuestSurveyView({ surveyId }) {
       strength,
       alcohol_free: alcoholFree,
       favorite_spirit: favoriteSpirit,
-      favorite_cocktail_name: favoriteCocktail.trim() || null,
-      favorite_cocktail_id: matched ? matched.id : null,
+      favorite_cocktail_ids: favoriteCocktailIds,
       dietary,
     });
     setSubmitting(false);
@@ -1341,6 +1350,10 @@ function GuestSurveyView({ surveyId }) {
 
             {step === 0 && (
               <>
+                <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 20px" }}>
+                  Kost je hooguit een minuutje. De gastheer gebruikt dit om een cocktailmenu samen te stellen dat bij de groep past.
+                  {existingCount > 0 && ` ${existingCount} ${existingCount === 1 ? "gast vulde" : "gasten vulden"} 'm al in.`}
+                </p>
                 <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Waar houd je van?</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
                   {SURVEY_TASTE_KEYS.map(key => {
@@ -1415,8 +1428,35 @@ function GuestSurveyView({ surveyId }) {
                     );
                   })}
                 </div>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Ken je een cocktail die je lekker vond?</div>
-                <RecipeNameAutocomplete recipes={RECIPES} value={favoriteCocktail} onChange={setFavoriteCocktail} placeholder="Typ of kies een cocktail (optioneel)" />
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Cocktails die je lekker vindt?</div>
+                {favoriteCocktailIds.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                    {favoriteCocktailIds.map(id => {
+                      const r = RECIPES.find(x => x.id === id);
+                      if (!r) return null;
+                      return (
+                        <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: `linear-gradient(135deg, ${BRASS}, #8F6A21)`, color: CREAM, borderRadius: 100, padding: "6px 8px 6px 13px", fontSize: 12.5, fontWeight: 600 }}>
+                          {r.name}
+                          <button onClick={() => removeFavoriteCocktail(id)} aria-label="Verwijderen" style={{ background: "rgba(255,255,255,0.25)", border: "none", borderRadius: "50%", width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: CREAM, padding: 0 }}>
+                            <X size={10} strokeWidth={3} />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                <div style={{ position: "relative" }}>
+                  <input value={cocktailQuery} onChange={e => setCocktailQuery(e.target.value)} placeholder="Typ om te zoeken, tik meerdere aan" style={fieldStyle()} />
+                  {cocktailSuggestions.length > 0 && (
+                    <div style={{ position: "absolute", left: 0, right: 0, top: "calc(100% + 4px)", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 12, boxShadow: SHADOW_CARD, zIndex: 5, overflow: "hidden" }}>
+                      {cocktailSuggestions.map(r => (
+                        <button key={r.id} onClick={() => addFavoriteCocktail(r.id)} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", borderTop: `1px solid ${BORDER}`, fontSize: 13.5, color: INK, cursor: "pointer", fontFamily: sans }}>
+                          {r.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <NavButtons onSubmitStep={goNext} />
               </>
             )}
@@ -5850,7 +5890,7 @@ function computeGroupRecommendations(responses, recipes, excludeIds, isOwned) {
   const topSpiritKey = Object.entries(spiritCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
   const topSpiritIds = new Set(FAVORITE_SPIRIT_OPTIONS.find(o => o.key === topSpiritKey)?.ids || []);
 
-  const mentionedIds = new Set(responses.map(r => r.favorite_cocktail_id).filter(Boolean));
+  const mentionedIds = new Set(responses.flatMap(r => r.favorite_cocktail_ids || []));
   const excluded = new Set(excludeIds || []);
 
   return recipes
@@ -5875,6 +5915,33 @@ function computeGroupRecommendations(responses, recipes, excludeIds, isOwned) {
     .filter(x => x.score > 0 || x.mentioned)
     .sort((a, b) => b.score - a.score)
     .slice(0, 6);
+}
+
+// Ingrediënten die typisch niet passen bij een dieetwens — geen sluitende
+// allergieclaim (daarvoor ontbreekt de data), alleen een zachte waarschuwing
+// zodat de host het zelf kan nalopen voor het serveren. Gluten laten we
+// bewust weg: gedistilleerde dranken bevatten na distillatie geen gluten
+// meer, dus daar geeft deze ingrediëntenlijst geen zinnig signaal voor.
+const DIET_CONFLICT_INGREDIENTS = {
+  noten: ["orgeat", "amaretto", "frangelico", "creme_de_noyaux"],
+  lactose: ["heavy_cream", "whipped_cream", "milk", "irish_cream"],
+  vegan: ["heavy_cream", "whipped_cream", "milk", "irish_cream", "egg_white", "egg_yolk", "honey_syrup", "honey_ginger_syrup"],
+};
+function getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals) {
+  const ids = new Set(recipe.ingredients.map(i => i.id));
+  const warnings = [];
+  Object.entries(DIET_CONFLICT_INGREDIENTS).forEach(([key, conflictIds]) => {
+    const count = surveyDietaryTotals?.[key] || 0;
+    if (count > 0 && conflictIds.some(id => ids.has(id))) {
+      warnings.push(`${count}x ${DIETARY_META[key]?.label || key}`);
+    }
+  });
+  const rVec = FAMILY_TASTE[recipe.family] || {};
+  const [dominantKey, dominantWeight] = Object.entries(rVec).sort((a, b) => b[1] - a[1])[0] || [];
+  if (dominantKey && dominantWeight >= 0.6 && (surveyDislikeTotals?.[dominantKey] || 0) > 0) {
+    warnings.push(`${surveyDislikeTotals[dominantKey]}x houdt niet van ${(TASTE_META[dominantKey]?.label || dominantKey).toLowerCase()}`);
+  }
+  return warnings;
 }
 
 function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, chosen, setChosen, voorraadAantal, onSound, onOpenRecipe }) {
@@ -5908,12 +5975,36 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
   };
   useEffect(() => { loadSurvey(); }, [myId]);
 
+  // Live updates: i.p.v. steeds handmatig op "Ververs" te moeten drukken,
+  // druppelen nieuwe reacties er via Supabase Realtime meteen bij binnen
+  // terwijl de host het scherm open heeft staan.
+  useEffect(() => {
+    if (!survey?.id) return;
+    const channel = supabase.channel(`survey-responses-${survey.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "party_survey_responses", filter: `survey_id=eq.${survey.id}` }, (payload) => {
+        setSurveyResponses(prev => prev.some(r => r.id === payload.new.id) ? prev : [payload.new, ...prev]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [survey?.id]);
+
   const createSurvey = async () => {
     if (!myId || creatingSurvey) return;
     setCreatingSurvey(true);
     const { data } = await supabase.from("party_surveys").insert({ host_user_id: myId, title: "mijn feest" }).select().single();
     setCreatingSurvey(false);
     if (data) { setSurvey(data); setSurveyResponses([]); onSound("pop"); }
+  };
+
+  const [confirmDeleteSurvey, setConfirmDeleteSurvey] = useState(false);
+  const [deletingSurvey, setDeletingSurvey] = useState(false);
+  const deleteSurvey = async () => {
+    if (!survey || deletingSurvey) return;
+    setDeletingSurvey(true);
+    const { error } = await supabase.from("party_surveys").delete().eq("id", survey.id);
+    setDeletingSurvey(false);
+    setConfirmDeleteSurvey(false);
+    if (!error) { setSurvey(null); setSurveyResponses([]); onSound("remove"); }
   };
 
   const shareSurvey = async () => {
@@ -5960,10 +6051,10 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
     surveyResponses.forEach(r => { if (r.favorite_spirit) totals[r.favorite_spirit] = (totals[r.favorite_spirit] || 0) + 1; });
     return Object.entries(totals).sort((a, b) => b[1] - a[1]);
   }, [surveyResponses]);
-  const surveyMentionedCocktails = useMemo(
-    () => [...new Set(surveyResponses.map(r => r.favorite_cocktail_name).filter(Boolean))],
-    [surveyResponses]
-  );
+  const surveyMentionedCocktails = useMemo(() => {
+    const ids = [...new Set(surveyResponses.flatMap(r => r.favorite_cocktail_ids || []))];
+    return ids.map(id => recipes.find(r => r.id === id)?.name).filter(Boolean);
+  }, [surveyResponses, recipes]);
   const surveyGroupPersonalityKey = useMemo(() => {
     const entries = Object.entries(surveyTasteTotals).sort((a, b) => b[1] - a[1]);
     return entries.length > 0 && entries[0][1] > 0 ? entries[0][0] : null;
@@ -5972,6 +6063,19 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
     () => computeGroupRecommendations(surveyResponses, recipes, chosen, isOwned),
     [surveyResponses, recipes, chosen, isOwned]
   );
+  // Los van de suggestiekaarten (die het huidige menu uitsluiten): dit is de
+  // volledige ranglijst, gebruikt door "Stel automatisch samen" om in één
+  // keer een heel menu vanaf nul op te bouwen.
+  const surveyRecommendedForCompose = useMemo(
+    () => computeGroupRecommendations(surveyResponses, recipes, [], isOwned),
+    [surveyResponses, recipes, isOwned]
+  );
+  const autoComposeMenu = () => {
+    const top = surveyRecommendedForCompose.slice(0, 6).map(x => x.recipe.id);
+    if (top.length === 0) return;
+    onSound("shuffle");
+    setChosen(top);
+  };
   const suggestionSheetRecipe = suggestionSheetId ? recipes.find(r => r.id === suggestionSheetId) : null;
   const addMissing = (recipeId, refs) => {
     onAddToShoppingList(refs);
@@ -6187,18 +6291,33 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
         ) : (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: MUTED }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: MUTED }}>
+                <span title="Live: nieuwe reacties verschijnen automatisch" style={{ width: 6, height: 6, borderRadius: "50%", background: SAGE, flexShrink: 0 }} />
                 {surveyResponses.length === 0 ? "Nog geen reacties" : `${surveyResponses.length} reactie${surveyResponses.length === 1 ? "" : "s"} binnen`}
               </span>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <button onClick={loadSurvey} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 3, padding: "6px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   <RefreshCw size={12} /> Ververs
                 </button>
                 <button onClick={shareSurvey} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 3, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                   <Share2 size={13} /> {surveyShareState === "shared" ? "Gedeeld!" : surveyShareState === "copied" ? "Link gekopieerd!" : surveyShareState === "failed" ? "Delen mislukt" : "Deel de link"}
                 </button>
+                {!confirmDeleteSurvey ? (
+                  <button onClick={() => setConfirmDeleteSurvey(true)} title="Verwijder smaaktest" className="press-scale" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, background: "none", border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 3, cursor: "pointer", flexShrink: 0 }}>
+                    <Trash2 size={13} />
+                  </button>
+                ) : (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, whiteSpace: "nowrap" }}>
+                    <span style={{ color: MUTED }}>Verwijderen?</span>
+                    <button onClick={deleteSurvey} disabled={deletingSurvey} style={{ background: "none", border: "none", color: BURGUNDY, fontWeight: 700, cursor: "pointer", padding: 0, fontSize: 11.5 }}>{deletingSurvey ? "…" : "Ja"}</button>
+                    <button onClick={() => setConfirmDeleteSurvey(false)} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", padding: 0, fontSize: 11.5 }}>Nee</button>
+                  </span>
+                )}
               </div>
             </div>
+            {survey && (
+              <p style={{ fontSize: 11, color: MUTED, margin: "-8px 0 14px" }}>Klaar met dit feest? Verwijder de test en maak een nieuwe aan voor de volgende keer.</p>
+            )}
 
             {surveyResponses.length > 0 && (
               <>
@@ -6292,10 +6411,17 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
 
                 {surveyRecommended.length > 0 && (
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 3 }}>Suggesties voor het menu</div>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 3 }}>Suggesties voor het menu</div>
+                      <button onClick={autoComposeMenu} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${BRASS}`, color: BRASS, borderRadius: 3, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}>
+                        <Sparkles size={12} /> Stel automatisch samen
+                      </button>
+                    </div>
                     <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>Tik op een kaart voor het recept, of gebruik + om 'm direct toe te voegen.</div>
                     <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-                      {surveyRecommended.map(({ recipe, score, matchPct, mentioned, spiritMatch }) => (
+                      {surveyRecommended.map(({ recipe, score, matchPct, mentioned, spiritMatch }) => {
+                        const warnings = getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals);
+                        return (
                         <button key={recipe.id} onClick={() => setSuggestionSheetId(recipe.id)} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
                           <div style={{ position: "absolute", top: 8, right: 8, background: BOTTLE_DARK, border: `1px solid rgba(245,239,230,0.25)`, borderRadius: 100, padding: "3px 7px", fontSize: 10.5, fontWeight: 700, color: BRASS }}>{score}%</div>
                           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
@@ -6307,6 +6433,11 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                             {spiritMatch && <span style={{ fontSize: 8.5, color: SAGE, fontWeight: 700, border: `1px solid ${SAGE}`, borderRadius: 100, padding: "1px 5px" }}>favoriet</span>}
                             {matchPct != null && <span style={{ fontSize: 8.5, color: MUTED, fontWeight: 700, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "1px 5px" }}>{matchPct}% in huis</span>}
                           </div>
+                          {warnings.length > 0 && (
+                            <div title={warnings.join(", ")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 5, fontSize: 9.5, color: BURGUNDY, fontWeight: 700 }}>
+                              ⚠️ {warnings[0]}
+                            </div>
+                          )}
                           <div
                             role="button"
                             tabIndex={0}
@@ -6316,7 +6447,8 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                             <Plus size={11} /> toevoegen
                           </div>
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -6335,7 +6467,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                             {r.strength != null && ` · sterkte ${r.strength}/5`}
                             {r.alcohol_free && " · alcoholvrij"}
                             {r.favorite_spirit && ` · ${FAVORITE_SPIRIT_OPTIONS.find(o => o.key === r.favorite_spirit)?.label || r.favorite_spirit}`}
-                            {r.favorite_cocktail_name && ` · favoriet: ${r.favorite_cocktail_name}`}
+                            {(r.favorite_cocktail_ids || []).length > 0 && ` · favorieten: ${r.favorite_cocktail_ids.map(id => recipes.find(x => x.id === id)?.name).filter(Boolean).join(", ")}`}
                             {(r.dietary || []).length > 0 && ` · ${r.dietary.map(k => DIETARY_META[k]?.label || k).join(", ")}`}
                           </div>
                         </div>
@@ -6379,6 +6511,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
               const required = r.ingredients.filter(ing => !ing.optional);
               const missing = required.filter(ing => !isOwned(ing));
               const isEditing = editingIndex === i;
+              const warnings = surveyResponses.length > 0 ? getSurveyWarnings(r, surveyDietaryTotals, surveyDislikeTotals) : [];
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
                   {isEditing ? (
@@ -6394,6 +6527,11 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                           <StatusTag missingCount={missing.length} />
                           <span style={{ fontSize: 11, color: MUTED, flexShrink: 0 }}>· {perRecipeCounts[i]} glazen</span>
                         </div>
+                        {warnings.length > 0 && (
+                          <div title={warnings.join(", ")} style={{ fontSize: 10.5, color: BURGUNDY, fontWeight: 700, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            ⚠️ {warnings.join(" · ")}
+                          </div>
+                        )}
                       </div>
                     </button>
                   )}
