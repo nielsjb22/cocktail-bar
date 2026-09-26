@@ -1411,6 +1411,48 @@ function useMatchBodyBackground(color) {
   }, [color]);
 }
 
+// Verplichte leeftijdspoort vóór alle andere content — de app gaat over
+// alcohol, dus dit moet vóór zowel inloggen als de gast-links (menu/
+// smaaktest) staan. "Nee" blokkeert de app volledig, zonder omweg.
+function AgeGateScreen({ onConfirm }) {
+  const [declined, setDeclined] = useState(false);
+  useMatchBodyBackground(BOTTLE_DARK);
+  return (
+    <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)`, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+      <div style={{ maxWidth: 380, width: "100%", textAlign: "center" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.1)", marginBottom: 20 }}>
+          <Martini color={BRASS} size={26} strokeWidth={1.5} />
+        </div>
+        {declined ? (
+          <>
+            <h1 style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 22, color: CREAM, margin: "0 0 12px" }}>Helaas</h1>
+            <p style={{ color: "#C7CFC5", fontSize: 14, lineHeight: 1.6, margin: 0 }}>Mijn Thuisbar draait om alcoholische dranken en is niet geschikt voor bezoekers onder de 18 jaar.</p>
+          </>
+        ) : (
+          <>
+            <h1 style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 24, color: CREAM, margin: "0 0 12px" }}>Even een check</h1>
+            <p style={{ color: "#C7CFC5", fontSize: 14, lineHeight: 1.6, margin: "0 0 26px" }}>
+              Mijn Thuisbar draait om cocktails en alcoholische dranken. Ben je 18 jaar of ouder?
+            </p>
+            <button onClick={onConfirm} className="press-scale" style={{
+              width: "100%", padding: "14px 18px", borderRadius: 14, border: "none", marginBottom: 10,
+              background: `linear-gradient(135deg, ${BRASS}, #8F6A21)`, color: CREAM, fontSize: 15, fontWeight: 700, cursor: "pointer",
+            }}>
+              Ja, ik ben 18 jaar of ouder
+            </button>
+            <button onClick={() => setDeclined(true)} style={{
+              width: "100%", padding: "12px 18px", borderRadius: 14, border: "1px solid rgba(251,246,234,0.25)",
+              background: "none", color: "#C7CFC5", fontSize: 13.5, fontWeight: 600, cursor: "pointer",
+            }}>
+              Nee, ik ben jonger dan 18
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Login/registratie: dezelfde donkere "signage"-look als de masthead elders
 // in de app, zodat dit niet als een los, generiek inlogscherm aanvoelt maar
 // als het voorportaal van dezelfde Bar Register-huisstijl.
@@ -1673,6 +1715,18 @@ export default function ThuisbarApp() {
   }, []);
   useKeyboardBehavior();
   const isOnline = useOnlineStatus();
+  // Leeftijdsbevestiging (18+): verplicht voor Apple-review bij een app die
+  // over alcohol gaat. Staat vóór alle andere routes (ook de gast-links),
+  // want die tonen ook alcohol-gerelateerde inhoud. Eenmalig opgeslagen in
+  // Preferences, dus daarna nooit meer gevraagd op dit toestel.
+  const [ageVerified, setAgeVerified] = useState(undefined);
+  useEffect(() => {
+    Preferences.get({ key: "thuisbar-age-verified" }).then(({ value }) => setAgeVerified(value === "true"));
+  }, []);
+  const confirmAge = () => {
+    setAgeVerified(true);
+    Preferences.set({ key: "thuisbar-age-verified", value: "true" });
+  };
   const [surveyId] = useState(() => new URLSearchParams(window.location.search).get("smaaktest"));
   const [guestMenuIds] = useState(() => {
     const q = new URLSearchParams(window.location.search).get("menu");
@@ -1811,6 +1865,18 @@ export default function ThuisbarApp() {
     if (data) setProfile(data);
   };
 
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState(null);
+  const deleteAccount = async () => {
+    if (!session || deletingAccount) return;
+    setDeletingAccount(true);
+    setDeleteAccountError(null);
+    const { error } = await supabase.functions.invoke("delete-account", {});
+    setDeletingAccount(false);
+    if (error) { setDeleteAccountError("Verwijderen is niet gelukt. Probeer het nog eens."); return; }
+    await supabase.auth.signOut();
+  };
+
   // Uitnodigingslink (?invite=<userId>): stuurt automatisch een vriendschapsverzoek
   // naar de deler zodra je ingelogd bent, en stuurt je daarna naar de Vrienden-tab
   // om het resultaat te zien — geen aparte "weet je het zeker"-stap nodig, want het
@@ -1944,6 +2010,8 @@ export default function ThuisbarApp() {
     removeFromShoppingList(item.key);
   };
 
+  if (ageVerified === undefined) return <div style={{ minHeight: "100%", background: BOTTLE_DARK }} />;
+  if (!ageVerified) return <AgeGateScreen onConfirm={confirmAge} />;
   if (guestMenuIds) return <GuestMenuView recipeIds={guestMenuIds} />;
   if (surveyId) return <GuestSurveyView surveyId={surveyId} />;
   if (session === undefined) return <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)` }} />;
@@ -2054,7 +2122,17 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Profiel" onBack={() => navigateTo("profiel")}>
-            <InstellingenTab soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={() => supabase.auth.signOut()} push={push} />
+            <InstellingenTab soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={() => supabase.auth.signOut()} push={push} onNavigate={navigateTo} />
+          </SecondaryTabScreen>
+        </TabPanel>
+        <TabPanel id="privacybeleid" active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
+          <SecondaryTabScreen label="Instellingen" onBack={() => navigateTo("instellingen")}>
+            <PrivacyPolicyScreen />
+          </SecondaryTabScreen>
+        </TabPanel>
+        <TabPanel id="account-verwijderen" active={tab === "account-verwijderen"} visited={visitedTabs.has("account-verwijderen")} panelRef={panelRefs}>
+          <SecondaryTabScreen label="Instellingen" onBack={() => navigateTo("instellingen")}>
+            <AccountDeleteScreen onDelete={deleteAccount} busy={deletingAccount} error={deleteAccountError} />
           </SecondaryTabScreen>
         </TabPanel>
       </div>
@@ -2079,7 +2157,7 @@ function Switch({ checked, onChange, disabled }) {
 // UX-herindeling (v2): Profiel IS nu het check-ins/inzichten-scherm zelf
 // (zoals Untappd) i.p.v. een lijstje dat er naar doorverwijst — de kaart en
 // instellingen hieronder wonen nu in LogboekTab resp. InstellingenTab.
-function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push }) {
+function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, onNavigate }) {
   return (
     <div>
       <SectionLabel>Instellingen</SectionLabel>
@@ -2113,6 +2191,17 @@ function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push }) {
             )}
           </div>
         )}
+        <button onClick={() => onNavigate("privacybeleid")} style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+          background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
+          borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 14.5, color: INK,
+        }}>
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+            <BookOpen size={16} strokeWidth={1.8} />
+          </span>
+          <span style={{ flex: 1, fontWeight: 600 }}>Privacybeleid</span>
+          <ChevronRight size={16} color={MUTED} />
+        </button>
         <button onClick={onSignOut} style={{
           width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
           background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
@@ -2123,7 +2212,72 @@ function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push }) {
           </span>
           <span style={{ flex: 1, fontWeight: 600 }}>Uitloggen</span>
         </button>
+        <button onClick={() => onNavigate("account-verwijderen")} style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+          background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
+          borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 14.5, color: BURGUNDY,
+        }}>
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BURGUNDY, flexShrink: 0 }}>
+            <Trash2 size={16} strokeWidth={1.8} />
+          </span>
+          <span style={{ flex: 1, fontWeight: 600 }}>Account verwijderen</span>
+        </button>
       </div>
+    </div>
+  );
+}
+
+// Kan geen internetverbinding of extern beleid nodig hebben: platte tekst,
+// altijd beschikbaar, ook offline — precies wat Apple-review verwacht als
+// ze "Privacybeleid" aantikken.
+function PrivacyPolicyScreen() {
+  const P = ({ children }) => <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.65, margin: "0 0 16px" }}>{children}</p>;
+  const H = ({ children }) => <h3 style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 16, color: BOTTLE, margin: "22px 0 8px" }}>{children}</h3>;
+  return (
+    <div>
+      <SectionLabel>Privacybeleid</SectionLabel>
+      <p style={{ fontSize: 12, color: MUTED, marginBottom: 20 }}>Laatst bijgewerkt: {new Date().toISOString().slice(0, 10)}</p>
+      <P>Mijn Thuisbar is een persoonlijke app voor het bijhouden van je thuisbar, cocktailrecepten en check-ins met vrienden. Dit beleid legt uit welke gegevens de app verzamelt en waarvoor.</P>
+      <H>Welke gegevens</H>
+      <P>E-mailadres en naam (voor je account), een optionele profielfoto, je voorraad en eigen recepten, je check-ins (cocktailnaam, foto, locatie, beoordeling, notities), en — als je die functie gebruikt — vriendschappen, reacties en proosts op check-ins van jou en anderen. Bij een gedeelde smaaktest voor een feest worden ook de antwoorden van je gasten (smaakvoorkeuren, optioneel hun naam) opgeslagen.</P>
+      <H>Waarvoor</H>
+      <P>Uitsluitend om de app te laten werken: je eigen gegevens tonen, je voortgang bewaren, en — als je vrienden hebt toegevoegd — hun check-ins met je delen en andersom. Niets wordt gebruikt voor advertenties of doorverkocht aan derden.</P>
+      <H>Waar</H>
+      <P>Je gegevens staan opgeslagen bij Supabase (databasehosting in de EU). Sommige instellingen (zoals je voorraad) staan lokaal op je toestel.</P>
+      <H>Delen met derden</H>
+      <P>Alleen wat nodig is om de app te laten draaien (databasehosting, en — als je pushmeldingen aanzet — de meldingendienst van je besturingssysteem). Nooit voor marketingdoeleinden.</P>
+      <H>Jouw rechten</H>
+      <P>Je kan je gegevens op elk moment verwijderen via Instellingen → Account verwijderen. Dat verwijdert je profiel, check-ins, vriendschappen en meldingen-inschrijvingen definitief.</P>
+      <H>Contact</H>
+      <P>Vragen over dit beleid? Neem contact op via de contactgegevens in de App Store-vermelding van Mijn Thuisbar.</P>
+    </div>
+  );
+}
+
+// Verwijderen is onomkeerbaar, dus een expliciete typ-ter-bevestiging i.p.v.
+// alleen een "weet je het zeker?"-knopje — voorkomt een per ongeluk-tik op
+// een verder vrij kale instellingenpagina.
+function AccountDeleteScreen({ onDelete, busy, error }) {
+  const [confirmText, setConfirmText] = useState("");
+  const canDelete = confirmText.trim().toUpperCase() === "VERWIJDEREN";
+  return (
+    <div>
+      <SectionLabel>Account verwijderen</SectionLabel>
+      <div style={{ background: "rgba(122,46,42,0.08)", border: `1px solid rgba(122,46,42,0.3)`, borderRadius: RADIUS, padding: 16, marginBottom: 20 }}>
+        <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: 0 }}>
+          Dit verwijdert je account en alle bijbehorende gegevens (profiel, check-ins, vriendschappen, meldingen-inschrijvingen) <b>definitief</b>. Dit kan niet ongedaan gemaakt worden.
+        </p>
+      </div>
+      <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 6 }}>Typ VERWIJDEREN om te bevestigen</label>
+      <input value={confirmText} onChange={e => setConfirmText(e.target.value)} style={{ ...fieldStyle(), marginBottom: 16 }} placeholder="VERWIJDEREN" />
+      {error && <p style={{ color: BURGUNDY, fontSize: 13, marginBottom: 14 }}>{error}</p>}
+      <button onClick={onDelete} disabled={!canDelete || busy} className="press-scale" style={{
+        width: "100%", padding: "14px 18px", borderRadius: 14, border: "none",
+        background: canDelete ? BURGUNDY : BORDER, color: CREAM, fontSize: 15, fontWeight: 700,
+        cursor: canDelete ? "pointer" : "default",
+      }}>
+        {busy ? "Bezig met verwijderen…" : "Account definitief verwijderen"}
+      </button>
     </div>
   );
 }
