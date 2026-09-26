@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Snowflake, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings } from "lucide-react";
+import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Snowflake, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "./supabaseClient";
@@ -2499,6 +2499,13 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
   const [commentDraft, setCommentDraft] = useState("");
   const [postingComment, setPostingComment] = useState(false);
   const [openFriendId, setOpenFriendId] = useState(null);
+  const [reportedIds, setReportedIds] = useState(() => new Set());
+  const reportCheckin = async (checkinId) => {
+    if (!myId || reportedIds.has(checkinId)) return;
+    setReportedIds(s => new Set(s).add(checkinId));
+    onSound("pop");
+    await supabase.from("content_reports").insert({ reporter_id: myId, target_type: "checkin", target_id: checkinId });
+  };
   const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
 
   const commenterName = (uid) => (uid === myId ? (profile?.name || "Jij") : (friendProfiles[uid]?.name || "Vriend"));
@@ -2684,6 +2691,15 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                     }}>
                       <MessageCircle size={13} /> {commentCounts[entry.id] > 0 ? commentCounts[entry.id] : ""} Reageren
                     </button>
+                    {!entry.mine && (
+                      <button onClick={() => reportCheckin(entry.id)} disabled={reportedIds.has(entry.id)} title="Meld deze check-in" className="press-scale" style={{
+                        marginLeft: "auto", display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30,
+                        border: "none", cursor: reportedIds.has(entry.id) ? "default" : "pointer", background: "none",
+                        color: reportedIds.has(entry.id) ? SAGE : MUTED, flexShrink: 0,
+                      }}>
+                        {reportedIds.has(entry.id) ? <Check size={14} /> : <Flag size={14} />}
+                      </button>
+                    )}
                   </div>
 
                   {openComments === entry.id && (
@@ -2735,6 +2751,8 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           friendProfile={friendProfiles[openFriendId]}
           recipes={recipes}
           allIngredients={allIngredients}
+          session={session}
+          onBlocked={() => setOpenFriendId(null)}
           onClose={() => setOpenFriendId(null)}
         />
       )}
@@ -7497,8 +7515,19 @@ function Avatar({ name, photo, size = 38 }) {
 // geaccepteerde vrienden zijn) i.p.v. je eigen logboek. Geen "aanbevolen voor
 // jou" of kaart-sectie — die zijn aan JOUW voorraad/locaties gekoppeld en dus
 // niet zinvol in andermans profiel.
-function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, onClose }) {
+function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, onClose, session, onBlocked }) {
   const [logboek, setLogboek] = useState(null);
+  const myId = session?.user?.id;
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const blockUser = async () => {
+    if (!myId || blocking) return;
+    setBlocking(true);
+    await supabase.from("blocked_users").insert({ blocker_id: myId, blocked_id: friendId });
+    await supabase.from("friendships").delete().or(`and(requester_id.eq.${myId},addressee_id.eq.${friendId}),and(requester_id.eq.${friendId},addressee_id.eq.${myId})`);
+    setBlocking(false);
+    onBlocked?.();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -7541,6 +7570,22 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
             display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
             borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0,
           }}><X size={16} /></button>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, padding: "8px 20px 0", flexShrink: 0 }}>
+          {!confirmBlock ? (
+            <button onClick={() => setConfirmBlock(true)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
+              <UserX size={12} /> Blokkeer gebruiker
+            </button>
+          ) : (
+            <>
+              <span style={{ fontSize: 12, color: MUTED }}>Weet je het zeker?</span>
+              <button onClick={blockUser} disabled={blocking} style={{ background: "none", border: "none", color: BURGUNDY, fontWeight: 700, fontSize: 12, cursor: "pointer", padding: 0 }}>
+                {blocking ? "Bezig…" : "Ja, blokkeer"}
+              </button>
+              <button onClick={() => setConfirmBlock(false)} style={{ background: "none", border: "none", color: MUTED, fontSize: 12, cursor: "pointer", padding: 0 }}>Annuleer</button>
+            </>
+          )}
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "18px 20px" }}>
@@ -7720,6 +7765,13 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
 
   useEffect(() => { if (active) loadFriendships(); }, [myId, active]);
 
+  const [blockedIds, setBlockedIds] = useState(() => new Set());
+  useEffect(() => {
+    if (!active || !myId) return;
+    supabase.from("blocked_users").select("blocked_id").eq("blocker_id", myId)
+      .then(({ data }) => setBlockedIds(new Set((data || []).map(b => b.blocked_id))));
+  }, [myId, active]);
+
   const accepted = friendships.filter(f => f.status === "accepted");
   const incoming = friendships.filter(f => f.status === "pending" && f.addressee_id === myId);
   const outgoing = friendships.filter(f => f.status === "pending" && f.requester_id === myId);
@@ -7733,7 +7785,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
     setSearching(true);
     const { data } = await supabase.from("profiles").select("id, name, avatar_url").ilike("name", `%${q}%`).neq("id", myId).limit(10);
     setSearching(false);
-    setSearchResults((data || []).filter(p => !knownIds.has(p.id)));
+    setSearchResults((data || []).filter(p => !knownIds.has(p.id) && !blockedIds.has(p.id)));
   };
 
   const sendRequest = async (targetId) => {
@@ -7861,6 +7913,8 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
           friendProfile={profilesById[openFriendId]}
           recipes={recipes}
           allIngredients={allIngredients}
+          session={session}
+          onBlocked={() => { setOpenFriendId(null); loadFriendships(); }}
           onClose={() => setOpenFriendId(null)}
         />
       )}
