@@ -2171,182 +2171,182 @@
   {
     "id": "red_cloud",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "red_cloud.webp",
+    "bronUrl": "https://www.pexels.com/photo/shot-of-a-pink-cocktail-and-orange-slices-on-bar-table-12365245/",
+    "maker": "Sharan Pagadala",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "red_hook",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "red_hook.webp",
+    "bronUrl": "https://www.pexels.com/photo/bartender-pouring-red-cocktail-into-a-glass-29093620/",
+    "maker": "Ünal  Aslan",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "remember_the_maine",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "remember_the_maine.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rhett_butler",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "rhett_butler.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-glass-in-dimly-lit-tokyo-bar-34989165/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "ritz_old_fashioned",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "ritz_old_fashioned.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-old-fashioned-cocktail-on-bar-counter-29707925/",
+    "maker": "Airam Dato-on",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rob_roy",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "rob_roy.webp",
+    "bronUrl": "https://www.pexels.com/photo/bartender-holding-a-cocktail-4485375/",
+    "maker": "Antoni Shkraba",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rossini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "rossini.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-drinks-13004099/",
+    "maker": "Vinícius Caricatte",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "roy_rogers",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "roy_rogers.webp",
+    "bronUrl": "https://www.pexels.com/photo/chilled-fermented-beverage-with-ice-cubes-34418064/",
+    "maker": "Walter Medina Foto",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rude_cosmopolitan",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "rude_cosmopolitan.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-variety-of-alcoholic-beverages-7282878/",
+    "maker": "Polina ⠀",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rum_old_fashioned",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "rum_old_fashioned.webp",
+    "bronUrl": "https://www.pexels.com/photo/glass-of-beverage-2663974/",
+    "maker": "Cameron Rainey",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rum_runner",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "rum_runner.webp",
+    "bronUrl": "https://www.pexels.com/photo/man-holding-orange-cocktail-in-shadow-27100878/",
+    "maker": "Alex Gonzo",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rum_sour",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "rum_sour.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktails-served-in-a-bar-24868931/",
+    "maker": "Kadir Avşar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "russian_spring_punch",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "russian_spring_punch.webp",
+    "bronUrl": "https://www.pexels.com/photo/red-fruit-drink-with-mint-leaves-on-wooden-cutting-board-12653183/",
+    "maker": "Sylwester Ficek",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rusty_nail",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1566209119978-52e061856970?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "rusty_nail.webp",
+    "bronUrl": "https://www.pexels.com/photo/woman-hand-holding-drink-16374125/",
+    "maker": "The OurWhisky Foundation 🥃",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "sake_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "sake_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/glass-of-cold-drink-with-pansy-20844840/",
+    "maker": "Nadin Sh",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "salty_dog",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "salty_dog.webp",
+    "bronUrl": "https://www.pexels.com/photo/glass-of-cocktail-with-lime-20659352/",
+    "maker": "Cristian Jacinto",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "sangria",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/28525158/pexels-photo-28525158.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "sangria.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-sangria-in-elegant-goblet-33997140/",
+    "maker": "Büşra Yurt",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "santiago",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "santiago.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-cocktail-glass-on-table-with-orange-glow-36189465/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "satans_whiskers",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "satans_whiskers.webp",
+    "bronUrl": "https://www.pexels.com/photo/orange-liquid-in-clear-cocktail-glass-6065325/",
+    "maker": "Eva Bronzini",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "sazerac",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1747098017560-46ac3c7f112b?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "sazerac.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-cocktail-glass-on-table-with-orange-glow-36189465/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "sbagliato",
