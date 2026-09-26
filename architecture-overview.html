@@ -1,0 +1,461 @@
+<title>Thuisbar Architectuur</title>
+<style>
+  :root {
+    --bg: #FBF6EA;
+    --bg-soft: #F3ECD9;
+    --panel: #FFFFFF;
+    --panel-alt: #EAE0C9;
+    --ink: #2B2620;
+    --muted: #8A8171;
+    --border: #DED2B8;
+    --border-strong: #C9BB98;
+    --brass: #B8862E;
+    --brass-soft: #F2E3C4;
+    --bottle: #1F3D36;
+    --bottle-dark: #132622;
+    --bottle-soft: #DCE8E3;
+    --sage: #4F6E46;
+    --sage-soft: #E1EADB;
+    --burgundy: #7A2E2A;
+    --burgundy-soft: #F1DEDB;
+    --shadow: 0 1px 2px rgba(43,38,32,0.06), 0 6px 18px rgba(43,38,32,0.07);
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15201C;
+      --bg-soft: #182722;
+      --panel: #1D2A25;
+      --panel-alt: #21332B;
+      --ink: #F2EAD8;
+      --muted: #A8B0A5;
+      --border: #33453C;
+      --border-strong: #435A4E;
+      --brass: #E4B564;
+      --brass-soft: #3A3020;
+      --bottle: #7FB3A0;
+      --bottle-dark: #0E1917;
+      --bottle-soft: #223731;
+      --sage: #9AC08C;
+      --sage-soft: #223126;
+      --burgundy: #E08B85;
+      --burgundy-soft: #3A2422;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 22px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15201C;
+    --bg-soft: #182722;
+    --panel: #1D2A25;
+    --panel-alt: #21332B;
+    --ink: #F2EAD8;
+    --muted: #A8B0A5;
+    --border: #33453C;
+    --border-strong: #435A4E;
+    --brass: #E4B564;
+    --brass-soft: #3A3020;
+    --bottle: #7FB3A0;
+    --bottle-dark: #0E1917;
+    --bottle-soft: #223731;
+    --sage: #9AC08C;
+    --sage-soft: #223126;
+    --burgundy: #E08B85;
+    --burgundy-soft: #3A2422;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 22px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+  }
+  h1, h2, h3 { font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; margin: 0; text-wrap: balance; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-block: 32px 64px; }
+  code, .mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+
+  /* ---- Header ---- */
+  .hero {
+    background: linear-gradient(160deg, #2A4B42, var(--bottle-dark) 75%);
+    border-radius: 20px;
+    padding: 34px 30px;
+    color: #FBF6EA;
+    box-shadow: var(--shadow);
+    margin-bottom: 34px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 700px 260px at 12% -30%, rgba(184,134,46,0.35), transparent 60%);
+    pointer-events: none;
+  }
+  .hero .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: #D9CBAE; margin-bottom: 8px; }
+  .hero h1 { font-size: clamp(26px, 4vw, 38px); font-style: italic; font-weight: 700; color: #FBF6EA; }
+  .hero p { margin: 10px 0 0; max-width: 640px; font-size: 14.5px; line-height: 1.6; color: #C9D6CE; position: relative; }
+
+  /* ---- Section scaffolding ---- */
+  .stage {
+    margin-bottom: 30px;
+  }
+  .stage-label {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .stage-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--bottle); color: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+    font-family: 'Inter', sans-serif;
+  }
+  .stage-label h2 { font-size: 18px; font-style: italic; font-weight: 700; }
+  .stage-sub { font-size: 12.5px; color: var(--muted); margin: 2px 0 0 36px; max-width: 560px; line-height: 1.5; }
+
+  .connector {
+    display: flex; justify-content: center; margin: 6px 0;
+    color: var(--border-strong);
+  }
+
+  /* ---- Cards ---- */
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 17px;
+    flex: 1 1 220px;
+  }
+  .card.tight { flex: 0 1 200px; }
+  .card h3 {
+    font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 7px; margin-bottom: 8px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .card p { font-size: 13px; line-height: 1.55; color: var(--muted); margin: 0 0 8px; }
+  .card p:last-child { margin-bottom: 0; }
+  .taglist { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag {
+    font-size: 11px; font-family: ui-monospace, monospace; padding: 3px 7px;
+    border-radius: 6px; background: var(--bg-soft); color: var(--ink);
+    border: 1px solid var(--border);
+  }
+
+  /* category accents */
+  .c-static  { border-top: 3px solid var(--brass); }
+  .c-static  h3 .dot { background: var(--brass); }
+  .c-local   { border-top: 3px solid var(--sage); }
+  .c-local   h3 .dot { background: var(--sage); }
+  .c-cloud   { border-top: 3px solid var(--bottle); }
+  .c-cloud   h3 .dot { background: var(--bottle); }
+  .c-sheet   { border-top: 3px solid var(--burgundy); }
+  .c-sheet   h3 .dot { background: var(--burgundy); }
+  .c-neutral { border-top: 3px solid var(--border-strong); }
+  .c-neutral h3 .dot { background: var(--border-strong); }
+
+  /* ---- Hub ---- */
+  .hub {
+    background: var(--panel-alt);
+    border: 1.5px solid var(--border-strong);
+    border-radius: 18px;
+    padding: 22px 22px 20px;
+    box-shadow: var(--shadow);
+  }
+  .hub-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .hub-top h3 { font-family: 'Playfair Display', serif; font-size: 20px; font-style: italic; font-weight: 700; }
+  .hub-top .file { font-size: 11.5px; color: var(--muted); }
+  .gate {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .gate-step {
+    background: var(--panel); border: 1px dashed var(--border-strong); border-radius: 9px;
+    padding: 8px 11px; font-size: 12px; flex: 1 1 150px; line-height: 1.45;
+  }
+  .gate-step b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--brass); margin-bottom: 2px; }
+  .helpers {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;
+  }
+  .helper {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 10px; font-size: 12px;
+  }
+  .helper .mono { color: var(--bottle); font-weight: 700; font-size: 12px; }
+  .helper span { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+
+  /* ---- Tabs grid ---- */
+  .tabgroup-label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+  .tabgroup-label:first-child { margin-top: 0; }
+  .tabs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .tabcard {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 11px;
+    padding: 13px 14px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .tabcard.primary { border-color: var(--bottle); background: var(--bottle-soft); }
+  .tabcard-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .tabcard-title strong { font-size: 14px; font-weight: 700; }
+  .badge { font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 6px; border-radius: 5px; background: var(--bottle); color: var(--bg); }
+  .tabcard-title .comp { font-size: 10.5px; color: var(--muted); font-family: ui-monospace, monospace; }
+  .tabcard p { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0; }
+  .flowchips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+  .flowchip { font-size: 10px; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--border); }
+  .flowchip.r { color: var(--sage); border-color: var(--sage); }
+  .flowchip.w { color: var(--burgundy); border-color: var(--burgundy); }
+
+  /* ---- legend ---- */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .dot { width: 9px; height: 9px; }
+
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--muted); line-height: 1.6; }
+
+  @media (max-width: 480px) {
+    .hero { padding: 24px 20px; }
+    .card { flex: 1 1 100%; }
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">Mijn Thuisbar &middot; architectuur-overzicht</div>
+    <h1>Hoe de app in elkaar zit</h1>
+    <p>Eén React-bestand (<span class="mono" style="color:#E4B564">ThuisbarApp.jsx</span>, ~6000 regels) is de hele app: één centrale staat bovenin, elf tab-componenten die daaruit lezen en erin schrijven, en sheets die er als overlay bovenop schuiven. Data komt uit drie bronnen: statische bestanden, de telefoon zelf (localStorage), en Supabase in de cloud.</p>
+  </div>
+
+  <!-- STAGE 1: shell -->
+  <div class="stage">
+    <div class="stage-label"><div class="stage-num">1</div><h2>De schil — hoe de app opstart</h2></div>
+    <div class="stage-sub">Zit als PWA "op het beginscherm", ziet er dan uit als een native app (geen Safari-balken).</div>
+    <div class="row" style="margin-top:14px">
+      <div class="card c-neutral tight">
+        <h3><span class="dot"></span>index.html</h3>
+        <p>Laadt fonts, manifest, en <span class="mono">main.jsx</span>. Zet de donkergroene achtergrondkleur vast zodat er geen witte flits is bij het opstarten.</p>
+      </div>
+      <div class="card c-neutral tight">
+        <h3><span class="dot"></span>manifest.json</h3>
+        <p><span class="mono">display: standalone</span> — geen browserbalken. Dit is ook waarom edge-swipe-terug van Safari niet werkt: die functie bestaat alleen mét browserchrome.</p>
+      </div>
+      <div class="card c-neutral tight">
+        <h3><span class="dot"></span>sw.js</h3>
+        <p>Service worker: laat de app offline openen en verzorgt pushmeldingen ("vriend heeft ingecheckt").</p>
+      </div>
+      <div class="card c-neutral tight">
+        <h3><span class="dot"></span>main.jsx</h3>
+        <p>Eén regel die telt: <span class="mono">render(&lt;ThuisbarApp /&gt;)</span>. Alles hieronder gebeurt binnen dat ene component.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">↓</div>
+
+  <!-- STAGE 2: data sources -->
+  <div class="stage">
+    <div class="stage-label"><div class="stage-num">2</div><h2>Drie plekken waar data vandaan komt</h2></div>
+    <div class="stage-sub">ThuisbarApp voedt zichzelf uit deze drie bronnen voordat er iets op het scherm komt.</div>
+    <div class="row" style="margin-top:14px">
+      <div class="card c-static">
+        <h3><span class="dot"></span>Statisch &middot; recipes.js / course.js</h3>
+        <p>Vast, gecodeerd in het bestand zelf — verandert nooit tijdens gebruik.</p>
+        <div class="taglist">
+          <span class="tag">INGREDIENTS</span><span class="tag">RECIPES</span><span class="tag">CATEGORY_ORDER</span>
+          <span class="tag">STORIES</span><span class="tag">FUN_FACTS</span><span class="tag">SHOP_LINKS</span>
+          <span class="tag">COURSE_LESSONS</span>
+        </div>
+      </div>
+      <div class="card c-local">
+        <h3><span class="dot"></span>Lokaal op dit toestel &middot; localStorage</h3>
+        <p>Via de <span class="mono">useStorage</span>-hook: blijft alleen op déze telefoon/browser staan, gaat niet mee naar een ander toestel.</p>
+        <div class="taglist">
+          <span class="tag">voorraad</span><span class="tag">voorraadAantal</span><span class="tag">shoppingList</span>
+          <span class="tag">customRecipes</span><span class="tag">customIngredients</span><span class="tag">feestChosen</span>
+          <span class="tag">smaakMenu</span><span class="tag">courseProgress</span><span class="tag">favorieten</span>
+          <span class="tag">recente recepten</span><span class="tag">geluid aan/uit</span>
+        </div>
+      </div>
+      <div class="card c-cloud">
+        <h3><span class="dot"></span>Cloud &middot; Supabase</h3>
+        <p>Alles wat vrienden van elkaar moeten kunnen zien — dát kán localStorage niet, dus dit staat in een database.</p>
+        <div class="taglist">
+          <span class="tag">profiles</span><span class="tag">checkins</span><span class="tag">checkin_comments</span>
+          <span class="tag">checkin_reactions</span><span class="tag">friendships</span><span class="tag">push_subscriptions</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">↓</div>
+
+  <!-- STAGE 3: hub -->
+  <div class="stage">
+    <div class="stage-label"><div class="stage-num">3</div><h2>De hub — ThuisbarApp()</h2></div>
+    <div class="stage-sub">Eerst een poortje op basis van de inlogstatus, dan bouwt het component alle gedeelde state en helper-functies die de tabs zo meteen krijgen doorgegeven.</div>
+    <div class="hub" style="margin-top:14px">
+      <div class="hub-top">
+        <h3>Eerst: wie ben je?</h3>
+        <div class="file">regel 1564–1567</div>
+      </div>
+      <div class="gate">
+        <div class="gate-step"><b>session === undefined</b>nog aan het checken bij Supabase → leeg donkergroen scherm</div>
+        <div class="gate-step"><b>passwordRecovery</b>wachtwoord-resetlink geopend → PasswordRecoveryScreen</div>
+        <div class="gate-step"><b>session === null</b>niet ingelogd → AuthScreen (login/registreren)</div>
+        <div class="gate-step"><b>session = object</b>ingelogd → de hoofd-app hieronder</div>
+      </div>
+      <div class="hub-top" style="margin-top:4px">
+        <h3 style="font-size:16px">Dan: gedeelde helpers, doorgegeven als props</h3>
+      </div>
+      <div class="helpers">
+        <div class="helper"><span class="mono">allIngredients</span><span>INGREDIENTS + customIngredients</span></div>
+        <div class="helper"><span class="mono">allRecipes</span><span>RECIPES + customRecipes</span></div>
+        <div class="helper"><span class="mono">isOwned(ref)</span><span>zit dit ingrediënt in voorraad?</span></div>
+        <div class="helper"><span class="mono">ingredientLabel(ref)</span><span>id of eigen naam → leesbare tekst</span></div>
+        <div class="helper"><span class="mono">chime(naam)</span><span>speelt geluid als soundEnabled</span></div>
+        <div class="helper"><span class="mono">addToShoppingList()</span><span>voegt toe + merget dubbele items</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">↓ elke tab krijgt zijn eigen deel van bovenstaande props ↓</div>
+
+  <!-- STAGE 4: tabs -->
+  <div class="stage">
+    <div class="stage-label"><div class="stage-num">4</div><h2>Elf tabs, elk een eigen functie-component</h2></div>
+    <div class="stage-sub">Vier in de onderbalk (BottomDock), de rest achter "Meer" — <span class="flowchip r" style="margin:0 2px">R</span> = leest gedeelde state, <span class="flowchip w" style="margin:0 2px">W</span> = schrijft ernaar terug.</div>
+
+    <div class="tabgroup-label">Onderbalk (BottomDock) — 4 primaire tabs</div>
+    <div class="tabs-grid">
+      <div class="tabcard primary">
+        <div class="tabcard-title"><strong>Voorraad</strong><span class="badge">1</span></div>
+        <div class="tabcard-title" style="margin-top:-4px"><span class="comp">VoorraadTab</span></div>
+        <p>Aanvinken wat je in huis hebt, per categorie (met de nieuwe sfeerfoto's).</p>
+        <div class="flowchips"><span class="flowchip w">voorraad</span><span class="flowchip w">voorraadAantal</span><span class="flowchip w">customIngredients</span></div>
+      </div>
+      <div class="tabcard primary">
+        <div class="tabcard-title"><strong>Maken</strong><span class="badge">2</span></div>
+        <div class="tabcard-title" style="margin-top:-4px"><span class="comp">MakenTab</span></div>
+        <p>"Wat kan ik maken" op basis van voorraad, ontdekken op basisdrank/stijl.</p>
+        <div class="flowchips"><span class="flowchip r">isOwned</span><span class="flowchip w">shoppingList</span></div>
+      </div>
+      <div class="tabcard primary">
+        <div class="tabcard-title"><strong>Recept</strong><span class="badge">3</span></div>
+        <div class="tabcard-title" style="margin-top:-4px"><span class="comp">VerhaalTab</span></div>
+        <p>Recepten met verhaal/achtergrond, favorieten en recent bekeken.</p>
+        <div class="flowchips"><span class="flowchip w">favorieten</span><span class="flowchip w">recente recepten</span></div>
+      </div>
+      <div class="tabcard primary">
+        <div class="tabcard-title"><strong>Check-in</strong><span class="badge">4</span></div>
+        <div class="tabcard-title" style="margin-top:-4px"><span class="comp">LogboekTab</span></div>
+        <p>Logboek van gedronken cocktails: profielstrip, foto-hero, prestaties, statistieken.</p>
+        <div class="flowchips"><span class="flowchip r">logboek (Supabase)</span><span class="flowchip w">checkins</span></div>
+      </div>
+    </div>
+
+    <div class="tabgroup-label">Achter "Meer" — 7 tabs</div>
+    <div class="tabs-grid">
+      <div class="tabcard">
+        <div class="tabcard-title"><strong>Winkelmandje</strong><span class="comp">WinkelmandjeTab</span></div>
+        <p>Boodschappenlijst, met "in voorraad zetten" en het check-geluidje bij toevoegen.</p>
+        <div class="flowchips"><span class="flowchip r">shoppingList</span><span class="flowchip w">voorraad</span></div>
+      </div>
+      <div class="tabcard">
+        <div class="tabcard-title"><strong>Schaler</strong><span class="comp">SchalerTab</span></div>
+        <p>Eén recept herberekenen naar een ander aantal glazen.</p>
+        <div class="flowchips"><span class="flowchip r">allRecipes</span></div>
+      </div>
+      <div class="tabcard">
+        <div class="tabcard-title"><strong>Smaakbalans</strong><span class="comp">SmaakbalansTab</span></div>
+        <p>Menu samenstellen op smaakprofiel, kan doorschieten naar de Feestplanner.</p>
+        <div class="flowchips"><span class="flowchip w">smaakMenu</span></div>
+      </div>
+      <div class="tabcard">
+        <div class="tabcard-title"><strong>Cursus</strong><span class="comp">CursusTab</span></div>
+        <p>"Van Basis tot Pro" — eigen lesprogramma met quizzes uit course.js.</p>
+        <div class="flowchips"><span class="flowchip w">courseProgress</span></div>
+      </div>
+      <div class="tabcard">
+        <div class="tabcard-title"><strong>Feestplanner</strong><span class="comp">FeestplannerTab</span></div>
+        <p>Menu voor een feest, inkooplijst + ijs/glazen-voorbereiding.</p>
+        <div class="flowchips"><span class="flowchip r">voorraadAantal</span><span class="flowchip w">shoppingList</span></div>
+      </div>
+      <div class="tabcard">
+        <div class="tabcard-title"><strong>Eigen recepten</strong><span class="comp">EigenRecepten</span></div>
+        <p>Zelf recepten toevoegen — komen overal tussen de standaardrecepten terecht.</p>
+        <div class="flowchips"><span class="flowchip w">customRecipes</span></div>
+      </div>
+      <div class="tabcard">
+        <div class="tabcard-title"><strong>Vrienden</strong><span class="comp">VriendenTab</span></div>
+        <p>Vriendenfeed, 🥂-reacties, tekstreacties, uitnodigingslink.</p>
+        <div class="flowchips"><span class="flowchip r">friendships (Supabase)</span><span class="flowchip w">checkin_comments</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">↓ sommige tabs openen hier overheen een sheet ↓</div>
+
+  <!-- STAGE 5: sheets -->
+  <div class="stage">
+    <div class="stage-label"><div class="stage-num">5</div><h2>Sheets — overlays die van onderen omhoog schuiven</h2></div>
+    <div class="stage-sub">Alle vier gebouwd via <span class="mono">createPortal</span> naar <span class="mono">document.body</span> (zodat ze altijd bovenop de onderbalk liggen), en sinds vandaag allemaal met vinger-omlaag-vegen-om-te-sluiten via de gedeelde <span class="mono">useSheetDismiss</span>-hook.</div>
+    <div class="row" style="margin-top:14px">
+      <div class="card c-sheet">
+        <h3><span class="dot"></span>CategorySheet</h3>
+        <p>Vanuit Voorraad: alle ingrediënten in één categorie, aan/uit vinken.</p>
+      </div>
+      <div class="card c-sheet">
+        <h3><span class="dot"></span>RecipeSheet</h3>
+        <p>Receptdetail met ingrediënten + "voeg ontbrekende toe aan winkelmandje" — gebruikt vanuit Maken én Feestplanner.</p>
+      </div>
+      <div class="card c-sheet">
+        <h3><span class="dot"></span>BrowseSheet</h3>
+        <p>Lijst recepten binnen "op basisdrank" / "op stijl" vanuit Maken.</p>
+      </div>
+      <div class="card c-sheet">
+        <h3><span class="dot"></span>FriendProfileSheet</h3>
+        <p>Profiel + logboek-statistieken van een vriend, vanuit Vrienden.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">↕ dit werkt overal doorheen ↕</div>
+
+  <!-- STAGE 6: cross-cutting -->
+  <div class="stage">
+    <div class="stage-label"><div class="stage-num">6</div><h2>Systemen die dwars door alle tabs heen lopen</h2></div>
+    <div class="row" style="margin-top:14px">
+      <div class="card c-neutral">
+        <h3><span class="dot"></span>Geluid</h3>
+        <p>Geen audiobestanden — <span class="mono">playSound()</span> synthetiseert elk geluidje live met de Web Audio API (tick, pop, clink, chime, pour, share, levelup, unlock…).</p>
+      </div>
+      <div class="card c-neutral">
+        <h3><span class="dot"></span>Beeld: foto óf illustratie</h3>
+        <p><span class="mono">RecipeCircle</span>/<span class="mono">GlassArt</span> tekenen een SVG-glas als er geen foto is; is er wel een foto (recept, categorie, basisdrank), dan krijgt die dezelfde sepia-tint (<span class="mono">RECIPE_PHOTO_FILTER</span>) zodat het één geheel oogt.</p>
+      </div>
+      <div class="card c-neutral">
+        <h3><span class="dot"></span>Supabase Edge Function</h3>
+        <p><span class="mono">notify-friends</span> wordt aangeroepen bij elke nieuwe check-in, en stuurt de pushmelding naar vrienden.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--brass)"></span> statische data</span>
+      <span><span class="dot" style="background:var(--sage)"></span> lokaal op dit toestel</span>
+      <span><span class="dot" style="background:var(--bottle)"></span> cloud / Supabase</span>
+      <span><span class="dot" style="background:var(--burgundy)"></span> sheet / overlay</span>
+      <span><span class="dot" style="background:var(--border-strong)"></span> schil / systeem</span>
+    </div>
+    <p style="margin-top:10px">Alles in één bestand: <span class="mono">src/ThuisbarApp.jsx</span>. Geen router, geen aparte state-library (Redux/Zustand) — puur React state + props, plus de <span class="mono">useStorage</span>-hook voor localStorage en directe <span class="mono">supabase.from(...)</span>-calls voor de cloud-tabellen.</p>
+  </footer>
+
+</div>

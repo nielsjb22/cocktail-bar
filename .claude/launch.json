@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "thuisbar-dev",
+      "runtimeExecutable": "/Users/nielsbenedictus/.local/node/bin/node",
+      "runtimeArgs": ["/Users/nielsbenedictus/Downloads/thuisbar-project/node_modules/vite/bin/vite.js"],
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "thuisbar-web-preview",
+      "runtimeExecutable": "/Users/nielsbenedictus/.local/node/bin/node",
+      "runtimeArgs": ["/Users/nielsbenedictus/Downloads/thuisbar-project/node_modules/vite/bin/vite.js", "preview", "--host"],
+      "port": 4173,
+      "autoPort": true
+    }
+  ]
+}

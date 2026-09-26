@@ -1,0 +1,18 @@
+{
+  "appId": "nl.thuisbar.app",
+  "appName": "Mijn Thuisbar",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#0E1917",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "overlaysWebView": true
+    },
+    "Keyboard": {
+      "resizeOnFullScreen": true
+    }
+  }
+}

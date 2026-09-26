@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<title>Van Basis tot Pro — De Complete Thuisbar Cursus</title>
+<style>
+  @page { size: A4; margin: 22mm 20mm 24mm 20mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #2B2620;
+    background: #F3ECDD;
+    font-size: 11.3pt;
+    line-height: 1.6;
+  }
+  .cover {
+    height: 251mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: radial-gradient(ellipse 900px 500px at 50% 20%, #2A4B42, #132622 75%);
+    color: #FBF6EA;
+    page-break-after: always;
+  }
+  .cover .ring {
+    width: 110px; height: 110px; border-radius: 50%;
+    border: 2px solid #B8862E; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 34px; background: rgba(184,134,46,0.08);
+  }
+  .cover .ring svg { width: 52px; height: 52px; }
+  .cover .kicker {
+    letter-spacing: 4px; text-transform: uppercase; font-family: Arial, sans-serif;
+    font-size: 11pt; color: #B8862E; font-weight: 700; margin-bottom: 18px;
+  }
+  .cover h1 {
+    font-size: 46pt; font-style: italic; font-weight: 700; margin: 0 0 14px; max-width: 640px; color: #FBF6EA;
+  }
+  .cover .sub {
+    font-size: 15pt; color: #D8CFA0; max-width: 480px; line-height: 1.5; margin-bottom: 40px;
+  }
+  .cover .parts {
+    font-family: Arial, sans-serif; font-size: 10pt; letter-spacing: 1px; color: #B9C4B9;
+    border-top: 1px solid rgba(184,134,46,0.4); padding-top: 20px; max-width: 460px;
+  }
+
+  .toc-page { page-break-after: always; padding-top: 6mm; }
+  .toc-page h2 { font-size: 22pt; }
+  .toc-part { margin-top: 22px; }
+  .toc-part-title {
+    font-family: Arial, sans-serif; font-size: 10.5pt; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: #B8862E; margin-bottom: 8px; border-bottom: 1px solid #DED2B8; padding-bottom: 4px;
+  }
+  .toc-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11pt; }
+  .toc-row .n { color: #8A8171; width: 26px; flex-shrink: 0; font-family: Arial, sans-serif; font-size: 9.5pt; }
+  .toc-row .t { flex: 1; }
+
+  .part-divider {
+    height: 251mm; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+    page-break-before: always; page-break-after: always;
+    background: linear-gradient(135deg, #1F3D36, #132622);
+    color: #FBF6EA; padding: 0 8mm;
+  }
+  .part-divider .pk { font-family: Arial, sans-serif; letter-spacing: 3px; text-transform: uppercase; color: #B8862E; font-size: 11pt; margin-bottom: 10px; }
+  .part-divider h2 { font-size: 32pt; font-style: italic; max-width: 460px; margin: 0 0 16px; }
+  .part-divider p { max-width: 420px; color: #D8CFA0; font-size: 11.5pt; line-height: 1.6; }
+
+  h2.module-title {
+    font-size: 19pt; color: #1F3D36; margin: 0 0 4px; page-break-before: always; padding-top: 4mm;
+  }
+  .module-num {
+    font-family: Arial, sans-serif; font-size: 9.5pt; letter-spacing: 2px; text-transform: uppercase;
+    color: #B8862E; font-weight: 700; margin-bottom: 6px; display: block;
+  }
+  .module-intro {
+    font-style: italic; color: #5C5648; font-size: 11.5pt; border-left: 3px solid #B8862E; padding-left: 14px; margin: 14px 0 20px;
+  }
+  h3 { font-size: 13.5pt; color: #1F3D36; margin: 22px 0 8px; }
+  p { margin: 0 0 11px; text-align: justify; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 5px; }
+  strong { color: #1F3D36; }
+
+  .box {
+    background: #EAE0C9; border: 1px solid #DED2B8; border-radius: 4px; padding: 14px 16px; margin: 16px 0;
+    font-size: 10.6pt;
+  }
+  .box .label {
+    font-family: Arial, sans-serif; font-size: 9pt; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+    color: #B8862E; margin-bottom: 6px; display: block;
+  }
+  .box.tip { border-left: 4px solid #5C7A52; }
+  .box.tip .label { color: #5C7A52; }
+  .box.warning { border-left: 4px solid #7A2E2A; }
+  .box.warning .label { color: #7A2E2A; }
+  .box.history { border-left: 4px solid #B8862E; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 10.3pt; }
+  th, td { border-bottom: 1px solid #DED2B8; padding: 6px 8px; text-align: left; }
+  th { font-family: Arial, sans-serif; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.5px; color: #B8862E; }
+
+  .takeaways {
+    margin-top: 22px; background: #1F3D36; color: #FBF6EA; border-radius: 4px; padding: 16px 18px;
+  }
+  .takeaways .label { font-family: Arial, sans-serif; font-size: 9pt; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #D8CFA0; margin-bottom: 8px; display: block; }
+  .takeaways ul { margin: 0; padding-left: 18px; }
+  .takeaways li { margin-bottom: 4px; font-size: 10.6pt; }
+
+  .footer-note { font-size: 8.5pt; color: #8A8171; font-family: Arial, sans-serif; margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="ring">
+    <svg viewBox="0 0 100 100" fill="none" stroke="#DDB877" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M25 25 L50 50 L75 25" /><line x1="50" y1="50" x2="50" y2="80" /><line x1="35" y1="80" x2="65" y2="80" />
+    </svg>
+  </div>
+  <div class="kicker">Mijn Thuisbar &middot; Cursus</div>
+  <h1>Van Basis tot Pro</h1>
+  <div class="sub">De complete cursus cocktails maken — geschiedenis, techniek, smaak en de gastvrijheid van een echte bartender, in twintig lessen.</div>
+  <div class="parts">
+    DEEL I FUNDAMENTEN &nbsp;&middot;&nbsp; DEEL II INGREDIËNTEN &nbsp;&middot;&nbsp; DEEL III TECHNIEK<br/>
+    DEEL IV SMAAK &amp; COMPOSITIE &nbsp;&middot;&nbsp; DEEL V HET VAK VAN BARTENDER
+  </div>
+</div>
+
+<div class="toc-page">
+  <h2>Inhoud</h2>
+
+  <div class="toc-part">
+    <div class="toc-part-title">Deel I — Fundamenten</div>
+    <div class="toc-row"><span class="n">01</span><span class="t">De geschiedenis van de cocktail</span></div>
+    <div class="toc-row"><span class="n">02</span><span class="t">De bar-uitrusting: jouw gereedschapskist</span></div>
+    <div class="toc-row"><span class="n">03</span><span class="t">Glaswerk: de juiste vorm voor het juiste doel</span></div>
+    <div class="toc-row"><span class="n">04</span><span class="t">IJs: de onderschatte hoofdingrediënt</span></div>
+  </div>
+
+  <div class="toc-part">
+    <div class="toc-part-title">Deel II — De ingrediënten</div>
+    <div class="toc-row"><span class="n">05</span><span class="t">Gedistilleerde dranken: de basis van elke cocktail</span></div>
+    <div class="toc-row"><span class="n">06</span><span class="t">Versterkte wijnen, likeuren en bitters</span></div>
+    <div class="toc-row"><span class="n">07</span><span class="t">Vers: citrus, siropen en zuivel</span></div>
+    <div class="toc-row"><span class="n">08</span><span class="t">Garnering: functie boven decoratie</span></div>
+  </div>
+
+  <div class="toc-part">
+    <div class="toc-part-title">Deel III — Techniek</div>
+    <div class="toc-row"><span class="n">09</span><span class="t">De zes basistechnieken</span></div>
+    <div class="toc-row"><span class="n">10</span><span class="t">De wetenschap van verdunning en temperatuur</span></div>
+    <div class="toc-row"><span class="n">11</span><span class="t">De sour-formule: zoet, zuur en sterk in balans</span></div>
+    <div class="toc-row"><span class="n">12</span><span class="t">Dubbel zeven, laagjes en andere finesse</span></div>
+  </div>
+
+  <div class="toc-part">
+    <div class="toc-part-title">Deel IV — Smaak &amp; compositie</div>
+    <div class="toc-row"><span class="n">13</span><span class="t">De negen cocktailfamilies</span></div>
+    <div class="toc-row"><span class="n">14</span><span class="t">Smaakcombinatie: hoe klassiekers zijn opgebouwd</span></div>
+    <div class="toc-row"><span class="n">15</span><span class="t">Zelf een cocktail ontwerpen: de bouwstenen-methode</span></div>
+    <div class="toc-row"><span class="n">16</span><span class="t">Een menu samenstellen als een pro</span></div>
+  </div>
+
+  <div class="toc-part">
+    <div class="toc-part-title">Deel V — Het vak van bartender</div>
+    <div class="toc-row"><span class="n">17</span><span class="t">Mise en place: voorbereiding is alles</span></div>
+    <div class="toc-row"><span class="n">18</span><span class="t">Batchen en grote groepen bedienen</span></div>
+    <div class="toc-row"><span class="n">19</span><span class="t">Gastvrijheid: het onzichtbare ingrediënt</span></div>
+    <div class="toc-row"><span class="n">20</span><span class="t">Je eigen signature cocktail</span></div>
+  </div>
+
+  <div class="toc-part">
+    <div class="toc-part-title">Bijlagen</div>
+    <div class="toc-row"><span class="n">A</span><span class="t">Cheatsheet: klassieke ratio's per familie</span></div>
+    <div class="toc-row"><span class="n">B</span><span class="t">Vervangingstabel voor ingrediënten</span></div>
+    <div class="toc-row"><span class="n">C</span><span class="t">Proeftermen-woordenboek</span></div>
+    <div class="toc-row"><span class="n">D</span><span class="t">Verder verdiepen</span></div>
+  </div>
+</div>
+
+<div class="part-divider">
+  <div class="pk">Deel I</div>
+  <h2>Fundamenten</h2>
+  <p>Voordat je één druppel drank mengt, moet je weten waar je vandaan komt, waarmee je werkt en waarom die keuzes ooit zijn gemaakt. Dit deel legt het fundament: de geschiedenis die verklaart waarom cocktails zijn zoals ze zijn, de uitrusting die het werk mogelijk maakt, en de twee onderschatte factoren — glas en ijs — die het verschil maken tussen amateuristisch en professioneel.</p>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 01 &middot; Deel I</span>De geschiedenis van de cocktail</h2>
+<div class="module-intro">Elke cocktail die je ooit zult maken, staat in een lijn die terugloopt tot scheepsartsen, apothekers en barmannen die problemen oplosten — niet tot mensen die simpelweg lekkere drankjes wilden bedenken. Ken je die lijn, dan begrijp je in één klap waarom bijna elke klassieker exact dezelfde onderliggende logica deelt.</div>
+
+<h3>Vóór de cocktail: punch en medicinale mengsels</h3>
+<p>Lang voordat het woord "cocktail" bestond, mengden zeevarende naties al drank met andere ingrediënten. De punch — een woord dat waarschijnlijk teruggaat op het Hindi-woord voor "vijf" (pānch), naar de vijf ingrediënten sterkedrank, suiker, citrus, water en specerijen — reisde via de Britse Oost-Indische Compagnie vanaf de zeventiende eeuw mee naar Europa. Punch werd in grote kommen gedeeld, vaak bij officiële gelegenheden, en de vier smaakelementen uit die oude formule (sterk, zoet, zuur, kruidig) liggen nog steeds aan de basis van vrijwel elke cocktail die je vandaag maakt.</p>
+<p>Citrus en suiker waren in die tijd geen luxe-toevoegingen maar praktische noodzaak: ruwe, vaak nauwelijks gerijpte sterkedrank was scherp en oncomfortabel om te drinken, en scheurbuik was een reëel gevaar op lange zeereizen. Een schip zonder verse groente kon wél citroenen aan boord hebben, en een scheutje daarvan in de dagelijkse rum- of jeneverrantsoen loste twee problemen tegelijk op. Deze praktische oorsprong is een terugkerend thema in de cocktailgeschiedenis: bijna niets is ooit puur voor de lol bedacht.</p>
+
+<h3>1806: het jaar dat het woord een definitie kreeg</h3>
+<p>Het woord "cocktail" dook al eerder op in gedrukte tekst, maar pas in 1806 gaf een Amerikaanse krant, The Balance and Columbian Repository, er een expliciete definitie aan naar aanleiding van een lezersvraag: een cocktail was "sterkedrank van welke soort dan ook, suiker, water en bitters." Dat is, in de kern, nog steeds de Old Fashioned. Alles wat we sindsdien "cocktail" noemen — van de meest simpele highball tot de meest exotische tiki-creatie — is een variatie, uitbreiding of afwijking van die oorspronkelijke vierdelige formule.</p>
+<p>Deze definitie is belangrijk om te onthouden, want het verklaart waarom zoveel latere cocktails zo dicht bij elkaar liggen: een Manhattan is een Old Fashioned met vermout in plaats van (of naast) suiker; een Sazerac is een Old Fashioned met een specifieke absint-wassing en een eigen bitter. Als je die verwantschap ziet, wordt de hele cocktailwereld ineens een stuk overzichtelijker — je leert geen honderden losse recepten, je leert een klein aantal families en hun varianten.</p>
+
+<h3>De Gouden Eeuw: 1860-1920</h3>
+<p>De tweede helft van de negentiende eeuw was de eerste grote bloeiperiode. Barmannen als Jerry Thomas — wiens boek "How to Mix Drinks" uit 1862 het eerste echte cocktailboek ter wereld was — begonnen technieken en recepten systematisch vast te leggen. Deze periode bracht ons de Whiskey Sour, de Martinez (voorloper van de Martini), en talloze andere klassiekers die vandaag nog op elke goede kaart staan. IJs werd in deze periode ook steeds toegankelijker: waar het ooit ‘s winters uit meren werd gezaagd en in geïsoleerde ijshuizen bewaard, zorgde de opkomst van mechanische koeling ervoor dat een cocktail het hele jaar door echt koud geserveerd kon worden — een technische randvoorwaarde die we nu vanzelfsprekend vinden, maar die toen revolutionair was.</p>
+
+<h3>De drooglegging: een ramp die de wereld veranderde</h3>
+<p>Van 1920 tot 1933 was het produceren, vervoeren en verkopen van alcohol in de Verenigde Staten illegaal. Voor de Amerikaanse cocktailcultuur was dit een ramp op eigen bodem, maar het had een onbedoeld wereldwijd effect: duizenden Amerikaanse barmannen — en een fors deel van hun rijke klantenkring — verhuisden tijdelijk of permanent naar Europa en Cuba, waar drank wél legaal bleef. Bars als Harry's New York Bar in Parijs en El Floridita in Havana groeiden in die jaren uit tot broedplaatsen van nieuwe klassiekers (de Sidecar, de White Lady, de Hemingway Daiquiri), terwijl in Amerika zelf de kwaliteit van illegale "bathtub gin" bartenders dwong om drankjes te bedenken die de smaak van slechte sterkedrank moesten maskeren — vandaar de explosie aan zoete, kruidige en fruitige cocktails uit die periode.</p>
+
+<h3>Van naoorlogse neergang tot de tiki-golf</h3>
+<p>Na de Tweede Wereldoorlog verschoof de smaak: cocktails werden zoeter, makkelijker en minder verfijnd, mede door de opkomst van kant-en-klare mixen. Tegelijkertijd ontstond in Amerika een compleet ander genre: tiki. Pioniers als Donn Beach (Don the Beachcomber) en Victor "Trader Vic" Bergeron bouwden een complete fantasiewereld rond Polynesische exotiek, met complexe rum-cocktails vol zelfgemaakte siropen en geheime recepten. Tiki was zowel een culinaire als een theatrale prestatie — en de eerste keer dat cocktails bewust werden ingezet om een compleet "gevoel" of "beleving" te creëren, niet alleen een smaak.</p>
+
+<h3>De donkere jaren en de renaissance</h3>
+<p>De jaren zeventig en tachtig worden door veel cocktailhistorici gezien als het dieptepunt: kant-en-klare zure mixen, overdreven zoete kleurrijke shots en een algemeen verlies van vakmanschap achter de bar. De omslag kwam eind jaren negentig en begin jaren 2000, aangevoerd door een kleine groep bartenders in New York en Londen (met bars als Milk & Honey en de Pegu Club als broedplaatsen) die teruggrepen op negentiende-eeuwse technieken, verse ingrediënten en historische recepten. Deze "craft cocktail-revival" is de reden dat je vandaag vers citroensap gebruikt in plaats van een flesje concentraat, en dat woorden als "small batch," "house-made" en "classic technique" weer gewoon zijn geworden. Jij leert in deze cursus in feite het resultaat van die revival: een synthese van negentiende-eeuws vakmanschap en eenentwintigste-eeuwse precisie.</p>
+
+<div class="box history">
+  <span class="label">Tijdlijn in het kort</span>
+  1650-1800 punch &middot; 1806 eerste definitie van "cocktail" &middot; 1862 Jerry Thomas' eerste barboek &middot; 1920-1933 drooglegging &amp; de Europese uittocht &middot; jaren '30-'50 tiki-opkomst &middot; jaren '70-'80 kwaliteitsdip &middot; sinds ~2000 craft-cocktailrevival
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>De vierdelige formule uit 1806 (sterkedrank, suiker, water, bitters) is de wortel van bijna elke cocktail die je later leert.</li>
+    <li>Citrus en suiker zijn ooit functionele oplossingen geweest, geen smaakgrapjes — dat verklaart waarom balans nog steeds centraal staat.</li>
+    <li>Cocktailgeschiedenis verloopt in golven: bloei, verval, revival. De stijl die je nu leert (vers, precies, historisch bewust) is zelf een reactie op een eerdere periode van verval.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 02 &middot; Deel I</span>De bar-uitrusting: jouw gereedschapskist</h2>
+<div class="module-intro">Je hebt geen dure barwagen nodig om goed te beginnen, maar met de verkeerde tools kost elke stap onnodig veel moeite — en levert het een minder consistent resultaat op. Dit is de uitrusting die er echt toe doet, in volgorde van belangrijkheid.</div>
+
+<h3>De shaker: drie families, één doel</h3>
+<p>Een shaker heeft één taak: ingrediënten en ijs snel en grondig mengen, koelen en verdunnen. Er zijn drie hoofdtypen. De <strong>Boston shaker</strong> bestaat uit twee delen — een metalen beker en een glazen of metalen "tin" die je erop klemt — en is de keuze van vrijwel elke professionele bartender vanwege snelheid en een betere afdichting bij hard schudden. De <strong>cobbler shaker</strong> is het driedelige, vaak decoratieve model met een ingebouwde zeef en dopje, herkenbaar uit elke film met een thuisbar-scène; hij is prima voor beginners maar lekt sneller en de ingebouwde zeef verstopt bij muntblaadjes of vruchtvlees. De <strong>Franse shaker</strong> zit qua vorm tussen beide in: twee metalen delen zonder ingebouwde zeef, elegant maar met dezelfde noodzaak voor een losse strainer als de Boston-versie.</p>
+<p>Voor thuisgebruik is de praktische aanbeveling: een Boston-set (metalen beker + glazen mixing-tin die je ook los als roerglas kunt gebruiken) geeft je de meeste flexibiliteit voor de laagste prijs.</p>
+
+<h3>De jigger: nauwkeurigheid is geen luxe</h3>
+<p>Een jigger is een dubbelzijdig maatbekertje, meestal met een kant van 25-30 ml en een kant van 45-60 ml (de exacte maten verschillen per merk). Vrijhandig schenken ("free pouring") oogt indrukwekkend in films, maar zelfs ervaren bartenders wijken zonder jigger tot 20% af van hun bedoelde receptuur — en bij een cocktail die op een precieze zoet-zuur-balans steunt, is dat het verschil tussen een geweldige en een matige drank. Elke cocktail in deze cursus, en in de bijbehorende app, gaat uit uit van jigger-nauwkeurigheid.</p>
+
+<h3>De bar spoon: langer dan je denkt dat nodig is</h3>
+<p>Een bar spoon heeft een lange, gedraaide steel — die spiraal is geen decoratie maar zorgt dat de lepel soepel tussen je vingers ronddraait tijdens het roeren, wat een rustige, gecontroleerde beweging mogelijk maakt zonder dat je pols meedraait. De achterkant (vaak een schijfje of vork) wordt gebruikt om vruchten te muddelen of laagjes te gieten (zie Les 12).</p>
+
+<h3>Zeven: drie niveaus van filtratie</h3>
+<p>De <strong>hawthorne-zeef</strong> (met veerrand) hoort op een Boston-shaker en houdt grof ijs tegen. De <strong>julep-zeef</strong> (een gaatjeslepel-achtige zeef) hoort op een roerglas en is preciezer voor stirred-down-cocktails. Een <strong>fijne theezeef</strong> gebruik je voor "dubbel zeven" (double straining) bij cocktails met muntblaadjes, vruchtvlees of kleine ijssplinters die anders in het glas terechtkomen — essentieel voor een glasheldere cocktail.</p>
+
+<h3>Overige onmisbare stukken</h3>
+<ul>
+  <li><strong>Muddler</strong> — een stamper, meestal hout of kunststof, voor het kneuzen van kruiden of fruit. Kies er een zonder gelakte afwerking; lak kan afbladderen in je drank.</li>
+  <li><strong>Channel knife / dunschiller</strong> — voor citrusschil en -twists.</li>
+  <li><strong>Mixing glass</strong> — een zwaar, dikwandig glas specifiek voor stirred-down-cocktails; het gewicht helpt het ijs langzamer smelten tijdens het roeren.</li>
+  <li><strong>IJsvorm(en)</strong> — losse, grote ijsblokvormen (voor Old Fashioned-achtige drankjes) zijn een verrassend goedkope upgrade met een groot visueel en functioneel effect (zie Les 04).</li>
+</ul>
+
+<div class="box tip">
+  <span class="label">Pro-tip</span>
+  Begin met vier dingen: een Boston-shaker-set, een jigger, een bar spoon en een hawthorne-zeef. Dat kost je in Nederland doorgaans niet meer dan €35-45 en dekt letterlijk elk recept in deze cursus.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Een jigger is geen beginnershulpmiddel maar de manier waarop professionals consistent goede cocktails maken.</li>
+    <li>Elk zeeftype heeft een eigen taak — hawthorne voor shaken, julep voor roeren, fijne zeef voor de laatste polish.</li>
+    <li>Vier basisstukken dekken vrijwel alles; investeer pas verder als je merkt waar je zelf tegenaan loopt.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 03 &middot; Deel I</span>Glaswerk: de juiste vorm voor het juiste doel</h2>
+<div class="module-intro">Een glas is geen decoratie — de vorm bepaalt hoe snel een drank opwarmt, hoe het aroma je neus bereikt, en zelfs hoeveel ijs er logischerwijs in past. Dit hoofdstuk behandelt elk glastype dat je in de praktijk nodig hebt.</div>
+
+<h3>De coupe en de cocktailschaal</h3>
+<p>De coupe — een ondiepe, brede schaal op een steel — is het glas voor "up" geserveerde cocktails: drankjes die geshaked of geroerd worden met ijs en vervolgens zonder ijs worden geserveerd, zoals een Daiquiri, Whiskey Sour of Martini. De brede opening laat aroma's snel vrijkomen, wat bij deze categorie gewenst is omdat de drank zelf al gekoeld en verdund het glas ingaat. Een populaire mythe wil dat de vorm oorspronkelijk gemodelleerd is naar de boezem van een Franse koningin — historisch weerlegd, maar het verhaal blijft hardnekkig de ronde doen aan menig bar.</p>
+
+<h3>Rocks, of Old Fashioned-glas</h3>
+<p>Een kort, stevig glas met een dikke bodem, bedoeld voor drankjes die "on the rocks" (over ijs) worden geserveerd: Old Fashioned, Negroni, Whiskey Smash. De dikke bodem is functioneel bij het muddelen — je kunt er met enige kracht in stampen zonder het glas te breken.</p>
+
+<h3>Highball en Collins</h3>
+<p>Beide zijn hoge, rechte glazen voor longdrinks met veel mixer (tonic, cola, gemberbier): het volume geeft ruimte voor voldoende ijs om de drank de hele tijd koud te houden zonder snel te verwateren. Een Collins-glas is doorgaans smaller en iets hoger dan een highball-glas, maar in de praktijk worden de termen vaak door elkaar gebruikt.</p>
+
+<h3>Nick &amp; Nora en martiniglas</h3>
+<p>Het klassieke, driehoekige martiniglas oogt herkenbaar maar heeft een praktisch nadeel: de brede, open vorm laat een cocktail snel opwarmen en morst makkelijker. Het Nick &amp; Nora-glas — kleiner, met een meer gebogen, tulpvormige kelk — wordt door veel hedendaagse bartenders geprefereerd om precies die reden, en is in de moderne craft-cocktailwereld vaak de eerste keuze voor Martini's en Manhattans.</p>
+
+<h3>Wijnglas, flute en specialistische vormen</h3>
+<p>Champagnecocktails vragen om een <strong>flute</strong>: de smalle vorm behoudt de koolzuurbubbels langer dan een breed glas. Een <strong>wijnglas</strong> wordt soms gebruikt voor cocktails met wijn of sherry als basis (zoals de Bamboo of Adonis) om de link met die herkomst visueel te onderstrepen. Tiki-cocktails krijgen vaak hun eigen thematische bekers — een <strong>Hurricane-glas</strong>, een tiki-mok — puur voor de theatrale, op beleving gerichte traditie van dat genre (zie Les 01).</p>
+
+<h3>De koperen beker</h3>
+<p>Onlosmakelijk verbonden met de Moscow Mule: koper geleidt kou uitzonderlijk goed, waardoor de buitenkant van de beker binnen enkele minuten beslaat — een tastbaar, visueel signaal dat de drank ijskoud is. Puur decoratief gezien werkt elk longdrinkglas net zo goed, maar de traditie (en het effect) is te leuk om te laten schieten.</p>
+
+<table>
+  <tr><th>Glas</th><th>Gebruik voor</th><th>Waarom deze vorm</th></tr>
+  <tr><td>Coupe / Nick&amp;Nora</td><td>"Up" cocktails zonder ijs</td><td>Brede/gebogen opening laat aroma vrij, geen ijs nodig na het schudden/roeren</td></tr>
+  <tr><td>Rocks</td><td>On-the-rocks, muddled drankjes</td><td>Stevige bodem voor muddelen, ruimte voor een groot ijsblok</td></tr>
+  <tr><td>Highball / Collins</td><td>Longdrinks met veel mixer</td><td>Volume voor voldoende verdunnend/koelend ijs</td></tr>
+  <tr><td>Flute</td><td>Champagnecocktails</td><td>Smalle vorm behoudt koolzuur</td></tr>
+  <tr><td>Koperen beker</td><td>Moscow Mule-achtigen</td><td>Snelle, zichtbare afkoeling</td></tr>
+</table>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Glasvorm bepaalt aroma-afgifte, opwarmsnelheid én hoeveel ijs logisch past — het is functioneel, niet decoratief.</li>
+    <li>"Up" geserveerde cocktails (coupe/Nick&amp;Nora) zijn al gekoeld vóór het inschenken; longdrinks (highball) hebben juist volume nodig om zelf koud te blijven.</li>
+    <li>Bij twijfel: een set van 4 (coupe, rocks, highball, wijnglas) dekt vrijwel elk recept in deze cursus.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 04 &middot; Deel I</span>IJs: de onderschatte hoofdingrediënt</h2>
+<div class="module-intro">Beginnende thuisbartenders behandelen ijs als een bijzaak. Professionals behandelen het als een ingrediënt met een eigen receptuur — want dat is het ook: verdunning door smeltend ijs is een essentieel, opzettelijk onderdeel van vrijwel elke cocktail.</div>
+
+<h3>Waarom verdunning geen fout is</h3>
+<p>Een cocktail zonder verdunning smaakt onaangenaam geconcentreerd en te sterk. Wanneer je shaket of roert met ijs, smelt een deel daarvan bewust mee in de drank — meestal tussen de 20 en 30% van het uiteindelijke volume. Die toegevoegde waterlaag "opent" de smaken en zorgt dat alcohol, zuur en zoet elkaar in balans houden in plaats van elkaar te overschreeuwen. Een cocktail die je te snel drinkt (voordat het ijs zijn werk heeft gedaan) proeft anders dan dezelfde cocktail een paar minuten later — dit is precies waarom bartenders vaak een exacte schud- of roertijd aanhouden in plaats van "tot het koud aanvoelt."</p>
+
+<h3>IJsvormen en hun functie</h3>
+<p>Grofweg drie soorten ijs zijn relevant. <strong>Standaard kubusijs</strong> (uit een normale ijsblokjesvorm) is de werkpaard-variant: prima voor shaken en de meeste longdrinks. <strong>Groot-formaat ijs</strong> — één blok van 4-5 cm — smelt trager door de kleinere oppervlakte-tot-volume-verhouding, en is de standaard geworden voor Old Fashioned-achtige drankjes: je krijgt langere tijd een goed gekoelde, langzaam evoluerende cocktail zonder dat hij binnen tien minuten waterig wordt. <strong>Crushed of fijngestampt ijs</strong> smelt juist razendsnel en wordt bewust gebruikt bij drankjes als de Mojito, Julep of veel tiki-cocktails, waar een snelle, intense verdunning en een zeer koude, verfrissende afdronk gewenst zijn.</p>
+
+<h3>Helder versus troebel ijs</h3>
+<p>Normaal kraanwater bevat opgeloste lucht en mineralen die tijdens het bevriezen naar het midden van het blok worden geduwd, wat de bekende witte, troebele kern veroorzaakt. Professionele bars gebruiken soms speciale, richtinggestuurde vriestechnieken (of gekookt/gefilterd water) om volledig heldere ijsblokken te maken — puur esthetisch, het heeft geen waarneembaar smaakeffect, maar het is een leuke, relatief simpele upgrade als je zelf grote ijsblokken maakt voor Old Fashioned-achtige cocktails.</p>
+
+<h3>Praktische vuistregel voor een feest</h3>
+<p>Reken op ongeveer 150 gram ijs per geserveerde cocktail (dit is ook de vuistregel die de bijbehorende Thuisbar-app gebruikt in de Feestplanner) — dat dekt zowel het ijs in de shaker/het roerglas als het ijs waarover je serveert. Kom je ijs tekort tijdens een avond, dan verwatert elke volgende ronde merkbaar sneller, simpelweg omdat je gedwongen wordt kleinere hoeveelheden of half-gesmolten ijs te gebruiken.</p>
+
+<div class="box warning">
+  <span class="label">Veelgemaakte fout</span>
+  Ijs hergebruiken dat al in een glas heeft gezeten (bijvoorbeeld voor het "voorkoelen" van een glas) voor de volgende cocktail. Dat ijs is al deels gesmolten en verdund met de vorige drank — gebruik voor elke stap vers ijs uit je voorraad.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Verdunning door ijs is een opzettelijk onderdeel van de receptuur, niet een neveneffect om te minimaliseren.</li>
+    <li>Grof ijs = trage verdunning (Old Fashioned-stijl), fijn/crushed ijs = snelle verdunning (Mojito/tiki-stijl) — kies bewust.</li>
+    <li>Reken ruim: te weinig ijs tijdens een feest verpest de kwaliteit van elke volgende ronde.</li>
+  </ul>
+</div>
+
+<div class="part-divider">
+  <div class="pk">Deel II</div>
+  <h2>De ingrediënten</h2>
+  <p>Een cocktail is nooit beter dan de som van wat erin gaat. Dit deel neemt je mee door de vier ingrediëntcategorieën die samen elke cocktail vormen: de sterkedrank die de ruggengraat vormt, de versterkte wijnen/likeuren/bitters die karakter toevoegen, de verse elementen die balans brengen, en de garnering die het geheel afmaakt.</p>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 05 &middot; Deel II</span>Gedistilleerde dranken: de basis van elke cocktail</h2>
+<div class="module-intro">Vrijwel elke cocktail heeft een "basisspirit" — de drank die het meeste volume en het meeste karakter inbrengt. Ken je de hoofdcategorieën goed, dan kun je bij elk nieuw recept meteen inschatten wat je gaat proeven, nog voordat je hebt geshaked.</div>
+
+<h3>Hoe distilleren werkt (in een notendop)</h3>
+<p>Alle gedistilleerde drank begint als een gegist mengsel — wijn, bier, of een suikerhoudende vloeistof — met een relatief laag alcoholpercentage. Distilleren verhit dat mengsel tot het punt waarop alcohol (dat bij een lagere temperatuur verdampt dan water) verdampt, waarna die damp wordt opgevangen en weer vloeibaar gemaakt: een geconcentreerd, sterker eindproduct. Het basismateriaal (graan, druiven, suikerriet, agave, aardappel) en de eventuele rijping daarna bepalen samen tot welke categorie de drank behoort en welk smaakprofiel hij heeft.</p>
+
+<h3>Whiskey: graan, rijping en regels</h3>
+<p>Whiskey (met een 'e' voor Amerikaanse en Ierse varianten, zonder 'e' — whisky — voor Schotse, Canadese en Japanse) wordt gestookt uit gegist graan en vrijwel altijd gerijpt op eikenhouten vaten, wat het zijn kenmerkende amberkleur en vanille-/houtnoten geeft. <strong>Bourbon</strong> moet volgens Amerikaanse wetgeving voor minstens 51% uit maïs bestaan en in nieuwe, verkoolde eikenvaten rijpen, wat een zoetere, ronde whiskey oplevert. <strong>Rye</strong> gebruikt overwegend rogge en levert een drogere, kruidigere, pittiger whiskey — de klassieke basis voor de Manhattan en Sazerac. <strong>Scotch</strong> wordt in Schotland gestookt, vaak (bij Islay-whisky's) met een herkenbare rokerige noot van het gedroogde mout. <strong>Irish whiskey</strong> is doorgaans zachter en driemaal gedistilleerd, wat een lichter eindresultaat geeft.</p>
+
+<h3>Gin: jenever met een kruidenverhaal</h3>
+<p>Gin is in de kern neutrale graanalcohol die opnieuw wordt gedistilleerd met jeneverbessen en een reeks andere kruiden ("botanicals" — koriander, angelica, citrusschil, en tientallen merkspecifieke toevoegingen). <strong>London Dry</strong> is de droogste, meest jeneverbes-voorwaartse stijl en de meest voorkomende in cocktails. <strong>Old Tom Gin</strong> is een historische, licht gezoete stijl die de afgelopen jaren is herontdekt voor klassiekers als de Martinez en Tom Collins. <strong>Genever</strong>, de Nederlandse voorloper van gin, heeft een veel voller, meer moutig karakter (dichter bij whiskey dan bij moderne gin) en wordt in klassieke recepten soms nog specifiek gevraagd.</p>
+
+<h3>Rum: suikerriet in alle texturen</h3>
+<p>Rum wordt gestookt uit suikerriet of melasse (het stroopachtige bijproduct van suikerproductie). <strong>Witte rum</strong> is licht en veelal ongerijpt (of kort gerijpt en gefilterd), ideaal voor Daiquiri's en Mojito's waar je de rum niet wilt laten overheersen. <strong>Donkere/gerijpte rum</strong> heeft langer op vaten gelegen en brengt karamel-, vanille- en houttonen mee, essentieel voor tiki-cocktails. <strong>Rum agricole</strong>, met name uit Martinique, wordt gestookt uit vers suikerrietsap in plaats van melasse en heeft een grasachtig, funky karakter dat in bepaalde klassieke en moderne tiki-recepten specifiek wordt gevraagd.</p>
+
+<h3>Tequila en mezcal: twee agave-dranken, twee werelden</h3>
+<p>Beide worden gestookt uit de agaveplant, maar het productieproces verschilt fundamenteel. <strong>Tequila</strong> mag wettelijk alleen uit blauwe Weber-agave worden gemaakt, uit een afgebakende regio rond Jalisco, Mexico, en wordt meestal gestoomd in industriële ovens — een relatief schone, plantaardig-pepperige smaak. <strong>Mezcal</strong> mag van meerdere agavesoorten worden gemaakt en wordt traditioneel geroosterd in ondergrondse stenen ovens bekleed met houtskool en lava-stenen, wat de karakteristieke rokerige smaak geeft. Zie mezcal niet als "sterkere tequila" maar als een compleet andere drank met een eigen productiefilosofie.</p>
+
+<h3>Wodka: neutraliteit als kenmerk</h3>
+<p>Wodka kan uit vrijwel elk fermenteerbaar materiaal worden gestookt (graan, aardappel, druiven) en wordt bewust zo neutraal en geurloos mogelijk gedistilleerd en gefilterd. Dat is geen tekortkoming maar het hele punt: wodka-cocktails laten de andere ingrediënten (sap, likeur, bitters) het werk doen, terwijl de wodka zelf voor lichaam en alcoholsterkte zorgt zonder een eigen smaakstempel te drukken.</p>
+
+<h3>Cognac en brandy: gedistilleerde wijn</h3>
+<p>Brandy is, kort gezegd, gedistilleerde wijn (of ander fruit). <strong>Cognac</strong> is een wettelijk beschermde, aan de regio Cognac in Frankrijk gebonden variant, tweemaal gedistilleerd en minstens twee jaar gerijpt in Franse eik, met een rijk, fruitig-houtig karakter. <strong>Calvados</strong> is de appel-variant uit Normandië. Vóór phylloxera (een druifluis die eind negentiende eeuw grote delen van de Europese wijngaarden verwoestte) was cognac zelfs de dominante basis voor Amerikaanse cocktails — pas daarna namen whiskey en andere sterkedranken die rol goeddeels over, wat verklaart waarom sommige negentiende-eeuwse klassiekers (zoals de oorspronkelijke Sazerac) ooit met cognac werden gemaakt.</p>
+
+<table>
+  <tr><th>Categorie</th><th>Basismateriaal</th><th>Karakter</th></tr>
+  <tr><td>Bourbon / Rye</td><td>Maïs / rogge</td><td>Zoet-rond / droog-kruidig, vanille en hout</td></tr>
+  <tr><td>Gin</td><td>Graanalcohol + botanicals</td><td>Kruidig, jeneverbes-voorwaarts</td></tr>
+  <tr><td>Witte / donkere rum</td><td>Suikerriet / melasse</td><td>Licht-fris / karamel-vanille</td></tr>
+  <tr><td>Tequila</td><td>Blauwe agave</td><td>Plantaardig, pepperig</td></tr>
+  <tr><td>Mezcal</td><td>Diverse agavesoorten</td><td>Rokerig, aards</td></tr>
+  <tr><td>Wodka</td><td>Graan / aardappel</td><td>Neutraal</td></tr>
+  <tr><td>Cognac</td><td>Gedistilleerde druivenwijn</td><td>Fruitig, houtig, rond</td></tr>
+</table>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Basismateriaal + rijping bepalen samen de smaakcategorie — ken je die logica, dan kun je nieuwe dranken al deels inschatten voor je proeft.</li>
+    <li>Tequila en mezcal zijn geen "sterk/zwak"-paar maar twee verschillende productiefilosofieën.</li>
+    <li>Wodka's neutraliteit is functioneel: het is een drager voor andere smaken, geen smaakloos gebrek.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 06 &middot; Deel II</span>Versterkte wijnen, likeuren en bitters</h2>
+<div class="module-intro">Als sterkedrank de ruggengraat van een cocktail is, zijn deze drie categorieën het zenuwstelsel: ze sturen de smaak subtiel bij, voegen kruidigheid en complexiteit toe, en zijn vaak het verschil tussen een goede en een gedenkwaardige cocktail.</div>
+
+<h3>Vermout: de meest onderschatte fles in huis</h3>
+<p>Vermout is wijn die is versterkt met extra alcohol en op smaak gebracht met een geheime mix van kruiden, wortels en schillen. <strong>Droge vermout</strong> (zoals Franse stijl) is licht, kruidig en essentieel voor een Martini. <strong>Zoete vermout</strong> (Italiaanse stijl, vaak roodbruin) is voller en zoeter, de ruggengraat van een Manhattan of Negroni. Een cruciaal, vaak genegeerd detail: vermout is wijn, geen sterkedrank — eenmaal geopend oxideert het net als wijn, en verliest binnen enkele weken (gekoeld bewaard) merkbaar aan frisheid. Een fles vermout die al maanden open in de kast staat, is de meest voorkomende reden dat een thuisgemaakte Manhattan of Martini flets smaakt terwijl het recept klopt.</p>
+
+<h3>Amari en kruidenlikeuren: de bittere familie</h3>
+<p>"Amaro" (meervoud: amari) is een Italiaanse verzamelnaam voor bittere kruidenlikeuren, oorspronkelijk ontwikkeld als spijsverteringsmiddel. Campari en Aperol zijn de bekendste voorbeelden — Campari beduidend bitterder en dieper rood, Aperol lichter, zoeter en oranje. Fernet-Branca, Cynar (op basis van artisjok) en talloze andere amari brengen elk hun eigen kruidenprofiel. In cocktails zorgen deze likeuren voor een bittere tegenhanger die voorkomt dat een drank eendimensionaal zoet wordt — precies de rol die Campari speelt in een Negroni.</p>
+
+<h3>Kloosterlikeuren: eeuwenoude geheime recepten</h3>
+<p>Sommige van de meest gebruikte likeuren in de klassieke cocktailwereld zijn eeuwenoude klooster-recepten. <strong>Chartreuse</strong> (groen en geel) wordt sinds de zeventiende eeuw gedistilleerd door kartuizer monniken volgens een receptuur met meer dan honderd kruiden, tot op vandaag slechts bij twee monniken tegelijk bekend. <strong>Bénédictine</strong> gaat terug tot de zestiende eeuw en benedictijner monniken in Normandië. Deze likeuren zijn intens complex en worden vaak in kleine hoeveelheden gebruikt — een paar milliliter kan een compleet recept een extra laag geven.</p>
+
+<h3>Fruit- en smaaklikeuren</h3>
+<p>Van triple sec (sinaasappel) en maraschino (bittere kersen, veel droger dan het zoete siroopje dat je bij cocktailkersen kent) tot crème de cassis (zwarte bes) en crème de menthe (munt): deze likeuren voegen een geconcentreerde, zoete smaaklaag toe. Het woord "crème" in de naam verwijst naar een hoog suikergehalte, niet naar zuivel.</p>
+
+<h3>Bitters: het zout-en-peper van de cocktailwereld</h3>
+<p>Bitters zijn zeer geconcentreerde, kruidige tincturen — je gebruikt ze in "dashes" (een paar druppels), niet in millilitersvolumes. Angostura (kruidig, kaneelachtig) en Peychaud's (lichter, anijsachtig, met een karakteristiek rozerode kleur) zijn de twee bekendste. Het effect van bitters is subtiel maar krachtig: net als zout in koken benadrukken ze de andere smaken in plaats van een eigen dominante smaak toe te voegen. Een cocktail zonder de voorgeschreven bitters mist vaak een onderliggende diepte die je pas opmerkt als je de vergelijking proeft.</p>
+
+<div class="box tip">
+  <span class="label">Pro-tip</span>
+  Bewaar alle versterkte wijnen (vermout, sherry, port) na opening in de koelkast, en vervang ze elke 4-6 weken als je ze regelmatig gebruikt. Dit is de meest impactvolle, goedkoopste verbetering die je vandaag kunt doorvoeren.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Vermout is wijn, geen sterkedrank — behandel het (koeling, houdbaarheid) dienovereenkomstig.</li>
+    <li>Amari en bitters spelen dezelfde rol als zout in koken: ze scherpen andere smaken aan in plaats van zelf te overheersen.</li>
+    <li>Kleine hoeveelheden (dashes, een paar ml likeur) hebben vaak een onevenredig grote invloed op het eindresultaat.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 07 &middot; Deel II</span>Vers: citrus, siropen en zuivel</h2>
+<div class="module-intro">Dit zijn de ingrediënten die je zelf het meest controleert — en waar de meeste winst te behalen valt tussen een matige en een uitstekende cocktail.</div>
+
+<h3>Citrus: altijd vers, altijd op tijd geperst</h3>
+<p>Vers citroen- of limoensap oxideert binnen enkele uren merkbaar en verliest zijn felheid; commercieel citrussap uit een fles mist bovendien de vluchtige aromatische oliën die net-geperst sap wél heeft. De vuistregel onder bartenders: pers citrus dezelfde dag als je 'm gebruikt, idealiter binnen een paar uur. Dit is, meer dan enige andere afzonderlijke regel, de reden waarom professioneel gemaakte sours zo anders smaken dan een thuisversie met sap uit een plastic citroentje.</p>
+
+<h3>Suikersiroop: waarom niet gewoon suiker?</h3>
+<p>Gewone kristalsuiker lost niet goed op in een koude, met ijs geshakete cocktail — je proeft knerpende suikerkorrels op de bodem. Suikersiroop (gelijke delen suiker en water, verwarmd tot opgelost en afgekoeld) lost daarentegen direct en volledig op, ook in ijskoude vloeistof. Rietsuikersiroop, honingsiroop en amandelsiroop (orgeat) zijn variaties die elk hun eigen smaakkarakter toevoegen naast pure zoetheid.</p>
+
+<h3>Orgeat en andere specialistische siropen</h3>
+<p>Orgeat — een siroop op basis van amandelen, vaak met een vleugje oranjebloesemwater — is onmisbaar in tiki-klassiekers als de Mai Tai. Falernum (limoen, gember, amandel, kruidnagel) is een andere tiki-signatuursiroop. Deze siropen zijn niet zomaar "zoetmakers": ze brengen een eigen, herkenbaar smaakprofiel dat een recept zijn identiteit geeft.</p>
+
+<h3>Eiwit: textuur, geen smaak</h3>
+<p>Eiwit wordt toegevoegd om een zijdezachte, romige schuimlaag te creëren (denk aan een Whiskey Sour of Pisco Sour), niet voor de smaak — rauw eiwit heeft nauwelijks smaak. De techniek vereist een "dry shake": eerst hard schudden zónder ijs om het eiwit goed te laten emulgeren, pas daarna met ijs verder schudden om te koelen. Sla je de dry shake over, dan krijg je een dunne, weinig indrukwekkende schuimlaag in plaats van de dichte, stevige kraag die het beoogde effect is.</p>
+
+<h3>Room en zuivel: de dessertcocktails</h3>
+<p>Slagroom en room-likeuren (zoals Ierse room-likeur) geven cocktails uit de dessertfamilie hun volle, weelderige textuur. Zuivel is gevoeliger dan de meeste andere ingrediënten — gebruik het vers en gekoeld, en verwacht een kortere houdbaarheid van elke cocktail waarin het verwerkt zit.</p>
+
+<div class="box warning">
+  <span class="label">Veelgemaakte fout</span>
+  Suikersiroop of citrussap dagen van tevoren klaarmaken "om tijd te besparen" bij een feest. Citrussap verliest binnen 24 uur al merkbaar aan frisheid; maak het zo dicht mogelijk bij het moment van serveren.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Vers citrussap is misschien wel de grootste kwaliteitssprong die je vandaag kunt maken — belangrijker dan een duur flesje sterkedrank.</li>
+    <li>Suikersiroop lost op waar kristalsuiker dat niet doet — een simpel, essentieel technisch detail.</li>
+    <li>Eiwit is een textuur-ingrediënt: de dry shake is niet optioneel als je het gewenste schuimeffect wilt.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 08 &middot; Deel II</span>Garnering: functie boven decoratie</h2>
+<div class="module-intro">Een garnering die alleen maar mooi oogt maar niets aan smaak of aroma toevoegt, is een gemiste kans. De beste garneringen doen minstens één functioneel ding: aroma vrijgeven, een smaakaccent toevoegen, of de temperatuur beïnvloeden.</div>
+
+<h3>De citrustwist: aroma, geen smaak</h3>
+<p>Een schil sinaasappel of citroen die je boven de cocktail uitknijpt, verspreidt een wolkje aromatische oliën direct over het drankoppervlak — de eerste geur die je ruikt bij elke slok. Dit effect is verrassend krachtig: dezelfde cocktail met en zonder deze twist proeft merkbaar anders, ook al verandert er niets aan de vloeistof zelf. Wrijf de schil na het uitknijpen langs de rand van het glas voor een extra laag aroma.</p>
+
+<h3>Het citrus- of fruitwiel</h3>
+<p>Een dun gesneden schijfje citrus of ander fruit, vaak op de rand van het glas of los erin. Functioneel voegt dit een lichte extra geur toe elke keer dat je drinkt, en optisch signaleert het meteen welke smaakrichting de cocktail heeft.</p>
+
+<h3>Muntblaadjes: klap, niet pletten</h3>
+<p>Munt als garnering (bijvoorbeeld bovenop een Mojito of Julep) werkt het best als je de blaadjes eerst tussen je handen klapt (een korte, stevige klap, geen fijnwrijven) om de aromatische oliën te activeren zonder de blaadjes te beschadigen — beschadigde munt oxideert snel en wordt bitter.</p>
+
+<h3>Olijven en zilveruitjes: zout als contrapunt</h3>
+<p>Bij een Dirty Martini of Gibson voegt de garnering een zoute, hartige noot toe die de drank zelf niet heeft — een bewust contrast, geen versiering.</p>
+
+<h3>Kers, ananas en de tiki-traditie</h3>
+<p>In tiki-cocktails is garnering vaak bewust overdreven — parasolletjes, ananasstukken, meerdere kersen — als onderdeel van de theatrale, op beleving gerichte traditie van dat genre (zie Les 01). Hier is het effect grotendeels sfeer, niet smaak, en dat is prima: niet elke garnering hoeft functioneel te zijn zolang je weet wélk doel hij dient.</p>
+
+<div class="box tip">
+  <span class="label">Pro-tip</span>
+  Vraag jezelf bij elke garnering af: voegt dit aroma, smaak of temperatuur toe, of is het puur sfeer? Beide zijn legitiem, maar een bewuste keuze levert altijd een overtuigender resultaat dan willekeurig fruit op de rand prikken.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>De beste garneringen hebben een functie: aroma (twist), smaakaccent (olijf) of sfeer (tiki-decor).</li>
+    <li>Een citrustwist verandert de geur — en dus de beleving — van een cocktail zonder de vloeistof zelf aan te passen.</li>
+    <li>Klap munt, plet het niet: beschadigde blaadjes oxideren en worden bitter.</li>
+  </ul>
+</div>
+
+<div class="part-divider">
+  <div class="pk">Deel III</div>
+  <h2>Techniek</h2>
+  <p>Twee bartenders met dezelfde ingrediënten en hetzelfde recept kunnen compleet verschillende cocktails afleveren — het verschil zit in techniek. Dit deel behandelt de bewegingen, de wetenschap en de finesse die van een correct gevolgd recept een werkelijk goede cocktail maken.</p>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 09 &middot; Deel III</span>De zes basistechnieken</h2>
+<div class="module-intro">Elke cocktail ter wereld wordt gemaakt met een combinatie van een handvol basistechnieken. Beheers deze zes, en je kunt in principe elk recept uitvoeren dat je tegenkomt.</div>
+
+<h3>1. Shaken</h3>
+<p>Gebruikt voor cocktails met troebele ingrediënten (sap, eiwit, room, siroop) die grondig gemengd én sterk gekoeld moeten worden. Vul de shaker voor twee derde met vers ijs, sluit goed af, en schud kort en hard (10-15 seconden) — een korte, krachtige beweging geeft de gewenste ijssplinters en snelle verdunning, in tegenstelling tot lang en zacht schudden, wat vooral overbodige verwatering oplevert zonder extra koeling.</p>
+
+<h3>2. Dry shake</h3>
+<p>Een speciale stap vóór het gewone shaken, gebruikt bij eiwit- of roomcocktails: schud eerst zonder ijs (15-20 seconden) om het eiwit goed te emulgeren en lucht in te kloppen, schud daarna pas met ijs verder om te koelen. Zonder deze stap krijg je een dunnere, minder indrukwekkende schuimlaag.</p>
+
+<h3>3. Stirren (roeren)</h3>
+<p>Gebruikt voor cocktails die uitsluitend uit heldere, alcoholische ingrediënten bestaan (Martini, Manhattan, Negroni) — hier wil je koelen en verdunnen zónder lucht erin te kloppen, wat de drank troebel of "schuimig" zou maken. Roer rustig en gelijkmatig tegen de binnenwand van het mixing glass, 20-30 seconden, met de bar spoon losjes tussen je vingers.</p>
+
+<h3>4. Bouwen (building)</h3>
+<p>De simpelste techniek: ingrediënten worden direct in het serveerglas gegoten, in volgorde, over ijs, en eventueel kort geroerd. Gebruikt voor longdrinks als een Gin Tonic of Cuba Libre, waar geen extra menging of koeling vooraf nodig is — het ijs in het glas zelf doet het werk.</p>
+
+<h3>5. Muddelen</h3>
+<p>Het kneuzen van kruiden, fruit of specerijen in de bodem van het glas of de shaker, om aroma's en sappen vrij te maken vóór de rest van de bereiding. Bij delicate kruiden zoals munt is een lichte klap-beweging beter dan hard stampen (zie Les 08); bij stevig fruit (limoen in een Caipirinha) mag je juist steviger te werk gaan om sap en schilolie goed vrij te maken.</p>
+
+<h3>6. Swizzelen</h3>
+<p>Een Caribische techniek specifiek voor cocktails geserveerd over crushed ice: een swizzle stick (een takje met uitstekende twijgjes, of tegenwoordig een metalen variant) wordt tussen de handpalmen snel heen en weer gedraaid in het glas, wat het ijs, de drank en de lucht in het glas mengt tot het glas van buiten beslaat. Het resultaat is een zeer koude, licht verdunde en verfrissende cocktail, kenmerkend voor drankjes als de Chartreuse Swizzle.</p>
+
+<table>
+  <tr><th>Techniek</th><th>Gebruik bij</th><th>Waarom</th></tr>
+  <tr><td>Shaken</td><td>Sap, eiwit, room, siroop</td><td>Grondig mengen + snel koelen/verdunnen</td></tr>
+  <tr><td>Dry shake</td><td>Eiwit-/roomcocktails</td><td>Emulgeren vóór het ijs erbij gaat</td></tr>
+  <tr><td>Stirren</td><td>Alleen heldere, alcoholische ingrediënten</td><td>Koelen/verdunnen zonder lucht/troebelheid</td></tr>
+  <tr><td>Bouwen</td><td>Longdrinks met mixer</td><td>Geen extra menging nodig</td></tr>
+  <tr><td>Muddelen</td><td>Kruiden, fruit</td><td>Aroma en sap vrijmaken</td></tr>
+  <tr><td>Swizzelen</td><td>Crushed-ice-cocktails</td><td>Snel, intens koelen en mengen</td></tr>
+</table>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>De keuze tussen shaken en stirren hangt af van of er troebele ingrediënten in zitten — niet van persoonlijke voorkeur.</li>
+    <li>Kort en hard schudden geeft betere resultaten dan lang en zacht.</li>
+    <li>Elke techniek bestaat om een specifiek probleem op te lossen — ken je het probleem, dan onthoud je de techniek vanzelf.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 10 &middot; Deel III</span>De wetenschap van verdunning en temperatuur</h2>
+<div class="module-intro">Waarom smaakt dezelfde cocktail, gemaakt met exact dezelfde ingrediënten, soms anders? Het antwoord zit bijna altijd in verdunning en temperatuur — de twee variabelen die je techniek daadwerkelijk beïnvloedt.</div>
+
+<h3>De drie variabelen die je controleert</h3>
+<p>Bij elke shake- of roerbeweging speel je met drie onderling verbonden variabelen: <strong>tijd</strong> (hoe lang je schudt/roert), <strong>ijshoeveelheid</strong> (hoeveel oppervlak er is om te smelten) en <strong>beweging</strong> (hoe hard/snel). Meer tijd of hardere beweging betekent meer verdunning én een lagere eindtemperatuur — tot een bepaald punt, waarna extra tijd vooral extra water toevoegt zonder nog merkbaar kouder te worden (het ijs heeft dan al zijn koelcapaciteit voor die hoeveelheid vloeistof afgegeven).</p>
+
+<h3>Waarom "tot het koud aanvoelt" geen goede maatstaf is</h3>
+<p>Het shakerglas voelt binnen een paar seconden al koud aan door geleiding, ruim voordat de vloeistof erin de gewenste temperatuur en verdunning heeft bereikt. Vertrouw daarom op tijd (10-15 seconden hard schudden, 20-30 seconden rustig roeren) in plaats van op het gevoel van de buitenkant van je shaker.</p>
+
+<h3>Waarom groot ijs bij Old Fashioned-achtige drankjes</h3>
+<p>Eén groot ijsblok heeft, relatief gezien, minder oppervlak per volume-eenheid dan dezelfde hoeveelheid ijs verdeeld over meerdere kleine blokjes. Minder oppervlak betekent een tragere smeltsnelheid: je Old Fashioned blijft langer op een aangenaam niveau van verdunning in plaats van binnen tien minuten waterig te worden. Dit is precies waarom bars vaak apart, groot-formaat ijs maken specifiek voor deze categorie cocktails.</p>
+
+<h3>Voorkoelen: de stap die vaak wordt overgeslagen</h3>
+<p>Een cocktail geserveerd in een glas op kamertemperatuur verliest onmiddellijk een deel van zijn koeling aan het opwarmen van het glas zelf. Zet glazen voor "up" cocktails (coupe, Nick&amp;Nora, Martini) daarom idealiter een paar minuten in de vriezer of vul ze met ijswater terwijl je de cocktail maakt, en giet het ijswater er pas vlak vóór het inschenken uit.</p>
+
+<div class="box tip">
+  <span class="label">Pro-tip</span>
+  Twijfel je of een cocktail al genoeg verdund is? Proef een klein slokje direct uit de shaker vóór je zeeft. Met oefening leer je binnen een paar pogingen exact aanvoelen wanneer een drank "af" is.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Verdunning en temperatuur zijn twee kanten van dezelfde medaille — beide worden bepaald door tijd, ijshoeveelheid en beweging.</li>
+    <li>Vertrouw op tijd, niet op hoe koud de buitenkant van je shaker aanvoelt.</li>
+    <li>Voorkoelen van het glas is een kleine moeite met een merkbaar effect op de uiteindelijke drinktemperatuur.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 11 &middot; Deel III</span>De sour-formule: zoet, zuur en sterk in balans</h2>
+<div class="module-intro">Vrijwel elke "sour"-stijl cocktail (Whiskey Sour, Daiquiri, Margarita, Amaretto Sour) volgt exact dezelfde onderliggende wiskunde. Begrijp deze formule, en je kunt oneindig veel varianten zelf bedenken of aanpassen aan je eigen smaak.</div>
+
+<h3>De klassieke verhouding</h3>
+<p>De basisformule is: 2 delen sterkedrank, 3/4 deel zuur (vers citrus- of limoensap), 3/4 deel zoet (suikersiroop of een likeur met voldoende zoetheid). Vertaald naar milliliters voor een enkele cocktail: ongeveer 60 ml sterkedrank, 22-25 ml citrus, 20-25 ml zoet. Dit is de verhouding die je terugziet in vrijwel elke sour in deze cursus en de bijbehorende app, soms met kleine aanpassingen per specifieke drank.</p>
+
+<h3>Waarom deze verhouding werkt</h3>
+<p>Zuur en zoet in bijna-gelijke hoeveelheden neutraliseren elkaars extremen: puur citrussap is te scherp om onverdund te drinken, puur suikersiroop is te plakkerig-zoet, maar samen in de juiste verhouding ontstaat een gebalanceerde, verfrissende smaak die de sterkedrank ondersteunt in plaats van overschreeuwt. De sterkedrank blijft daarbij, in volume, de grootste component — een sour is een cocktail mét een duidelijke drank-basis, geen fruitsapje met een scheutje alcohol.</p>
+
+<h3>Bijstellen op basis van je ingrediënten</h3>
+<p>Niet elk zuur en elk zoet is even sterk. Limoensap is doorgaans iets scherper dan citroensap; honingsiroop is intenser van smaak dan neutrale suikersiroop en vraagt vaak een kleinere hoeveelheid; een likeur die zelf al zoet is (zoals triple sec in een Margarita) telt deels mee als het "zoet"-element, waardoor je minder aparte suikersiroop nodig hebt. Proef daarom altijd tijdens het maken en stel desnoods een paar milliliter bij — de formule is een uitstekend startpunt, geen onwrikbare wet.</p>
+
+<h3>Van sour naar andere families</h3>
+<p>Zodra je de sour-formule beheerst, herken je 'm overal: een Margarita is een tequila-sour met triple sec als deel van het zoet-element; een Daiquiri is een rum-sour in zijn puurste vorm; een Whiskey Sour voegt eventueel eiwit toe voor textuur zonder de kernverhouding te veranderen. Dit is precies de reden waarom Les 13 (de cocktailfamilies) zoveel makkelijker wordt als je deze formule al kent.</p>
+
+<table>
+  <tr><th>Onderdeel</th><th>Richtlijn</th><th>Voorbeeld</th></tr>
+  <tr><td>Sterkedrank</td><td>~60 ml</td><td>Bourbon, witte rum, tequila</td></tr>
+  <tr><td>Zuur</td><td>~22-25 ml</td><td>Vers citroen- of limoensap</td></tr>
+  <tr><td>Zoet</td><td>~20-25 ml</td><td>Suikersiroop, honingsiroop, of een zoete likeur</td></tr>
+</table>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>De sour-formule (2:3/4:3/4) is de meest herbruikbare vuistregel in de hele cocktailwereld.</li>
+    <li>Zuur en zoet neutraliseren elkaars extremen — samen creëren ze balans die los niet werkt.</li>
+    <li>Proef en stel bij: de formule is een startpunt, geen absolute wet, omdat ingrediënten onderling in sterkte verschillen.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 12 &middot; Deel III</span>Dubbel zeven, laagjes en andere finesse</h2>
+<div class="module-intro">Dit zijn de technieken die het verschil maken tussen "correct volgens recept" en "professioneel afgewerkt" — kleine stappen met een onevenredig grote impact op het eindresultaat.</div>
+
+<h3>Dubbel zeven (double straining)</h3>
+<p>Naast de gewone hawthorne-zeef op je shaker giet je de cocktail óók door een fijne theezeef in het glas. Dit vangt kleine ijssplinters, vruchtvlees of muntstukjes op die de gewone zeef doorlaat, en levert een volledig glasheldere cocktail op. Onmisbaar bij elke geshakete cocktail die "up" (zonder ijs) wordt geserveerd, zoals een Daiquiri of Whiskey Sour.</p>
+
+<h3>De drijflaag (float)</h3>
+<p>Een ingrediënt voorzichtig over de bolle achterkant van een bar spoon gieten, vlak boven het drankoppervlak, zodat het door een dichtheidsverschil op de rest blijft "drijven" in plaats van te mengen. Gebruikt in cocktails als de New York Sour (rode wijn boven een whiskeysour) of Irish Coffee (room boven koffie) om een visueel én proefbaar gelaagd effect te creëren — elke slok proeft net iets anders naarmate je door de lagen drinkt.</p>
+
+<h3>Laagjes-shooters (layering)</h3>
+<p>Een extremere versie van de drijflaag-techniek, waarbij meerdere likeuren met duidelijk verschillende dichtheden strak gescheiden in laagjes worden opgebouwd (zoals een B-52). De volgorde is cruciaal: begin met de zwaarste (meestal suikerrijkste) likeur onderin, en werk via steeds lichtere likeuren naar boven. Giet langzaam, over de achterkant van een lepel, met de lepelpunt net onder het al aanwezige vloeistofoppervlak.</p>
+
+<h3>De citrus-expressie: de laatste stap die het verschil maakt</h3>
+<p>Vlak voor het serveren een stukje citrusschil boven het glas buigen zodat de aromatische oliën eruit spuiten, richting het drankoppervlak. Deze stap kost letterlijk drie seconden maar heeft een merkbaar effect op het allereerste dat je ruikt bij het opheffen van het glas — vaak onderschat door beginners, nooit overgeslagen door professionals.</p>
+
+<h3>Roeren met een groot ijsblok versus klein ijs</h3>
+<p>Wanneer je een Old Fashioned of Negroni ín het glas zelf roert (in plaats van in een apart mixing glass), gebruik dan het grote ijsblok waarmee je ook serveert — niet apart klein ijs dat je daarna weggooit. Zo roer je de drank tot precies de juiste verdunning terwijl het serveer-ijs zelf nog nauwelijks is gesmolten, wat de latere houdbaarheid van de drank aan tafel verlengt.</p>
+
+<div class="box tip">
+  <span class="label">Pro-tip</span>
+  Oefen de citrus-expressie eerst boven de gootsteen in plaats van boven een net afgemaakte cocktail — de hoek en druk vergen een paar pogingen voordat het spuiteffect consistent lukt.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Dubbel zeven is de standaard, niet de uitzondering, voor elke "up" geserveerde geshakete cocktail.</li>
+    <li>Gelaagde effecten (float, layering) draaien om dichtheidsverschil en een langzame, gecontroleerde giettechniek.</li>
+    <li>De citrus-expressie is een kleine handeling met een onevenredig grote invloed op de eerste indruk van een cocktail.</li>
+  </ul>
+</div>
+
+<div class="part-divider">
+  <div class="pk">Deel IV</div>
+  <h2>Smaak &amp; compositie</h2>
+  <p>Techniek zonder smaakinzicht levert correct uitgevoerde, maar onbezielde cocktails op. Dit deel behandelt hoe je smaken leert herkennen, hoe klassiekers zijn opgebouwd, en — het hoogtepunt van dit deel — hoe je zelf, vanaf een leeg vel, een nieuwe cocktail kunt ontwerpen die daadwerkelijk werkt.</p>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 13 &middot; Deel IV</span>De negen cocktailfamilies</h2>
+<div class="module-intro">In plaats van honderden losse recepten te onthouden, leer je negen families herkennen. Elke cocktail die je ooit tegenkomt, past vrijwel altijd in (of combineert elementen van) een van deze categorieën.</div>
+
+<h3>1. Sours</h3>
+<p>Sterkedrank, zuur, zoet — soms met eiwit voor textuur. De formule uit Les 11. Voorbeelden: Whiskey Sour, Daiquiri, Margarita, Amaretto Sour.</p>
+<h3>2. Highballs</h3>
+<p>Sterkedrank aangevuld met een grote hoeveelheid mixer (tonic, cola, gemberbier, soda) over ijs, minimale bereiding. Voorbeelden: Gin Tonic, Cuba Libre, Moscow Mule.</p>
+<h3>3. Spirit-forward / Old Fashioned-stijl</h3>
+<p>Sterkedrank als hoofdmoot, geroerd met suiker en/of bitters, minimale verdunning. Voorbeelden: Old Fashioned, Sazerac, Negroni.</p>
+<h3>4. Stirred-down (Martini-familie)</h3>
+<p>Sterkedrank geroerd met versterkte wijn (vermout), zonder citrus, "up" geserveerd. Voorbeelden: Martini, Manhattan, Martinez.</p>
+<h3>5. Fizz &amp; Flip</h3>
+<p>Sours aangevuld met koolzuur (fizz) of een heel ei (flip) voor extra volume en textuur. Voorbeelden: Tom Collins, French 75, Ramos Gin Fizz.</p>
+<h3>6. Tiki &amp; tropisch</h3>
+<p>Meerdere soorten rum, exotische siropen (orgeat, falernum) en vaak meerdere soorten fruitsap, gebouwd voor een weelderig, gelaagd smaakprofiel. Voorbeelden: Mai Tai, Zombie, Painkiller.</p>
+<h3>7. Moderne klassiekers</h3>
+<p>Cocktails bedacht na ~2000 die al breed als klassieker worden erkend, vaak met een heldere, uitgesproken structuur (bijvoorbeeld exact gelijke delen). Voorbeelden: Paper Plane, Penicillin, Last Word.</p>
+<h3>8. Zuivel &amp; dessert</h3>
+<p>Room, roomlikeuren of eidooier voor een weelderige, dessertachtige textuur. Voorbeelden: White Russian, Brandy Alexander, Espresso Martini.</p>
+<h3>9. Warme cocktails</h3>
+<p>Verwarmd geserveerd, vaak met kruiden als kaneel en kruidnagel. Voorbeelden: Irish Coffee, Hot Toddy, Glühwein.</p>
+
+<div class="box history">
+  <span class="label">Waarom dit indelingssysteem werkt</span>
+  Elke familie lost een ander "probleem" op dat teruggaat op de geschiedenis uit Les 01: sours ontstonden om ruwe drank drinkbaar te maken, highballs om drank te strekken en verfrissend te houden, stirred-down-cocktails om puur, sterk karakter te tonen zonder verdunning door sap. Ken je het probleem, dan onthoud je de familie moeiteloos.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Negen families dekken vrijwel de complete cocktailwereld — je hoeft geen honderden losse recepten uit je hoofd te leren.</li>
+    <li>Elke familie heeft een eigen technische logica (shaken vs. roeren, wel/geen citrus, wel/geen koolzuur).</li>
+    <li>Een nieuwe cocktail leren gaat sneller zodra je 'm eerst indeelt in een familie — je weet dan al ongeveer wat je kunt verwachten.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 14 &middot; Deel IV</span>Smaakcombinatie: hoe klassiekers zijn opgebouwd</h2>
+<div class="module-intro">Waarom werkt gin met citrus, campari met sinaasappel, mezcal met ananas? Dit hoofdstuk legt de onderliggende principes bloot die klassieke bartenders — vaak intuïtief — hebben toegepast.</div>
+
+<h3>Complementaire smaken: hetzelfde versterken</h3>
+<p>Sommige combinaties werken omdat ze in dezelfde smaakrichting wijzen en elkaar versterken: citroen en citroenschil-likeur, munt en groene Chartreuse, kaneel en appelbrandy. Dit is de veiligste, meest voorspelbare manier om een cocktail te ontwerpen — je versterkt een bestaand thema in plaats van een nieuw contrast te introduceren.</h3>
+
+<h3>Contrasterende smaken: spanning creëren</h3>
+<p>Andere combinaties werken juist door tegenstelling: bitter tegenover zoet (Campari en sinaasappelsap in een Garibaldi), rokerig tegenover fruitig (mezcal en ananas in een Naked and Famous), romig tegenover scherp (room en koffie in een Espresso Martini). Contrast houdt een cocktail interessant over meerdere slokken — een drank die alleen maar één richting op wijst, wordt sneller "plat" op de tong.</p>
+
+<h3>De rol van aromatische bruggen</h3>
+<p>Sommige ingrediënten werken als "brug" tussen twee andere smaken die normaal niet vanzelfsprekend samengaan. Angostura bitters bevat bijvoorbeeld kruidnagel- en kaneelachtige noten die zowel bij fruitige als bij houtige sterkedranken passen, en fungeert daardoor in talloze recepten als verbindend element tussen bijvoorbeeld citrus en whiskey.</p>
+
+<h3>Textuurcontrast naast smaakcontrast</h3>
+<p>Balans gaat niet alleen over smaak maar ook over textuur: het schuim van een dry-shaked eiwit-cocktail, de prik van koolzuur in een fizz, de gladheid van room in een dessertcocktail. Een cocktail die zowel qua smaak als qua textuur precies één ding doet, voelt al snel eendimensionaal aan, terwijl een subtiel textuurcontrast (bijvoorbeeld een romige basis met een fris, licht bruisend topje) een drank interessanter maakt.</p>
+
+<h3>Hoe je een klassieker "leest"</h3>
+<p>Neem de Penicillin (Les 15 van de bijbehorende Verhaal-tab in de app) als voorbeeld: honing en gember vormen een warme, geruststellende basis (complementair aan elkaar), citroen brengt zuur-contrast, en een drijflaag rokerige whisky bovenop levert een scherp, rokerig contrast met de zoete basis eronder. Bijna elke goede klassieker laat zich op deze manier "uit elkaar halen" in een combinatie van complementaire en contrasterende elementen — een vaardigheid die je met oefening steeds sneller doorziet.</p>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Complementaire combinaties versterken een thema; contrasterende combinaties creëren spanning — beide zijn legitieme ontwerpstrategieën.</li>
+    <li>Sommige ingrediënten (zoals bitters) werken als aromatische brug tussen smaken die anders niet vanzelfsprekend samengaan.</li>
+    <li>Textuur is een even belangrijke smaakdimensie als zoet/zuur/bitter, en wordt vaak over het hoofd gezien.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 15 &middot; Deel IV</span>Zelf een cocktail ontwerpen: de bouwstenen-methode</h2>
+<div class="module-intro">Dit is het moment waarop je van "recepten volgen" naar "recepten bedenken" gaat. Een gestructureerde methode, geen willekeurig experimenteren, is de snelste weg naar een cocktail die daadwerkelijk werkt.</div>
+
+<h3>Stap 1: kies een familie als skelet</h3>
+<p>Begin niet met een compleet nieuw idee, maar met een van de negen families uit Les 13 als startpunt — bijvoorbeeld "ik wil een sour maken." Dat geeft je meteen een werkende structuur (sterk-zuur-zoet) waarbinnen je kunt experimenteren, in plaats van van nul te beginnen.</p>
+
+<h3>Stap 2: kies je basisspirit en luister naar wat hij "vraagt"</h3>
+<p>Elke sterkedrank heeft een eigen karakter dat bepaalde begeleidende smaken voor de hand liggend maakt: rokerige mezcal vraagt om iets zoets en fruitigs om het contrast te balanceren (Les 14); kruidige rye whiskey combineert van nature goed met andere kruidige of houtige tonen; neutrale wodka geeft je juist maximale vrijheid omdat hij zelf geen sterke richting opdringt.</p>
+
+<h3>Stap 3: bouw de kernformule, dan pas de finesse</h3>
+<p>Werk eerst de basisverhouding uit volgens de familie die je koos (bijvoorbeeld de sour-formule uit Les 11), en proef die versie eerst in zijn simpelste vorm. Pas als die basis al lekker is, voeg je een tweede laag toe: een likeur voor extra diepte, een paar dashes bitters voor een kruidige ondertoon, een garnering die het aroma completeert. Beginners maken vaak de fout om meteen met vijf ingrediënten te starten — een cocktail met te veel losse elementen wordt bijna altijd onduidelijk van smaak.</p>
+
+<h3>Stap 4: proef, noteer, herhaal</h3>
+<p>Professionele bartenders testen een nieuwe cocktail zelden in één keer goed. Proef je eerste versie kritisch, benoem specifiek wát niet klopt (te zoet? te dun? mist een kruidige noot?) en pas telkens één variabele tegelijk aan — nooit meerdere tegelijk, anders weet je niet welke aanpassing het verschil maakte. Noteer elke versie (de Logboek-functie in de bijbehorende app is hier letterlijk voor gemaakt) zodat je een succesvolle verhouding niet per ongeluk kwijtraakt.</p>
+
+<h3>Stap 5: test de naam en het verhaal, niet alleen de smaak</h3>
+<p>Een cocktail die je aan gasten wilt voorzetten, wint bij een kort verhaal of een duidelijke identiteit (zie ook Les 19 over gastvrijheid) — een goede naam en een zin uitleg over waarom je 'm zo hebt gemaakt, verhoogt de waardering van gasten voor exact dezelfde vloeistof in het glas.</p>
+
+<div class="box tip">
+  <span class="label">Pro-tip</span>
+  Verander bij het bijstellen van een recept telkens in stappen van 5 ml of minder. Grotere sprongen laten je gemakkelijk van "te weinig" naar "te veel" schieten zonder ooit het optimale punt te raken.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Begin bij een bekende familie-structuur, niet bij een blanco vel — dat voorkomt onbalans van meet af aan.</li>
+    <li>Bouw eerst een simpele, werkende kernformule op voordat je finesse-lagen toevoegt.</li>
+    <li>Pas telkens één variabele per keer aan tijdens het proeven, en noteer wat je verandert.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 16 &middot; Deel IV</span>Een menu samenstellen als een pro</h2>
+<div class="module-intro">Eén goede cocktail maken is één vaardigheid; een compleet, uitgebalanceerd menu voor gasten samenstellen is een andere. Dit hoofdstuk behandelt hoe professionele bars dat aanpakken — en hoe jij dat vertaalt naar een feest of etentje.</div>
+
+<h3>De smaakmatrix: vier hoeken plus één</h3>
+<p>De meeste doordachte bar-menu's dekken vier smaakhoeken ongeveer gelijkmatig: <strong>fris &amp; verfrissend</strong> (voor het begin van de avond of warme dagen), <strong>sterk &amp; aromatisch</strong> (voor wie liever een stevigere, drank-voorwaartse cocktail wil), <strong>avontuurlijk</strong> (een gesprek-op-gang-brengende, verrassende optie) en <strong>comfort</strong> (romig of warm, voor wie niet van scherpe/bittere smaken houdt) — aangevuld met altijd minstens één volwaardige <strong>alcoholvrije</strong> optie die net zo doordacht is samengesteld als de rest. Een menu dat op één hoek leunt (bijvoorbeeld alleen maar zoete, makkelijke drankjes) voelt al snel eendimensionaal aan voor een gemengd gezelschap.</p>
+
+<h3>Hoeveel opties heb je echt nodig?</h3>
+<p>Een professionele bar biedt doorgaans 10-12 cocktails aan om aan een breed publiek recht te doen. Voor een housefeest of etentje is dat overkill: 3 tot 6 goed gekozen opties (verdeeld over de smaakhoeken) geven gasten genoeg keuze zonder dat je jezelf tijdens het feest overbelast met bereiding.</p>
+
+<h3>Batchbaarheid als planningsfactor</h3>
+<p>Niet elke cocktail is even makkelijk om vooraf in grote hoeveelheden klaar te maken. Gestirde cocktails zonder vers sap, eiwit of zuivel (denk aan een Negroni of Manhattan) kun je probleemloos uren van tevoren mixen — zonder ijs — en gekoeld bewaren tot het serveermoment. Cocktails met vers sap, eiwit of room verliezen sneller kwaliteit en verdienen de voorkeur voor drankjes die je per glas maakt op het moment zelf. Een goed menu houdt hier bewust rekening mee: kies minstens één of twee batchbare opties uit de "sterk &amp; aromatisch"-hoek als basis, en reserveer je aandacht tijdens het feest voor de cocktails die dat wel nodig hebben.</p>
+
+<h3>Kostprijs en inkoop: het pour cost-principe</h3>
+<p>Professionele bars rekenen met "pour cost": de kostprijs van de ingrediënten in een cocktail als percentage van de verkoopprijs, doorgaans gestreefd op 18-24%. Voor thuisgebruik is de vertaling simpeler maar het principe hetzelfde: een fles van 700 ml levert, bij een gemiddelde dosering van 45 ml sterkedrank per cocktail, ongeveer 15-16 cocktails op — een handige vuistregel om snel in te schatten hoeveel flessen je voor een feest nodig hebt (en precies de berekening die de Feestplanner in de bijbehorende app voor je automatiseert).</p>
+
+<h3>Gedeelde ingrediënten: efficiënt inkopen</h3>
+<p>Kies bewust cocktails die ingrediënten delen (bijvoorbeeld meerdere drankjes die allemaal citroensap of dezelfde vermout gebruiken) — dat scheelt zowel inkoopkosten als de hoeveelheid flessen die je fysiek in huis moet hebben staan, zonder dat het menu zelf minder gevarieerd hoeft te aan te voelen voor je gasten.</p>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Een uitgebalanceerd menu dekt meerdere smaakhoeken, niet alleen wat de gastheer zelf het lekkerst vindt.</li>
+    <li>Batchbaarheid is een net zo belangrijke planningsfactor als smaak wanneer je zelf ook van het feest wilt genieten.</li>
+    <li>Een fles van 700 ml levert ongeveer 15-16 cocktails — een simpele, bruikbare inkoopvuistregel.</li>
+  </ul>
+</div>
+
+<div class="part-divider">
+  <div class="pk">Deel V</div>
+  <h2>Het vak van bartender</h2>
+  <p>De laatste stap van basis naar pro heeft weinig te maken met een nieuw recept of een nieuwe techniek — het gaat over hoe je je voorbereidt, hoe je grote groepen bedient zonder in paniek te raken, en hoe je gasten een ervaring geeft die verder reikt dan de vloeistof in het glas.</p>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 17 &middot; Deel V</span>Mise en place: voorbereiding is alles</h2>
+<div class="module-intro">"Mise en place" — Frans voor "alles op zijn plek" — is een keukentraditie die professionele bars één op één hebben overgenomen. Het verschil tussen een chaotische en een moeiteloze avond zit vrijwel altijd in de voorbereiding, niet in het moment zelf.</div>
+
+<h3>Wat hoort er bij bar-mise en place?</h3>
+<p>Vóór de eerste gast arriveert: alle benodigde flessen binnen handbereik en in de juiste volgorde, citrus geperst (zo dicht mogelijk bij het moment zelf, zie Les 07), siropen klaar, garneringen gesneden en op ijs bewaard, voldoende ijs binnen handbereik, glazen voorgekoeld waar nodig, en — minstens zo belangrijk — een schone werkplek met een prullenbak en vaatdoek binnen bereik.</p>
+
+<h3>Recepten uit je hoofd, niet van je telefoon</h3>
+<p>Voor een feest van meer dan een paar gasten is het onhoudbaar om bij elke cocktail een recept op te zoeken. Kies voor je menu (Les 16) een select aantal cocktails en oefen ze minstens één keer vooraf tot je de verhoudingen uit je hoofd kent — dat scheelt niet alleen tijd maar ook stress op het moment zelf.</p>
+
+<h3>De volgorde van je werkplek</h3>
+<p>Een efficiënte bar-opstelling volgt de volgorde van bereiding: flessen sterkedrank het dichtst bij je shaker, dan versterkte wijnen/likeuren, dan bitters, dan de verse ingrediënten en garneringen, met glaswerk en ijs binnen een armlengte. Dit voorkomt onnodig heen-en-weer-lopen tijdens een drukke avond — een detail dat pas voelbaar wordt zodra je het níet hebt gedaan.</p>
+
+<h3>Vooruit denken: wat kan wachten, wat niet</h3>
+<p>Niet alles hoeft op het laatste moment: siropen en de meeste garneringen (behalve zeer delicate kruiden) kunnen uren tot een dag vooraf klaar worden gemaakt en gekoeld bewaard. Citrussap en muntblaadjes juist niet — die verliezen binnen uren aan kwaliteit (Les 07 en Les 08). Ken dit onderscheid en je voorkomt zowel onnodig laatste-moment-werk als kwaliteitsverlies door te vroege voorbereiding.</p>
+
+<div class="box tip">
+  <span class="label">Pro-tip</span>
+  Maak een checklist per feest (de bijbehorende app doet dit deels automatisch via de Feestplanner) met daarop: ijs, glazen per type, te snijden garnering, en welke cocktails je vooraf kunt batchen. Een lijst van tien minuten scheelt uren aan improviseren tijdens het feest zelf.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Mise en place is geen keukenjargon voor bartenders — het is dezelfde discipline, direct toepasbaar aan de bar.</li>
+    <li>Ken je recepten uit je hoofd voor het menu dat je die avond serveert.</li>
+    <li>Onderscheid wat vooraf kan (siropen, de meeste garnering) van wat pas op het laatste moment mag (citrussap, munt).</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 18 &middot; Deel V</span>Batchen en grote groepen bedienen</h2>
+<div class="module-intro">Zodra je voor meer dan een handvol gasten schenkt, verandert de opgave: je maakt niet langer één cocktail perfect, je maakt tientallen cocktails consistent. Dat vraagt een andere aanpak.</div>
+
+<h3>Wat batchen wél en niet oplost</h3>
+<p>Batchen — het vooraf mengen van een cocktail in grote hoeveelheden, zonder ijs, gekoeld bewaard tot het serveermoment — bespaart tijd en zorgt voor consistente kwaliteit tussen de eerste en de laatste geschonken cocktail. Het werkt het best bij gestirde cocktails zonder vers sap, eiwit of zuivel (zie Les 16). Cocktails die afhankelijk zijn van net-geshaked textuur (schuimkraag, koolzuur) verliezen die kwaliteit zodra je ze te vroeg klaarmaakt — voor die categorie blijft per-glas bereiding de juiste keuze, ook bij een grote groep.</p>
+
+<h3>Hoe je een batch berekent</h3>
+<p>Vermenigvuldig simpelweg de verhoudingen van je recept met het gewenste aantal porties, en meng het geheel in één grote batch (zonder het ijs/de verdunning die normaal tijdens het shaken/roeren zou ontstaan — voeg daarvoor apart een berekende hoeveelheid water toe, doorgaans 20-25% van het totale drankvolume, om het verdunningseffect van ijs te simuleren). Bewaar de batch gekoeld en schenk per glas over vers ijs op het moment van serveren.</p>
+
+<h3>Tempo inschatten: hoeveel drinkt een gast?</h3>
+<p>Een bruikbare vuistregel: reken op ongeveer twee drankjes per gast in het eerste uur (wanneer de meeste mensen relatief snel op gang komen) en daarna gemiddeld één drankje per uur voor de rest van de avond. Dat geeft je een realistische inschatting van de totale hoeveelheid die je moet voorbereiden, in plaats van een slag in de lucht.</p>
+
+<h3>IJs-logistiek bij grote hoeveelheden</h3>
+<p>Bij twintig of meer gasten is ijs vaak de eerste bottleneck, niet drank. Reken op ongeveer 150 gram ijs per geserveerde cocktail (Les 04) en zorg voor voldoende opslagruimte (een grote koelbox of extra vriezerruimte) — niets verpest een avond zo snel als halverwege door het ijs heen zijn.</p>
+
+<h3>Eén bartender of een lijn?</h3>
+<p>Bij grotere groepen werkt het beter om het proces op te splitsen dan om één persoon alles te laten doen: iemand die schenkt/bouwt, iemand die garneert en serveert. Zelfs bij een informeel housefeest voorkomt deze simpele taakverdeling een opstopping bij de bar.</p>
+
+<div class="box warning">
+  <span class="label">Veelgemaakte fout</span>
+  Een volledige batch, inclusief de "verdunningswater"-toevoeging, te vroeg klaarmaken en daarna nog uren laten wachten voordat het wordt geserveerd. Ook gekoeld verliezen sommige kruidige/citrusachtige likeuren na te lange tijd aan frisheid — maak een batch idealiter dezelfde dag.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Batchen werkt het best bij gestirde cocktails zonder vers sap, eiwit of zuivel.</li>
+    <li>Reken vooraf: 2 drankjes per gast het eerste uur, daarna 1 per uur, en 150 g ijs per drankje.</li>
+    <li>Splits taken bij grotere groepen — één persoon die alles doet, is een gegarandeerde bottleneck.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 19 &middot; Deel V</span>Gastvrijheid: het onzichtbare ingrediënt</h2>
+<div class="module-intro">De beste bartenders ter wereld worden niet alleen geroemd om hun technische vaardigheid, maar om hoe ze gasten laten voelen. Dit is het minst tastbare, maar misschien wel belangrijkste onderdeel van het vak.</div>
+
+<h3>Vragen stellen vóór je serveert</h3>
+<p>In plaats van een cocktail op te leggen, vraag je naar voorkeuren: houdt iemand van bitter of juist van zoet, van sterk of van licht, is er een smaak die iemand juist niet lust? Een paar seconden vragen voorkomt een verkeerd ingeschatte drank en laat een gast zich gezien voelen — een klein gebaar met een groot effect.</p>
+
+<h3>Het verhaal erbij vertellen</h3>
+<p>Een cocktail met een kort, oprecht verhaal — waar hij vandaan komt, waarom je 'm hebt gekozen, wat de bijzondere techniek is die je net hebt toegepast — wordt door gasten anders gewaardeerd dan exact dezelfde drank zonder die context. Dit is precies de reden waarom de Verhaal-functie in de bijbehorende Thuisbar-app niet toevallig is toegevoegd: kennis delen is zelf onderdeel van de gastvrijheidservaring, niet een extraatje ernaast.</p>
+
+<h3>Tempo lezen</h3>
+<p>Een goede gastheer/bartender voelt aan wanneer een gezelschap toe is aan de volgende ronde, en wanneer juist niet. Té snel opnieuw inschenken voelt opdringerig; té traag laat mensen met een leeg glas zitten. Er is geen vaste regel — dit is een vaardigheid die je ontwikkelt door simpelweg op te letten in plaats van mechanisch een tijdschema aan te houden.</p>
+
+<h3>Iedereen een volwaardige optie geven</h3>
+<p>Gasten die niet drinken (om welke reden dan ook) verdienen een even doordachte, volwaardige optie als de rest van het gezelschap — geen fris uit een pak terwijl iedereen anders een zorgvuldig gemaakte cocktail krijgt. Dit principe (zie ook de verplichte alcoholvrije hoek uit Les 16) is niet alleen inclusief, het is ook simpelweg goed gastheerschap.</p>
+
+<h3>Jezelf niet vergeten</h3>
+<p>Een gastheer die de hele avond alleen maar drankjes voor anderen maakt en zelf nooit rustig kan genieten, is geen duurzaam model. De batchtechnieken uit Les 18 bestaan voor een groot deel precies om dit te voorkomen: hoe meer je vooraf kunt voorbereiden, hoe meer ruimte je zelf overhoudt om van je eigen feest te genieten.</p>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les</span>
+  <ul>
+    <li>Vragen naar voorkeur vóór het serveren voorkomt misser en toont aandacht.</li>
+    <li>Een kort verhaal bij een cocktail verandert hoe gasten 'm waarderen — kennis delen is onderdeel van de ervaring.</li>
+    <li>Gastvrijheid geldt ook richting jezelf: goede voorbereiding is wat jou in staat stelt om ook zelf van het feest te genieten.</li>
+  </ul>
+</div>
+
+<h2 class="module-title"><span class="module-num">Les 20 &middot; Deel V</span>Je eigen signature cocktail</h2>
+<div class="module-intro">De laatste les van deze cursus is geen nieuwe theorie, maar een opdracht: alles wat je hebt geleerd samenbrengen in één cocktail die echt van jou is.</div>
+
+<h3>Stap 1: kies je verhaal eerst</h3>
+<p>Een signature cocktail begint niet bij een ingrediënt, maar bij een idee: een herinnering, een seizoen, een gevoel dat je wilt oproepen (vergelijk de "sfeer"-omschrijvingen uit de Verhaal-tab van de app — elke smaakhoek roept bewust een gevoel op, niet alleen een smaak). Dat verhaal stuurt daarna vanzelf je ingrediëntkeuzes.</p>
+
+<h3>Stap 2: kies een familie en een basisspirit die bij dat verhaal past</h3>
+<p>Gebruik de bouwstenen-methode uit Les 15: kies een van de negen families als skelet, en een basisspirit waarvan het karakter (Les 05) bij je gekozen verhaal past — rokerige mezcal voor iets avontuurlijks, zachte bourbon voor iets warms en troostends, heldere gin voor iets fris en helders.</p>
+
+<h3>Stap 3: bouw, proef, verfijn</h3>
+<p>Volg het iteratieve proces uit Les 15: eerst de kernformule, dan pas finesse, telkens één variabele per keer aanpassen, en noteer elke versie. Reken op minstens vijf tot tien testrondes voor je een recept hebt dat je zonder twijfel aan gasten zou voorzetten — zelfs professionele bartenders bereiken zelden hun beste versie in de eerste of tweede poging.</p>
+
+<h3>Stap 4: geef het een naam en een verhaal</h3>
+<p>Een signature cocktail verdient een naam die net zoveel over jou vertelt als over de drank. Schrijf er, net als bij de klassiekers in Les 01 en de Verhaal-tab van de app, een kort ontstaansverhaal bij — ook als dat verhaal simpelweg is dat je het op een dinsdagavond in je eigen keuken hebt uitgevonden. Authenticiteit is minstens zo aantrekkelijk als een eeuwenoude legende.</p>
+
+<h3>Stap 5: leg het vast</h3>
+<p>Voeg je definitieve recept toe aan je eigen receptenverzameling (de functie "Eigen recepten" in de bijbehorende app is hier specifiek voor gebouwd) zodat het niet verloren gaat, en zodat je het net zo makkelijk kunt opschalen voor een groep als elke andere cocktail in je collectie.</p>
+
+<div class="box tip">
+  <span class="label">Laatste pro-tip van deze cursus</span>
+  De beste signature cocktails ontstaan zelden uit een poging om origineel te zijn om het origineel-zijn. Ze ontstaan uit een oprechte poging om een specifiek probleem op te lossen of een specifiek gevoel op te roepen — precies zoals vrijwel elke klassieker uit Les 01 ooit is ontstaan.
+</div>
+
+<div class="takeaways">
+  <span class="label">Kernpunten van deze les — en van de hele cursus</span>
+  <ul>
+    <li>Een goede cocktail begint bij een idee of gevoel, niet bij een willekeurige ingrediëntenlijst.</li>
+    <li>Elke techniek en elk principe uit de vorige negentien lessen komt hier samen in één praktische opdracht.</li>
+    <li>Van basis naar pro is geen eindpunt maar een herhaalbaar proces: proeven, bijstellen, vastleggen, en opnieuw beginnen bij de volgende cocktail.</li>
+  </ul>
+</div>
+
+<div class="part-divider">
+  <div class="pk">Bijlagen</div>
+  <h2>Naslagwerk</h2>
+  <p>De vier bijlagen hierna zijn bedoeld om terug te bladeren tijdens het maken van cocktails, niet om in één keer door te lezen: een ratio-cheatsheet per familie, een vervangingstabel voor als je iets niet in huis hebt, een verklarende woordenlijst van proeftermen, en suggesties om je verder te verdiepen.</p>
+</div>
+
+<h2 class="module-title"><span class="module-num">Bijlage A</span>Cheatsheet: klassieke ratio's per familie</h2>
+<p>Gebruik deze tabel als geheugensteun tijdens het maken — en als startpunt wanneer je zelf een nieuwe cocktail ontwerpt (Les 15).</p>
+<table>
+  <tr><th>Familie</th><th>Basisratio</th><th>Techniek</th></tr>
+  <tr><td>Sour</td><td>60 ml sterk : 22-25 ml zuur : 20-25 ml zoet</td><td>Shaken (+ evt. dry shake bij eiwit)</td></tr>
+  <tr><td>Old Fashioned-stijl</td><td>60 ml sterk : 5-8 ml zoet : 2 dash bitters</td><td>Roeren, over groot ijsblok</td></tr>
+  <tr><td>Martini-familie</td><td>60 ml sterk : 10-20 ml vermout</td><td>Roeren, "up" serveren</td></tr>
+  <tr><td>Negroni-stijl</td><td>Gelijke delen sterk : bitter likeur : zoete vermout</td><td>Roeren, over ijs</td></tr>
+  <tr><td>Highball</td><td>45-60 ml sterk, aanvullen met mixer</td><td>Bouwen, over ijs</td></tr>
+  <tr><td>Fizz</td><td>Sour-basis + 60-90 ml koolzuurhoudend</td><td>Shaken, dan aanvullen met bubbels</td></tr>
+  <tr><td>Tiki-punch</td><td>Meerdere rums : citrus : 1-2 siropen</td><td>Shaken, vaak over crushed ice</td></tr>
+</table>
+
+<h2 class="module-title"><span class="module-num">Bijlage B</span>Vervangingstabel voor ingrediënten</h2>
+<p>Geen exacte match, maar in een noodgeval een redelijk alternatief:</p>
+<table>
+  <tr><th>Ontbreekt</th><th>Redelijk alternatief</th><th>Let op</th></tr>
+  <tr><td>Suikersiroop</td><td>Honingsiroop (1:1 met water verdund)</td><td>Brengt eigen smaak mee</td></tr>
+  <tr><td>Triple sec</td><td>Andere sinaasappellikeur (Grand Marnier, Cointreau)</td><td>Zoetheid kan verschillen</td></tr>
+  <tr><td>Droge vermout</td><td>Zeer droge, lichte witte wijn + snufje kruiden</td><td>Noodoplossing, geen vervanging op smaak</td></tr>
+  <tr><td>Egg white</td><td>Aquafaba (kikkererwtenvocht)</td><td>Werkt verrassend goed voor veganistische sours</td></tr>
+  <tr><td>Angostura bitters</td><td>Andere aromatische bitters</td><td>Smaakprofiel wijkt af, functie blijft gelijk</td></tr>
+  <tr><td>Orgeat</td><td>Amandelmelk + extra suiker</td><td>Mist de oranjebloesem-noot</td></tr>
+  <tr><td>Vers citrussap</td><td>(Geen goed alternatief)</td><td>Zie Les 07 — dit is de investering die het meest telt</td></tr>
+</table>
+
+<h2 class="module-title"><span class="module-num">Bijlage C</span>Proeftermen-woordenboek</h2>
+<table>
+  <tr><th>Term</th><th>Betekenis</th></tr>
+  <tr><td>Body / lichaam</td><td>Hoe vol of dun een drank op de tong aanvoelt</td></tr>
+  <tr><td>Afdronk</td><td>De smaak die achterblijft nadat je hebt geslikt</td></tr>
+  <tr><td>Balans</td><td>De mate waarin zoet, zuur, bitter en sterk elkaar in evenwicht houden</td></tr>
+  <tr><td>Funky</td><td>Aardse, gistige of licht bedorven ondertoon (positief bedoeld bij bijv. rum agricole)</td></tr>
+  <tr><td>Botanicals</td><td>De kruiden en specerijen die gin zijn karakter geven</td></tr>
+  <tr><td>Dash</td><td>Een enkele, korte schud uit een bittersflesje — geen exacte maat, maar doorgaans 0,5-1 ml</td></tr>
+  <tr><td>Up</td><td>Geserveerd zonder ijs, na koeling tijdens de bereiding</td></tr>
+  <tr><td>Neat</td><td>Puur, zonder ijs of verdunning van welke aard dan ook</td></tr>
+  <tr><td>Rocks / on the rocks</td><td>Geserveerd over ijs in het glas</td></tr>
+  <tr><td>Muddelen</td><td>Kneuzen van kruiden/fruit om aroma en sap vrij te maken</td></tr>
+</table>
+
+<h2 class="module-title"><span class="module-num">Bijlage D</span>Verder verdiepen</h2>
+<p>Deze cursus geeft je een compleet fundament, maar cocktailkennis is een levenslang vak. Enkele richtingen om zelf verder te verdiepen:</p>
+<ul>
+  <li><strong>Proef bewust, niet alleen thuis:</strong> bezoek bars die bekendstaan om vakmanschap en let specifiek op techniek — hoe lang wordt er geschud, hoe wordt een citrustwist toegepast, welk glas wordt voor wat gebruikt.</li>
+  <li><strong>Bouw je eigen receptenarchief op:</strong> gebruik de Logboek- en Eigen recepten-functies in de bijbehorende Thuisbar-app om systematisch bij te houden wat werkt en wat niet.</li>
+  <li><strong>Verdiep je in één sterkedrank-categorie per keer:</strong> in plaats van oppervlakkig alles te proeven, leer bijvoorbeeld een seizoen lang alleen whiskey's uit verschillende regio's kennen, en de volgende periode gin of rum.</li>
+  <li><strong>Herhaal Les 15 en 20 regelmatig:</strong> het ontwerpen van je eigen cocktails is een vaardigheid die alleen met herhaling groeit — plan bijvoorbeeld één keer per maand een avond specifiek gewijd aan experimenteren.</li>
+</ul>
+
+<div class="footer-note">
+  Mijn Thuisbar &middot; Van Basis tot Pro &middot; een origineel lesprogramma samengesteld op basis van algemeen vakgebied-brede bartending-kennis. Geen enkel onderdeel van deze cursus is overgenomen uit een bestaand boek of bestaande cursus.
+</div>
+
+</body>
+</html>

@@ -1,0 +1,11 @@
+## Doel: iOS App Store (via Capacitor), later Android
+- Stack blijft React + Vite + Capacitor + Supabase. Niet overstappen op Expo/React Native.
+- Het iOS-platform bestaat (npx cap add ios) en na elke grote wijziging: npm run build && npx cap sync ios.
+- Geen belangrijke data in localStorage; gebruik @capacitor/preferences of Supabase.
+- Geen externe afbeeldingen (Unsplash) of CDN-fonts; alles lokaal in de app bundelen.
+- Externe links openen via @capacitor/browser.
+- Geen server.url naar Netlify in capacitor.config voor productie.
+- Geen nieuwe web-push; notificaties later via @capacitor/push-notifications.
+- Verplicht voor Apple, meebouwen: account verwijderen in de app, content melden, gebruikers blokkeren, link naar privacybeleid, leeftijdsbevestiging 18+.
+- Recepten en cursus moeten zonder account te gebruiken zijn.
+- Werk met git: commit na elke afgeronde functie.

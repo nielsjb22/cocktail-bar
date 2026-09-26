@@ -1,0 +1,547 @@
+/* Mijn Thuisbar — globale polish laag boven de inline "Bar Register"-stijl.
+   Doel: dezelfde vintage-ledger identiteit, maar met de afwerking van een
+   premium cocktailkaart — zachte transities, een goudkleurige focusring,
+   en een vleugje papiertextuur op de achtergrond. */
+
+/* Alle kleuren van het register als custom properties, zodat ThuisbarApp.jsx
+   (dat overal `style={{ color: INK }}` etc. gebruikt, met INK = "var(--ink)")
+   automatisch meeschakelt naar een donkere palet zodra het systeem op donker
+   staat — zonder dat er in de duizenden losse stijlregels iets hoeft te
+   veranderen. :root hieronder = de lichte, huidige look; de media query
+   erna herdefinieert dezelfde namen voor prefers-color-scheme: dark. Het
+   "papier" wordt dan een donkerbruine ondergrond (niet grijs/zwart — dat
+   past niet bij de warme, vintage ledger-sfeer), kaarten krijgen een net
+   iets lichter donker vlak zodat ze zich nog aftekenen, en de accentkleuren
+   (brass/sage/burgundy) worden een fractie helderder zodat ze op een
+   donkere ondergrond even goed leesbaar blijven als op de lichte. */
+:root {
+  --ink: #2B2620;
+  --paper: #F3ECDD;
+  --paper-deep: #EAE0C9;
+  --bottle: #1F3D36;
+  --bottle-dark: #132622;
+  --brass: #B8862E;
+  --burgundy: #7A2E2A;
+  --sage: #5C7A52;
+  --muted: #8A8171;
+  --border: #DED2B8;
+  --cream: #FBF6EA;
+  --shadow-card: 0 1px 2px rgba(43,38,32,0.06), 0 10px 24px -8px rgba(43,38,32,0.14);
+  --shadow-hero: 0 8px 30px -6px rgba(31,61,54,0.35);
+  --shadow-cta: 0 2px 10px -2px rgba(31,61,54,0.4);
+  --dock-bg: rgba(243,236,221,0.94);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #EDE6D6;
+    --paper: #17130E;
+    --paper-deep: #201A13;
+    --bottle: #4B7C6A;
+    --bottle-dark: #0E1917;
+    --brass: #D4A54A;
+    --burgundy: #C17A73;
+    --sage: #8FB37E;
+    --muted: #A39878;
+    --border: #362F22;
+    --cream: #221C14;
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 10px 24px -8px rgba(0,0,0,0.6);
+    --shadow-hero: 0 8px 30px -6px rgba(0,0,0,0.6);
+    --shadow-cta: 0 2px 10px -2px rgba(0,0,0,0.6);
+    --dock-bg: rgba(23,19,14,0.9);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+/* overflow-x: hidden hoort alleen op html: zet je 'm ook op body, dan dwingt
+   de browser (omdat overflow-x en -y niet los "visible" mogen zijn) impliciet
+   overflow-y: auto af op BEIDE elementen. Met z'n tweeën expliciete hoogte
+   én non-visible overflow wordt body dan zijn eigen, onafhankelijke
+   scrollcontainer i.p.v. gewoon met de pagina mee te scrollen — op iOS geeft
+   dat precies het bekende "scroll zit soms vast, onderbalk zweeft los van de
+   pagina" gedrag. Met overflow-x alleen op html blijft body's overflow op
+   zijn standaard "visible" staan, en scrollt de héle pagina weer gewoon via
+   één scrollcontainer (het venster), zoals position: fixed-elementen zoals
+   de onderbalk verwachten. */
+/* iOS/Android rubberband-overscroll trekt de hele pagina los van de
+   viewport en onthult daarbij kort de "echte" achtergrond van html/body
+   erachter — en dat is altijd beige, ook boven een donkergroene header of
+   op het volledig donkergroene inlogscherm, dus dat streepje oogde als een
+   render-fout. Door de bounce zelf uit te zetten (in plaats van te proberen
+   de onthulde kleur overal precies te matchen) is er nooit iets om te
+   onthullen: dit is ook hoe de meeste native-aanvoelende PWA's het oplossen. */
+html {
+  max-width: 100vw;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+body {
+  max-width: 100vw;
+  overscroll-behavior-y: none;
+}
+
+/* Beige, hetzelfde als de app zelf: dit is de "rustende" kleur van de pagina
+   (zichtbaar tijdens iOS-rubberband-overscroll, of in een rand die de app-div
+   net niet dekt), dus die moet natuurlijk aanvoelen als onderdeel van de app,
+   niet als een vreemde groene rand.
+   Bewust NIET hier al als default gezet: dit stijlblad laadt (klein, snel)
+   ruim vóórdat het React-bundeltje geladen/uitgevoerd/gemount is (die is
+   veel groter), dus een beige default hier gaf juist een zichtbare
+   wit/beige flits tússen de donkergroene <style> in index.html en de
+   donkergroene splash die React zelf tekent. Body blijft daarom donkergroen
+   (zelfde kleur als die inline <style>) tot ThuisbarApp 'm na het mounten
+   zelf naar beige omzet — zie de useEffect daar. */
+body {
+  margin: 0;
+  background-color: #0E1917;
+  background-image:
+    radial-gradient(ellipse 1200px 500px at 50% -10%, rgba(184,134,46,0.06), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(43,38,32,0.015) 0px, rgba(43,38,32,0.015) 1px, transparent 1px, transparent 3px);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* iOS Safari zoomt automatisch in op een input met font-size < 16px bij focus —
+   op mobiel voelt dat als een "kapotte" app. Alleen op smalle schermen ophogen,
+   zodat de desktop-typografie strak blijft. */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+::selection {
+  background: rgba(184,134,46,0.28);
+  color: #2B2620;
+}
+
+/* Smooth, understated micro-interactions for every control in the app —
+   avoids needing per-button hover/active styling throughout the JSX. */
+button {
+  /* Browsers don't inherit `color` into buttons by default (UA stylesheet sets
+     it to a system color) — on iOS that shows up as system blue on any button
+     that doesn't set its own color explicitly. Force inheritance so buttons
+     always pick up the ink/brass/etc. color from their surrounding markup. */
+  color: inherit;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.15s ease, transform 0.08s ease, background-color 0.15s ease, box-shadow 0.2s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+button:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+button:disabled {
+  cursor: default;
+}
+
+input, select, textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #B8862E !important;
+  box-shadow: 0 0 0 3px rgba(184,134,46,0.16);
+}
+button:focus-visible {
+  outline: 2px solid #B8862E;
+  outline-offset: 2px;
+}
+
+/* Horizontally scrolling tab bar: keep it, but make the scrollbar unobtrusive */
+::-webkit-scrollbar {
+  height: 6px;
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(138,129,113,0.35);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(138,129,113,0.35) transparent;
+}
+
+/* Opening splash — a brief "welcome into the world of cocktails" moment. */
+.splash-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse 900px 600px at 50% 30%, #2A4B42, #0E1917 80%);
+  animation: splashFadeOverlay 5.5s ease forwards;
+}
+@keyframes splashFadeOverlay {
+  0%, 89% { opacity: 1; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; }
+}
+.splash-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.splash-ring {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 1.5px solid #B8862E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(184,134,46,0.08);
+  animation: splashRingIn 1s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes splashRingIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.splash-liquid {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: splashLiquidFill 1.4s cubic-bezier(.65,0,.35,1) 0.7s both;
+}
+@keyframes splashLiquidFill {
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+.splash-drop {
+  animation: splashDropFall 0.9s ease 0.1s both;
+}
+@keyframes splashDropFall {
+  0% { transform: translateY(-30px); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+.splash-title {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 27px;
+  color: #FBF6EA;
+  margin: 0;
+  animation: splashTextIn 0.9s ease 1.9s both;
+}
+.splash-sub {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 11.5px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #B8862E;
+  font-weight: 600;
+  animation: splashTextIn 0.9s ease 2.5s both;
+}
+@keyframes splashTextIn {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-overlay, .splash-ring, .splash-liquid, .splash-drop, .splash-title, .splash-sub {
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Techniek-animaties (Verhaal-tab): kleine oneindig lopende SVG/CSS-lussen
+   die laten zien hoe shaken/muddelen bewegen. Stirren gebruikt geen CSS
+   transform-origin (op SVG-elementen niet betrouwbaar zonder transform-box,
+   zie splash-liquid hierboven) maar SVG's eigen animateTransform, dat via
+   React conditioneel wegvalt bij prefers-reduced-motion. */
+@keyframes shakeMotion {
+  0%   { transform: rotate(-16deg) translateY(0); }
+  25%  { transform: rotate(14deg) translateY(-4px); }
+  50%  { transform: rotate(-16deg) translateY(0); }
+  75%  { transform: rotate(14deg) translateY(-4px); }
+  100% { transform: rotate(-16deg) translateY(0); }
+}
+.anim-shake { transform-origin: 95px 130px; animation: shakeMotion 0.7s ease-in-out infinite; }
+
+@keyframes muddleMotion {
+  0%, 100% { transform: translateY(-26px); }
+  50%      { transform: translateY(6px); }
+}
+.anim-muddle { animation: muddleMotion 0.9s ease-in-out infinite; }
+
+@keyframes mintSquish {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(0.72); }
+}
+.anim-mint { transform-origin: 95px 196px; animation: mintSquish 0.9s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-shake, .anim-muddle, .anim-mint {
+    animation: none !important;
+  }
+}
+
+/* ── Algemene micro-animaties door de hele app ──────────────────────────
+   Allemaal "mount"-animaties: React geeft het element een `key` die
+   verandert (tab-wissel, nieuw recept, nieuwe quizvraag), waardoor de DOM-
+   node opnieuw wordt aangemaakt en de animatie vanzelf opnieuw afspeelt,
+   zonder aparte JS-animatielogica nodig te hebben. */
+
+/* Alleen opacity, bewust geen transform: zodra transform onder animatiecontrole
+   staat blijft getComputedStyle een matrix rapporteren (nooit "none"), ook met
+   fill-mode "both" op een to{transform:none}-eindstand — en elke transform ≠
+   none maakt van .tab-fade een containing block voor position:fixed-kinderen
+   (bottom-sheets schieten dan omhoog t.o.v. de tab-inhoud i.p.v. het scherm
+   zodra je voorbij de viewport scrollt). */
+@keyframes tabFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.tab-fade {
+  animation: tabFadeIn 0.22s ease both;
+}
+
+@keyframes accordionIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.accordion-reveal {
+  animation: accordionIn 0.2s ease both;
+  transform-origin: top;
+}
+
+/* Vul-animatie voor het glas-icoon (GlassArt) bij het kiezen van een cocktail,
+   dezelfde scaleY-vanaf-de-bodem-truc als .splash-liquid hierboven. */
+@keyframes glassLiquidFill {
+  0%   { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+.glass-liquid-fill {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: glassLiquidFill 0.6s cubic-bezier(.4,0,.2,1) 0.25s both;
+}
+
+/* Klein "gelukt"-momentje: quiz gehaald, item aan winkelmandje toegevoegd. */
+@keyframes successPop {
+  0%   { transform: scale(0.9); opacity: 0; }
+  60%  { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.success-pop {
+  animation: successPop 0.35s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* Hero-cocktailreveal in de Recept-tab: dezelfde beats als de openingssplash
+   (ring die inveert, een druppel die valt, de vloeistof die vult, tekst die
+   na elkaar verschijnt) maar dan met het échte glas van de gekozen cocktail. */
+@keyframes glassBounceIn {
+  0%   { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.glass-bounce-in {
+  animation: glassBounceIn 0.6s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+@keyframes glassDropFall {
+  0%   { transform: translateY(-26px); opacity: 0; }
+  55%  { opacity: 1; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+.glass-drop-fall {
+  animation: glassDropFall 0.7s ease 0.2s both;
+}
+
+@keyframes heroTextIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-text-in {
+  animation: heroTextIn 0.45s ease both;
+}
+
+/* Ingrediënten "ingeschonken" na elkaar in plaats van in één keer, gebruikt
+   `animation-delay` per rij (inline, oplopend met de index) zodat het als
+   één doorlopend gebaar aanvoelt na de glas-reveal hierboven. */
+.ingredient-reveal {
+  animation: heroTextIn 0.35s ease both;
+}
+
+/* Kort popje wanneer je een ingrediënt in Voorraad aanvinkt. */
+@keyframes checkPop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.check-pop {
+  animation: checkPop 0.32s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* Zachte goudkleurige ring die naar buiten uitdooft rond het vinkje, net
+   iets meer gevoel van "het is gelukt" dan de kale check-pop alleen. */
+@keyframes ringPop {
+  0%   { box-shadow: 0 0 0 0 rgba(184,134,46,0.55); }
+  100% { box-shadow: 0 0 0 9px rgba(184,134,46,0); }
+}
+.ring-pop {
+  animation: ringPop 0.5s ease-out both;
+}
+
+/* "Verras me": het dobbelsteen-icoon draait even rond terwijl de keuze
+   wordt gemaakt, in plaats van instant te wisselen. */
+@keyframes spinIcon {
+  to { transform: rotate(360deg); }
+}
+.spin-icon {
+  animation: spinIcon 0.45s linear infinite;
+}
+
+/* Heel subtiele, langzame glans op het hero-glas zolang een cocktail in
+   beeld staat, begint pas ná de vul-animatie zodat ze niet door elkaar lopen. */
+@keyframes glassShimmer {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.86; }
+}
+.glass-shimmer {
+  animation: glassShimmer 4s ease-in-out 1.1s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-fade, .accordion-reveal, .glass-liquid-fill, .success-pop,
+  .glass-bounce-in, .glass-drop-fall, .hero-text-in, .ingredient-reveal,
+  .check-pop, .ring-pop, .spin-icon, .glass-shimmer, .sheet-backdrop-in, .sheet-slide-in {
+    animation: none !important;
+  }
+}
+
+/* Categorie-popup in Voorraad: een bottom sheet die vanaf de onderrand
+   omhoog schuift, met een gedimde achtergrond, net als een native
+   selectiescherm i.p.v. een pagina-navigatie. */
+@keyframes sheetBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.sheet-backdrop-in {
+  animation: sheetBackdropIn 0.2s ease both;
+  touch-action: none;
+}
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.sheet-slide-in {
+  animation: sheetSlideUp 0.28s cubic-bezier(.32,.72,.35,1) both;
+}
+
+/* Cocktailkaart (Leaflet + OpenStreetMap-tegels): OSM's standaardstijl heeft
+   zelf al het juiste kleurenregister (blauw water, groen park, crème wegen)
+   maar is drukker getekend dan Apple/Google Maps — veel wegnummer-badges,
+   verzadigde geel/oranje route-kleuren. Stevig ontzadigen + oplichten kalmeert
+   dat richting een lichte, opgeruimde look, zonder de kleuren weg te vlakken
+   zoals de eerdere zware sepia-filter deed. */
+.thuisbar-map .leaflet-tile-pane {
+  filter: saturate(0.45) brightness(1.14) contrast(0.92);
+}
+.thuisbar-map .leaflet-control-zoom {
+  border: 1px solid #DED2B8 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 6px rgba(43,38,32,0.18) !important;
+  overflow: hidden;
+}
+.thuisbar-map .leaflet-control-zoom a {
+  background: #FBF6EA !important;
+  color: #1F3D36 !important;
+  border-bottom: 1px solid #DED2B8 !important;
+}
+.thuisbar-map .leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
+}
+.thuisbar-map .leaflet-control-zoom a:hover {
+  background: #EAE0C9 !important;
+}
+.thuisbar-map .leaflet-popup-content-wrapper {
+  background: #FBF6EA !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 18px rgba(43,38,32,0.28) !important;
+}
+.thuisbar-map .leaflet-popup-content {
+  font-family: 'Inter', sans-serif !important;
+  color: #2B2620 !important;
+  margin: 10px 12px !important;
+  font-size: 12.5px !important;
+  line-height: 1.5 !important;
+}
+.thuisbar-map .leaflet-popup-content strong {
+  font-family: 'Playfair Display', serif !important;
+  font-style: italic;
+  font-size: 14px;
+  color: #1F3D36;
+}
+.thuisbar-map .leaflet-popup-tip {
+  background: #FBF6EA !important;
+}
+.thuisbar-map .leaflet-control-attribution {
+  background: rgba(251,246,234,0.85) !important;
+  color: #8A8171 !important;
+  font-size: 9.5px !important;
+}
+.thuisbar-map .leaflet-control-attribution a {
+  color: #8A8171 !important;
+}
+
+/* Zacht drukeffect voor tikbare elementen (sterren, smaaktags bij het
+   inchecken) — puur CSS, geen aparte state nodig per element. */
+.press-scale {
+  transition: transform .12s ease;
+}
+.press-scale:active {
+  transform: scale(0.88);
+}
+
+/* Zelfde idee als .press-scale, maar subtieler — voor grote tikbare kaarten
+   (een hele hero-afbeelding, een cover) waar 0.88 te heftig zou ogen. */
+.card-press {
+  transition: transform .12s ease, filter .12s ease;
+}
+.card-press:active {
+  transform: scale(0.98);
+  filter: brightness(0.96);
+}
+
+/* Tik-feedback voor rijen in een dropdown/autocomplete-lijst: een zachte
+   achtergrondtint i.p.v. scale, net als een native pickerrij. */
+.list-row-tap {
+  transition: background-color .1s ease;
+}
+.list-row-tap:active {
+  background-color: var(--paper-deep);
+}
+
+/* Vergroot het tikgebied van kleine, geïsoleerde icoonknopjes (sluiten,
+   verwijderen, bewerken) tot Apple's aanbevolen minimum van 44×44pt, zonder
+   het knopje zelf visueel groter te maken — de onzichtbare rand eromheen
+   vangt tikken op die net naast het icoon vallen. Alleen gebruikt op
+   knoppen die ruim los staan van andere tikbare elementen: bij knoppen die
+   dicht naast een andere (vooral een met tegengestelde betekenis, zoals
+   accepteren/afwijzen) staan zou dit juist voor misstaps zorgen, dus die
+   laten dit bewust achterwege. */
+.tap-target-44 {
+  position: relative;
+}
+.tap-target-44::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
