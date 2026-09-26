@@ -2711,182 +2711,182 @@
   {
     "id": "virgin_mojito",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/37090660/pexels-photo-37090660.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "virgin_mojito.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-mojito-cocktail-with-mint-garnish-37662775/",
+    "maker": "Milan Trninic",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "virgin_mule",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "virgin_mule.webp",
+    "bronUrl": "https://www.pexels.com/photo/moscow-mule-drink-10779231/",
+    "maker": "Keegan Checks",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "virgin_pina_colada",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/28575243/pexels-photo-28575243.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "virgin_pina_colada.webp",
+    "bronUrl": "https://www.pexels.com/photo/mocktail-27275594/",
+    "maker": "ATHENEA CODJAMBASSIS ROSSITTO",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "vodka_gibson",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "vodka_gibson.webp",
+    "bronUrl": "https://www.pexels.com/photo/martini-in-a-glass-17564452/",
+    "maker": "Nadin Sh",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "vodka_sour",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "vodka_sour.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-lemon-martini-on-wooden-bar-surface-30743521/",
+    "maker": "dp singh Bhullar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "ward_8",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "ward_8.webp",
+    "bronUrl": "https://www.pexels.com/photo/stylish-red-heels-on-billiard-ball-close-up-39422335/",
+    "maker": "Mynor  Castañeda",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "washington_apple",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "washington_apple.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-green-apple-mocktail-with-ice-cubes-33635827/",
+    "maker": "Sóc Năng Động",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "watermelon_punch",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "watermelon_punch.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-summer-fruit-display-with-watermelon-and-citrus-3376976/",
+    "maker": "Vidal Balielo Jr.",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "whiskey_smash",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1681407979930-1c206604a2ce?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "whiskey_smash.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-close-up-shot-of-a-cocktail-8375104/",
+    "maker": "Denys Gromov",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "whiskey_sour",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1638884890569-b9af6dd7bbd8?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "whiskey_sour.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-whiskey-sour-with-lemon-and-ice-29463484/",
+    "maker": "Marcelo Verfe",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "whisky_mac",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "whisky_mac.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-glass-of-whiskey-with-a-lemon-slice-28180058/",
+    "maker": "Nano Erdozain",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "white_lady",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "white_lady.webp",
+    "bronUrl": "https://www.pexels.com/photo/maraschino-cherry-on-the-rim-of-a-glass-with-a-pink-lady-cocktail-18939875/",
+    "maker": "Kuiyibo Campos",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "white_negroni",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/27822459/pexels-photo-27822459.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "white_negroni.webp",
+    "bronUrl": "https://www.pexels.com/photo/clarify-negroni-27822459/",
+    "maker": "𝙊𝙎𝙑𝘼𝙇𝘿𝙊 𝙍𝙊𝙈𝙄𝙏𝙊",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "white_russian",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1598294147169-fadc4e4a3ae4?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "white_russian.webp",
+    "bronUrl": "https://www.pexels.com/photo/white-russian-cocktail-drink-13148602/",
+    "maker": "Hilal  Bülbül",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "widows_kiss",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "widows_kiss.webp",
+    "bronUrl": "https://www.pexels.com/photo/woman-in-black-spaghetti-strap-top-holding-clear-glass-cup-with-red-liquid-5547063/",
+    "maker": "cottonbro studio",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "woo_woo",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "woo_woo.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-a-cocktail-drink-14968356/",
+    "maker": "Ashique  Shan",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "woodstock",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "woodstock.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-drink-on-wooden-table-in-tokyo-36189453/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "xyz_cocktail",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "xyz_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-drink-on-wooden-table-in-tokyo-36189453/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "yale_cocktail",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/37680618/pexels-photo-37680618.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "yale_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "zombie",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1606672436121-d9c5ee83f209?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "zombie.webp",
+    "bronUrl": "https://www.pexels.com/photo/glasses-of-fresh-icy-cocktails-on-marble-table-6542713/",
+    "maker": "Geraud pfeiffer",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "absinthe",
