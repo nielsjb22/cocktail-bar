@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
+import { Preferences } from "@capacitor/preferences";
+import { Browser } from "@capacitor/browser";
 import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Snowflake, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -10,6 +12,18 @@ import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
 import voorraadHeaderImg from "./assets/voorraad-header.jpg";
 import makenHeaderImg from "./assets/maken-header.jpg";
 import feestHeaderImg from "./assets/feest-header.jpg";
+import catSterkeDrankImg from "./assets/categories/sterke-drank.jpeg";
+import catLikeurenImg from "./assets/categories/likeuren.jpeg";
+import catBittersImg from "./assets/categories/bitters.jpeg";
+import catMixersImg from "./assets/categories/mixers.jpeg";
+import catZuivelRoomImg from "./assets/categories/zuivel-room.jpeg";
+import catVersImg from "./assets/categories/vers.jpeg";
+import spiritGinImg from "./assets/spirits/gin.jpeg";
+import spiritWodkaImg from "./assets/spirits/wodka.jpeg";
+import spiritWitteRumImg from "./assets/spirits/witte-rum.jpeg";
+import spiritCognacBrandyImg from "./assets/spirits/cognac-brandy.jpeg";
+import spiritRyeWhiskyImg from "./assets/spirits/rye-whisky.jpeg";
+import spiritBourbonImg from "./assets/spirits/bourbon.jpeg";
 
 /*
   DESIGN TOKENS: "Bar Register" concept
@@ -69,23 +83,32 @@ const SHADOW_HERO = "var(--shadow-hero)";
 const SHADOW_CTA = "var(--shadow-cta)";
 const RADIUS = 8;
 
+// @capacitor/preferences i.p.v. rechtstreeks localStorage: op web valt het
+// plugin zelf terug op localStorage (dus geen gedragsverandering in de
+// browser), maar op iOS gebruikt het de native UserDefaults — die overleeft
+// het opschonen dat iOS soms met WebView-opslag doet, wat gewoon
+// localStorage niet gegarandeerd doet. Laden is nu async: value start op
+// fallback en wordt bijgewerkt zodra Preferences.get() terug is (meestal
+// binnen een paar ms), i.p.v. synchroon bij de eerste render.
 function useStorage(key, fallback) {
-  const [value, setValue] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch (e) {
-      return fallback;
-    }
-  });
+  const [value, setValue] = useState(fallback);
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    Preferences.get({ key }).then(({ value: raw }) => {
+      if (cancelled) return;
+      loadedRef.current = true;
+      if (raw != null) {
+        try { setValue(JSON.parse(raw)); } catch { /* ongeldige oude waarde, fallback houden */ }
+      }
+    });
+    return () => { cancelled = true; };
+  }, [key]);
 
   const persist = (next) => {
     setValue(next);
-    try {
-      window.localStorage.setItem(key, JSON.stringify(next));
-    } catch (e) {
-      console.error("Opslaan mislukt:", e);
-    }
+    Preferences.set({ key, value: JSON.stringify(next) }).catch(e => console.error("Opslaan mislukt:", e));
   };
   return [value, persist];
 }
@@ -2663,12 +2686,12 @@ const CATEGORY_ART = {
 // stockfoto's toch als één samenhangende set ogen in plaats van een
 // willekeurige verzameling plaatjes.
 const CATEGORY_PHOTOS = {
-  "Sterke drank": "https://images.pexels.com/photos/29392061/pexels-photo-29392061.jpeg?auto=compress&cs=tinysrgb&w=900",
-  "Likeuren & versterkte wijnen": "https://images.unsplash.com/photo-1573551565922-aec98de55802?auto=format&fit=crop&w=900&q=80",
-  "Bitters": "https://images.unsplash.com/photo-1631262553859-945f7fb49bba?auto=format&fit=crop&w=900&q=80",
-  "Mixers": "https://images.pexels.com/photos/30681624/pexels-photo-30681624.jpeg?auto=compress&cs=tinysrgb&w=900",
-  "Zuivel & room": "https://images.unsplash.com/photo-1602153508651-d6375c49a906?auto=format&fit=crop&w=900&q=80",
-  "Vers": "https://images.unsplash.com/photo-1611625309355-44750e8b3498?auto=format&fit=crop&w=900&q=80",
+  "Sterke drank": catSterkeDrankImg,
+  "Likeuren & versterkte wijnen": catLikeurenImg,
+  "Bitters": catBittersImg,
+  "Mixers": catMixersImg,
+  "Zuivel & room": catZuivelRoomImg,
+  "Vers": catVersImg,
 };
 
 function CategoryArt({ cat }) {
@@ -2740,12 +2763,12 @@ function CategoryArt({ cat }) {
 // Sterke-drank-plankfoto, met dezelfde behandeling als CategoryArt zodat
 // het visueel bij elkaar blijft horen.
 const SPIRIT_PHOTOS = {
-  "Gin": "https://images.pexels.com/photos/25823021/pexels-photo-25823021.jpeg?auto=compress&cs=tinysrgb&w=600",
-  "Wodka": "https://images.unsplash.com/photo-1550910924-f613b3d88e53?auto=format&fit=crop&w=600&q=80",
-  "Witte rum": "https://images.pexels.com/photos/34909901/pexels-photo-34909901.jpeg?auto=compress&cs=tinysrgb&w=600",
-  "Cognac / brandy": "https://images.pexels.com/photos/34421486/pexels-photo-34421486.jpeg?auto=compress&cs=tinysrgb&w=600",
-  "Rye whisky": "https://images.pexels.com/photos/36497074/pexels-photo-36497074.jpeg?auto=compress&cs=tinysrgb&w=600",
-  "Bourbon": "https://images.pexels.com/photos/32711949/pexels-photo-32711949.jpeg?auto=compress&cs=tinysrgb&w=600",
+  "Gin": spiritGinImg,
+  "Wodka": spiritWodkaImg,
+  "Witte rum": spiritWitteRumImg,
+  "Cognac / brandy": spiritCognacBrandyImg,
+  "Rye whisky": spiritRyeWhiskyImg,
+  "Bourbon": spiritBourbonImg,
 };
 
 function SpiritArt({ label }) {
@@ -4480,10 +4503,10 @@ function WinkelmandjeTab({ shoppingList, recipes, isOwned, allIngredients, onRem
               <div style={{ width: 44, height: 44, borderRadius: "50%", overflow: "hidden", flexShrink: 0, marginTop: 2 }}><ItemArt ing={artRef} /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {item.id && SHOP_LINKS[item.id] ? (
-                  <a href={SHOP_LINKS[item.id]} target="_blank" rel="noopener noreferrer" title="Bekijk op drankdozijn.nl, goedkoopste eerst"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: serif, fontWeight: 700, color: BOTTLE, fontSize: 16, textDecoration: "none", borderBottom: `1px dotted ${BOTTLE}` }}>
+                  <button onClick={() => Browser.open({ url: SHOP_LINKS[item.id] })} title="Bekijk op drankdozijn.nl, goedkoopste eerst"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: serif, fontWeight: 700, color: BOTTLE, fontSize: 16, textDecoration: "none", borderBottom: `1px dotted ${BOTTLE}` }}>
                     {item.label} <ExternalLink size={13} style={{ flexShrink: 0 }} />
-                  </a>
+                  </button>
                 ) : (
                   <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 16 }}>{item.label}</div>
                 )}
