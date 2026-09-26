@@ -722,182 +722,182 @@
   {
     "id": "dr_funk",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "dr_funk.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-drink-on-wooden-table-in-tokyo-36189453/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "earls_punch",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "earls_punch.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-with-yellow-liquid-and-black-straw-5415798/",
+    "maker": "elif tekkaya",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "east_side_cocktail",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "east_side_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-green-cocktail-in-martini-glass-35087284/",
+    "maker": "Gerardo Pantoja",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "eastside",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/31057723/pexels-photo-31057723.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "eastside.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-green-cocktail-in-martini-glass-35087284/",
+    "maker": "Gerardo Pantoja",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "egg_nog",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1668202434829-4b1b340a5ef8?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "egg_nog.webp",
+    "bronUrl": "https://www.pexels.com/photo/cozy-winter-drinks-by-the-window-34269425/",
+    "maker": "Anhelina Vasylyk",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "el_diablo",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "el_diablo.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-havana-club-cocktail-with-mint-30738320/",
+    "maker": "Göksu Taymaz",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "el_presidente",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "el_presidente.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-and-bottle-of-alcohol-15866906/",
+    "maker": "Tim Durand",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "english_garden_fizz",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "english_garden_fizz.webp",
+    "bronUrl": "https://www.pexels.com/photo/crop-woman-holding-glass-of-sparkling-wine-in-green-garden-7245424/",
+    "maker": "Olga Lioncat",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "espresso_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1607687633950-c745bdb4da70?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "espresso_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/glass-of-espresso-martini-cocktail-15082311/",
+    "maker": "Marilena Baltzaki",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "eve",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "eve.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-glasses-with-new-years-eve-confetti-among-christmas-ornaments-19682679/",
+    "maker": "Ioana Motoc",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "fernandito",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "fernandito.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-drink-on-wooden-table-in-tokyo-36189453/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "final_ward",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "final_ward.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-cocktail-glass-on-table-with-orange-glow-36189465/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "fino_highball",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "fino_highball.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-cocktail-glass-on-table-with-orange-glow-36189465/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "fish_house_punch",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "fish_house_punch.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-lemon-and-rosemary-cocktails-overhead-33163692/",
+    "maker": "fernanda teyo",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "flora_dora",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "flora_dora.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-summer-cocktail-held-outdoors-28642820/",
+    "maker": "BALMONT Léa",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "fog_cutter",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "fog_cutter.webp",
+    "bronUrl": "https://www.pexels.com/photo/steaming-cocktail-on-bar-counter-15642988/",
+    "maker": "Andrea Mosti",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "french_75",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1710106355245-e744c063bf84?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "french_75.webp",
+    "bronUrl": "https://www.pexels.com/photo/bottle-of-gin-on-bench-18347951/",
+    "maker": "Tim Durand",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "french_76",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "french_76.webp",
+    "bronUrl": "https://www.pexels.com/photo/bottle-of-gin-on-bench-18347951/",
+    "maker": "Tim Durand",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "french_connection",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "french_connection.webp",
+    "bronUrl": "https://www.pexels.com/photo/mixologist-pouring-liquor-into-jigger-for-cocktail-31328194/",
+    "maker": "Augustin Mazaud",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "french_kiss",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "french_kiss.webp",
+    "bronUrl": "https://www.pexels.com/photo/drinks-decorated-with-french-macarons-12522518/",
+    "maker": "Studio Naae",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "french_martini",
