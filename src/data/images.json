@@ -542,182 +542,182 @@
   {
     "id": "cinderella",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "cinderella.webp",
+    "bronUrl": "https://www.pexels.com/photo/glasses-of-fresh-icy-cocktails-on-marble-table-6542713/",
+    "maker": "Geraud pfeiffer",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "clover_club",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1726037736743-ca4a5ead3de8?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "clover_club.webp",
+    "bronUrl": "https://www.pexels.com/photo/clover-club-cocktail-drink-11937515/",
+    "maker": "Ata Ebem",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "coconut_daiquiri",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "coconut_daiquiri.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-pina-colada-cocktail-on-vibrant-table-39320131/",
+    "maker": "César O'neill",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "combined_forces",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "combined_forces.webp",
+    "bronUrl": "https://www.pexels.com/photo/cold-alcohol-drink-in-a-glass-11118926/",
+    "maker": "Antonio Friedemann",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "corn_n_oil",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "corn_n_oil.webp",
+    "bronUrl": "https://www.pexels.com/photo/drink-with-garnish-by-two-bottles-of-alcohol-19841840/",
+    "maker": "Jonathan  Reynaga",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "corpse_reviver_1",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "corpse_reviver_1.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-corpse-reviver-cocktail-10255518/",
+    "maker": "Boys in Bristol Photography",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "corpse_reviver_2",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "corpse_reviver_2.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-corpse-reviver-cocktail-10255518/",
+    "maker": "Boys in Bristol Photography",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "cosmopolitan",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1589378938275-947b7adf8665?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "cosmopolitan.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-variety-of-alcoholic-beverages-7282878/",
+    "maker": "Polina ⠀",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "cuba_libre",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1722749646521-4cacd29fb3f4?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "cuba_libre.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-a-person-holding-a-rock-glass-6126239/",
+    "maker": "Rachel Claire",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "cucumber_cooler",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/35087287/pexels-photo-35087287.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "cucumber_cooler.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-with-cucumber-cooler-5335918/",
+    "maker": "bams awey",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "daiquiri",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1556855810-ac404aa91e85?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "daiquiri.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-strawberry-daiquiri-with-fresh-garnish-28902889/",
+    "maker": "pedro furtado",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "dark_n_stormy",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "dark_n_stormy.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-iced-drinks-with-citrus-garnish-indoors-38142903/",
+    "maker": "Sóc Năng Động",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "death_in_afternoon",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "death_in_afternoon.webp",
+    "bronUrl": "https://www.pexels.com/photo/glasses-of-cold-drinks-on-wooden-table-7376996/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "death_in_the_afternoon",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "death_in_the_afternoon.webp",
+    "bronUrl": "https://www.pexels.com/photo/glasses-of-cold-drinks-on-wooden-table-7376996/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "delft_donkey",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "delft_donkey.webp",
+    "bronUrl": "https://www.pexels.com/photo/two-donkeys-standing-in-a-green-pasture-37730243/",
+    "maker": "Meltem  B.",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "desert_daisy",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "desert_daisy.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-in-crystal-glass-decorated-with-flowers-casting-shadow-on-table-17839998/",
+    "maker": "Studio Naae",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "diamondback",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "diamondback.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-a-coiled-rattlesnake-in-natural-habitat-35022915/",
+    "maker": "Magda Ehlers",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "dirty_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/36562983/pexels-photo-36562983.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "dirty_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/classic-martini-with-olive-on-a-bar-table-36562983/",
+    "maker": "Benoit Roy",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "dons_special_daiquiri",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "dons_special_daiquiri.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-strawberry-daiquiri-with-fresh-garnish-28902889/",
+    "maker": "pedro furtado",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "doobs_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "doobs_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "dr_funk",
