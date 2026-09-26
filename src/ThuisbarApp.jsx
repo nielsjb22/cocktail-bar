@@ -1213,8 +1213,14 @@ function GuestMenuView({ recipeIds }) {
 // in de link en schrijft één antwoord weg naar party_survey_responses.
 function GuestSurveyView({ surveyId }) {
   const [survey, setSurvey] = useState(undefined); // undefined = laden, null = niet gevonden
+  const [step, setStep] = useState(0); // 0..3, per vraag-groep
   const [tags, setTags] = useState([]);
+  const [dislikeTags, setDislikeTags] = useState([]);
+  const [strength, setStrength] = useState(3);
   const [alcoholFree, setAlcoholFree] = useState(false);
+  const [favoriteSpirit, setFavoriteSpirit] = useState(null);
+  const [favoriteCocktail, setFavoriteCocktail] = useState("");
+  const [dietary, setDietary] = useState([]);
   const [guestName, setGuestName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -1228,19 +1234,72 @@ function GuestSurveyView({ surveyId }) {
     return () => { cancelled = true; };
   }, [surveyId]);
 
-  const toggleTag = (key) => setTags(t => t.includes(key) ? t.filter(k => k !== key) : [...t, key]);
+  const toggle = (setter) => (key) => setter(t => t.includes(key) ? t.filter(k => k !== key) : [...t, key]);
+  const toggleTag = toggle(setTags);
+  const toggleDislike = toggle(setDislikeTags);
+  const toggleDietary = toggle(setDietary);
+
+  const STEPS = 4;
+  const goNext = () => setStep(s => Math.min(STEPS - 1, s + 1));
+  const goBack = () => setStep(s => Math.max(0, s - 1));
 
   const submit = async () => {
-    if (tags.length === 0 || submitting) return;
+    if (submitting) return;
     setSubmitting(true);
     setError(null);
+    const matched = favoriteCocktail.trim()
+      ? RECIPES.find(r => r.name.toLowerCase() === favoriteCocktail.trim().toLowerCase())
+      : null;
     const { error: err } = await supabase.from("party_survey_responses").insert({
-      survey_id: surveyId, guest_name: guestName.trim() || null, taste_tags: tags, alcohol_free: alcoholFree,
+      survey_id: surveyId,
+      guest_name: guestName.trim() || null,
+      taste_tags: tags,
+      dislike_tags: dislikeTags,
+      strength,
+      alcohol_free: alcoholFree,
+      favorite_spirit: favoriteSpirit,
+      favorite_cocktail_name: favoriteCocktail.trim() || null,
+      favorite_cocktail_id: matched ? matched.id : null,
+      dietary,
     });
     setSubmitting(false);
     if (err) { setError("Versturen is niet gelukt. Probeer het nog eens."); return; }
     setSubmitted(true);
   };
+
+  // Klein bedankje-op-maat: dezelfde persoonlijkheidstypering die ingelogde
+  // gebruikers over hun eigen check-ins krijgen, hier voor de gast zelf op
+  // basis van hun eigen keuzes — puur leuk, telt niet mee in de resultaten.
+  const myPersonalityKey = tags[0] || (strength >= 4 ? "sterk" : null);
+  const myPersonality = myPersonalityKey ? PERSONALITY[myPersonalityKey] : null;
+
+  const progressDots = (
+    <div style={{ display: "flex", gap: 6, marginBottom: 22 }}>
+      {Array.from({ length: STEPS }).map((_, i) => (
+        <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= step ? BRASS : BORDER }} />
+      ))}
+    </div>
+  );
+
+  const NavButtons = ({ onSubmitStep }) => (
+    <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+      {step > 0 && (
+        <button onClick={goBack} style={{
+          padding: "13px 18px", borderRadius: 14, border: `1px solid ${BORDER}`, background: "none",
+          color: INK, fontSize: 14, fontWeight: 700, cursor: "pointer",
+        }}>
+          Terug
+        </button>
+      )}
+      <button onClick={onSubmitStep} disabled={submitting} className="press-scale" style={{
+        flex: 1, padding: "13px 18px", borderRadius: 14, border: "none",
+        background: `linear-gradient(135deg, ${BOTTLE}, ${BOTTLE_DARK})`,
+        color: CREAM, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
+      }}>
+        {step < STEPS - 1 ? "Volgende" : submitting ? "Bezig…" : "Versturen"}
+      </button>
+    </div>
+  );
 
   return (
     <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
@@ -1265,54 +1324,128 @@ function GuestSurveyView({ surveyId }) {
           <div style={{ textAlign: "center", padding: "40px 20px" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🥂</div>
             <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 20, marginBottom: 8 }}>Bedankt!</div>
-            <p style={{ color: MUTED, fontSize: 13.5, lineHeight: 1.5 }}>Je voorkeuren zijn doorgegeven. De gastheer stelt hiermee het menu samen.</p>
+            <p style={{ color: MUTED, fontSize: 13.5, lineHeight: 1.5, marginBottom: myPersonality ? 22 : 0 }}>Je voorkeuren zijn doorgegeven. De gastheer stelt hiermee het menu samen.</p>
+            {myPersonality && (
+              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: 18, textAlign: "left" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
+                  <span style={{ fontSize: 22 }}>{myPersonality.emoji}</span>
+                  <span style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15, color: "#8F6A21" }}>{myPersonality.title}</span>
+                </div>
+                <p style={{ margin: 0, fontSize: 12.5, color: "#5C5548", fontStyle: "italic", lineHeight: 1.5 }}>Jouw type voor vanavond, gebaseerd op wat je net invulde.</p>
+              </div>
+            )}
           </div>
         ) : (
           <>
-            <p style={{ color: MUTED, fontSize: 13.5, lineHeight: 1.5, margin: "0 0 22px" }}>
-              Help mee het cocktailmenu samen te stellen — twee korte vragen.
-            </p>
+            {progressDots}
 
-            <div style={{ marginBottom: 22 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Waar houd je van?</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {Object.keys(TASTE_META).map(key => {
-                  const meta = TASTE_META[key];
-                  const active = tags.includes(key);
-                  return (
-                    <button key={key} onClick={() => toggleTag(key)} className="press-scale" style={{
-                      display: "flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 100,
-                      border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
-                      background: active ? `linear-gradient(135deg, ${BRASS}, #8F6A21)` : CREAM,
-                      color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
-                    }}>
-                      {meta.emoji} {meta.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {step === 0 && (
+              <>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Waar houd je van?</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
+                  {SURVEY_TASTE_KEYS.map(key => {
+                    const meta = TASTE_META[key];
+                    const active = tags.includes(key);
+                    return (
+                      <button key={key} onClick={() => toggleTag(key)} className="press-scale" style={{
+                        display: "flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 100,
+                        border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
+                        background: active ? `linear-gradient(135deg, ${BRASS}, #8F6A21)` : CREAM,
+                        color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
+                      }}>
+                        {meta.emoji} {meta.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Hoe sterk mag het zijn?</div>
+                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "16px 18px" }}>
+                  <input type="range" min="1" max="5" value={strength} onChange={e => setStrength(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: BRASS }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: MUTED, marginTop: 4 }}>
+                    <span>Licht</span><span>Sterk</span>
+                  </div>
+                </div>
+                <NavButtons onSubmitStep={goNext} />
+              </>
+            )}
 
-            <label style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "14px 16px", marginBottom: 22, cursor: "pointer" }}>
-              <Switch checked={alcoholFree} onChange={setAlcoholFree} />
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Ik drink liever alcoholvrij</span>
-            </label>
+            {step === 1 && (
+              <>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Waar houd je liever niet van?</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
+                  {SURVEY_TASTE_KEYS.map(key => {
+                    const meta = TASTE_META[key];
+                    const active = dislikeTags.includes(key);
+                    return (
+                      <button key={key} onClick={() => toggleDislike(key)} className="press-scale" style={{
+                        display: "flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 100,
+                        border: active ? `1.5px solid ${BURGUNDY}` : `1.5px solid ${BORDER}`,
+                        background: active ? BURGUNDY : CREAM,
+                        color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
+                      }}>
+                        {meta.emoji} {meta.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "14px 16px", cursor: "pointer" }}>
+                  <Switch checked={alcoholFree} onChange={setAlcoholFree} />
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>Ik drink liever alcoholvrij</span>
+                </label>
+                <NavButtons onSubmitStep={goNext} />
+              </>
+            )}
 
-            <div style={{ marginBottom: 22 }}>
-              <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 6 }}>Je naam (optioneel)</label>
-              <input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Zodat de gastheer weet wie er reageerde" autoCapitalize="words" style={fieldStyle()} />
-            </div>
+            {step === 2 && (
+              <>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Favoriete drank?</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
+                  {FAVORITE_SPIRIT_OPTIONS.map(opt => {
+                    const active = favoriteSpirit === opt.key;
+                    return (
+                      <button key={opt.key} onClick={() => setFavoriteSpirit(active ? null : opt.key)} className="press-scale" style={{
+                        padding: "9px 15px", borderRadius: 100,
+                        border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
+                        background: active ? `linear-gradient(135deg, ${BRASS}, #8F6A21)` : CREAM,
+                        color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
+                      }}>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Ken je een cocktail die je lekker vond?</div>
+                <RecipeNameAutocomplete recipes={RECIPES} value={favoriteCocktail} onChange={setFavoriteCocktail} placeholder="Typ of kies een cocktail (optioneel)" />
+                <NavButtons onSubmitStep={goNext} />
+              </>
+            )}
 
-            {error && <p style={{ color: BURGUNDY, fontSize: 13, marginBottom: 14 }}>{error}</p>}
-
-            <button onClick={submit} disabled={tags.length === 0 || submitting} className="press-scale" style={{
-              width: "100%", padding: "14px 18px", borderRadius: 14, border: "none",
-              background: tags.length === 0 ? BORDER : `linear-gradient(135deg, ${BOTTLE}, ${BOTTLE_DARK})`,
-              color: CREAM, fontSize: 15, fontWeight: 700, cursor: tags.length === 0 ? "default" : "pointer", boxShadow: tags.length === 0 ? "none" : SHADOW_CTA,
-            }}>
-              {submitting ? "Bezig…" : "Versturen"}
-            </button>
-            {tags.length === 0 && <p style={{ color: MUTED, fontSize: 12, textAlign: "center", marginTop: 10 }}>Kies minstens één smaak.</p>}
+            {step === 3 && (
+              <>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Dieetwensen of allergieën?</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
+                  {Object.keys(DIETARY_META).map(key => {
+                    const meta = DIETARY_META[key];
+                    const active = dietary.includes(key);
+                    return (
+                      <button key={key} onClick={() => toggleDietary(key)} className="press-scale" style={{
+                        display: "flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 100,
+                        border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
+                        background: active ? `linear-gradient(135deg, ${BRASS}, #8F6A21)` : CREAM,
+                        color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
+                      }}>
+                        {meta.emoji} {meta.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 6 }}>Je naam (optioneel)</label>
+                <input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Zodat de gastheer weet wie er reageerde" autoCapitalize="words" style={fieldStyle()} />
+                {error && <p style={{ color: BURGUNDY, fontSize: 13, marginTop: 14, marginBottom: 0 }}>{error}</p>}
+                <NavButtons onSubmitStep={submit} />
+              </>
+            )}
           </>
         )}
       </div>
@@ -2235,7 +2368,7 @@ export default function ThuisbarApp() {
         <TabPanel id="feest" active={tab === "feest"} visited={visitedTabs.has("feest")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" onBack={() => navigateTo("bar")}>
             <FeestplannerTab session={session} recipes={allRecipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
-              onAddToShoppingList={addToShoppingList} chosen={feestChosen} setChosen={setFeestChosen} voorraadAantal={voorraadAantal} onSound={chime} />
+              onAddToShoppingList={addToShoppingList} chosen={feestChosen} setChosen={setFeestChosen} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="eigen" active={tab === "eigen"} visited={visitedTabs.has("eigen")} panelRef={panelRefs}>
@@ -5690,28 +5823,61 @@ function CursusTab({ progress, setProgress, onSound }) {
 // (computeCheckinInsights), hier losgetrokken zodat 'm ook op een
 // opgetelde-groepsvoorkeur (smaaktest-antwoorden) kan draaien i.p.v. op
 // gewogen check-in-geschiedenis van één persoon.
-function computeGroupRecommendations(responses, recipes, excludeIds) {
+// Dieper dan een enkele smaakvector: weegt ook wat de groep NIET lust (straft
+// dat af), welke basisdrank het vaakst favoriet is (bonus als een recept die
+// drank bevat), welke cocktails gasten letterlijk noemden (die verdienen
+// sowieso een plek), en — als isOwned wordt meegegeven — hoeveel van de
+// verplichte ingrediënten je al in huis hebt. Alles blijft optelbaar uit
+// dezelfde ruwe antwoorden, geen verzonnen aannames.
+function computeGroupRecommendations(responses, recipes, excludeIds, isOwned) {
+  if (responses.length === 0) return [];
+
   const vec = { fruitig: 0, zoet: 0, zuur: 0, sterk: 0, bitter: 0 };
   responses.forEach(r => (r.taste_tags || []).forEach(k => { if (k in vec) vec[k] += 1; }));
+  const strengthValues = responses.map(r => r.strength).filter(s => s != null);
+  if (strengthValues.length > 0) {
+    const avgStrength = strengthValues.reduce((a, b) => a + b, 0) / strengthValues.length;
+    vec.sterk = ((avgStrength - 1) / 4) * responses.length;
+  }
   const mag = Math.sqrt(Object.values(vec).reduce((s, v) => s + v * v, 0));
   if (mag === 0) return [];
+
+  const dislikeVec = { fruitig: 0, zoet: 0, zuur: 0, sterk: 0, bitter: 0 };
+  responses.forEach(r => (r.dislike_tags || []).forEach(k => { if (k in dislikeVec) dislikeVec[k] += 1; }));
+
+  const spiritCounts = {};
+  responses.forEach(r => { if (r.favorite_spirit) spiritCounts[r.favorite_spirit] = (spiritCounts[r.favorite_spirit] || 0) + 1; });
+  const topSpiritKey = Object.entries(spiritCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const topSpiritIds = new Set(FAVORITE_SPIRIT_OPTIONS.find(o => o.key === topSpiritKey)?.ids || []);
+
+  const mentionedIds = new Set(responses.map(r => r.favorite_cocktail_id).filter(Boolean));
   const excluded = new Set(excludeIds || []);
+
   return recipes
     .filter(r => !excluded.has(r.id))
     .map(r => {
       const rVec = FAMILY_TASTE[r.family] || {};
       const rMag = Math.sqrt(Object.values(rVec).reduce((s, v) => s + v * v, 0));
-      let dot = 0;
-      Object.entries(rVec).forEach(([k, w]) => { dot += w * (vec[k] || 0); });
-      const score = rMag > 0 ? Math.round((dot / (rMag * mag)) * 100) : 0;
-      return { recipe: r, score };
+      let dot = 0, dislikeDot = 0;
+      Object.entries(rVec).forEach(([k, w]) => { dot += w * (vec[k] || 0); dislikeDot += w * (dislikeVec[k] || 0); });
+      let tasteScore = rMag > 0 ? (dot / (rMag * mag)) * 100 : 0;
+      const dislikePenalty = rMag > 0 ? (dislikeDot / rMag) * (100 / responses.length) : 0;
+      tasteScore = Math.max(0, tasteScore - dislikePenalty);
+
+      const spiritMatch = topSpiritIds.size > 0 && r.ingredients.some(i => topSpiritIds.has(i.id));
+      const mentioned = mentionedIds.has(r.id);
+      const required = r.ingredients.filter(i => !i.optional);
+      const matchPct = isOwned && required.length > 0 ? Math.round(((required.length - required.filter(i => !isOwned(i)).length) / required.length) * 100) : null;
+
+      const score = Math.round(tasteScore * 0.55 + (matchPct != null ? matchPct * 0.25 : 0) + (spiritMatch ? 15 : 0) + (mentioned ? 20 : 0));
+      return { recipe: r, score, matchPct, mentioned, spiritMatch };
     })
-    .filter(x => x.score > 0)
+    .filter(x => x.score > 0 || x.mentioned)
     .sort((a, b) => b.score - a.score)
     .slice(0, 6);
 }
 
-function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, chosen, setChosen, voorraadAantal, onSound }) {
+function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, chosen, setChosen, voorraadAantal, onSound, onOpenRecipe }) {
   const [shareState, setShareState] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [sheetIndex, setSheetIndex] = useState(null);
@@ -5766,16 +5932,47 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
     setTimeout(() => setSurveyShareState(null), 2500);
   };
 
+  const [suggestionSheetId, setSuggestionSheetId] = useState(null);
+  const [showGuestList, setShowGuestList] = useState(false);
+
   const surveyTasteTotals = useMemo(() => {
-    const totals = { fruitig: 0, zoet: 0, zuur: 0, sterk: 0, bitter: 0 };
+    const totals = { fruitig: 0, zoet: 0, zuur: 0, bitter: 0 };
     surveyResponses.forEach(r => (r.taste_tags || []).forEach(k => { if (k in totals) totals[k] += 1; }));
     return totals;
   }, [surveyResponses]);
+  const surveyDislikeTotals = useMemo(() => {
+    const totals = { fruitig: 0, zoet: 0, zuur: 0, bitter: 0 };
+    surveyResponses.forEach(r => (r.dislike_tags || []).forEach(k => { if (k in totals) totals[k] += 1; }));
+    return totals;
+  }, [surveyResponses]);
   const surveyAlcoholFreeCount = useMemo(() => surveyResponses.filter(r => r.alcohol_free).length, [surveyResponses]);
-  const surveyRecommended = useMemo(
-    () => computeGroupRecommendations(surveyResponses, recipes, chosen),
-    [surveyResponses, recipes, chosen]
+  const surveyAvgStrength = useMemo(() => {
+    const vals = surveyResponses.map(r => r.strength).filter(s => s != null);
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }, [surveyResponses]);
+  const surveyDietaryTotals = useMemo(() => {
+    const totals = {};
+    surveyResponses.forEach(r => (r.dietary || []).forEach(k => { totals[k] = (totals[k] || 0) + 1; }));
+    return totals;
+  }, [surveyResponses]);
+  const surveySpiritTotals = useMemo(() => {
+    const totals = {};
+    surveyResponses.forEach(r => { if (r.favorite_spirit) totals[r.favorite_spirit] = (totals[r.favorite_spirit] || 0) + 1; });
+    return Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  }, [surveyResponses]);
+  const surveyMentionedCocktails = useMemo(
+    () => [...new Set(surveyResponses.map(r => r.favorite_cocktail_name).filter(Boolean))],
+    [surveyResponses]
   );
+  const surveyGroupPersonalityKey = useMemo(() => {
+    const entries = Object.entries(surveyTasteTotals).sort((a, b) => b[1] - a[1]);
+    return entries.length > 0 && entries[0][1] > 0 ? entries[0][0] : null;
+  }, [surveyTasteTotals]);
+  const surveyRecommended = useMemo(
+    () => computeGroupRecommendations(surveyResponses, recipes, chosen, isOwned),
+    [surveyResponses, recipes, chosen, isOwned]
+  );
+  const suggestionSheetRecipe = suggestionSheetId ? recipes.find(r => r.id === suggestionSheetId) : null;
   const addMissing = (recipeId, refs) => {
     onAddToShoppingList(refs);
     onSound("tick");
@@ -6005,8 +6202,18 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
 
             {surveyResponses.length > 0 && (
               <>
+                {surveyGroupPersonalityKey && GROUP_PERSONALITY[surveyGroupPersonalityKey] && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, background: PAPER, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "12px 14px", marginBottom: 16 }}>
+                    <span style={{ fontSize: 26, flexShrink: 0 }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].emoji}</span>
+                    <div>
+                      <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 14.5, color: INK }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].title}</div>
+                      <div style={{ fontSize: 12, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].text}</div>
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ marginBottom: 16 }}>
-                  {Object.keys(TASTE_META).map(key => {
+                  {SURVEY_TASTE_KEYS.map(key => {
                     const meta = TASTE_META[key];
                     const pct = Math.round((surveyTasteTotals[key] / surveyResponses.length) * 100);
                     return (
@@ -6020,6 +6227,16 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                       </div>
                     );
                   })}
+                  {surveyAvgStrength != null && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                      <span style={{ fontSize: 14, width: 18, textAlign: "center", flexShrink: 0 }}>🥃</span>
+                      <span style={{ fontSize: 11.5, color: INK, width: 50, flexShrink: 0 }}>Sterk</span>
+                      <div style={{ flex: 1, height: 6, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: 3, background: BOTTLE, width: `${Math.round(((surveyAvgStrength - 1) / 4) * 100)}%` }} />
+                      </div>
+                      <span style={{ fontSize: 10.5, color: MUTED, fontWeight: 700, width: 30, textAlign: "right", flexShrink: 0 }}>{surveyAvgStrength.toFixed(1)}</span>
+                    </div>
+                  )}
                   {surveyAlcoholFreeCount > 0 && (
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
                       {surveyAlcoholFreeCount} van de {surveyResponses.length} wil liever alcoholvrij.
@@ -6027,28 +6244,121 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                   )}
                 </div>
 
+                {SURVEY_TASTE_KEYS.some(k => surveyDislikeTotals[k] > 0) && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: BURGUNDY, marginBottom: 8 }}>Waar gasten niet van houden</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {SURVEY_TASTE_KEYS.filter(k => surveyDislikeTotals[k] > 0).map(k => (
+                        <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(122,46,42,0.08)", border: `1px solid rgba(122,46,42,0.25)`, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: BURGUNDY, fontWeight: 600 }}>
+                          {TASTE_META[k].emoji} {TASTE_META[k].label} ({surveyDislikeTotals[k]})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {Object.keys(surveyDietaryTotals).length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Diëten & allergieën</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {Object.entries(surveyDietaryTotals).map(([k, count]) => (
+                        <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: INK, fontWeight: 600 }}>
+                          {DIETARY_META[k]?.emoji || "•"} {DIETARY_META[k]?.label || k} ({count})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {surveySpiritTotals.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Favoriete sterkedrank</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {surveySpiritTotals.map(([k, count]) => (
+                        <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: INK, fontWeight: 600 }}>
+                          {FAVORITE_SPIRIT_OPTIONS.find(o => o.key === k)?.label || k} ({count})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {surveyMentionedCocktails.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Genoemde favoriete cocktails</div>
+                    <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.6 }}>{surveyMentionedCocktails.join(" · ")}</div>
+                  </div>
+                )}
+
                 {surveyRecommended.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 10 }}>Suggesties voor het menu</div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 3 }}>Suggesties voor het menu</div>
+                    <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>Tik op een kaart voor het recept, of gebruik + om 'm direct toe te voegen.</div>
                     <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-                      {surveyRecommended.map(({ recipe, score }) => (
-                        <button key={recipe.id} onClick={() => { onSound("shuffle"); setChosen([...chosen, recipe.id]); }} className="press-scale" style={{ width: 126, flexShrink: 0, textAlign: "center", background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
+                      {surveyRecommended.map(({ recipe, score, matchPct, mentioned, spiritMatch }) => (
+                        <button key={recipe.id} onClick={() => setSuggestionSheetId(recipe.id)} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
                           <div style={{ position: "absolute", top: 8, right: 8, background: BOTTLE_DARK, border: `1px solid rgba(245,239,230,0.25)`, borderRadius: 100, padding: "3px 7px", fontSize: 10.5, fontWeight: 700, color: BRASS }}>{score}%</div>
                           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                             <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} />
                           </div>
                           <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 12.5, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
-                          <div style={{ fontSize: 10, color: BRASS, marginTop: 4, fontWeight: 700 }}>+ toevoegen</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 3, marginTop: 5, minHeight: 15 }}>
+                            {mentioned && <span style={{ fontSize: 8.5, color: BRASS, fontWeight: 700, border: `1px solid ${BRASS}`, borderRadius: 100, padding: "1px 5px" }}>genoemd</span>}
+                            {spiritMatch && <span style={{ fontSize: 8.5, color: SAGE, fontWeight: 700, border: `1px solid ${SAGE}`, borderRadius: 100, padding: "1px 5px" }}>favoriet</span>}
+                            {matchPct != null && <span style={{ fontSize: 8.5, color: MUTED, fontWeight: 700, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "1px 5px" }}>{matchPct}% in huis</span>}
+                          </div>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.stopPropagation(); onSound("shuffle"); setChosen([...chosen, recipe.id]); }}
+                            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 7, fontSize: 10.5, color: BRASS, fontWeight: 700, border: `1px dashed ${BRASS}`, borderRadius: 3, padding: "5px 0", cursor: "pointer" }}
+                          >
+                            <Plus size={11} /> toevoegen
+                          </div>
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
+
+                <div>
+                  <button onClick={() => setShowGuestList(v => !v)} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: MUTED, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, fontFamily: sans }}>
+                    <Users size={13} /> Antwoorden per gast {showGuestList ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+                  {showGuestList && (
+                    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                      {surveyResponses.map(r => (
+                        <div key={r.id} style={{ background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "9px 12px", fontSize: 12, color: INK, lineHeight: 1.5 }}>
+                          <div style={{ fontWeight: 700, marginBottom: 2 }}>{r.guest_name || "Naamloze gast"}</div>
+                          <div style={{ color: MUTED }}>
+                            {(r.taste_tags || []).map(k => TASTE_META[k]?.emoji).filter(Boolean).join(" ") || "geen smaak opgegeven"}
+                            {r.strength != null && ` · sterkte ${r.strength}/5`}
+                            {r.alcohol_free && " · alcoholvrij"}
+                            {r.favorite_spirit && ` · ${FAVORITE_SPIRIT_OPTIONS.find(o => o.key === r.favorite_spirit)?.label || r.favorite_spirit}`}
+                            {r.favorite_cocktail_name && ` · favoriet: ${r.favorite_cocktail_name}`}
+                            {(r.dietary || []).length > 0 && ` · ${r.dietary.map(k => DIETARY_META[k]?.label || k).join(", ")}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </>
         )}
       </div>
+
+      {suggestionSheetRecipe && (() => {
+        const required = suggestionSheetRecipe.ingredients.filter(ing => !ing.optional);
+        const missing = required.filter(ing => !isOwned(ing));
+        return (
+          <RecipeSheet recipe={suggestionSheetRecipe} missing={missing} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
+            onAddMissing={addMissing} justAdded={justAddedId === suggestionSheetRecipe.id} onClose={() => setSuggestionSheetId(null)}
+            onOpenFullRecipe={onOpenRecipe} onAddToFeest={(id) => { onSound("shuffle"); setChosen([...chosen, id]); }}
+            feestChosen={chosen} onSound={onSound} />
+        );
+      })()}
 
       <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -6508,6 +6818,40 @@ const PERSONALITY = {
   sterk: { emoji: "🥃", title: "DE PURIST", text: "Je check-ins laten zien dat je houdt van sterke, spirit-forward cocktails." },
   bitter: { emoji: "🍂", title: "DE BITTERE VIRTUOOS", text: "Je check-ins laten zien dat je van een stevige, bittere toets houdt." },
 };
+
+// Groepsversie van PERSONALITY, voor de smaaktest-resultaten bij de host —
+// zelfde vier smaakhoeken (sterk zit niet in de like/dislike-tags van de
+// smaaktest, dat is daar een apart schuifje), maar dan "deze groep" i.p.v.
+// "jij" gefraseerd.
+const GROUP_PERSONALITY = {
+  fruitig: { emoji: "🍓", title: "Fruitige ontdekkers", text: "Deze groep houdt vooral van fruitige, verfrissende cocktails." },
+  zoet: { emoji: "🍬", title: "Zoetekauwen", text: "Deze groep heeft een zwak voor romige, zoete cocktails." },
+  zuur: { emoji: "🍋", title: "Frisse zuurpruimen", text: "Deze groep houdt van scherpe, fris-zure cocktails." },
+  bitter: { emoji: "🍂", title: "Bittere virtuozen", text: "Deze groep houdt van een stevige, bittere toets." },
+};
+
+// Smaaktest: "sterk" krijgt hier een eigen schuifje (1-5) i.p.v. een los
+// aan/uit-tagje — geeft meer nuance dan alleen "houdt van sterk: ja/nee".
+const SURVEY_TASTE_KEYS = ["fruitig", "zoet", "zuur", "bitter"];
+
+const DIETARY_META = {
+  noten: { emoji: "🥜", label: "Notenallergie" },
+  lactose: { emoji: "🥛", label: "Lactose-intolerant" },
+  vegan: { emoji: "🌱", label: "Veganistisch" },
+  glutenvrij: { emoji: "🌾", label: "Glutenvrij" },
+};
+
+// Gastvriendelijke, korte lijst i.p.v. de volledige, lange sterkedrank-lijst
+// uit de voorraad — elke optie wijst naar de onderliggende ingrediënt-id's
+// zodat de aanbevelingsscore 'm later kan terugvinden in echte recepten.
+const FAVORITE_SPIRIT_OPTIONS = [
+  { key: "gin", label: "Gin", ids: ["gin"] },
+  { key: "rum", label: "Rum", ids: ["white_rum", "dark_rum", "cachaca"] },
+  { key: "whiskey", label: "Whiskey", ids: ["bourbon", "rye", "scotch", "irish_whiskey"] },
+  { key: "wodka", label: "Wodka", ids: ["vodka"] },
+  { key: "tequila", label: "Tequila / Mezcal", ids: ["tequila_blanco", "mezcal"] },
+  { key: "cognac", label: "Cognac / Brandy", ids: ["cognac", "calvados"] },
+];
 
 const LEVEL_TITLES = [
   "Nieuwsgierige Beginner", "Bar Verkenner", "Smaaktester", "Cocktail Liefhebber",
