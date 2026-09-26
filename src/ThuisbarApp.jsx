@@ -1300,6 +1300,95 @@ function GuestSurveyView({ surveyId }) {
   );
 }
 
+// Recepten en Cursus moeten zonder account te gebruiken zijn (Apple-eis) —
+// dit is de losse gast-variant van de app, alleen actief zolang session
+// null is. Draait op precies dezelfde recepten/voorraad/cursus-state en
+// -functies als de ingelogde app (die leven al hoger in ThuisbarApp, ook
+// zonder sessie), dus een gast kan gewoon zijn voorraad gebruiken en de
+// cursus doorlopen — alleen check-ins/vrienden/profiel vereisen inloggen.
+function GuestBrowseShell({
+  recipes, allIngredients, isOwned, ingredientLabel, onSound,
+  onAddToShoppingList, onAddToFeest, feestChosen,
+  recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite,
+  courseProgress, setCourseProgress, onGoLogin,
+}) {
+  const [tab, setTab] = useState("ontdekken");
+  const [pendingRecipeId, setPendingRecipeId] = useState(null);
+
+  return (
+    <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
+      <div style={{ background: `radial-gradient(ellipse 900px 300px at 15% -40%, #2A4B42, ${BOTTLE_DARK} 70%)`, borderBottom: `3px solid ${BRASS}`, padding: "calc(env(safe-area-inset-top) + 22px) 20px 20px" }}>
+        <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", flexShrink: 0 }}>
+            <Martini color={BRASS} size={22} strokeWidth={1.5} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: 0 }}>Mijn Thuisbar</h1>
+            <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "#B9C4B9" }}>Bekijken kan zonder account</p>
+          </div>
+          <button onClick={onGoLogin} className="press-scale" style={{
+            flexShrink: 0, background: BRASS, color: CREAM, border: "none", borderRadius: 100,
+            padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+          }}>
+            Inloggen
+          </button>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(184,134,46,0.1)", border: `1px solid rgba(184,134,46,0.3)`, borderRadius: RADIUS, padding: "11px 14px", marginBottom: 20 }}>
+          <Lock size={15} color={BRASS} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 12.5, color: INK, lineHeight: 1.4 }}>Inchecken, vrienden en je profiel vereisen een (gratis) account.</span>
+        </div>
+
+        {tab === "ontdekken" ? (
+          <OntdekkenTab
+            openRecipeId={pendingRecipeId} onOpenRecipeHandled={() => setPendingRecipeId(null)}
+            recommended={[]} favoriteFamily={null}
+            allIngredients={allIngredients} onOpenRecipe={setPendingRecipeId} onSound={onSound}
+            makenProps={{
+              recipes, isOwned, ingredientLabel, allIngredients,
+              onAddToShoppingList, onSound, onOpenRecipe: setPendingRecipeId, onAddToFeest, feestChosen,
+            }}
+            verhaalProps={{
+              recipes, ingredientLabel, allIngredients, isOwned,
+              recentRecipeIds, onViewRecipe, onSound,
+              favoriteRecipeIds, onToggleFavorite,
+              onAddToShoppingList, onAddToFeest, feestChosen,
+              onOpenCheckin: onGoLogin,
+            }}
+          />
+        ) : (
+          <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={onSound} />
+        )}
+      </div>
+
+      <div style={{
+        position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
+        background: "var(--dock-bg)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        borderTop: `1px solid rgba(184,134,46,0.3)`, boxShadow: "0 -6px 18px rgba(43,38,32,0.10)",
+      }}>
+        <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", padding: "9px 6px calc(env(safe-area-inset-bottom) + 9px)" }}>
+          {[{ id: "ontdekken", label: "Ontdekken", icon: Search }, { id: "cursus", label: "Cursus", icon: GraduationCap }].map(t => {
+            const Icon = t.icon;
+            const isActive = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{
+                flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                background: "none", border: "none", cursor: "pointer", padding: "4px 2px",
+                fontFamily: sans, color: isActive ? BOTTLE : MUTED,
+              }}>
+                <Icon size={21} strokeWidth={isActive ? 2.1 : 1.7} />
+                <span style={{ fontSize: 10.5, fontWeight: isActive ? 700 : 500 }}>{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -1803,6 +1892,11 @@ export default function ThuisbarApp() {
   // Check-ins staan niet meer lokaal maar in Supabase, want die moeten nu ook
   // door vrienden gelezen kunnen worden (de feed) — dat kan localStorage niet.
   const [session, setSession] = useState(undefined);
+  // Gast-modus (Recepten/Cursus zonder account) valt terug op AuthScreen
+  // zodra een gast zelf op "Inloggen" tikt; na een geslaagde login weer
+  // resetten zodat een latere uitlog-actie opnieuw in gast-modus opent.
+  const [wantsLogin, setWantsLogin] = useState(false);
+  useEffect(() => { if (session) setWantsLogin(false); }, [session]);
   const [profile, setProfile] = useState(null);
   const [logboek, setLogboekState] = useState([]);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
@@ -2016,6 +2110,20 @@ export default function ThuisbarApp() {
   if (surveyId) return <GuestSurveyView surveyId={surveyId} />;
   if (session === undefined) return <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)` }} />;
   if (passwordRecovery) return <PasswordRecoveryScreen onDone={() => setPasswordRecovery(false)} />;
+  // Recepten en Cursus moeten zonder account bruikbaar zijn (Apple-eis) —
+  // pas als een gast zelf op "Inloggen" tikt (of iets aanraakt dat echt een
+  // account vereist, zoals inchecken) tonen we alsnog AuthScreen.
+  if (session === null && !wantsLogin) {
+    return (
+      <GuestBrowseShell
+        recipes={allRecipes} allIngredients={allIngredients} isOwned={isOwned} ingredientLabel={ingredientLabel} onSound={chime}
+        onAddToShoppingList={addToShoppingList} onAddToFeest={addRecipeToFeest} feestChosen={feestChosen}
+        recentRecipeIds={recentRecipeIds} onViewRecipe={addRecentRecipe} favoriteRecipeIds={favoriteRecipeIds} onToggleFavorite={toggleFavoriteRecipe}
+        courseProgress={courseProgress} setCourseProgress={setCourseProgress}
+        onGoLogin={() => setWantsLogin(true)}
+      />
+    );
+  }
   if (session === null) return <AuthScreen />;
 
   return (
