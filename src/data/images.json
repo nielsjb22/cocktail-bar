@@ -1442,182 +1442,182 @@
   {
     "id": "kings_fizz",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kings_fizz.webp",
+    "bronUrl": "https://www.pexels.com/photo/drink-with-bubbles-in-glass-14887460/",
+    "maker": "Wellington Silva",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kingston_negroni",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kingston_negroni.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-glass-of-red-wine-with-an-orange-slice-on-top-27851286/",
+    "maker": "Marcelo Verfe",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kir",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kir.webp",
+    "bronUrl": "https://www.pexels.com/photo/mesi-bridge-in-albania-20770265/",
+    "maker": "Laura  Meinhardt",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kir_royale",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kir_royale.webp",
+    "bronUrl": "https://www.pexels.com/photo/mesi-bridge-in-albania-20770265/",
+    "maker": "Laura  Meinhardt",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kiss_in_the_dark",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kiss_in_the_dark.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-in-dimly-lit-bar-setting-36189454/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kiwi_smash",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/19118998/pexels-photo-19118998.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kiwi_smash.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-in-a-glass-with-kiwi-fruit-8679181/",
+    "maker": "Timur Weber",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kurant_blush",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kurant_blush.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-cocktail-glass-on-table-with-orange-glow-36189465/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "last_word",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1668431456502-a96f8619fd66?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "last_word.webp",
+    "bronUrl": "https://www.pexels.com/photo/spotlight-on-a-cocktail-drink-8942300/",
+    "maker": "cottonbro studio",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "le_mans",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "le_mans.webp",
+    "bronUrl": "https://www.pexels.com/photo/bartender-holding-a-cocktail-4485375/",
+    "maker": "Antoni Shkraba",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "lemon_drop",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1670164704954-aa5829a6c84d?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "lemon_drop.webp",
+    "bronUrl": "https://www.pexels.com/photo/dynamic-splash-of-lemon-in-a-glass-36541007/",
+    "maker": "Patricia Bozan",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "lemongrass_collins",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "lemongrass_collins.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-lemon-ginger-cooler-in-tall-glass-35532831/",
+    "maker": "athul santhosh",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "limon_mojito",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/37662775/pexels-photo-37662775.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "limon_mojito.webp",
+    "bronUrl": "https://www.pexels.com/photo/lemonade-in-glass-on-cutting-board-16407624/",
+    "maker": "Dennilson Navichoque",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "little_italy",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "little_italy.webp",
+    "bronUrl": "https://www.pexels.com/photo/bartender-crafting-cocktails-in-italian-bar-32297055/",
+    "maker": "Paolo Sbalzer",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "lolas_punch",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "lolas_punch.webp",
+    "bronUrl": "https://www.pexels.com/photo/cold-drinks-on-wooden-table-7377014/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "london_calling",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "london_calling.webp",
+    "bronUrl": "https://www.pexels.com/photo/glasses-of-alcohol-in-bar-20435207/",
+    "maker": "Ruben Dao Cuentas",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "long_island",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1643660090099-32943d698dfa?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "long_island.webp",
+    "bronUrl": "https://www.pexels.com/photo/photo-of-a-drink-with-a-lemon-slice-and-a-cinnamon-stick-10883347/",
+    "maker": "Macedo Fotografo",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "los_altos",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "los_altos.webp",
+    "bronUrl": "https://www.pexels.com/photo/beverage-with-ice-cubes-19352811/",
+    "maker": "Luis Felipe Pérez",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "loving_cup",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "loving_cup.webp",
+    "bronUrl": "https://www.pexels.com/photo/ice-and-straw-in-cocktail-in-silver-cup-18354022/",
+    "maker": "Stephen Leonardi",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "lychee_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "lychee_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-man-in-black-gloves-holding-a-cocktail-27641950/",
+    "maker": "Kuiyibo Campos",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "lynchburg_lemonade",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "lynchburg_lemonade.webp",
+    "bronUrl": "https://www.pexels.com/photo/cold-drink-with-lemon-and-mint-9584965/",
+    "maker": "Nasim Didar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "machete",
