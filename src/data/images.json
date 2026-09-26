@@ -633,9 +633,9 @@
     "id": "daiquiri",
     "type": "cocktail",
     "bestand": "daiquiri.webp",
-    "bronUrl": "https://www.pexels.com/photo/elegant-strawberry-daiquiri-with-fresh-garnish-28902889/",
-    "maker": "pedro furtado",
-    "licentie": "Pexels License",
+    "bronUrl": "https://pixabay.com/photos/daiquiri-cocktail-drink-alcohol-5374800/",
+    "maker": "robert84ak",
+    "licentie": "Pixabay License",
     "niveau": "passend"
   },
   {
@@ -2874,8 +2874,8 @@
     "id": "yale_cocktail",
     "type": "cocktail",
     "bestand": "yale_cocktail.webp",
-    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
-    "maker": "Szymon Shields",
+    "bronUrl": "https://www.pexels.com/photo/blue-martini-cocktail-17581023/",
+    "maker": "Marcelo Verfe",
     "licentie": "Pexels License",
     "niveau": "passend"
   },
@@ -2973,8 +2973,8 @@
     "id": "banana_liqueur",
     "type": "drank",
     "bestand": "banana_liqueur.webp",
-    "bronUrl": "https://www.pexels.com/photo/bottles-of-soda-on-white-cloth-26791665/",
-    "maker": "Berna",
+    "bronUrl": "https://www.pexels.com/photo/yellow-cocktail-in-glass-17402681/",
+    "maker": "Nadin Sh",
     "licentie": "Pexels License",
     "niveau": "passend"
   },
@@ -3090,9 +3090,9 @@
     "id": "cherry_brandy",
     "type": "drank",
     "bestand": "cherry_brandy.webp",
-    "bronUrl": "https://www.pexels.com/photo/glass-bottle-production-line-in-factory-36423805/",
-    "maker": "Keegan Checks",
-    "licentie": "Pexels License",
+    "bronUrl": "https://pixabay.com/photos/liqueur-glasses-liqueur-alcohol-3859242/",
+    "maker": "HOerwin56",
+    "licentie": "Pixabay License",
     "niveau": "passend"
   },
   {
