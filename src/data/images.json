@@ -1802,11 +1802,11 @@
   {
     "id": "navy_grog",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "navy_grog.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-brown-colored-alcoholic-beverage-in-a-glass-mug-8862772/",
+    "maker": "Valeria Boltneva",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "negroni",
@@ -1820,173 +1820,173 @@
   {
     "id": "nevada_cocktail",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/29177334/pexels-photo-29177334.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "nevada_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "new_orleans_dry_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "new_orleans_dry_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-bar-setup-featuring-ole-bison-vodka-32711955/",
+    "maker": "Chad Populis",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "new_york_sour",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "new_york_sour.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-on-the-table-in-the-bar-18274903/",
+    "maker": "Emre  Akyol",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "nuclear_daiquiri",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "nuclear_daiquiri.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-strawberry-daiquiri-with-fresh-garnish-28902889/",
+    "maker": "pedro furtado",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "nutty_irishman",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "nutty_irishman.webp",
+    "bronUrl": "https://www.pexels.com/photo/gourmet-chocolate-cocktail-with-nut-rim-35792855/",
+    "maker": "Vitaliy Haiduk",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "oaxaca_old_fashioned",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "oaxaca_old_fashioned.webp",
+    "bronUrl": "https://www.pexels.com/photo/artisanal-mezcal-with-orange-and-spice-32912641/",
+    "maker": "Francis T.",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "old_cuban",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "old_cuban.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-bottle-of-white-rum-and-a-fresh-drink-16845301/",
+    "maker": "Gonzalo Acuña",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "old_fashioned",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1500217052183-bc01eee1a74e?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "old_fashioned.webp",
+    "bronUrl": "https://www.pexels.com/photo/person-squeezing-citrus-on-a-glass-with-whiskey-8346715/",
+    "maker": "LAVA",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "old_pal",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "old_pal.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-old-fashioned-cocktail-on-bar-counter-29707925/",
+    "maker": "Airam Dato-on",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "on_the_lawn",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "on_the_lawn.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-cocktail-with-fresh-herbs-on-a-sunny-day-34167394/",
+    "maker": "𝙊𝙎𝙑𝘼𝙇𝘿𝙊 𝙍𝙊𝙈𝙄𝙏𝙊",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "opera",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "opera.webp",
+    "bronUrl": "https://www.pexels.com/photo/woman-in-white-long-sleeve-shirt-sitting-on-chair-5371942/",
+    "maker": "cottonbro studio",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "orange_blossom",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "orange_blossom.webp",
+    "bronUrl": "https://www.pexels.com/photo/crystal-drinking-glasses-decorated-with-orange-slices-and-delicate-flowers-18815195/",
+    "maker": "Studio Naae",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "orchard_collins",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "orchard_collins.webp",
+    "bronUrl": "https://www.pexels.com/photo/drink-with-lemon-on-table-26743793/",
+    "maker": "krishna agrawal",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "oyster_shot",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "oyster_shot.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-glasses-with-red-alcoholic-drinks-8084686/",
+    "maker": "Ivan S",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "painkiller",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1655973577713-5acd43022732?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "painkiller.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-cocktail-drink-on-a-clear-glass-with-cherry-on-the-side-7451984/",
+    "maker": "Odeani Baker",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "paloma",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1687852310914-987f636e7bac?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "paloma.webp",
+    "bronUrl": "https://www.pexels.com/photo/paloma-drink-on-a-bar-counter-15813473/",
+    "maker": "Dextar Studio ™",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "paper_plane",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "paper_plane.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-with-pink-and-yellow-liquid-4958909/",
+    "maker": "ROMAN ODINTSOV",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "paradise",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "paradise.webp",
+    "bronUrl": "https://www.pexels.com/photo/assorted-cocktails-2531184/",
+    "maker": "Engin Akyurt",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "passion_fruit_margarita",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "passion_fruit_margarita.webp",
+    "bronUrl": "https://www.pexels.com/photo/shot-of-a-pink-cocktail-and-orange-slices-on-bar-table-12365245/",
+    "maker": "Sharan Pagadala",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "penicillin",
