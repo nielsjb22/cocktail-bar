@@ -902,182 +902,182 @@
   {
     "id": "french_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/33174184/pexels-photo-33174184.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "french_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/glass-of-wine-on-a-table-21263528/",
+    "maker": "Laura Chouette",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "fuzzy_navel",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "fuzzy_navel.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-oranges-on-dark-plate-still-life-31529277/",
+    "maker": "Markus Winkler",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "garibaldi",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/32900921/pexels-photo-32900921.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "garibaldi.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-citrus-cocktail-with-rosemary-garnish-31174701/",
+    "maker": "Mısra Denizer",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "georgia_julep",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "georgia_julep.webp",
+    "bronUrl": "https://www.pexels.com/photo/ice-and-straw-in-cocktail-in-silver-cup-18354022/",
+    "maker": "Stephen Leonardi",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gibson",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "gibson.webp",
+    "bronUrl": "https://www.pexels.com/photo/glass-of-a-cold-drink-on-a-bar-counter-17127756/",
+    "maker": "Tim Durand",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gimlet",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1601491641387-035a4ae3c7cb?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "gimlet.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-green-cocktail-in-martini-glass-35087284/",
+    "maker": "Gerardo Pantoja",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gin_basil_smash",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1658243253492-6c5129e969d7?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "gin_basil_smash.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-cocktail-drink-with-a-basil-leaf-14361692/",
+    "maker": "Tim Durand",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gin_buck",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "gin_buck.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-225236/",
+    "maker": "picjumbo.com",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gin_fizz",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1615887023516-9b6bcd559e87?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "gin_fizz.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-with-lime-garnish-on-textured-table-36593624/",
+    "maker": "Mohamed  Olwy",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gin_tonic",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1453824979084-c8fd42932378?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "gin_tonic.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-a-glass-with-a-cold-cocktail-standing-on-a-table-16550820/",
+    "maker": "Amar  Preciado",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "godfather",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1615887625746-f3d2aa27e048?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "godfather.webp",
+    "bronUrl": "https://www.pexels.com/photo/moody-portrait-of-a-man-with-a-drink-36322557/",
+    "maker": "Konstantin Mishchenko",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "godmother",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "godmother.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gold_rush",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "gold_rush.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktails-with-garnish-in-lounge-setting-39765844/",
+    "maker": "Hameen Reynolds",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "golden_cadillac",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "golden_cadillac.webp",
+    "bronUrl": "https://www.pexels.com/photo/sepia-photo-of-vehicle-35624/",
+    "maker": "Pixabay",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "golden_dream",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "golden_dream.webp",
+    "bronUrl": "https://www.pexels.com/photo/drink-by-swimming-pool-19533201/",
+    "maker": "Augustinus Martinus Noppé",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "golden_sour",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "golden_sour.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-mezcal-cocktail-with-orange-zest-31042725/",
+    "maker": "Rodrigo Ortega",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gorgeous_grace",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "gorgeous_grace.webp",
+    "bronUrl": "https://www.pexels.com/photo/bride-holding-glass-14339137/",
+    "maker": "Anna Kollor",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "grand_margarita",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/33776423/pexels-photo-33776423.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "grand_margarita.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-margarita-with-lime-on-wooden-table-28525104/",
+    "maker": "Alejandro Aznar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "grappa_manhattan",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "grappa_manhattan.webp",
+    "bronUrl": "https://www.pexels.com/photo/assorted-liquor-bottles-on-bar-counter-in-milan-32953049/",
+    "maker": "Mihaela Claudia  Puscas",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "grasshopper",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "grasshopper.webp",
+    "bronUrl": "https://www.pexels.com/photo/grasshopper-perched-on-dewy-green-grass-37764939/",
+    "maker": "wal_ 172619",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "greenpoint",
