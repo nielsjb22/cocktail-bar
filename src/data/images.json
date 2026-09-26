@@ -1622,182 +1622,182 @@
   {
     "id": "machete",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "machete.webp",
+    "bronUrl": "https://www.pexels.com/photo/young-woman-in-traditional-mexican-dress-outdoors-39613090/",
+    "maker": "Juan Chamo",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "mai_tai",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1567529980827-3f3c26c2f863?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "mai_tai.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-drink-on-wooden-table-12580185/",
+    "maker": "Augustinus Martinus Noppé",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "maid",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "maid.webp",
+    "bronUrl": "https://www.pexels.com/photo/cosplay-maid-serving-desserts-in-costume-39630073/",
+    "maker": "Quyet Nguyen",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "manhattan",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1582056509381-33e11b85733f?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "manhattan.webp",
+    "bronUrl": "https://www.pexels.com/photo/martini-cocktail-on-book-near-bottle-of-whiskey-7809767/",
+    "maker": "Dziana Hasanbekava",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "margarita",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1632739186171-b2a442047bcd?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "margarita.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-margarita-with-lime-on-wooden-table-28525104/",
+    "maker": "Alejandro Aznar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "martinez",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "martinez.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1773188243511-2eb85126f08b?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "mary_pickford",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "mary_pickford.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-a-cocktail-drink-with-sliced-cucumbers-7259020/",
+    "maker": "Aram Diseño",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "melon_ball",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "melon_ball.webp",
+    "bronUrl": "https://www.pexels.com/photo/fruit-cocktail-drink-on-glass-5946085/",
+    "maker": "Any Lane",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "metropolitan",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "metropolitan.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktails-standing-on-a-wall-with-the-view-of-a-modern-city-at-sunset-17755494/",
+    "maker": "Tiago Fagundes Soares",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "michelada",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/38895453/pexels-photo-38895453.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "michelada.webp",
+    "bronUrl": "https://www.pexels.com/photo/mexican-restaurant-27365303/",
+    "maker": "Snappr",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "mimosa",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1521287329847-ec334c5517fe?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "mimosa.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-fruit-mimosas-display-outdoors-29854920/",
+    "maker": "Roberto Montoya",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "mint_julep",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1588905206064-41e49c50d505?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "mint_julep.webp",
+    "bronUrl": "https://www.pexels.com/photo/ice-and-straw-in-cocktail-in-silver-cup-18354022/",
+    "maker": "Stephen Leonardi",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "missionarys_downfall",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "missionarys_downfall.webp",
+    "bronUrl": "https://www.pexels.com/photo/burning-hundred-dollar-bill-in-dramatic-scene-39463297/",
+    "maker": "Sergei Starostin",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "mojito",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "mojito.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-mojito-cocktail-with-mint-garnish-37662775/",
+    "maker": "Milan Trninic",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "monkey_gland",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "monkey_gland.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-wine-glass-with-orange-liquid-7377112/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "moscow_mule",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1527628126150-086ff233b951?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "moscow_mule.webp",
+    "bronUrl": "https://www.pexels.com/photo/moscow-mule-drink-10779231/",
+    "maker": "Keegan Checks",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "mudslide",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "mudslide.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-drink-on-wooden-table-in-tokyo-36189453/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "mulled_wine",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/29638947/pexels-photo-29638947.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "mulled_wine.webp",
+    "bronUrl": "https://www.pexels.com/photo/munich-christmas-market-gluhwein-stand-at-night-29719849/",
+    "maker": "Bastian Riccardi",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "naked_and_famous",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "naked_and_famous.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-wine-glass-with-orange-liquid-7377112/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "navy_grog",
