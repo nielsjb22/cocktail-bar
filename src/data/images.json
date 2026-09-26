@@ -1,0 +1,3962 @@
+[
+  {
+    "id": "abc_cocktail",
+    "type": "cocktail",
+    "bestand": "abc_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-drink-on-wooden-table-in-tokyo-36189453/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "adonis",
+    "type": "cocktail",
+    "bestand": "adonis.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-glass-in-dimly-lit-tokyo-bar-34989165/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "affinity",
+    "type": "cocktail",
+    "bestand": "affinity.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-drink-on-wooden-table-in-tokyo-36189453/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "agave_julep",
+    "type": "cocktail",
+    "bestand": "agave_julep.webp",
+    "bronUrl": "https://www.pexels.com/photo/ice-and-straw-in-cocktail-in-silver-cup-18354022/",
+    "maker": "Stephen Leonardi",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "air_mail",
+    "type": "cocktail",
+    "bestand": "air_mail.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-wine-glasses-with-ice-on-table-34344800/",
+    "maker": "Lau Arraigada",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "airmail",
+    "type": "cocktail",
+    "bestand": "airmail.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-glass-in-dimly-lit-tokyo-bar-34989165/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "alexander",
+    "type": "cocktail",
+    "bestand": "alexander.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-drink-on-wooden-table-in-tokyo-36189453/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "algonquin",
+    "type": "cocktail",
+    "bestand": "algonquin.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "amaretto_sour",
+    "type": "cocktail",
+    "bestand": "amaretto_sour.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-on-the-table-in-the-bar-18274903/",
+    "maker": "Emre  Akyol",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "americano",
+    "type": "cocktail",
+    "bestand": "americano.webp",
+    "bronUrl": "https://www.pexels.com/photo/fruit-drink-in-glass-25469619/",
+    "maker": "Nguyen Huy",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "angel_face",
+    "type": "cocktail",
+    "bestand": "angel_face.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-with-pineapple-garnish-33164550/",
+    "maker": "𝙊𝙎𝙑𝘼𝙇𝘿𝙊 𝙍𝙊𝙈𝙄𝙏𝙊",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "aperol_spritz",
+    "type": "cocktail",
+    "bestand": "aperol_spritz.webp",
+    "bronUrl": "https://www.pexels.com/photo/person-holding-clear-wine-glass-with-cocktail-and-sliced-orange-9119755/",
+    "maker": "Pavel Danilyuk",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "apple_martini",
+    "type": "cocktail",
+    "bestand": "apple_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-cocktail-drink-6577235/",
+    "maker": "Nidhin K S",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "applejack_sour",
+    "type": "cocktail",
+    "bestand": "applejack_sour.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-mezcal-cocktail-with-orange-zest-31042725/",
+    "maker": "Rodrigo Ortega",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "army_and_navy",
+    "type": "cocktail",
+    "bestand": "army_and_navy.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-with-flaming-garnish-in-bar-setting-32912392/",
+    "maker": "jose luis Umana",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "aviation",
+    "type": "cocktail",
+    "bestand": "aviation.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-purple-cocktail-in-a-glass-17010901/",
+    "maker": "Dmitriy Tarasenko",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "avondale_habit",
+    "type": "cocktail",
+    "bestand": "avondale_habit.webp",
+    "bronUrl": "https://www.pexels.com/photo/yellow-liquid-in-clear-drinking-glass-with-green-leaf-7377106/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "b52",
+    "type": "cocktail",
+    "bestand": "b52.webp",
+    "bronUrl": "https://www.pexels.com/photo/mexicali-27822645/",
+    "maker": "𝙊𝙎𝙑𝘼𝙇𝘿𝙊 𝙍𝙊𝙈𝙄𝙏𝙊",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "bacardi_cocktail",
+    "type": "cocktail",
+    "bestand": "bacardi_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/two-liquor-bottles-near-fruits-2360578/",
+    "maker": "Kebs Visuals",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "bamboo",
+    "type": "cocktail",
+    "bestand": "bamboo.webp",
+    "bronUrl": "https://www.pexels.com/photo/daikiri-14110480/",
+    "maker": "Ruben Dao Cuentas",
+    "licentie": "Pexels License",
+    "niveau": "passend"
+  },
+  {
+    "id": "bb",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bees_knees",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1587223962930-cb7f31384c19?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bellini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1772762049883-2c40d1255c5c?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "benedict",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "between_the_sheets",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bijou",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "black_manhattan",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "black_russian",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "black_velvet",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "blinker",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "blood_and_sand",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1618924385085-aa725b876250?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bloody_mary",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1551734322-f43b0798585a?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "blue_hawaiian",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1682629906883-76eaa5e03693?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "blue_lagoon",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/32300850/pexels-photo-32300850.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bobby_burns",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bombay_punch",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "boulevardier",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1641919089328-5d5063828c4f?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bramble",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "brandy_alexander",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "brandy_crusta",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "breakfast_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bronx",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "brooklyn",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "brown_derby",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bucks_fizz",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/37662772/pexels-photo-37662772.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bushwacker",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cable_car",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "caen_caen",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "caipirinha",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1568608275764-7a16d7fdfc56?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cairprioska",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/27850591/pexels-photo-27850591.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "camomile_collins",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "canadian_daisy",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "canchanchara",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cardinale",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "casino",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "champagne_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1559477882-f1a7c5931735?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "champagne_julep",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/19259177/pexels-photo-19259177.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "champs_elysees",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "chartreuse_swizzle",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "chocolate_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cinderella",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "clover_club",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1726037736743-ca4a5ead3de8?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "coconut_daiquiri",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "combined_forces",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "corn_n_oil",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "corpse_reviver_1",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "corpse_reviver_2",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cosmopolitan",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1589378938275-947b7adf8665?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cuba_libre",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1722749646521-4cacd29fb3f4?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cucumber_cooler",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/35087287/pexels-photo-35087287.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "daiquiri",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1556855810-ac404aa91e85?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "dark_n_stormy",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "death_in_afternoon",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "death_in_the_afternoon",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "delft_donkey",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "desert_daisy",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "diamondback",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "dirty_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/36562983/pexels-photo-36562983.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "dons_special_daiquiri",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "doobs_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "dr_funk",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "earls_punch",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "east_side_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "eastside",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/31057723/pexels-photo-31057723.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "egg_nog",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1668202434829-4b1b340a5ef8?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "el_diablo",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "el_presidente",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "english_garden_fizz",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "espresso_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1607687633950-c745bdb4da70?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "eve",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "fernandito",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "final_ward",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "fino_highball",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "fish_house_punch",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "flora_dora",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "fog_cutter",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "french_75",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1710106355245-e744c063bf84?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "french_76",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "french_connection",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "french_kiss",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "french_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/33174184/pexels-photo-33174184.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "fuzzy_navel",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "garibaldi",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/32900921/pexels-photo-32900921.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "georgia_julep",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "gibson",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "gimlet",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1601491641387-035a4ae3c7cb?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "gin_basil_smash",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1658243253492-6c5129e969d7?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "gin_buck",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "gin_fizz",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1615887023516-9b6bcd559e87?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "gin_tonic",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1453824979084-c8fd42932378?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "godfather",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1615887625746-f3d2aa27e048?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "godmother",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "gold_rush",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "golden_cadillac",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "golden_dream",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "golden_sour",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "gorgeous_grace",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "grand_margarita",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/33776423/pexels-photo-33776423.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "grappa_manhattan",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "grasshopper",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "greenpoint",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "greyhound",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "haiti_punch",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "hanky_panky",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "harlequin",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "harvard_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "harvey_wallbanger",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "hedgerow_collins",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "hemingway_special",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "honeydew",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "hong_kong_sling",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "honolulu",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "horses_neck",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "hot_buttered_rum",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "hot_toddy",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/30431320/pexels-photo-30431320.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "hurricane",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1618799805265-4f27cb61ede9?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "iba_tiki",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "iceberg",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "illegal",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "improved_whiskey_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "income_tax_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "infante",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "inspiration",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "irish_coffee",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1651789535050-2e2b4d9b6703?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "italian_heather",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "ivy_gimlet",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "jack_rose",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "jaffa",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "jalisco_swizzle",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "jamaican_mule",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "japanese_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "jasmine",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "john_collins",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "journalist",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "june_bug",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "jungle_bird",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1655747508339-7cc94a19ac2b?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kamikaze",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1723691802828-707ecdf3ee25?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kentucky_buck",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kentucky_mule",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/31422126/pexels-photo-31422126.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kentucky_river",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kings_fizz",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kingston_negroni",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kir",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kir_royale",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kiss_in_the_dark",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kiwi_smash",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/19118998/pexels-photo-19118998.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "kurant_blush",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "last_word",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1668431456502-a96f8619fd66?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "le_mans",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lemon_drop",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1670164704954-aa5829a6c84d?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lemongrass_collins",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "limon_mojito",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/37662775/pexels-photo-37662775.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "little_italy",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lolas_punch",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "london_calling",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "long_island",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1643660090099-32943d698dfa?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "los_altos",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "loving_cup",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lychee_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lynchburg_lemonade",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "machete",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "mai_tai",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1567529980827-3f3c26c2f863?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "maid",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "manhattan",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1582056509381-33e11b85733f?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "margarita",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1632739186171-b2a442047bcd?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "martinez",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1773188243511-2eb85126f08b?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "mary_pickford",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "melon_ball",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "metropolitan",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "michelada",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/38895453/pexels-photo-38895453.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "mimosa",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1521287329847-ec334c5517fe?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "mint_julep",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1588905206064-41e49c50d505?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "missionarys_downfall",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "mojito",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "monkey_gland",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "moscow_mule",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1527628126150-086ff233b951?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "mudslide",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "mulled_wine",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/29638947/pexels-photo-29638947.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "naked_and_famous",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "navy_grog",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "negroni",
+    "type": "cocktail",
+    "bestand": "negroni.webp",
+    "bronUrl": "https://www.pexels.com/photo/classic-negroni-cocktail-with-orange-twist-34437244/",
+    "maker": "Tomi Saputra",
+    "licentie": "Pexels License",
+    "niveau": "exact"
+  },
+  {
+    "id": "nevada_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/29177334/pexels-photo-29177334.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "new_orleans_dry_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "new_york_sour",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "nuclear_daiquiri",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "nutty_irishman",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "oaxaca_old_fashioned",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "old_cuban",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "old_fashioned",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1500217052183-bc01eee1a74e?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "old_pal",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "on_the_lawn",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "opera",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "orange_blossom",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "orchard_collins",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "oyster_shot",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "painkiller",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1655973577713-5acd43022732?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "paloma",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1687852310914-987f636e7bac?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "paper_plane",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "paradise",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "passion_fruit_margarita",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "penicillin",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1514361659284-59851c90d011?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "perfect_lady",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "perfect_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1597075687490-8f673c6c17f6?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pimms_cup",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pina_colada",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1607644536940-6c300b5784c5?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pink_gin",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pink_lady",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/18939875/pexels-photo-18939875.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pink_sangria",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pink_squirrel",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pisco_punch",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pisco_sour",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1696594935685-1ad6ba69e83e?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "planters_punch",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "poinsettia",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "porn_star_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/34429982/pexels-photo-34429982.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "porto_flip",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "presbyterian",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "queen_mother_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rabo_de_galo",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "ramos_fizz",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "ranch_water",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "red_cloud",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "red_hook",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "remember_the_maine",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rhett_butler",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "ritz_old_fashioned",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rob_roy",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rossini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "roy_rogers",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rude_cosmopolitan",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rum_old_fashioned",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rum_runner",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rum_sour",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "russian_spring_punch",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rusty_nail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1566209119978-52e061856970?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sake_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "salty_dog",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sangria",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/28525158/pexels-photo-28525158.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "santiago",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "satans_whiskers",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sazerac",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1747098017560-46ac3c7f112b?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sbagliato",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "scofflaw",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "scorpion",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "screwdriver",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1600271886742-f049cd451bba?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sea_breeze",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "seelbach",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "separator",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sex_on_the_beach",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1687394431847-b973e817ffd4?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "shandy",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sherry_cobbler",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "shirley_temple",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sidecar",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1609951651556-5334e2706168?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "singapore_sling",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1644161806814-3a2565b308dd?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sloe_gin_fizz",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sloe_gin_sour",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "snowball",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "south_of_the_border",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "south_side",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/37109031/pexels-photo-37109031.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "southside",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "spicy_fifty",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/20272821/pexels-photo-20272821.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "stinger",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "strawberry_mint_daiquiri",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "suffering_bastard",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "surface_to_air",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tequila_sunrise",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1620393570203-ebb4ba12c05d?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "texas_tea",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "three_dots_and_a_dash",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tipperary",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "toasted_almond",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tom_and_jerry",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tom_collins",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1630071073903-423f86c14389?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tommys_margarita",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/28525104/pexels-photo-28525104.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "toronto",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "trinidad_sour",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tuxedo",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "twentieth_century",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "valentine_martini",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/35843823/pexels-photo-35843823.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "vanilla_fix",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "vesper",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1671713682257-359a1baf806e?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "vieux_carre",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1550426735-c33c7ce414ff?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "virgin_mojito",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/37090660/pexels-photo-37090660.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "virgin_mule",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "virgin_pina_colada",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/28575243/pexels-photo-28575243.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "vodka_gibson",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "vodka_sour",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "ward_8",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "washington_apple",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "watermelon_punch",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "whiskey_smash",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1681407979930-1c206604a2ce?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "whiskey_sour",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1638884890569-b9af6dd7bbd8?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "whisky_mac",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "white_lady",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "white_negroni",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/27822459/pexels-photo-27822459.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "white_russian",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1598294147169-fadc4e4a3ae4?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "widows_kiss",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "woo_woo",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "woodstock",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "xyz_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "yale_cocktail",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.pexels.com/photos/37680618/pexels-photo-37680618.jpeg?auto=compress&cs=tinysrgb&w=900",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "zombie",
+    "type": "cocktail",
+    "bestand": null,
+    "bronUrl": "https://images.unsplash.com/photo-1606672436121-d9c5ee83f209?auto=format&fit=crop&w=900&q=80",
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "absinthe",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "advocaat",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "agave_nectar",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "allspice_liqueur",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "amaretto",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "amaro_nonino",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "angostura",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "aperol",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "apricot_brandy",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "banana_liqueur",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "basil",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "beer",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "benedictine",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "blue_curacao",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "bourbon",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "brown_sugar",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "butter",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cachaca",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "calvados",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "campari",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "chambord",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cherry",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cherry_brandy",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "chili",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cinnamon_stick",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cloves",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "coconut_cream",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "coffee_liqueur",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cognac",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cola",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cranberry_juice",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "creme_de_cacao",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "creme_de_cassis",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "creme_de_menthe",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "creme_de_mure",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "creme_de_noyaux",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "creme_de_violette",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cucumber",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "cynar",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "dark_rum",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "drambuie",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "dry_vermouth",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "egg_white",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "egg_yolk",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "elderflower_cordial",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "espresso",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "falernum",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "fernet_branca",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "frangelico",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "galliano",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "genever",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "gin",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "ginger_ale",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "ginger_beer",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "ginger_root",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "ginger_wine",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "grand_marnier",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "grapefruit_juice",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "grapefruit_soda",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "grappa",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "green_chartreuse",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "grenadine",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "heavy_cream",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "honey_ginger_syrup",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "honey_syrup",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "hot_coffee",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "hot_water",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "irish_cream",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "irish_whiskey",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lemon_juice",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lemonade",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lillet_blanc",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lime_juice",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "lychee_liqueur",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "maraschino_liqueur",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "marmalade",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "melon_liqueur",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "mezcal",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "milk",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "mint",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "olive_brine",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "orange_bitters",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "orange_flower_water",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "orange_juice",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "orgeat",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "passion_fruit_liqueur",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "passion_fruit_puree",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "peach_puree",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "peach_schnapps",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "peychauds",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pimms",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pineapple_juice",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "pisco",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "port",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "prosecco",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "raspberry_syrup",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "red_wine",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "rye",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sake",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "scotch",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sherry",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sloe_gin",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "soda_water",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sour_apple_liqueur",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "stout",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "strawberry",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sugar_syrup",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "sweet_vermouth",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tabasco",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tequila_blanco",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tomato_juice",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "tonic",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "triple_sec",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "vodka",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "whipped_cream",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "white_rum",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "white_wine",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "worcestershire",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  },
+  {
+    "id": "yellow_chartreuse",
+    "type": "drank",
+    "bestand": null,
+    "bronUrl": null,
+    "maker": null,
+    "licentie": null,
+    "niveau": null
+  }
+]

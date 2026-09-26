@@ -24,6 +24,24 @@ import spiritWitteRumImg from "./assets/spirits/witte-rum.jpeg";
 import spiritCognacBrandyImg from "./assets/spirits/cognac-brandy.jpeg";
 import spiritRyeWhiskyImg from "./assets/spirits/rye-whisky.jpeg";
 import spiritBourbonImg from "./assets/spirits/bourbon.jpeg";
+import imageCatalog from "./data/images.json";
+
+// Centrale foto-catalogus (zie CLAUDE.md "## Afbeeldingen"): één entry per
+// cocktail/drank-id met welk lokaal bestand erbij hoort (nog leeg tot de
+// zoekfase een foto vindt en in src/assets/images/{cocktails,dranken}/
+// zet). import.meta.glob bouwt build-time een {pad: url}-kaart van alles
+// wat daar al staat, zodat een nieuw bestand automatisch overal verschijnt
+// zodra het bijstaat in images.json — zonder verdere code-wijziging.
+const COCKTAIL_IMAGE_FILES = import.meta.glob("./assets/images/cocktails/*.webp", { eager: true, import: "default" });
+const DRANK_IMAGE_FILES = import.meta.glob("./assets/images/dranken/*.webp", { eager: true, import: "default" });
+const IMAGE_CATALOG_BY_KEY = new Map(imageCatalog.map((e) => [`${e.type}:${e.id}`, e]));
+function localItemImageUrl(type, id) {
+  const entry = IMAGE_CATALOG_BY_KEY.get(`${type}:${id}`);
+  if (!entry || !entry.bestand) return null;
+  const files = type === "cocktail" ? COCKTAIL_IMAGE_FILES : DRANK_IMAGE_FILES;
+  const folder = type === "cocktail" ? "cocktails" : "dranken";
+  return files[`./assets/images/${folder}/${entry.bestand}`] || null;
+}
 
 /*
   DESIGN TOKENS: "Bar Register" concept
@@ -1133,7 +1151,9 @@ function GuestMenuView({ recipeIds }) {
             }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
                 <div style={{ flex: "0 0 auto" }}>
-                  <GlassArt glass={r.glass} colors={getLiquidColor(r, INGREDIENTS)} garnishes={garnishes} rim={inferRim(r, INGREDIENTS)} foam={inferFoam(r, INGREDIENTS)} iceStyle={inferIceStyle(r)} plinth size={72} />
+                  <ItemImage id={r.id} type="cocktail" photoUrl={r.image} size={72} radius={14} filter={RECIPE_PHOTO_FILTER} fallback={
+                    <GlassArt glass={r.glass} colors={getLiquidColor(r, INGREDIENTS)} garnishes={garnishes} rim={inferRim(r, INGREDIENTS)} foam={inferFoam(r, INGREDIENTS)} iceStyle={inferIceStyle(r)} plinth size={72} />
+                  } />
                 </div>
                 <div style={{ minWidth: 0, paddingTop: 4 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -2243,6 +2263,11 @@ export default function ThuisbarApp() {
             <AccountDeleteScreen onDelete={deleteAccount} busy={deletingAccount} error={deleteAccountError} />
           </SecondaryTabScreen>
         </TabPanel>
+        <TabPanel id="fotoverantwoording" active={tab === "fotoverantwoording"} visited={visitedTabs.has("fotoverantwoording")} panelRef={panelRefs}>
+          <SecondaryTabScreen label="Instellingen" onBack={() => navigateTo("instellingen")}>
+            <PhotoCreditsScreen />
+          </SecondaryTabScreen>
+        </TabPanel>
       </div>
 
       <BottomDock tab={tab} setTab={navigateTo} shoppingCount={shoppingList.length} onCheckin={() => openCheckin()} />
@@ -2310,6 +2335,17 @@ function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, onNavig
           <span style={{ flex: 1, fontWeight: 600 }}>Privacybeleid</span>
           <ChevronRight size={16} color={MUTED} />
         </button>
+        <button onClick={() => onNavigate("fotoverantwoording")} style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+          background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
+          borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 14.5, color: INK,
+        }}>
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+            <Camera size={16} strokeWidth={1.8} />
+          </span>
+          <span style={{ flex: 1, fontWeight: 600 }}>Fotoverantwoording</span>
+          <ChevronRight size={16} color={MUTED} />
+        </button>
         <button onClick={onSignOut} style={{
           width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
           background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
@@ -2358,6 +2394,45 @@ function PrivacyPolicyScreen() {
       <P>Je kan je gegevens op elk moment verwijderen via Instellingen → Account verwijderen. Dat verwijdert je profiel, check-ins, vriendschappen en meldingen-inschrijvingen definitief.</P>
       <H>Contact</H>
       <P>Vragen over dit beleid? Neem contact op via de contactgegevens in de App Store-vermelding van Mijn Thuisbar.</P>
+    </div>
+  );
+}
+
+// Toont automatisch alle bron/maker/licentie-gegevens uit images.json — geen
+// handmatig bij te werken lijst, dus loopt vanzelf mee zodra fetch-image.mjs
+// nieuwe foto's toevoegt. Alleen entries met een echt bestand én attributie
+// worden getoond (illustraties/eigen werk hebben geen externe bron nodig).
+function PhotoCreditsScreen() {
+  const nameFor = (type, id) => {
+    if (type === "cocktail") return RECIPES.find((r) => r.id === id)?.name || id;
+    return INGREDIENTS.find((i) => i.id === id)?.name || id;
+  };
+  const credited = imageCatalog
+    .filter((e) => e.bestand && (e.maker || e.licentie))
+    .map((e) => ({ ...e, name: nameFor(e.type, e.id) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return (
+    <div>
+      <SectionLabel>Fotoverantwoording</SectionLabel>
+      <p style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 20 }}>
+        Foto's van cocktails en dranken in deze app komen van fotografen die hun werk vrij beschikbaar stellen. Hieronder de bron en licentie per foto.
+      </p>
+      {credited.length === 0 ? (
+        <p style={{ fontSize: 13.5, color: MUTED, textAlign: "center", padding: "30px 0" }}>Nog geen foto's met externe bronvermelding.</p>
+      ) : (
+        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden" }}>
+          {credited.map((e, i) => (
+            <div key={`${e.type}:${e.id}`} style={{ padding: "12px 16px", borderBottom: i < credited.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+              <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 14.5, color: INK }}>{e.name}</div>
+              <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
+                {e.maker && <>Foto: {e.maker} · </>}{e.licentie}
+              </div>
+              {e.bronUrl && <div style={{ fontSize: 11, color: MUTED, marginTop: 2, wordBreak: "break-all" }}>{e.bronUrl}</div>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2673,7 +2748,14 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           borderRadius: RADIUS + 4, marginBottom: 16, position: "relative", overflow: "hidden", boxSizing: "border-box",
           background: `linear-gradient(135deg, #2C5148, ${BOTTLE_DARK})`, boxShadow: SHADOW_HERO, color: CREAM, fontFamily: sans,
         }}>
+          {localItemImageUrl("cocktail", featuredRecipe.id) || featuredRecipe.image ? (
+            <>
+              <img src={localItemImageUrl("cocktail", featuredRecipe.id) || featuredRecipe.image} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0.35) 0%, rgba(15,26,23,0.88) 100%)" }} />
+            </>
+          ) : null}
           <button onClick={() => onOpenRecipe(featuredRecipe.id)} style={{
+            position: "relative",
             width: "100%", textAlign: "left", border: "none", cursor: "pointer", background: "none", color: "inherit",
             padding: "20px 22px 14px", boxSizing: "border-box", fontFamily: "inherit",
           }}>
@@ -2683,7 +2765,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 26 }}>{featuredRecipe.name}</div>
             <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 4 }}>{featuredRecipe.family} · {featuredRecipe.glass}</div>
           </button>
-          <div style={{ margin: "2px 22px 20px", display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(251,246,234,0.09)", border: "1px solid rgba(251,246,234,0.16)", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, lineHeight: 1.45 }}>
+          <div style={{ position: "relative", margin: "2px 22px 20px", display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(251,246,234,0.09)", border: "1px solid rgba(251,246,234,0.16)", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, lineHeight: 1.45 }}>
             <span style={{ flexShrink: 0, marginTop: 1 }}>💡</span>
             <span>{featuredReason(featuredRecipe, favoriteFamily)}</span>
           </div>
@@ -2732,7 +2814,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             const tint = matched ? recipeTint(matched, allIngredients) : [PAPER_DEEP, BORDER];
             const who = entry.mine ? (profile?.name || "Jij") : (friendProfiles[entry.friendId]?.name || "Vriend");
             const whoAvatar = entry.mine ? profile?.avatar_url : friendProfiles[entry.friendId]?.avatar_url;
-            const photo = entry.photo || matched?.image || null;
+            const photo = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
             const key = `${entry.mine ? "m" : "f"}-${entry.id}`;
             const cheer = reactions[entry.id] || { count: 0, mine: false };
             return (
@@ -3088,6 +3170,10 @@ function shapeForIngredient(ing) {
 }
 
 function ItemArt({ ing }) {
+  const localSrc = localItemImageUrl("drank", ing.id);
+  if (localSrc) {
+    return <img src={localSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />;
+  }
   const art = CATEGORY_ART[ing.cat] || CATEGORY_ART["Vers"];
   const shape = shapeForIngredient(ing);
   const gid = "ig_" + ing.id.replace(/[^a-z0-9]+/gi, "_");
@@ -3999,32 +4085,39 @@ const RECIPE_PHOTO_FILTER = "sepia(0.16) saturate(1.12) brightness(1.01) contras
 // (getLiquidColor bestaat al, gebruikt door de hero in de Recept-tab).
 // Als het recept een echte foto heeft, tonen we die (bijgesneden, gefilterd
 // voor visuele eenheid) in plaats van de illustratie.
+// Eén herbruikbaar beeld-component voor elke cocktail/drank in de app (zie
+// CLAUDE.md "## Afbeeldingen"): toont de lokaal gebundelde foto uit
+// images.json zodra die er is, anders de meegegeven illustratie-terugval
+// (nooit leeg). `photoUrl` is een tussenstap-terugval voor recepten die al
+// een (externe) foto-URL in recipes.js hadden vóórdat de lokale
+// foto-catalogus gevuld is — verdwijnt vanzelf zodra images.json een lokaal
+// bestand voor dat id heeft.
+function ItemImage({ id, type, photoUrl, size = 50, radius = "50%", tint, filter, fallback }) {
+  const src = localItemImageUrl(type, id) || photoUrl || null;
+  if (!src) return fallback;
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: radius, overflow: "hidden", flexShrink: 0,
+      aspectRatio: "1 / 1", background: tint ? `linear-gradient(150deg, ${tint[1]}, ${tint[0]})` : undefined,
+    }}>
+      <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter }} />
+    </div>
+  );
+}
+
 function RecipeCircle({ recipe, allIngredients, size = 50 }) {
   const tint = recipeTint(recipe, allIngredients);
   const garnishes = inferGarnishes(recipe, allIngredients);
-  if (recipe.image) {
-    return (
+  return (
+    <ItemImage id={recipe.id} type="cocktail" photoUrl={recipe.image} size={size} tint={tint} filter={RECIPE_PHOTO_FILTER} fallback={
       <div style={{
         width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
         background: `linear-gradient(150deg, ${tint[1]}, ${tint[0]})`,
       }}>
-        <img
-          src={recipe.image}
-          alt=""
-          loading="lazy"
-          style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }}
-        />
+        <GlassArt glass={recipe.glass} colors={tint} garnishes={garnishes} rim={inferRim(recipe, allIngredients)} foam={inferFoam(recipe, allIngredients)} iceStyle={inferIceStyle(recipe)} size={size * 0.62} />
       </div>
-    );
-  }
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      background: `linear-gradient(150deg, ${tint[1]}, ${tint[0]})`,
-    }}>
-      <GlassArt glass={recipe.glass} colors={tint} garnishes={garnishes} rim={inferRim(recipe, allIngredients)} foam={inferFoam(recipe, allIngredients)} iceStyle={inferIceStyle(recipe)} size={size * 0.62} />
-    </div>
+    } />
   );
 }
 
@@ -4999,15 +5092,16 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             <ChevronDown size={14} style={{ transform: "rotate(90deg)" }} /> Terug naar ontdekken
           </button>
 
+          {(() => { const heroPhoto = localItemImageUrl("cocktail", recipe.id) || recipe.image; return (
           <div style={{
-            borderRadius: RADIUS + 4, padding: recipe.image ? "0" : "26px 26px", marginBottom: 24, position: "relative", overflow: "hidden",
-            background: recipe.image ? INK : `linear-gradient(135deg, ${roleInfo.gradient[0]}, ${roleInfo.gradient[1]})`, boxShadow: SHADOW_HERO,
-            minHeight: recipe.image ? 240 : undefined,
-            display: "flex", alignItems: recipe.image ? "flex-end" : "center", gap: 20, flexWrap: "wrap"
+            borderRadius: RADIUS + 4, padding: heroPhoto ? "0" : "26px 26px", marginBottom: 24, position: "relative", overflow: "hidden",
+            background: heroPhoto ? INK : `linear-gradient(135deg, ${roleInfo.gradient[0]}, ${roleInfo.gradient[1]})`, boxShadow: SHADOW_HERO,
+            minHeight: heroPhoto ? 240 : undefined,
+            display: "flex", alignItems: heroPhoto ? "flex-end" : "center", gap: 20, flexWrap: "wrap"
           }}>
-            {recipe.image ? (
+            {heroPhoto ? (
               <>
-                <img src={recipe.image} alt="" style={{
+                <img src={heroPhoto} alt="" style={{
                   position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover",
                   filter: RECIPE_PHOTO_FILTER,
                 }} />
@@ -5023,18 +5117,19 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             }}>
               <Heart size={16} fill={favoriteRecipeIds.includes(recipe.id) ? CREAM : "none"} />
             </button>
-            <div style={{ flex: "1 1 260px", position: "relative", zIndex: 1, padding: recipe.image ? "26px" : 0 }}>
+            <div style={{ flex: "1 1 260px", position: "relative", zIndex: 1, padding: heroPhoto ? "26px" : 0 }}>
               <div className="hero-text-in" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.75)", marginBottom: 8, animationDelay: "0.1s" }}>{roleInfo.label}</div>
               <h2 className="hero-text-in" style={{ fontFamily: serif, fontSize: 34, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: "0 0 6px", animationDelay: "0.18s" }}>{recipe.name}</h2>
               <div className="hero-text-in" style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginBottom: 16, animationDelay: "0.26s" }}>{recipe.family} · {recipe.glass}</div>
               <p className="hero-text-in" style={{ fontFamily: serif, fontStyle: "italic", fontSize: 15.5, color: CREAM, margin: 0, lineHeight: 1.5, animationDelay: "0.36s" }}>"{getSfeerQuote(recipe, role)}"</p>
             </div>
-            {!recipe.image && (
+            {!heroPhoto && (
               <div className="glass-bounce-in" style={{ position: "relative", zIndex: 1, margin: "0 auto" }}>
                 <GlassArt glass={recipe.glass} colors={getLiquidColor(recipe, allIngredients)} garnishes={garnishes} rim={inferRim(recipe, allIngredients)} foam={inferFoam(recipe, allIngredients)} iceStyle={inferIceStyle(recipe)} plinth dropIn ambient size={168} />
               </div>
             )}
           </div>
+          ); })()}
 
           <div style={{ marginBottom: 24 }}>
             <SectionLabel>Het verhaal</SectionLabel>
@@ -7046,7 +7141,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const heroEntry = logboek[0] || null;
   const heroMatched = heroEntry ? findMatch(heroEntry) : null;
   const heroTint = heroMatched ? recipeTint(heroMatched, allIngredients) : [PAPER_DEEP, BORDER];
-  const heroImage = heroEntry ? (heroEntry.photo || heroMatched?.image || null) : null;
+  const heroImage = heroEntry ? (heroEntry.photo || (heroMatched && (localItemImageUrl("cocktail", heroMatched.id) || heroMatched.image)) || null) : null;
   const recentGrid = useMemo(() => logboek.slice(0, 6).map(entry => ({ entry, matched: findMatch(entry) })), [logboek, recipes]);
   const topTasteKeys = useMemo(() => new Set([...insights.taste].sort((a, b) => b.pct - a.pct).slice(0, 2).map(t => t.key)), [insights.taste]);
 
@@ -7222,7 +7317,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3 }}>
             {recentGrid.map(({ entry, matched }, i) => {
-              const img = entry.photo || matched?.image || null;
+              const img = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
               const tint = matched ? recipeTint(matched, allIngredients) : [PAPER_DEEP, BORDER];
               const corner = i === 0 ? "10px 0 0 0" : i === 2 ? "0 10px 0 0" : i === recentGrid.length - 3 ? "0 0 0 10px" : i === recentGrid.length - 1 ? "0 0 10px 0" : "0";
               return (
@@ -7809,15 +7904,23 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
 
               <SectionLabel>Recente check-ins</SectionLabel>
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden" }}>
-                {logboek.slice(0, 8).map((e, i) => (
+                {logboek.slice(0, 8).map((e, i) => {
+                  const matched = e.recipeId ? recipes.find(r => r.id === e.recipeId) : recipes.find(r => r.name.toLowerCase() === e.name.toLowerCase());
+                  return (
                   <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i < Math.min(8, logboek.length) - 1 ? `1px solid ${BORDER}` : "none" }}>
+                    {matched ? <RecipeCircle recipe={matched} allIngredients={allIngredients} size={36} /> : (
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <NotebookPen size={15} color={MUTED} />
+                      </div>
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 14, color: INK }}>{e.name}</div>
                       <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{e.date} · {e.location}</div>
                     </div>
                     <span style={{ display: "flex", alignItems: "center", gap: 3, color: BRASS, fontWeight: 700, fontSize: 12, flexShrink: 0 }}><Star size={11} fill={BRASS} /> {e.rating.toFixed(1)}</span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

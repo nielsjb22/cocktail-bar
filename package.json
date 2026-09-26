@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "ios:sync": "vite build && npx cap sync ios",
-    "ios:open": "npx cap open ios"
+    "ios:open": "npx cap open ios",
+    "check:images": "node scripts/check-images.mjs",
+    "sync:images-catalog": "node scripts/sync-images-catalog.mjs"
   },
   "dependencies": {
     "@capacitor/browser": "^8.0.4",
@@ -29,6 +31,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "sharp": "^0.35.4",
     "vite": "^5.4.0"
   }
 }
