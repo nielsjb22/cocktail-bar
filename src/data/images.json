@@ -362,182 +362,182 @@
   {
     "id": "breakfast_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "breakfast_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bronx",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bronx.webp",
+    "bronUrl": "https://www.pexels.com/photo/bartender-pouring-a-vibrant-yellow-cocktail-31331969/",
+    "maker": "Nano Erdozain",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "brooklyn",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "brooklyn.webp",
+    "bronUrl": "https://www.pexels.com/photo/assorted-bottles-near-windows-700975/",
+    "maker": "Loe Moshkovska",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "brown_derby",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "brown_derby.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-whiskey-cocktail-in-crystal-glass-28559481/",
+    "maker": "Jonathan Borba",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bucks_fizz",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/37662772/pexels-photo-37662772.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bucks_fizz.webp",
+    "bronUrl": "https://www.pexels.com/photo/drink-with-bubbles-in-glass-14887460/",
+    "maker": "Wellington Silva",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bushwacker",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bushwacker.webp",
+    "bronUrl": "https://www.pexels.com/photo/creamy-cocktail-drink-on-wooden-table-in-tokyo-36189453/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "cable_car",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "cable_car.webp",
+    "bronUrl": "https://www.pexels.com/photo/cable-car-and-bridge-in-city-11826843/",
+    "maker": "Zekai Zhu",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "caen_caen",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "caen_caen.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-drink-on-wooden-surface-11256798/",
+    "maker": "Tolga Aslantürk",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "caipirinha",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1568608275764-7a16d7fdfc56?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "caipirinha.webp",
+    "bronUrl": "https://www.pexels.com/photo/photo-of-a-caipirinha-drink-and-limes-13059626/",
+    "maker": "Marcelo Verfe",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "cairprioska",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/27850591/pexels-photo-27850591.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "cairprioska.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-green-cocktail-in-martini-glass-35087284/",
+    "maker": "Gerardo Pantoja",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "camomile_collins",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "camomile_collins.webp",
+    "bronUrl": "https://www.pexels.com/photo/food-and-drinks-on-a-picnic-24186160/",
+    "maker": "hello aesthe",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "canadian_daisy",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "canadian_daisy.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-in-crystal-glass-decorated-with-flowers-casting-shadow-on-table-17839998/",
+    "maker": "Studio Naae",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "canchanchara",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "canchanchara.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-preparation-in-low-light-setting-36244827/",
+    "maker": "Onur Kaya",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "cardinale",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "cardinale.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-cocktail-glass-on-table-with-orange-glow-36189465/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "casino",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "casino.webp",
+    "bronUrl": "https://www.pexels.com/photo/martini-with-dice-in-vibrant-red-background-35793294/",
+    "maker": "cleo beater",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "champagne_cocktail",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1559477882-f1a7c5931735?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "champagne_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/crop-woman-pouring-drink-into-glass-5947075/",
+    "maker": "Charlotte May",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "champagne_julep",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/19259177/pexels-photo-19259177.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "champagne_julep.webp",
+    "bronUrl": "https://www.pexels.com/photo/ice-and-straw-in-cocktail-in-silver-cup-18354022/",
+    "maker": "Stephen Leonardi",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "champs_elysees",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "champs_elysees.webp",
+    "bronUrl": "https://www.pexels.com/photo/magazine-and-glass-of-drink-21308487/",
+    "maker": "Laura Chouette",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "chartreuse_swizzle",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "chartreuse_swizzle.webp",
+    "bronUrl": "https://www.pexels.com/photo/artisanal-spirits-display-at-paris-bar-counter-31328188/",
+    "maker": "Augustin Mazaud",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "chocolate_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "chocolate_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-drink-in-a-martini-glass-in-close-up-photography-5335687/",
+    "maker": "bams awey",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "cinderella",
