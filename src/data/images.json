@@ -2531,182 +2531,182 @@
   {
     "id": "stinger",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "stinger.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "strawberry_mint_daiquiri",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "strawberry_mint_daiquiri.webp",
+    "bronUrl": "https://www.pexels.com/photo/strawberry-daiquiri-8375239/",
+    "maker": "Denys Gromov",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "suffering_bastard",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "suffering_bastard.webp",
+    "bronUrl": "https://www.pexels.com/photo/glasses-of-fresh-icy-cocktails-on-marble-table-6542713/",
+    "maker": "Geraud pfeiffer",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "surface_to_air",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "surface_to_air.webp",
+    "bronUrl": "https://www.pexels.com/photo/red-cocktails-decorated-with-twigs-8084680/",
+    "maker": "Ivan S",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "tequila_sunrise",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1620393570203-ebb4ba12c05d?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "tequila_sunrise.webp",
+    "bronUrl": "https://www.pexels.com/photo/tequila-sunrise-with-lemon-and-orange-slices-8679426/",
+    "maker": "Timur Weber",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "texas_tea",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "texas_tea.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-person-holding-a-glass-of-dring-with-ice-and-orange-peel-9397264/",
+    "maker": "Hayden Walker",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "three_dots_and_a_dash",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "three_dots_and_a_dash.webp",
+    "bronUrl": "https://www.pexels.com/photo/three-rock-glasses-with-smashed-fruits-1189255/",
+    "maker": "Magda Ehlers",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "tipperary",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "tipperary.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "toasted_almond",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "toasted_almond.webp",
+    "bronUrl": "https://www.pexels.com/photo/woman-hand-holding-glass-of-drink-19884363/",
+    "maker": "Isabella Mendes",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "tom_and_jerry",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "tom_and_jerry.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-creamy-latte-9903178/",
+    "maker": "Leonora Brebner",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "tom_collins",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1630071073903-423f86c14389?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "tom_collins.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-225236/",
+    "maker": "picjumbo.com",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "tommys_margarita",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/28525104/pexels-photo-28525104.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "tommys_margarita.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-margarita-with-lime-on-wooden-table-28525104/",
+    "maker": "Alejandro Aznar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "toronto",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "toronto.webp",
+    "bronUrl": "https://www.pexels.com/photo/sunset-cocktail-with-cn-tower-silhouette-in-toronto-36915663/",
+    "maker": "Felipe Jiménez",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "trinidad_sour",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "trinidad_sour.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-on-the-table-in-the-bar-18274903/",
+    "maker": "Emre  Akyol",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "tuxedo",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "tuxedo.webp",
+    "bronUrl": "https://www.pexels.com/photo/man-s-hand-in-suit-holding-glass-with-cocktail-8971711/",
+    "maker": "Evgeni Lazarev",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "twentieth_century",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "twentieth_century.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-cocktail-drink-on-a-clear-glass-4786627/",
+    "maker": "Taryn Elliott",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "valentine_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/35843823/pexels-photo-35843823.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "valentine_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/romantic-strawberry-cocktail-with-heart-decor-35843823/",
+    "maker": "César O'neill",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "vanilla_fix",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "vanilla_fix.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-sweet-cocktail-16806486/",
+    "maker": "Blue Arauz",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "vesper",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1671713682257-359a1baf806e?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "vesper.webp",
+    "bronUrl": "https://www.pexels.com/photo/glass-of-cold-drink-with-pansy-20844840/",
+    "maker": "Nadin Sh",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "vieux_carre",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1550426735-c33c7ce414ff?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "vieux_carre.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-negroni-cocktail-on-a-bar-table-31631268/",
+    "maker": "Mediha Ekici",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "virgin_mojito",
