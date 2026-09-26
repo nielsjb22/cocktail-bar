@@ -1262,182 +1262,182 @@
   {
     "id": "income_tax_cocktail",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "income_tax_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-glass-in-dimly-lit-tokyo-bar-34989165/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "infante",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "infante.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "inspiration",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "inspiration.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-an-empty-bottle-8942199/",
+    "maker": "cottonbro studio",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "irish_coffee",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1651789535050-2e2b4d9b6703?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "irish_coffee.webp",
+    "bronUrl": "https://www.pexels.com/photo/dark-beer-with-coffee-beans-on-top-10725922/",
+    "maker": "Mathias Reding",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "italian_heather",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "italian_heather.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-aperol-spritz-cocktails-in-bar-setting-36547404/",
+    "maker": "Berkan Can",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "ivy_gimlet",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "ivy_gimlet.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-a-person-holding-a-cocktail-27067944/",
+    "maker": "Nadin Sh",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "jack_rose",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "jack_rose.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-pink-roses-with-cocktail-in-soft-light-29799035/",
+    "maker": "Zenia Diamond",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "jaffa",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "jaffa.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-citrus-cocktails-with-chili-garnish-30608744/",
+    "maker": "Sibel Kubaş",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "jalisco_swizzle",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "jalisco_swizzle.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-glass-of-orange-juice-7494029/",
+    "maker": "ROMAN ODINTSOV",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "jamaican_mule",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "jamaican_mule.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-cup-of-liquor-14469343/",
+    "maker": "Alan Retano",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "japanese_cocktail",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "japanese_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-glass-in-dimly-lit-tokyo-bar-34989165/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "jasmine",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "jasmine.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-photograph-of-white-jasmine-flowers-13546349/",
+    "maker": "Studio Naae",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "john_collins",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "john_collins.webp",
+    "bronUrl": "https://www.pexels.com/photo/fruit-cocktail-and-basket-20371529/",
+    "maker": "Jack Baghel",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "journalist",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "journalist.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "june_bug",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "june_bug.webp",
+    "bronUrl": "https://www.pexels.com/photo/glasses-of-fresh-icy-cocktails-on-marble-table-6542713/",
+    "maker": "Geraud pfeiffer",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "jungle_bird",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1655747508339-7cc94a19ac2b?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "jungle_bird.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-with-lemon-slices-15894952/",
+    "maker": "Khải Huyền Trương",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kamikaze",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1723691802828-707ecdf3ee25?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kamikaze.webp",
+    "bronUrl": "https://www.pexels.com/photo/photo-of-cocktail-glass-with-lime-4051363/",
+    "maker": "alleksana",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kentucky_buck",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kentucky_buck.webp",
+    "bronUrl": "https://www.pexels.com/photo/delicious-beverage-with-cherries-in-glass-and-carafe-6542293/",
+    "maker": "Geraud pfeiffer",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kentucky_mule",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/31422126/pexels-photo-31422126.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kentucky_mule.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-cup-of-liquor-14469343/",
+    "maker": "Alan Retano",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kentucky_river",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "kentucky_river.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-bourbon-cocktail-with-rosemary-garnish-31422126/",
+    "maker": "Jose Narvaez",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kings_fizz",
