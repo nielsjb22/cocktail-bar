@@ -1991,182 +1991,182 @@
   {
     "id": "penicillin",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1514361659284-59851c90d011?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "penicillin.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-with-yellow-liquid-4667182/",
+    "maker": "cottonbro studio",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "perfect_lady",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "perfect_lady.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-pink-cocktail-with-edible-flower-garnish-33772822/",
+    "maker": "long zhang",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "perfect_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1597075687490-8f673c6c17f6?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "perfect_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-footed-glass-2759373/",
+    "maker": "Li Sun",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pimms_cup",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "pimms_cup.webp",
+    "bronUrl": "https://www.pexels.com/photo/tall-refreshing-cocktail-on-retro-table-33164462/",
+    "maker": "𝙊𝙎𝙑𝘼𝙇𝘿𝙊 𝙍𝙊𝙈𝙄𝙏𝙊",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pina_colada",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1607644536940-6c300b5784c5?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "pina_colada.webp",
+    "bronUrl": "https://www.pexels.com/photo/mocktail-27275594/",
+    "maker": "ATHENEA CODJAMBASSIS ROSSITTO",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pink_gin",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "pink_gin.webp",
+    "bronUrl": "https://www.pexels.com/photo/man-holding-forward-a-glass-of-iced-pinkish-colored-cocktail-with-a-straw-3417441/",
+    "maker": "Christian Fridell",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pink_lady",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/18939875/pexels-photo-18939875.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "pink_lady.webp",
+    "bronUrl": "https://www.pexels.com/photo/maraschino-cherry-on-the-rim-of-a-glass-with-a-pink-lady-cocktail-18939875/",
+    "maker": "Kuiyibo Campos",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pink_sangria",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "pink_sangria.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-drink-on-brown-wooden-table-11185020/",
+    "maker": "Tex",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pink_squirrel",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "pink_squirrel.webp",
+    "bronUrl": "https://www.pexels.com/photo/maraschino-cherry-on-the-rim-of-a-glass-with-a-pink-lady-cocktail-18939875/",
+    "maker": "Kuiyibo Campos",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pisco_punch",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "pisco_punch.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-pisco-sour-cocktail-with-lime-garnish-28490829/",
+    "maker": "Nano Erdozain",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pisco_sour",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1696594935685-1ad6ba69e83e?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "pisco_sour.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-pisco-sour-cocktail-with-lime-garnish-28490829/",
+    "maker": "Nano Erdozain",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "planters_punch",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "planters_punch.webp",
+    "bronUrl": "https://www.pexels.com/photo/cold-drinks-on-wooden-table-7377014/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "poinsettia",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "poinsettia.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-poinsettia-with-refreshing-beverage-outdoors-35529933/",
+    "maker": "Sóc Năng Động",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "porn_star_martini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/34429982/pexels-photo-34429982.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "porn_star_martini.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-porn-star-martini-cocktail-drink-11937508/",
+    "maker": "Ata Ebem",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "porto_flip",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "porto_flip.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-close-up-in-tokyo-bar-setting-36189461/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "presbyterian",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "presbyterian.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-cocktail-glass-on-table-with-orange-glow-36189465/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "queen_mother_cocktail",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "queen_mother_cocktail.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rabo_de_galo",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "rabo_de_galo.webp",
+    "bronUrl": "https://www.pexels.com/photo/bartender-serving-two-flavored-cocktails-3084623/",
+    "maker": "Maria das Dores",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "ramos_fizz",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "ramos_fizz.webp",
+    "bronUrl": "https://www.pexels.com/photo/cup-of-hot-beer-16976669/",
+    "maker": "Daniel Duarte",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "ranch_water",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "ranch_water.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-mojito-by-the-poolside-32206893/",
+    "maker": "Hameen Reynolds",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "red_cloud",
