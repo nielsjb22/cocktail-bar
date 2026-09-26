@@ -182,182 +182,182 @@
   {
     "id": "bb",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bb.webp",
+    "bronUrl": "https://www.pexels.com/photo/mexicali-27822645/",
+    "maker": "𝙊𝙎𝙑𝘼𝙇𝘿𝙊 𝙍𝙊𝙈𝙄𝙏𝙊",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bees_knees",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1587223962930-cb7f31384c19?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bees_knees.webp",
+    "bronUrl": "https://www.pexels.com/photo/bartender-pouring-beer-into-a-glass-with-ice-38896688/",
+    "maker": "Mike C",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bellini",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1772762049883-2c40d1255c5c?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bellini.webp",
+    "bronUrl": "https://www.pexels.com/photo/person-holding-yellow-juice-bottle-1170588/",
+    "maker": "Peter Fazekas",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "benedict",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "benedict.webp",
+    "bronUrl": "https://www.pexels.com/photo/delicious-eggs-benedict-brunch-in-english-garden-29177412/",
+    "maker": "The Castlebar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "between_the_sheets",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "between_the_sheets.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-glass-in-dimly-lit-tokyo-bar-34989165/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bijou",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bijou.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-martini-with-olives-in-tokyo-bar-36189464/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "black_manhattan",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "black_manhattan.webp",
+    "bronUrl": "https://www.pexels.com/photo/martini-cocktail-on-book-near-bottle-of-whiskey-7809767/",
+    "maker": "Dziana Hasanbekava",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "black_russian",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "black_russian.webp",
+    "bronUrl": "https://www.pexels.com/photo/a-black-russian-cocktail-drink-on-a-wooden-table-13926592/",
+    "maker": "Muhammad Fawdy",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "black_velvet",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "black_velvet.webp",
+    "bronUrl": "https://www.pexels.com/photo/glass-with-an-alcoholic-drink-8084685/",
+    "maker": "Ivan S",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "blinker",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "blinker.webp",
+    "bronUrl": "https://www.pexels.com/photo/vibrant-cocktail-glass-on-table-with-orange-glow-36189465/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "blood_and_sand",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1618924385085-aa725b876250?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "blood_and_sand.webp",
+    "bronUrl": "https://www.pexels.com/photo/wineglass-with-slice-of-red-orange-5945778/",
+    "maker": "Any Lane",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bloody_mary",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1551734322-f43b0798585a?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bloody_mary.webp",
+    "bronUrl": "https://www.pexels.com/photo/bloody-mary-in-a-glass-10888079/",
+    "maker": "Gilario Guevara",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "blue_hawaiian",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1682629906883-76eaa5e03693?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "blue_hawaiian.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshment-drinks-on-the-beach-8455911/",
+    "maker": "RDNE Stock project",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "blue_lagoon",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.pexels.com/photos/32300850/pexels-photo-32300850.jpeg?auto=compress&cs=tinysrgb&w=900",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "blue_lagoon.webp",
+    "bronUrl": "https://www.pexels.com/photo/blue-lagoon-cocktail-8771967/",
+    "maker": "Lucas Albino",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bobby_burns",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bobby_burns.webp",
+    "bronUrl": "https://www.pexels.com/photo/cocktail-with-flame-in-glass-at-bar-counter-16806672/",
+    "maker": "Airam Dato-on",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bombay_punch",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bombay_punch.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-cocktail-glass-filled-with-strawberry-lemon-and-bombay-saphire-gin-2663973/",
+    "maker": "Cameron Rainey",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "boulevardier",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": "https://images.unsplash.com/photo-1641919089328-5d5063828c4f?auto=format&fit=crop&w=900&q=80",
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "boulevardier.webp",
+    "bronUrl": "https://www.pexels.com/photo/elegant-negroni-cocktail-on-a-bar-table-31631268/",
+    "maker": "Mediha Ekici",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bramble",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bramble.webp",
+    "bronUrl": "https://www.pexels.com/photo/hand-holding-refreshing-cocktail-with-blueberries-30047551/",
+    "maker": "Léo Gilmant",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "brandy_alexander",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "brandy_alexander.webp",
+    "bronUrl": "https://www.pexels.com/photo/martini-cocktail-on-book-near-bottle-of-whiskey-7809767/",
+    "maker": "Dziana Hasanbekava",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "brandy_crusta",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "brandy_crusta.webp",
+    "bronUrl": "https://www.pexels.com/photo/red-margarita-with-sugar-crusta-standing-on-snowed-table-15524262/",
+    "maker": "Юлия Крамаренко",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "breakfast_martini",
