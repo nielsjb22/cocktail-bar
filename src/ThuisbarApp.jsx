@@ -4492,7 +4492,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           alleen een kale lijst — precies zoals in het UX-voorstel. */}
       {recommended && recommended.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <SectionLabel>✨ Aanbevolen voor jou</SectionLabel>
+          <SectionLabel>Aanbevolen voor jou</SectionLabel>
           <div style={{ fontSize: 12.5, color: MUTED, margin: "-6px 0 13px" }}>Gebaseerd op je smaakprofiel en je voorraad</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
             {recommended.map(({ recipe, matchPct }) => (
@@ -8074,7 +8074,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
       {insights.recommended.length > 0 && (
         <div style={{ marginBottom: 28 }}>
-          <SectionLabel>✨ Aanbevolen voor jou</SectionLabel>
+          <SectionLabel>Aanbevolen voor jou</SectionLabel>
           <div style={{ fontSize: 12.5, color: "#5C5548", margin: "-6px 0 13px" }}>Gebaseerd op je smaakprofiel en je voorraad</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
             {insights.recommended.map(({ recipe, matchPct }) => (
