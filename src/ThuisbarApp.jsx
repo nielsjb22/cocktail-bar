@@ -2359,8 +2359,7 @@ export default function ThuisbarApp() {
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             logboek={logboek} recipes={allRecipes} allIngredients={allIngredients} active={tab === "home"}
             onOpenRecipe={openRecipeDetail} onOpenCheckin={openCheckin} onSound={chime}
-            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick}
-            onGoOntdekken={() => navigateTo("ontdekken")} onGoBar={() => navigateTo("bar")} />
+            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} />
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab
@@ -2846,7 +2845,7 @@ function usePullToRefresh(onRefresh) {
   return { indicatorRef, refreshing, handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: onTouchEnd } };
 }
 
-function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, onGoOntdekken, onGoBar, active }) {
+function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active }) {
   const myId = session?.user?.id;
   const { feed: friendFeed, friendProfiles, reload: reloadFriendFeed } = useFriendsFeed(session, active);
   const combinedFeed = useMemo(() => {
@@ -2973,20 +2972,6 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           <span style={{ display: "block", fontSize: 12, color: MUTED }}>Check meteen in</span>
         </span>
       </button>
-
-      <SectionLabel>Kortweg</SectionLabel>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-        <button onClick={onGoOntdekken} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: "16px 14px", textAlign: "left", cursor: "pointer", fontFamily: sans }}>
-          <Search size={18} color={BOTTLE} style={{ marginBottom: 8 }} />
-          <div style={{ fontWeight: 700, fontSize: 13.5, color: INK }}>Ontdekken</div>
-          <div style={{ fontSize: 11.5, color: MUTED, marginTop: 2 }}>Blader of zoek een cocktail</div>
-        </button>
-        <button onClick={onGoBar} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: "16px 14px", textAlign: "left", cursor: "pointer", fontFamily: sans }}>
-          <Martini size={18} color={BOTTLE} style={{ marginBottom: 8 }} />
-          <div style={{ fontWeight: 700, fontSize: 13.5, color: INK }}>Bar</div>
-          <div style={{ fontSize: 11.5, color: MUTED, marginTop: 2 }}>Voorraad, schaler en meer</div>
-        </button>
-      </div>
 
       <SectionLabel>Activiteit</SectionLabel>
       {combinedFeed.length === 0 ? (
@@ -3212,7 +3197,7 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
 
 function SectionLabel({ children }) {
   return (
-    <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>
+    <div style={{ fontFamily: systemFont, fontSize: 20, fontWeight: 700, color: INK, marginBottom: 12 }}>
       {children}
     </div>
   );
@@ -3523,7 +3508,6 @@ function VoorraadTab({ allIngredients, customIngredients, voorraad, voorraadAant
               </div>
               <div style={{ padding: "10px 12px 12px" }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{cat}</div>
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>tik om te bekijken</div>
               </div>
             </button>
           );
@@ -4037,28 +4021,28 @@ function CategorySheet({ cat, items, voorraad, voorraadAantal, onAdjustAantal, o
               const isEditing = editingId === ing.id;
 
               return (
-                <div key={ing.id} style={{
-                  position: "relative", display: "flex", flexDirection: "column", alignItems: "center",
-                  background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "12px 8px 10px",
-                }}>
+                <div key={ing.id} role={isEditing ? undefined : "button"} tabIndex={isEditing ? undefined : 0}
+                  onClick={() => { if (!isEditing) onToggleWithPop(ing.id); }}
+                  onKeyDown={e => { if (!isEditing && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onToggleWithPop(ing.id); } }}
+                  className="press-scale"
+                  style={{
+                    position: "relative", display: "flex", flexDirection: "column", alignItems: "center",
+                    background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 8px 12px",
+                    minHeight: 44, cursor: isEditing ? "default" : "pointer",
+                  }}>
                   {!isEditing && (
-                    <button onClick={() => onToggleWithPop(ing.id)} aria-label={owned ? "Verwijder uit voorraad" : "Voeg toe aan voorraad"}
-                      className={justPoppedId === ing.id ? "ring-pop" : undefined}
-                      style={{
-                        position: "absolute", top: 7, right: 7, width: 20, height: 20, borderRadius: "50%",
-                        border: `1.5px solid ${owned ? BOTTLE : BORDER}`, background: owned ? BOTTLE : "transparent",
-                        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0,
-                      }}>
-                      {owned && <Check key={justPoppedId === ing.id ? "popping" : "static"} className={justPoppedId === ing.id ? "check-pop" : undefined} size={12} strokeWidth={3} color={CREAM} />}
-                    </button>
+                    <div aria-hidden className={justPoppedId === ing.id ? "ring-pop" : undefined} style={{
+                      position: "absolute", top: 7, right: 7, width: 26, height: 26, borderRadius: "50%",
+                      border: `1.5px solid ${owned ? BOTTLE : BORDER}`, background: owned ? BOTTLE : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {owned && <Check key={justPoppedId === ing.id ? "popping" : "static"} className={justPoppedId === ing.id ? "check-pop" : undefined} size={15} strokeWidth={3} color={CREAM} />}
+                    </div>
                   )}
 
-                  <button onClick={() => !isEditing && onToggleWithPop(ing.id)} style={{
-                    width: 52, height: 52, borderRadius: "50%", border: "none", padding: 0, cursor: "pointer",
-                    marginBottom: 8, overflow: "hidden", opacity: owned ? 1 : 0.85,
-                  }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", marginBottom: 8, opacity: owned ? 1 : 0.85 }}>
                     <ItemArt ing={ing} />
-                  </button>
+                  </div>
 
                   {isEditing ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
@@ -4081,7 +4065,7 @@ function CategorySheet({ cat, items, voorraad, voorraadAantal, onAdjustAantal, o
                   )}
 
                   {isCustom && !isEditing && (
-                    <div style={{ display: "flex", gap: 8, marginTop: 5 }}>
+                    <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 8, marginTop: 5 }}>
                       <span onClick={() => onStartEdit(ing)} style={{ display: "flex", cursor: "pointer", opacity: 0.65 }}><Pencil size={11} color={MUTED} /></span>
                       <span onClick={() => { onSound("remove"); onRemoveCustom(ing.id); }} style={{ display: "flex", cursor: "pointer", opacity: 0.65 }}><X size={12} color={MUTED} /></span>
                     </div>
