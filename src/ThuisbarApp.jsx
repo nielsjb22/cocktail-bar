@@ -1099,7 +1099,7 @@ function SplashScreen({ onDone }) {
     };
   }, []);
   return (
-    <div className="splash-overlay" onAnimationEnd={(e) => { if (e.animationName === "splashFadeOverlay") onDone(); }}>
+    <div className="splash-overlay" onClick={onDone} onAnimationEnd={(e) => { if (e.animationName === "splashFadeOverlay") onDone(); }}>
       <div className="splash-inner">
         <div className="splash-ring">
           <svg viewBox="0 0 100 100" width="48" height="48">
@@ -1120,6 +1120,9 @@ function SplashScreen({ onDone }) {
         <h1 className="splash-title">Mijn Thuisbar</h1>
         <div className="splash-sub">Welkom in de wereld van de cocktail</div>
       </div>
+      {/* De intro duurt bewust een paar seconden voor het merkgevoel, maar
+          niemand hoeft 'm elke keer helemaal uit te zitten. */}
+      <div className="splash-skip-hint">Tik om te slaan</div>
     </div>
   );
 }
