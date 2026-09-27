@@ -92,6 +92,9 @@ const CUSTOM_CAT = "Eigen ingrediënten";
 
 const serif = "'Playfair Display', Georgia, 'Times New Roman', serif";
 const sans = "'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif";
+// Puur systeemfont (geen Inter), gereserveerd voor de check-in-sheet: die
+// moet aanvoelen als een natieve iOS-flow, niet als de rest van de app.
+const systemFont = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif";
 
 // Zachte, warm-getinte schaduwen, gereserveerd voor uitgelichte panelen en
 // primaire knoppen. Herhalende ledger-rijen blijven bewust plat (zie de
@@ -6857,7 +6860,9 @@ function SmaakbalansTab({ recipes, isOwned, allIngredients, menu, setMenu, onUse
   );
 }
 
-function StarPicker({ value, onChange, size = 19, onSound }) {
+const RATING_WORDS = { 1: "Matig", 2: "Oké", 3: "Lekker", 4: "Heerlijk", 5: "Top" };
+
+function StarPicker({ value, onChange, size = 19, onSound, showWord = false }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ display: "flex", gap: 4 }}>
@@ -6867,8 +6872,29 @@ function StarPicker({ value, onChange, size = 19, onSound }) {
           </button>
         ))}
       </div>
-      {size > 20 && <span style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: BOTTLE }}>{value}.0</span>}
+      {showWord
+        ? value > 0 && <span style={{ fontFamily: systemFont, fontWeight: 600, fontSize: 15, color: INK }}>{RATING_WORDS[value]}</span>
+        : size > 20 && <span style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: BOTTLE }}>{value}.0</span>}
     </div>
+  );
+}
+
+// Eén notitieregel die vanzelf meegroeit met de tekst — geen zichtbare rand
+// of resize-greep, past bij het vlakke, kaderloze veldontwerp van de
+// check-in-sheet.
+function AutoGrowTextField({ value, onChange, placeholder }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.style.height = "auto";
+    ref.current.style.height = `${ref.current.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={1} style={{
+      width: "100%", border: "none", outline: "none", resize: "none", background: PAPER, borderRadius: 12,
+      padding: "13px 14px", fontSize: 15, fontFamily: systemFont, color: INK, boxSizing: "border-box",
+      lineHeight: 1.4, overflow: "hidden", display: "block",
+    }} />
   );
 }
 
@@ -6878,7 +6904,11 @@ function fieldStyle() {
 
 // Zelfde reden als IngredientAutocomplete: vrij kunnen typen én uit het
 // register kunnen kiezen, met een lijst die ook op iPhone/iOS Safari werkt.
-function RecipeNameAutocomplete({ recipes, value, onChange, placeholder }) {
+// Deze variant toont een fotominiatuur per resultaat en, zolang er nog
+// niets getypt is, een rij "Laatst gemaakt" — puur zodat je bij een
+// check-in zo min mogelijk hoeft te typen voor een cocktail die je al
+// eerder maakte.
+function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredients, recent }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
   const sorted = useMemo(() => [...recipes].sort((a, b) => a.name.localeCompare(b.name)), [recipes]);
@@ -6886,7 +6916,7 @@ function RecipeNameAutocomplete({ recipes, value, onChange, placeholder }) {
   const filtered = useMemo(() => {
     const q = value.trim().toLowerCase();
     const list = q ? sorted.filter(r => r.name.toLowerCase().includes(q)) : sorted;
-    return list.slice(0, 50);
+    return list.slice(0, 30);
   }, [sorted, value]);
 
   useEffect(() => {
@@ -6897,22 +6927,45 @@ function RecipeNameAutocomplete({ recipes, value, onChange, placeholder }) {
     return () => { document.removeEventListener("mousedown", onOutside); document.removeEventListener("touchstart", onOutside); };
   }, [open]);
 
+  const pick = (r) => { onSelect(r); setOpen(false); };
+  const flatFieldStyle = {
+    width: "100%", border: "none", outline: "none", background: PAPER, borderRadius: 12,
+    padding: "13px 14px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box",
+  };
+
   return (
     <div ref={wrapRef} style={{ position: "relative" }}>
       <input value={value} onChange={e => { onChange(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
-        placeholder={placeholder} enterKeyHint="next" autoCapitalize="words" style={fieldStyle()} />
+        placeholder="Zoek een cocktail…" enterKeyHint="next" autoCapitalize="words" style={flatFieldStyle} />
       {open && filtered.length > 0 && (
         <div style={{
-          position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: CREAM,
-          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: 220, overflowY: "auto",
+          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: CREAM,
+          borderRadius: 14, maxHeight: 260, overflowY: "auto",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {filtered.map(r => (
-            <div key={r.id} onMouseDown={e => e.preventDefault()} onClick={() => { onChange(r.name); setOpen(false); }} className="list-row-tap"
-              style={{ padding: "9px 11px", fontSize: 14, fontFamily: serif, color: INK, cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}>
-              {r.name}
-            </div>
+            <button key={r.id} onMouseDown={e => e.preventDefault()} onClick={() => pick(r)} className="list-row-tap"
+              style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "9px 12px", background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", fontFamily: systemFont }}>
+              <RecipeCircle recipe={r} allIngredients={allIngredients} size={36} />
+              <span style={{ fontSize: 15, color: INK }}>{r.name}</span>
+            </button>
           ))}
+        </div>
+      )}
+      {!open && !value.trim() && recent.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>Laatst gemaakt</div>
+          <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 2 }}>
+            {recent.map(r => (
+              <button key={r.id} onClick={() => pick(r)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: 62, flexShrink: 0, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                <RecipeCircle recipe={r} allIngredients={allIngredients} size={54} />
+                <span style={{
+                  fontSize: 11, color: INK, textAlign: "center", lineHeight: 1.25, fontFamily: systemFont,
+                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                }}>{r.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -7370,19 +7423,22 @@ function PlaceAutocomplete({ value, onChange, placeholder }) {
   return (
     <div ref={wrapRef} style={{ position: "relative" }}>
       <input value={query} onChange={e => handleType(e.target.value)} onFocus={() => (results.length > 0 || loading) && setOpen(true)}
-        placeholder={placeholder} enterKeyHint="done" autoCapitalize="words" style={fieldStyle()} />
+        placeholder={placeholder} enterKeyHint="done" autoCapitalize="words" style={{
+          width: "100%", border: "none", outline: "none", background: PAPER, borderRadius: 12,
+          padding: "13px 14px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box",
+        }} />
       {open && (loading || results.length > 0) && (
         <div style={{
-          position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: CREAM,
-          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: 240, overflowY: "auto",
+          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: CREAM,
+          borderRadius: 14, maxHeight: 240, overflowY: "auto",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
-          {loading && <div style={{ padding: "9px 11px", fontSize: 13, color: MUTED }}>Plekken zoeken…</div>}
+          {loading && <div style={{ padding: "10px 12px", fontSize: 13.5, color: MUTED, fontFamily: systemFont }}>Plekken zoeken…</div>}
           {!loading && results.map((r, i) => (
             <div key={i} onMouseDown={e => e.preventDefault()} onClick={() => pick(r)} className="list-row-tap"
-              style={{ padding: "9px 11px", cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}>
-              <div style={{ fontSize: 13.5, fontFamily: sans, fontWeight: 600, color: INK }}>{r.label}</div>
-              {r.secondary && <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>{r.secondary}</div>}
+              style={{ padding: "10px 12px", cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}>
+              <div style={{ fontSize: 14.5, fontFamily: systemFont, fontWeight: 600, color: INK }}>{r.label}</div>
+              {r.secondary && <div style={{ fontSize: 12, color: MUTED, marginTop: 1, fontFamily: systemFont }}>{r.secondary}</div>}
             </div>
           ))}
         </div>
@@ -7534,25 +7590,49 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
     reader.readAsDataURL(file);
   };
   const [nameInput, setNameInput] = useState("");
-  const [justCheckedIn, setJustCheckedIn] = useState(null);
   const [activeAchievementId, setActiveAchievementId] = useState(null);
   const matchedRecipe = useMemo(() => recipes.find(r => r.name.toLowerCase() === nameInput.trim().toLowerCase()), [recipes, nameInput]);
-  const [rating, setRating] = useState(4);
+  const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState("");
   const [location, setLocation] = useState("Thuis");
   const [locationCoords, setLocationCoords] = useState(null);
   const [photo, setPhoto] = useState(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [stampNumber, setStampNumber] = useState(null);
   const fileInputRef = useRef(null);
   const handleLocationChange = (text, place) => { setLocation(text); setLocationCoords(place ? { lat: place.lat, lon: place.lon } : null); };
-  const [selectedTastes, setSelectedTastes] = useState([]);
+  // Twee sliders (Zoet/Zuur, Licht/Sterk) i.p.v. losse smaak-chips — 50 is
+  // het neutrale midden. Bij het herkennen van een recept stellen we een
+  // voorzet voor uit de bestaande familie-heuristiek, maar de gebruiker kan
+  // 'm vóór het inchecken nog verschuiven.
+  const [tasteBalance, setTasteBalance] = useState(50);
+  const [strengthBalance, setStrengthBalance] = useState(50);
   useEffect(() => {
-    // Bij het herkennen van een recept stellen we een voorzet voor (uit de
-    // familie-heuristiek), maar de gebruiker kan die vóór het inchecken nog
-    // aanpassen — precies zoals je bij Untappd je eigen smaakindrukken aanvinkt.
-    if (matchedRecipe) setSelectedTastes(Object.keys(FAMILY_TASTE[matchedRecipe.family] || {}));
+    if (!matchedRecipe) return;
+    const fam = FAMILY_TASTE[matchedRecipe.family] || {};
+    if (fam.zuur) setTasteBalance(20);
+    else if (fam.zoet) setTasteBalance(80);
+    else setTasteBalance(50);
+    setStrengthBalance(fam.sterk ? 75 : 40);
   }, [matchedRecipe?.id]);
-  const toggleTaste = (key) => { onSound("pop"); setSelectedTastes(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]); };
+  const derivedTasteTags = () => {
+    const tags = [];
+    if (tasteBalance <= 35) tags.push("zuur");
+    else if (tasteBalance >= 65) tags.push("zoet");
+    if (strengthBalance >= 65) tags.push("sterk");
+    return tags;
+  };
+  const recentCocktails = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    for (const entry of logboek) {
+      const r = entry.recipeId ? recipes.find(x => x.id === entry.recipeId) : recipes.find(x => x.name.toLowerCase() === entry.name.toLowerCase());
+      if (r && !seen.has(r.id)) { seen.add(r.id); list.push(r); }
+      if (list.length >= 8) break;
+    }
+    return list;
+  }, [logboek, recipes]);
 
   const handlePhotoFile = (e) => {
     const file = e.target.files?.[0];
@@ -7578,20 +7658,29 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
     reader.onerror = () => setPhotoBusy(false);
     reader.readAsDataURL(file);
   };
+  // Eigen foto heeft voorrang; anders alvast de foto van het gekozen recept
+  // laten zien, zodat het beeldvlak nooit leeg oogt zodra er een cocktail is
+  // gekozen — tikken vervangt 'm altijd door een eigen foto.
+  const heroPhotoSrc = photo || (matchedRecipe ? (localItemImageUrl("cocktail", matchedRecipe.id) || matchedRecipe.image) : null);
 
   const addEntry = () => {
     const name = nameInput.trim();
-    if (!name) return;
+    if (!name || rating === 0) return;
+    const checkinNumber = logboek.length + 1;
     onAddEntry({
       recipeId: matchedRecipe ? matchedRecipe.id : null,
       name, rating, notes: notes.trim(), photo, location: location.trim() || "Thuis",
       locationLat: locationCoords?.lat ?? null, locationLon: locationCoords?.lon ?? null,
-      tasteTags: selectedTastes,
+      tasteTags: derivedTasteTags(),
     });
-    onSound("clink");
-    setJustCheckedIn(name);
-    setTimeout(() => setJustCheckedIn(cur => (cur === name ? null : cur)), 4000);
-    setNameInput(""); setNotes(""); setRating(4); setPhoto(null); setLocation("Thuis"); setLocationCoords(null); setSelectedTastes([]);
+    onSound("chime");
+    setStampNumber(checkinNumber);
+    setTimeout(() => {
+      setStampNumber(null);
+      closeCheckinSheet();
+      setNameInput(""); setNotes(""); setRating(0); setPhoto(null); setLocation("Thuis"); setLocationCoords(null);
+      setTasteBalance(50); setStrengthBalance(50); setMoreOpen(false);
+    }, 1050);
   };
   const removeEntry = (id) => { onSound("remove"); onRemoveEntry(id); };
   const cardRefs = useRef({});
@@ -7633,7 +7722,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const prevUnlockedRef = useRef(null);
   useEffect(() => {
     const unlockedIds = new Set(insights.achievements.filter(a => a.unlocked).map(a => a.id));
-    if (prevLevelRef.current !== null && justCheckedIn) {
+    if (prevLevelRef.current !== null && stampNumber != null) {
       if (insights.level.level > prevLevelRef.current) {
         setTimeout(() => onSound("levelup"), 500);
       } else {
@@ -7643,7 +7732,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
     }
     prevLevelRef.current = insights.level.level;
     prevUnlockedRef.current = unlockedIds;
-  }, [insights.level.level, insights.achievements, justCheckedIn]);
+  }, [insights.level.level, insights.achievements, stampNumber]);
 
   return (
     <div>
@@ -7979,108 +8068,124 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             background: PAPER_DEEP, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
             display: "flex", flexDirection: "column", overflow: "hidden",
           }}>
-            <div {...checkinDragHandlers} style={{ position: "relative", padding: "9px 20px 16px", background: `radial-gradient(ellipse 420px 180px at 15% -30%, #2A4B42, ${BOTTLE_DARK} 70%)`, touchAction: "none", flexShrink: 0 }}>
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(184,134,46,0.08), transparent 60%)", pointerEvents: "none" }} />
-              <div style={{ position: "relative", display: "flex", justifyContent: "center", marginBottom: 10 }}>
-                <div style={{ width: 36, height: 4.5, borderRadius: 3, background: "rgba(251,247,236,0.32)" }} />
+            {/* Header: alleen titel + sluitknop, geen verloop en geen icoon-cirkel */}
+            <div {...checkinDragHandlers} style={{ padding: "9px 16px 12px", background: PAPER_DEEP, borderBottom: `1px solid ${BORDER}`, touchAction: "none", flexShrink: 0 }}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+                <div style={{ width: 36, height: 4.5, borderRadius: 3, background: BORDER }} />
               </div>
-              <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Plus size={19} color={BRASS} strokeWidth={2} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 19, color: CREAM }}>Nieuwe check-in</div>
-                  <div style={{ fontSize: 12.5, color: "#D3DACE", marginTop: 1 }}>Wat drink je, waar en hoe is het?</div>
-                </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ flex: 1, fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK }}>Check-in</div>
                 <button onClick={closeCheckinSheet} onTouchStart={(e) => e.stopPropagation()} aria-label="Sluiten" className="tap-target-44" style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
-                  borderRadius: "50%", background: "rgba(251,247,236,0.14)", border: "none", cursor: "pointer", color: "#FBF6EA", flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30,
+                  borderRadius: "50%", background: PAPER, border: "none", cursor: "pointer", color: INK, flexShrink: 0,
                 }}><X size={16} /></button>
               </div>
             </div>
 
-            <div style={{ background: PAPER_DEEP, padding: 20, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 5 }}>Cocktail</label>
-                <RecipeNameAutocomplete recipes={recipes} value={nameInput} onChange={setNameInput} placeholder="Typ of kies een cocktail, bijv. Mijn eerste Sour-variant" />
-              </div>
-
-              {matchedRecipe && (
-                <div className="hero-text-in" style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14, boxShadow: SHADOW_CARD }}>
-                  <RecipeCircle recipe={matchedRecipe} allIngredients={allIngredients} size={50} />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15.5, color: INK }}>{matchedRecipe.name}</div>
-                    <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>{matchedRecipe.family} · {matchedRecipe.glass}</div>
-                  </div>
-                </div>
-              )}
-
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 7 }}>Wat proef je?</label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {Object.keys(TASTE_META).map(key => {
-                    const meta = TASTE_META[key];
-                    const active = selectedTastes.includes(key);
-                    return (
-                      <button key={key} onClick={() => toggleTaste(key)} className="press-scale" style={{
-                        display: "flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 100,
-                        border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
-                        background: active ? `linear-gradient(135deg, ${BRASS}, #8F6A21)` : CREAM,
-                        color: active ? CREAM : INK, fontSize: 12.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
-                        boxShadow: active ? "0 2px 8px rgba(184,134,46,0.35)" : "none",
-                      }}>
-                        <span>{meta.emoji}</span> {meta.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 5 }}>Locatie</label>
-                <PlaceAutocomplete value={location} onChange={handleLocationChange} placeholder="Typ 'Thuis' of zoek een bar/locatie…" />
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 7 }}>Beoordeling</label>
-                <StarPicker value={rating} onChange={setRating} size={27} onSound={onSound} />
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 5 }}>Notities</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} style={{ ...fieldStyle(), fontFamily: sans, resize: "vertical" }} />
-              </div>
-              <div style={{ marginBottom: 18 }}>
-                <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 6 }}>Foto (optioneel)</label>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
-                {photo ? (
-                  <div style={{ position: "relative", width: 84, height: 84 }}>
-                    <img src={photo} alt="" style={{ width: 84, height: 84, borderRadius: 10, objectFit: "cover", display: "block", border: `1px solid ${BORDER}` }} />
-                    <button onClick={() => setPhoto(null)} style={{ position: "absolute", top: -7, right: -7, width: 22, height: 22, borderRadius: "50%", background: BOTTLE, border: `2px solid ${PAPER_DEEP}`, color: "#FBF6EA", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={() => fileInputRef.current?.click()} disabled={photoBusy} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px dashed ${MUTED}`, borderRadius: 3, padding: "8px 14px", fontSize: 13, color: MUTED, cursor: photoBusy ? "default" : "pointer" }}>
-                    <Camera size={15} /> {photoBusy ? "Bezig met verkleinen…" : "Foto toevoegen"}
-                  </button>
-                )}
-              </div>
-              <button onClick={() => { addEntry(); closeCheckinSheet(); }} style={{
-                width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                background: `linear-gradient(135deg, ${BOTTLE}, ${BOTTLE_DARK})`, color: "#FBF6EA", border: "none",
-                borderRadius: 14, padding: "14px 18px", fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
+            <div style={{ background: PAPER_DEEP, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", flex: 1, minHeight: 0 }}>
+              {/* Beeldvlak 4:3: eigen foto, anders de foto van het gekozen recept, anders een rustige placeholder. Tikken opent de camera/foto-kiezer. */}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
+              <button onClick={() => fileInputRef.current?.click()} disabled={photoBusy} style={{
+                position: "relative", width: "100%", aspectRatio: "4 / 3", background: PAPER, border: "none", padding: 0,
+                cursor: photoBusy ? "default" : "pointer", overflow: "hidden", display: "block",
               }}>
-                <Plus size={18} /> Inchecken
+                {heroPhotoSrc ? (
+                  <img src={heroPhotoSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                ) : (
+                  <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#A79E88" }}>
+                    <Martini size={30} strokeWidth={1.3} />
+                    <span style={{ fontFamily: systemFont, fontSize: 14 }}>{photoBusy ? "Bezig…" : "Kies je cocktail"}</span>
+                  </div>
+                )}
+                <div style={{ position: "absolute", right: 12, bottom: 12, width: 34, height: 34, borderRadius: "50%", background: "rgba(20,16,10,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Camera size={15} color="#FBF6EA" />
+                </div>
+                {photo && (
+                  <div role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setPhoto(null); }} aria-label="Eigen foto verwijderen" style={{ position: "absolute", left: 12, top: 12, width: 28, height: 28, borderRadius: "50%", background: "rgba(20,16,10,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <X size={13} color="#FBF6EA" />
+                  </div>
+                )}
               </button>
+
+              <div style={{ padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 22 }}>
+                <RecipeSearchWithPhotos recipes={recipes} value={nameInput} onChange={setNameInput}
+                  onSelect={(r) => setNameInput(r.name)} allIngredients={allIngredients} recent={recentCocktails} />
+
+                <StarPicker value={rating} onChange={setRating} size={32} onSound={onSound} showWord />
+
+                <AutoGrowTextField value={notes} onChange={setNotes} placeholder="Voeg een notitie toe…" />
+
+                <div>
+                  <button onClick={() => setMoreOpen(v => !v)} style={{ display: "flex", alignItems: "center", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont, fontSize: 15.5, fontWeight: 600, color: INK }}>
+                    <span style={{ flex: 1, textAlign: "left" }}>Meer toevoegen</span>
+                    {moreOpen ? <ChevronUp size={18} color={MUTED} /> : <ChevronDown size={18} color={MUTED} />}
+                  </button>
+
+                  {moreOpen && (
+                    <div className="accordion-reveal" style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 20 }}>
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>
+                          <span>Zuur</span><span>Zoet</span>
+                        </div>
+                        <input type="range" min="0" max="100" value={tasteBalance} onChange={e => setTasteBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>
+                          <span>Licht</span><span>Sterk</span>
+                        </div>
+                        <input type="range" min="0" max="100" value={strengthBalance} onChange={e => setStrengthBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                          {["Thuis", "Bar", "Bij vrienden"].map(label => {
+                            const active = location === label;
+                            return (
+                              <button key={label} onClick={() => handleLocationChange(label, null)} style={{
+                                padding: "8px 14px", borderRadius: 100, border: "none",
+                                background: active ? BOTTLE : PAPER, color: active ? CREAM : INK,
+                                fontFamily: systemFont, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
+                              }}>{label}</button>
+                            );
+                          })}
+                        </div>
+                        <PlaceAutocomplete value={location} onChange={handleLocationChange} placeholder="Of zoek een andere locatie…" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            <div style={{ padding: "14px 20px calc(env(safe-area-inset-bottom) + 14px)", background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
+              {(() => {
+                const canSubmit = nameInput.trim().length > 0 && rating > 0;
+                return (
+                  <button onClick={addEntry} disabled={!canSubmit} style={{
+                    width: "100%", background: canSubmit ? BOTTLE : BORDER, color: canSubmit ? "#FBF6EA" : "#9C927A",
+                    border: "none", borderRadius: 14, padding: "15px 18px", fontSize: 16, fontWeight: 700,
+                    fontFamily: systemFont, cursor: canSubmit ? "pointer" : "default",
+                  }}>
+                    Inchecken
+                  </button>
+                );
+              })()}
+            </div>
+
+            {stampNumber != null && (
+              <div style={{ position: "absolute", inset: 0, zIndex: 5, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(20,16,10,0.4)" }}>
+                <div className="stamp-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: CREAM, border: `3px solid ${BOTTLE}`, borderRadius: 20, padding: "26px 34px", boxShadow: "0 10px 34px rgba(20,16,10,0.4)" }}>
+                  <div style={{ width: 50, height: 50, borderRadius: "50%", background: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Check size={26} color="#FBF6EA" strokeWidth={3} />
+                  </div>
+                  <div style={{ fontFamily: systemFont, fontWeight: 800, fontSize: 16, color: BOTTLE, textAlign: "center", lineHeight: 1.35 }}>
+                    Cocktail #{stampNumber}<br />geproefd
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ), document.body)}
-
-      {justCheckedIn && (
-        <div className="success-pop" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(92,122,82,0.12)", border: `1px solid ${SAGE}`, borderRadius: RADIUS, color: SAGE, fontSize: 13.5, fontWeight: 700, padding: "10px 14px", marginBottom: 16 }}>
-          🥂 Proost! {justCheckedIn} toegevoegd aan je logboek.
-        </div>
-      )}
 
       {logboek.length === 0 ? (
         <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "20px 0" }}>Nog geen check-ins.</p>
