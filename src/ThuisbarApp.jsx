@@ -2766,19 +2766,19 @@ function useFeedReactions(session, ids, active) {
   return { reactions, setReactions, commentCounts, setCommentCounts };
 }
 
-const DAY_NAMES = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
-
 // Eén onderbouwde reden i.p.v. willekeurig "Uitgelicht": eerst een echte
-// smaakmatch uit je eigen check-ins, anders iets over de dag van vandaag —
-// altijd afgeleid van bestaande data, nooit verzonnen.
+// smaakmatch uit je eigen check-ins, anders een concreet weetje over déze
+// cocktail (FUN_FACTS, anders de openingszin van STORIES — samen dekken
+// die alle 321 recepten). Altijd afgeleid van bestaande, specifieke data
+// over de cocktail zelf, nooit een generieke vulzin over de dag van de week.
 function featuredReason(recipe, favoriteFamily) {
   if (favoriteFamily && recipe.family === favoriteFamily) {
-    return `Past bij jouw smaak — ${recipe.family} is de stijl die je het vaakst hoog beoordeelt.`;
+    return `Past bij jouw smaak: ${recipe.family} is de stijl die je het vaakst hoog beoordeelt.`;
   }
-  const day = DAY_NAMES[new Date().getDay()];
-  const isWeekend = day === "vrijdag" || day === "zaterdag" || day === "zondag";
-  if (isWeekend) return `Het is ${day} — een goed moment voor iets met wat meer karakter.`;
-  return `Vandaag uitgelicht: ${recipe.family.toLowerCase()} in een ${recipe.glass.toLowerCase()}.`;
+  if (FUN_FACTS[recipe.id]) return FUN_FACTS[recipe.id];
+  const story = STORIES[recipe.id];
+  if (story) return story.split(/(?<=[.!?])\s+/)[0];
+  return `Een klassieker uit de ${recipe.family.toLowerCase()}-familie, geserveerd in een ${recipe.glass.toLowerCase()}.`;
 }
 
 // Trek-naar-verversen, alleen actief helemaal bovenaan de pagina (anders
@@ -2932,15 +2932,14 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             width: "100%", textAlign: "left", border: "none", cursor: "pointer", background: "none", color: "inherit",
             padding: "20px 22px 14px", boxSizing: "border-box", fontFamily: "inherit",
           }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 100, padding: "4px 12px", fontSize: 11.5, fontWeight: 700, marginBottom: 12 }}>
-              ✨ Uitgelicht
+            <div style={{ display: "inline-block", background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 100, padding: "4px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>
+              Uitgelicht
             </div>
             <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 26 }}>{featuredRecipe.name}</div>
             <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 4 }}>{featuredRecipe.family} · {featuredRecipe.glass}</div>
           </button>
-          <div style={{ position: "relative", margin: "2px 22px 20px", display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(251,246,234,0.09)", border: "1px solid rgba(251,246,234,0.16)", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, lineHeight: 1.45 }}>
-            <span style={{ flexShrink: 0, marginTop: 1 }}>💡</span>
-            <span>{featuredReason(featuredRecipe, favoriteFamily)}</span>
+          <div style={{ position: "relative", margin: "2px 22px 20px", borderLeft: `2px solid ${BRASS}`, paddingLeft: 12, fontSize: 12.5, lineHeight: 1.5, opacity: 0.92 }}>
+            {featuredReason(featuredRecipe, favoriteFamily)}
           </div>
         </div>
       )}
