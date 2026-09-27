@@ -1673,7 +1673,9 @@ function usePushNotifications(session) {
 function checkinRowToEntry(row) {
   return {
     id: row.id, date: (row.created_at || "").slice(0, 10), createdAt: row.created_at || null, recipeId: row.recipe_id, name: row.name,
-    rating: row.rating, notes: row.notes || "", photo: row.photo || null, location: row.location || "Thuis",
+    // PostgREST geeft numeric-kolommen als string terug (i.p.v. number), dus
+    // expliciet parsen — anders breekt elke rekensom/vergelijking verderop.
+    rating: Number(row.rating), notes: row.notes || "", photo: row.photo || null, location: row.location || "Thuis",
     locationLat: row.location_lat, locationLon: row.location_lon, tasteTags: row.taste_tags || [],
   };
 }
@@ -3024,7 +3026,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                   )}
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0) 45%, rgba(15,26,23,0.5) 100%)" }} />
                   <div style={{ position: "absolute", left: 12, bottom: 10, display: "flex", alignItems: "center", gap: 4, background: "rgba(15,26,23,0.55)", backdropFilter: "blur(6px)", borderRadius: 100, padding: "4px 9px", color: CREAM, fontSize: 12, fontWeight: 700 }}>
-                    <Star size={11} fill={BRASS} color={BRASS} /> {entry.rating.toFixed(1)}
+                    <Star size={11} fill={BRASS} color={BRASS} /> {formatRating(entry.rating)}
                   </div>
                 </div>
 
@@ -6860,21 +6862,38 @@ function SmaakbalansTab({ recipes, isOwned, allIngredients, menu, setMenu, onUse
   );
 }
 
-const RATING_WORDS = { 1: "Matig", 2: "Oké", 3: "Lekker", 4: "Heerlijk", 5: "Top" };
+// "3.0" voor een heel getal, "3.25"/"3.5"/"3.75" voor een kwart-ster —
+// overal waar een beoordeling getoond wordt, i.p.v. het vaste "{rating}.0"
+// dat alleen bij hele sterren klopte.
+function formatRating(value) {
+  if (Number.isInteger(value)) return `${value}.0`;
+  return value.toFixed(2).replace(/0$/, "");
+}
 
-function StarPicker({ value, onChange, size = 19, onSound, showWord = false }) {
+// Puur de visuele sterrenrij (met eventuele kwart-vulling) + het getal —
+// tikken op een ster zet 'm meteen op een heel getal; de fijnafstemming in
+// kwarten gebeurt via een los schuifbalkje eronder (zie de check-in-sheet),
+// want precies op een kwart ster tikken is op een telefoon niet te doen.
+function StarPicker({ value, onChange, size = 19, onSound }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ display: "flex", gap: 4 }}>
-        {[1, 2, 3, 4, 5].map(n => (
-          <button key={n} onClick={() => { if (onSound && n !== value) onSound("tick"); onChange(n); }} className="press-scale" style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
-            <Star size={size} fill={n <= value ? BRASS : "none"} color={n <= value ? BRASS : "#C9BC9C"} strokeWidth={1.5} />
-          </button>
-        ))}
+        {[0, 1, 2, 3, 4].map(i => {
+          const filled = Math.min(1, Math.max(0, value - i));
+          return (
+            <button key={i} onClick={() => { const v = i + 1; if (onSound && v !== value) onSound("tick"); onChange(v); }}
+              className="press-scale" style={{ position: "relative", width: size, height: size, flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+              <Star size={size} color="#C9BC9C" strokeWidth={1.5} style={{ display: "block" }} />
+              {filled > 0 && (
+                <div style={{ position: "absolute", inset: 0, width: `${filled * 100}%`, overflow: "hidden" }}>
+                  <Star size={size} fill={BRASS} color={BRASS} strokeWidth={1.5} style={{ display: "block" }} />
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
-      {showWord
-        ? value > 0 && <span style={{ fontFamily: systemFont, fontWeight: 600, fontSize: 15, color: INK }}>{RATING_WORDS[value]}</span>
-        : size > 20 && <span style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: BOTTLE }}>{value}.0</span>}
+      {value > 0 && <span style={{ fontFamily: systemFont, fontWeight: 600, fontSize: 15, color: INK }}>{formatRating(value)}</span>}
     </div>
   );
 }
@@ -7142,7 +7161,9 @@ function computeCheckinStats(logboek) {
   const uniques = new Set(logboek.map(e => e.recipeId ? `id:${e.recipeId}` : `name:${e.name.trim().toLowerCase()}`)).size;
   const avg = total > 0 ? logboek.reduce((s, e) => s + e.rating, 0) / total : 0;
   const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  logboek.forEach(e => { counts[e.rating] = (counts[e.rating] || 0) + 1; });
+  // Kwart-sterren (bijv. 3.25) vallen in de dichtstbijzijnde hele-ster-emmer
+  // van dit verdelingsoverzicht — anders vallen ze buiten alle vijf balken.
+  logboek.forEach(e => { const bucket = Math.max(1, Math.min(5, Math.round(e.rating))); counts[bucket] = (counts[bucket] || 0) + 1; });
   const max = Math.max(1, ...Object.values(counts));
   const firstDate = total > 0 ? logboek.reduce((min, e) => e.date < min ? e.date : min, logboek[0].date) : null;
   const photos = logboek.filter(e => e.photo);
@@ -7914,7 +7935,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                   )}
                   <div style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, background: "rgba(19,38,34,0.55)", borderRadius: 100, padding: "2px 7px" }}>
                     <Star size={9} fill="#D8AE5E" color="#D8AE5E" />
-                    <span style={{ fontSize: 10, color: CREAM, fontWeight: 600 }}>{entry.rating}.0</span>
+                    <span style={{ fontSize: 10, color: CREAM, fontWeight: 600 }}>{formatRating(entry.rating)}</span>
                   </div>
                 </button>
               );
@@ -8121,7 +8142,12 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                 <RecipeSearchWithPhotos recipes={recipes} value={nameInput} onChange={setNameInput}
                   onSelect={(r) => setNameInput(r.name)} allIngredients={allIngredients} recent={recentCocktails} />
 
-                <StarPicker value={rating} onChange={setRating} size={32} onSound={onSound} showWord />
+                <div>
+                  <StarPicker value={rating} onChange={setRating} size={32} onSound={onSound} />
+                  <input type="range" min="0" max="5" step="0.25" value={rating}
+                    onChange={e => { const v = Number(e.target.value); if (v !== rating) onSound("tick"); setRating(v); }}
+                    style={{ width: "100%", accentColor: BRASS, marginTop: 12 }} />
+                </div>
 
                 <AutoGrowTextField value={notes} onChange={setNotes} placeholder="Voeg een notitie toe…" />
 
@@ -8225,7 +8251,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             const ratingBadge = (
               <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "5px 10px" }}>
                 <Star size={12} fill={BRASS} color={BRASS} />
-                <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: BOTTLE }}>{entry.rating}.0</span>
+                <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: BOTTLE }}>{formatRating(entry.rating)}</span>
               </div>
             );
             return (
@@ -8236,7 +8262,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                     <img src={entry.photo} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: "18px 18px 0 0" }} />
                     <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 4, background: "rgba(20,16,10,0.55)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", borderRadius: 100, padding: "5px 11px", border: "1px solid rgba(255,255,255,0.25)" }}>
                       <Star size={12} fill={BRASS} color={BRASS} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: CREAM }}>{entry.rating}.0</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: CREAM }}>{formatRating(entry.rating)}</span>
                     </div>
                     <div style={{ position: "absolute", left: 18, bottom: -22, width: 64, height: 64, borderRadius: "50%", background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 3px 10px rgba(20,16,10,0.35)" }}>
                       {circle}
@@ -8521,7 +8547,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                       <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 14, color: INK }}>{e.name}</div>
                       <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{e.date} · {e.location}</div>
                     </div>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3, color: BRASS, fontWeight: 700, fontSize: 12, flexShrink: 0 }}><Star size={11} fill={BRASS} /> {e.rating.toFixed(1)}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 3, color: BRASS, fontWeight: 700, fontSize: 12, flexShrink: 0 }}><Star size={11} fill={BRASS} /> {formatRating(e.rating)}</span>
                   </div>
                   );
                 })}

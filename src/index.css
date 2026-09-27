@@ -395,6 +395,20 @@ button:focus-visible {
   animation: ringPop 0.5s ease-out both;
 }
 
+/* Stempel-moment na een check-in: knalt in als een rubberen stempel, houdt
+   even stil en dooft dan uit — vervangt de vorige tekstballon-melding. */
+@keyframes stampIn {
+  0%   { transform: scale(2.1) rotate(-16deg); opacity: 0; }
+  40%  { transform: scale(0.94) rotate(-5deg); opacity: 1; }
+  58%  { transform: scale(1.05) rotate(-8deg); opacity: 1; }
+  74%  { transform: scale(1) rotate(-6deg); opacity: 1; }
+  88%  { transform: scale(1) rotate(-6deg); opacity: 1; }
+  100% { transform: scale(1.04) rotate(-6deg); opacity: 0; }
+}
+.stamp-in {
+  animation: stampIn 1.05s cubic-bezier(.2,.9,.3,1) both;
+}
+
 /* "Verras me": het dobbelsteen-icoon draait even rond terwijl de keuze
    wordt gemaakt, in plaats van instant te wisselen. */
 @keyframes spinIcon {
