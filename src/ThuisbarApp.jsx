@@ -8117,18 +8117,20 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               {/* Beeldvlak 4:3: eigen foto, anders de foto van het gekozen recept, anders een rustige placeholder. Tikken opent de camera/foto-kiezer. */}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
               <button onClick={() => fileInputRef.current?.click()} disabled={photoBusy} style={{
-                position: "relative", width: "100%", aspectRatio: "4 / 3", background: PAPER, border: "none", padding: 0,
-                cursor: photoBusy ? "default" : "pointer", overflow: "hidden", display: "block",
+                position: "relative", display: "block", margin: "18px 20px 0", width: "calc(100% - 40px)",
+                aspectRatio: "4 / 3", border: "none", borderRadius: 20, padding: 0,
+                cursor: photoBusy ? "default" : "pointer", overflow: "hidden",
+                background: heroPhotoSrc ? "none" : `radial-gradient(ellipse 420px 260px at 50% 20%, #2A4B42, ${BOTTLE_DARK} 75%)`,
               }}>
                 {heroPhotoSrc ? (
                   <img src={heroPhotoSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 ) : (
-                  <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#A79E88" }}>
+                  <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "rgba(251,246,234,0.55)" }}>
                     <Martini size={30} strokeWidth={1.3} />
-                    <span style={{ fontFamily: systemFont, fontSize: 14 }}>{photoBusy ? "Bezig…" : "Kies je cocktail"}</span>
+                    <span style={{ fontFamily: systemFont, fontSize: 14, color: "rgba(251,246,234,0.85)" }}>{photoBusy ? "Bezig…" : "Kies je cocktail"}</span>
                   </div>
                 )}
-                <div style={{ position: "absolute", right: 12, bottom: 12, width: 34, height: 34, borderRadius: "50%", background: "rgba(20,16,10,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ position: "absolute", right: 12, bottom: 12, width: 34, height: 34, borderRadius: "50%", background: heroPhotoSrc ? "rgba(20,16,10,0.55)" : "rgba(251,246,234,0.14)", border: heroPhotoSrc ? "none" : "1px solid rgba(251,246,234,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Camera size={15} color="#FBF6EA" />
                 </div>
                 {photo && (
