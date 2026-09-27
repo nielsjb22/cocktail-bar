@@ -104,6 +104,14 @@ const SHADOW_HERO = "var(--shadow-hero)";
 const SHADOW_CTA = "var(--shadow-cta)";
 const RADIUS = 8;
 
+// Sticky headers: de hele pagina scrollt via het venster (geen aparte
+// scroll-container per tab), dus "position: sticky" met een top die de
+// veilige zone (notch/statusbalk) respecteert werkt overal hetzelfde. Waar
+// twee sticky balken boven elkaar staan (Ontdekken: filter-toggle + zoek-
+// of receptbalk) stapelt de tweede op de hoogte van de eerste.
+const STICKY_TOP = "env(safe-area-inset-top)";
+const STICKY_SUBHEADER_TOP = "calc(env(safe-area-inset-top) + 54px)";
+
 // @capacitor/preferences i.p.v. rechtstreeks localStorage: op web valt het
 // plugin zelf terug op localStorage (dus geen gedragsverandering in de
 // browser), maar op iOS gebruikt het de native UserDefaults — die overleeft
@@ -4474,7 +4482,12 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   return (
     <div>
       <SectionLabel>Ontdekken</SectionLabel>
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      {/* Sticky: bij een lange lijst (of lang receptdetail eronder) hoef je zo
+          niet terug naar boven om van filter te wisselen of te zoeken. */}
+      <div style={{
+        position: "sticky", top: STICKY_TOP, zIndex: 7, background: PAPER,
+        display: "flex", gap: 8, padding: "8px 0", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+      }}>
         <button onClick={() => setMode("alles")} style={{
           flex: 1, padding: "10px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "alles" ? BOTTLE : BORDER}`,
           background: mode === "alles" ? BOTTLE : CREAM, color: mode === "alles" ? CREAM : INK,
@@ -5195,10 +5208,35 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
 
   return (
     <div>
-      <SectionLabel>Kies een cocktail</SectionLabel>
-      <div style={{ marginBottom: 24 }}>
-        <RecipePicker recipes={recipes} value={selectedId} listId="verhaal-recipe" onChange={selectRecipe} style={{ width: "100%", boxSizing: "border-box" }} />
-      </div>
+      {/* Sticky, gestapeld onder Ontdekken's filter-toggle: bij het browsen
+          blijft zoeken bereikbaar zonder terug te scrollen; bij een geopend
+          recept maakt dezelfde balk plaats voor naam + favoriet, zodat die
+          twee nooit tegelijk allebei sticky proberen te zijn. */}
+      {!recipe ? (
+        <div style={{
+          position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 6, background: PAPER,
+          padding: "8px 0", marginBottom: 16, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+        }}>
+          <SectionLabel>Kies een cocktail</SectionLabel>
+          <div style={{ marginTop: 8 }}>
+            <RecipePicker recipes={recipes} value={selectedId} listId="verhaal-recipe" onChange={selectRecipe} style={{ width: "100%", boxSizing: "border-box" }} />
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 6, background: PAPER,
+          display: "flex", alignItems: "center", gap: 10, padding: "10px 0", marginBottom: 16,
+          marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+        }}>
+          <div style={{ flex: 1, minWidth: 0, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</div>
+          <button onClick={() => { onSound("pop"); onToggleFavorite(recipe.id); }} aria-label={favoriteRecipeIds.includes(recipe.id) ? "Verwijder uit favorieten" : "Bewaar als favoriet"} style={{
+            width: 32, height: 32, borderRadius: "50%", border: `1px solid ${BORDER}`, flexShrink: 0,
+            background: favoriteRecipeIds.includes(recipe.id) ? BURGUNDY : CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+          }}>
+            <Heart size={15} color={favoriteRecipeIds.includes(recipe.id) ? CREAM : BOTTLE} fill={favoriteRecipeIds.includes(recipe.id) ? CREAM : "none"} />
+          </button>
+        </div>
+      )}
 
       {!recipe && (
         <div>
@@ -7767,8 +7805,12 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
   return (
     <div>
-      {/* Topbalk: vrienden linksboven, instellingen rechtsboven — net als bij Untappd altijd binnen handbereik vanaf Profiel. */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+      {/* Topbalk: vrienden linksboven, instellingen rechtsboven — net als bij Untappd altijd binnen handbereik vanaf Profiel. Sticky, want de rest van dit tabblad (stats, prestaties, hele logboek) kan lang worden. */}
+      <div style={{
+        position: "sticky", top: STICKY_TOP, zIndex: 6, background: PAPER,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "6px 0", marginBottom: 8, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+      }}>
         <button onClick={onGoVrienden} className="press-scale tap-target-44" aria-label="Vrienden" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
           <Users size={17} strokeWidth={1.8} />
         </button>
