@@ -7422,10 +7422,11 @@ function PlaceAutocomplete({ value, onChange, placeholder }) {
 
   return (
     <div ref={wrapRef} style={{ position: "relative" }}>
+      <Search size={16} color={MUTED} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
       <input value={query} onChange={e => handleType(e.target.value)} onFocus={() => (results.length > 0 || loading) && setOpen(true)}
         placeholder={placeholder} enterKeyHint="done" autoCapitalize="words" style={{
           width: "100%", border: "none", outline: "none", background: PAPER, borderRadius: 12,
-          padding: "13px 14px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box",
+          padding: "13px 14px 13px 40px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box",
         }} />
       {open && (loading || results.length > 0) && (
         <div style={{
@@ -7602,12 +7603,16 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const [stampNumber, setStampNumber] = useState(null);
   const fileInputRef = useRef(null);
   const handleLocationChange = (text, place) => { setLocation(text); setLocationCoords(place ? { lat: place.lat, lon: place.lon } : null); };
-  // Twee sliders (Zoet/Zuur, Licht/Sterk) i.p.v. losse smaak-chips — 50 is
-  // het neutrale midden. Bij het herkennen van een recept stellen we een
-  // voorzet voor uit de bestaande familie-heuristiek, maar de gebruiker kan
-  // 'm vóór het inchecken nog verschuiven.
+  // Drie sliders (Zoet/Zuur, Licht/Sterk, Bitter/Fruitig) i.p.v. losse
+  // smaak-chips — 50 is het neutrale midden. De derde slider dekt de twee
+  // tags (bitter, fruitig) die anders bij de sliders-omslag zouden
+  // wegvallen, zodat het bestaande smaakprofiel (elders in de app) nog
+  // steeds op alle vijf smaken kan blijven bouwen. Bij het herkennen van een
+  // recept stellen we een voorzet voor uit de bestaande familie-heuristiek,
+  // maar de gebruiker kan 'm vóór het inchecken nog verschuiven.
   const [tasteBalance, setTasteBalance] = useState(50);
   const [strengthBalance, setStrengthBalance] = useState(50);
+  const [fruitBalance, setFruitBalance] = useState(50);
   useEffect(() => {
     if (!matchedRecipe) return;
     const fam = FAMILY_TASTE[matchedRecipe.family] || {};
@@ -7615,12 +7620,17 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
     else if (fam.zoet) setTasteBalance(80);
     else setTasteBalance(50);
     setStrengthBalance(fam.sterk ? 75 : 40);
+    if (fam.bitter) setFruitBalance(20);
+    else if (fam.fruitig) setFruitBalance(80);
+    else setFruitBalance(50);
   }, [matchedRecipe?.id]);
   const derivedTasteTags = () => {
     const tags = [];
     if (tasteBalance <= 35) tags.push("zuur");
     else if (tasteBalance >= 65) tags.push("zoet");
     if (strengthBalance >= 65) tags.push("sterk");
+    if (fruitBalance <= 35) tags.push("bitter");
+    else if (fruitBalance >= 65) tags.push("fruitig");
     return tags;
   };
   const recentCocktails = useMemo(() => {
@@ -7679,7 +7689,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       setStampNumber(null);
       closeCheckinSheet();
       setNameInput(""); setNotes(""); setRating(0); setPhoto(null); setLocation("Thuis"); setLocationCoords(null);
-      setTasteBalance(50); setStrengthBalance(50); setMoreOpen(false);
+      setTasteBalance(50); setStrengthBalance(50); setFruitBalance(50); setMoreOpen(false);
     }, 1050);
   };
   const removeEntry = (id) => { onSound("remove"); onRemoveEntry(id); };
@@ -8136,6 +8146,13 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                         <input type="range" min="0" max="100" value={strengthBalance} onChange={e => setStrengthBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
                       </div>
                       <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>
+                          <span>Bitter</span><span>Fruitig</span>
+                        </div>
+                        <input type="range" min="0" max="100" value={fruitBalance} onChange={e => setFruitBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>Locatie</div>
                         <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                           {["Thuis", "Bar", "Bij vrienden"].map(label => {
                             const active = location === label;
@@ -8148,7 +8165,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                             );
                           })}
                         </div>
-                        <PlaceAutocomplete value={location} onChange={handleLocationChange} placeholder="Of zoek een andere locatie…" />
+                        <div style={{ fontSize: 12, color: MUTED, marginBottom: 7, fontFamily: systemFont }}>Of zoek een eigen locatie</div>
+                        <PlaceAutocomplete value={location} onChange={handleLocationChange} placeholder="Bar, adres of stad…" />
                       </div>
                     </div>
                   )}
