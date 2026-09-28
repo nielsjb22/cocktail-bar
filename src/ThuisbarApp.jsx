@@ -3209,21 +3209,21 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
         background: "none", border: "none", cursor: "pointer", padding: "4px 2px",
         fontFamily: sans, color: active ? BOTTLE : MUTED,
       }}>
-        {/* "Glas"-pil achter de actieve tab i.p.v. het kleine bolletje eronder.
-            De dock zelf (--dock-bg) is met ~0.94 alpha al bijna dekkend, dus
-            een té ondoorzichtige pil daarbovenop (eerdere poging: 0.55 wit)
-            oogde meteen als een vlak wit blokje i.p.v. glas. Lagere alpha +
-            een diagonaal verloop (donkerder onder, een lichtglans linksboven)
-            + een dunne lichte rand bovenaan verkopen het "glas erbovenop"-
-            gevoel ook al is er weinig scherps eronder om echt te vervagen. */}
+        {/* "Glas"-pil achter de actieve tab, iOS-control-center-achtig: geen
+            gekleurde rand (dat oogde als een geel randje i.p.v. glas) en een
+            fors sterkere blur+saturate dan de dock zelf, zodat 'ie zich er
+            echt bovenuit tilt i.p.v. gewoon "iets lichter dezelfde crème
+            kleur" te zijn — puur neutrale wit-tinten, de warmte die je nog
+            ziet komt vanzelf van wat erdoorheen schijnt (echt glasgedrag),
+            niet van een ingebouwde kleur. */}
         <span style={{
           display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
           padding: "6px 14px 7px", borderRadius: 16, transition: "background 0.2s ease, box-shadow 0.2s ease",
-          background: active ? "linear-gradient(160deg, rgba(255,255,255,0.42), rgba(255,255,255,0.08))" : "transparent",
+          background: active ? "linear-gradient(160deg, rgba(255,255,255,0.65), rgba(255,255,255,0.3))" : "transparent",
           boxShadow: active
-            ? "inset 0 1px 0 rgba(255,255,255,0.65), inset 0 0 0 1px rgba(184,134,46,0.22), 0 3px 8px rgba(43,38,32,0.12)"
+            ? "inset 0 1px 1px rgba(255,255,255,0.95), inset 0 -1px 1px rgba(0,0,0,0.05), 0 4px 14px rgba(0,0,0,0.12)"
             : "none",
-          backdropFilter: active ? "blur(10px) saturate(160%)" : "none", WebkitBackdropFilter: active ? "blur(10px) saturate(160%)" : "none",
+          backdropFilter: active ? "blur(22px) saturate(180%)" : "none", WebkitBackdropFilter: active ? "blur(22px) saturate(180%)" : "none",
         }}>
           <span style={{ position: "relative", display: "flex" }}>
             <Icon size={21} strokeWidth={active ? 2.1 : 1.7} />
