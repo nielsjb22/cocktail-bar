@@ -4591,12 +4591,21 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
             {recommended.map(({ recipe, matchPct }) => (
               <button key={recipe.id} onClick={() => { onSound?.("pop"); onOpenRecipe?.(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                <div style={{ position: "absolute", top: 8, right: 8, background: BOTTLE_DARK, border: `1px solid rgba(245,239,230,0.25)`, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700, color: BRASS }}>{matchPct}%</div>
+                {matchPct > 0 && (
+                  <div style={{ position: "absolute", top: 8, right: 8, background: BOTTLE_DARK, border: `1px solid rgba(245,239,230,0.25)`, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700, color: BRASS }}>{matchPct}%</div>
+                )}
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                   <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
                 </div>
                 <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
                 <div style={{ fontSize: 11, color: MUTED, marginTop: 4, fontWeight: 500 }}>{recipe.family}</div>
+                {/* 0% match betekent hier geen enkel ingrediënt in huis (niet
+                    "geen data") — dan is "0%" een ontmoedigend getal i.p.v.
+                    een bruikbaar signaal, dus tonen we de oplossing i.p.v.
+                    het cijfer. */}
+                {matchPct === 0 && (
+                  <div style={{ fontSize: 10, color: BRASS, marginTop: 4, fontWeight: 700 }}>Vul je voorraad in</div>
+                )}
               </button>
             ))}
           </div>
@@ -5199,6 +5208,9 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const [servings, setServings] = useState(1);
   const [justAddedShopping, setJustAddedShopping] = useState(false);
   const [justAddedFeest, setJustAddedFeest] = useState(false);
+  const [browseSpirit, setBrowseSpirit] = useState(null);
+  const [browseTaste, setBrowseTaste] = useState(null);
+  const [browseGlass, setBrowseGlass] = useState(null);
   const recipe = recipes.find(r => r.id === selectedId) || null;
   const missing = recipe ? recipe.ingredients.filter(ing => !ing.optional).filter(ing => !isOwned(ing)) : [];
   const role = recipe ? getMenuRole(recipe) : null;
@@ -5260,6 +5272,31 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
     });
   }, [recipes, isOwned, recipe]);
   const scoredById = useMemo(() => new Map(allScored.map(s => [s.recipe.id, s])), [allScored]);
+
+  // Raster "Alle recepten" met filterchips: basisdrank via de bestaande
+  // FAVORITE_SPIRIT_OPTIONS-groepen (dezelfde ingrediënt-id's als de
+  // smaaktest-matching), smaak via FAMILY_TASTE (elke familie heeft één of
+  // meer smaaktrekken), glas via de letterlijke recipe.glass-waarden — geen
+  // van deze drie is nieuw verzonnen, alleen hergebruikt als filter i.p.v.
+  // alleen als scoringsdata.
+  const browseGlasses = useMemo(() => [...new Set(recipes.map(r => r.glass).filter(Boolean))].sort(), [recipes]);
+  const browseTasteKeys = useMemo(() => {
+    const keys = new Set();
+    Object.values(FAMILY_TASTE).forEach(vec => Object.keys(vec).forEach(k => keys.add(k)));
+    return Object.keys(TASTE_META).filter(k => keys.has(k));
+  }, []);
+  const browseAll = useMemo(() => {
+    if (recipe) return [];
+    return recipes.filter(r => {
+      if (browseSpirit) {
+        const ids = FAVORITE_SPIRIT_OPTIONS.find(o => o.key === browseSpirit)?.ids || [];
+        if (!r.ingredients.some(i => ids.includes(i.id))) return false;
+      }
+      if (browseTaste && !(FAMILY_TASTE[r.family] || {})[browseTaste]) return false;
+      if (browseGlass && r.glass !== browseGlass) return false;
+      return true;
+    });
+  }, [recipes, recipe, browseSpirit, browseTaste, browseGlass]);
 
   // "Van de dag" wint als vandaag in de kalender staat; anders "van de week".
   // De hoofdreden komt nu uit het seizoensthema van de huidige maand (waarom
@@ -5390,6 +5427,76 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             <Shuffle size={22} />
             <div><div style={{ fontSize: 14.5, fontWeight: 800 }}>Verras me</div><div style={{ fontSize: 11.5, opacity: 0.82 }}>Ontdek een willekeurige cocktail</div></div>
           </button>
+
+          {/* Volledig raster met foto + filterchips i.p.v. alleen de kleine
+              persoonlijke lijstjes hierboven — voor wie gewoon wil bladeren
+              zonder eerst te zoeken. Filters zijn los te combineren (basis-
+              drank + smaak + glas tegelijk), nogmaals aantikken zet 'm uit. */}
+          <div>
+            <SectionLabel>Alle recepten</SectionLabel>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              {FAVORITE_SPIRIT_OPTIONS.map(opt => {
+                const active = browseSpirit === opt.key;
+                return (
+                  <button key={opt.key} onClick={() => setBrowseSpirit(active ? null : opt.key)} className="press-scale" style={{
+                    padding: "7px 13px", borderRadius: 100, fontSize: 12.5, fontWeight: 700, fontFamily: sans, cursor: "pointer",
+                    background: active ? BRASS : CREAM, color: active ? CREAM : INK, border: `1px solid ${active ? BRASS : BORDER}`,
+                  }}>
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              {browseTasteKeys.map(key => {
+                const meta = TASTE_META[key];
+                const active = browseTaste === key;
+                return (
+                  <button key={key} onClick={() => setBrowseTaste(active ? null : key)} className="press-scale" style={{
+                    padding: "7px 13px", borderRadius: 100, fontSize: 12.5, fontWeight: 700, fontFamily: sans, cursor: "pointer",
+                    background: active ? BRASS : CREAM, color: active ? CREAM : INK, border: `1px solid ${active ? BRASS : BORDER}`,
+                  }}>
+                    {meta.emoji} {meta.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+              {browseGlasses.map(g => {
+                const active = browseGlass === g;
+                return (
+                  <button key={g} onClick={() => setBrowseGlass(active ? null : g)} className="press-scale" style={{
+                    padding: "7px 13px", borderRadius: 100, fontSize: 12.5, fontWeight: 700, fontFamily: sans, cursor: "pointer",
+                    background: active ? BRASS : CREAM, color: active ? CREAM : INK, border: `1px solid ${active ? BRASS : BORDER}`,
+                  }}>
+                    {g}
+                  </button>
+                );
+              })}
+            </div>
+            {browseAll.length === 0 ? (
+              <p style={{ fontSize: 13, color: MUTED, fontFamily: sans, margin: 0 }}>Geen recepten bij deze combinatie filters.</p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {browseAll.map(r => {
+                  const photo = localItemImageUrl("cocktail", r.id) || r.image;
+                  return (
+                    <button key={r.id} onClick={() => selectRecipe(r.id)} style={{
+                      position: "relative", height: 132, borderRadius: RADIUS + 4, overflow: "hidden", border: "none",
+                      cursor: "pointer", padding: 0, boxShadow: SHADOW_CARD, background: BOTTLE_DARK,
+                    }}>
+                      {photo && <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(19,38,34,0.9), rgba(19,38,34,0.1) 60%)" }} />
+                      <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "10px 12px", textAlign: "left" }}>
+                        <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 14, color: CREAM, lineHeight: 1.2 }}>{r.name}</div>
+                        <div style={{ fontSize: 10.5, color: "#D9CBAE", marginTop: 2 }}>{r.family}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
