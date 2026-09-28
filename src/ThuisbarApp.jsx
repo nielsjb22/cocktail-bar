@@ -8018,13 +8018,19 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
   return (
     <div>
-      <LargeTitleHeader title="Profiel" active={active} />
-      {/* Topbalk: vrienden linksboven, instellingen rechtsboven — net als bij Untappd altijd binnen handbereik vanaf Profiel. Sticky, want de rest van dit tabblad (stats, prestaties, hele logboek) kan lang worden. */}
+      <LargeTitleHeader title="Profiel" active={active} sticky={false} />
+      {/* De titel zelf is niet meer sticky (op verzoek, zelfde als Ontdekken).
+          Topbalk (vrienden/instellingen) blijft wel sticky, maar dan meteen
+          bovenaan (STICKY_TOP i.p.v. STICKY_SUBHEADER_TOP) want er zit nu
+          geen sticky titelbalk meer boven die anders die ruimte al innam.
+          Achtergrond expliciet naar PAPER's eigen RGB i.p.v. .glass-light's
+          net-iets-andere tint, anders valt de balk in rust op als een band
+          met een afwijkende kleur (zelfde fix als bij Ontdekken). */}
       <div className="glass-light" style={{
-        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 6,
+        position: "sticky", top: STICKY_TOP, zIndex: 6,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         height: 44, boxSizing: "border-box", marginBottom: 8, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        border: "none", boxShadow: "none",
+        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.72)",
       }}>
         <button onClick={onGoVrienden} className="press-scale tap-target-44" aria-label="Vrienden" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
           <Users size={17} strokeWidth={1.8} />
