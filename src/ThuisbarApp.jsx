@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -2125,7 +2126,6 @@ export default function ThuisbarApp() {
   const [customIngredients, setCustomIngredients] = useStorage("thuisbar-custom-ingredients", []);
   const [customRecipes, setCustomRecipes] = useStorage("thuisbar-custom-recipes", []);
   const [shoppingList, setShoppingList] = useStorage("thuisbar-shopping-list", []);
-  const [feestChosen, setFeestChosen] = useStorage("thuisbar-feest-chosen", []);
   const [smaakMenu, setSmaakMenu] = useStorage("thuisbar-smaakbalans-menu", []);
   const [voorraadAantal, setVoorraadAantal] = useStorage("thuisbar-voorraad-aantal", {});
   const [courseProgress, setCourseProgress] = useStorage("thuisbar-cursus-voortgang", {});
@@ -2146,6 +2146,24 @@ export default function ThuisbarApp() {
   const [logboek, setLogboekState] = useState([]);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
   const push = usePushNotifications(session);
+  const parties = useParties(session);
+  const upcomingParties = useMemo(
+    () => parties.parties.filter(isPartyUpcoming).sort(compareUpcomingParties),
+    [parties.parties]
+  );
+  // Springt na een cross-tab actie (bijv. "gebruik dit menu" vanuit
+  // Smaakbalans) direct naar het juiste feest-detailscherm — zelfde patroon
+  // als pendingRecipeId hierboven. FeestplannerTab maakt 'm zelf weer leeg.
+  const [openPartyId, setOpenPartyId] = useState(null);
+  // Voor de "Feestplanner"-snelkoppelingen elders in de app (Maken,
+  // receptdetail, Smaakbalans): één cocktail toevoegen mikt altijd op het
+  // eerstvolgende feest, of maakt (zonder te vragen) "Mijn feest" aan als er
+  // nog helemaal geen feest bestaat — een keuzescherm tussen meerdere
+  // feesten voegt hier meer gedoe toe dan het oplost.
+  const resolveTargetParty = async () => {
+    if (upcomingParties[0]) return upcomingParties[0];
+    return parties.createParty({ name: "Mijn feest", guests: 8, drinks_per_guest: 2, cocktail_ids: [], bought_items: [], prep_done: [] });
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
@@ -2264,9 +2282,14 @@ export default function ThuisbarApp() {
   // Eén recept toevoegen aan de Feestplanner-keuze, vanuit Maken of een
   // recept-detail — dus niet via de bulk "gebruik dit menu"-actie van
   // Smaakbalans, maar één-voor-één met eigen feedback.
-  const addRecipeToFeest = (id) => {
-    if (!feestChosen.includes(id)) setFeestChosen([...feestChosen, id]);
+  const addRecipeToFeest = async (id) => {
+    const target = await resolveTargetParty();
+    if (!target || target.cocktail_ids.includes(id)) return;
+    parties.updateParty(target.id, { cocktail_ids: [...target.cocktail_ids, id] });
   };
+  // Alle cocktails van het eerstvolgende (of nieuw aangemaakte) feest, voor
+  // de "in feestplanner"-disabled-state op recept-kaarten elders in de app.
+  const feestChosen = upcomingParties[0]?.cocktail_ids || [];
 
   const voorraad = useMemo(() => new Set(voorraadArr), [voorraadArr]);
   const allIngredients = useMemo(() => [...INGREDIENTS, ...customIngredients], [customIngredients]);
@@ -2421,7 +2444,9 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="bar" active={tab === "bar"} visited={visitedTabs.has("bar")} panelRef={panelRefs}>
           <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} active={tab === "bar"}
-            voorraadCount={voorraad.size} customRecipesCount={customRecipes.length} feestCount={feestChosen.length} courseProgress={courseProgress} />
+            voorraadCount={voorraad.size} customRecipesCount={customRecipes.length}
+            feestSubtitle={upcomingParties[0] ? `${upcomingParties[0].name} · ${formatPartyWhen(upcomingParties[0]).toLowerCase()}` : "Plan een avond"}
+            courseProgress={courseProgress} />
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
           <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
@@ -2452,7 +2477,13 @@ export default function ThuisbarApp() {
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.balans} onBack={() => navigateTo("bar")}>
             <SmaakbalansTab recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
               menu={smaakMenu} setMenu={setSmaakMenu} onSound={chime}
-              onUseInFeestplanner={(ids) => { setFeestChosen(ids); navigateTo("feest"); }} />
+              onUseInFeestplanner={async (ids) => {
+                const target = await resolveTargetParty();
+                if (!target) return;
+                parties.updateParty(target.id, { cocktail_ids: ids });
+                setOpenPartyId(target.id);
+                navigateTo("feest");
+              }} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="cursus" active={tab === "cursus"} visited={visitedTabs.has("cursus")} panelRef={panelRefs}>
@@ -2463,7 +2494,9 @@ export default function ThuisbarApp() {
         <TabPanel id="feest" active={tab === "feest"} visited={visitedTabs.has("feest")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.feest} onBack={() => navigateTo("bar")}>
             <FeestplannerTab session={session} recipes={allRecipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
-              onAddToShoppingList={addToShoppingList} chosen={feestChosen} setChosen={setFeestChosen} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail}
+              onAddToShoppingList={addToShoppingList} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail}
+              parties={parties.parties} onCreateParty={parties.createParty} onUpdateParty={parties.updateParty} onDeleteParty={parties.deleteParty}
+              openPartyId={openPartyId} onOpenPartyHandled={() => setOpenPartyId(null)}
               active={tab === "feest"} />
           </SecondaryTabScreen>
         </TabPanel>
@@ -2698,7 +2731,7 @@ function AccountDeleteScreen({ onDelete, busy, error }) {
 // achter "Meer") in hun eigen tab, gescheiden van de sociale/ontdek-laag —
 // zodat die laatste niet verdrinkt tussen bijvoorbeeld de Cursus en de
 // Feestplanner. Zelfde lijst-stijl als Profiel, alleen andere items.
-function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesCount, feestCount, courseProgress }) {
+function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesCount, feestSubtitle, courseProgress }) {
   // Subtitels tonen echte staat i.p.v. altijd dezelfde statische tekst —
   // net als de rest van de app ("geen verzonnen smaakscheikunde"): een
   // lege voorraad/winkelmandje/eigen-recepten zegt dat het leeg is, en de
@@ -2709,7 +2742,7 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
 
   const items = [
     { id: "mandje", label: "Winkelmandje", icon: ShoppingCart, subtitle: shoppingCount > 0 ? `${shoppingCount} item${shoppingCount === 1 ? "" : "s"}` : "Leeg" },
-    { id: "feest", label: "Feestplanner", icon: PartyPopper, subtitle: feestCount > 0 ? `${feestCount} cocktail${feestCount === 1 ? "" : "s"} gekozen` : "Plan een avond" },
+    { id: "feest", label: "Feestplanner", icon: PartyPopper, subtitle: feestSubtitle },
     { id: "cursus", label: "Cursus", icon: GraduationCap, subtitle: courseSubtitle },
     { id: "eigen", label: "Eigen recepten", icon: FlaskConical, subtitle: customRecipesCount > 0 ? `${customRecipesCount} eigen recept${customRecipesCount === 1 ? "" : "en"}` : "Maak je eerste" },
     { id: "schaler", label: "Schaler", icon: Scale, subtitle: "Voor een groep" },
@@ -2768,6 +2801,162 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
 // checkins + reacties), hier als eigen, zelfstandige hook zodat Home zijn
 // eigen tijdlijn kan opbouwen zonder VriendenTab's interne state aan te
 // raken — geen risico op regressie daar, wel dezelfde, al bewezen data-laag.
+// Feestplanner Deel B: één rij per feest in Supabase i.p.v. één losse set
+// voorkeuren op het apparaat (Deel A). Bij de allereerste keer laden na de
+// upgrade, als er nog geen enkel feest bestaat maar er WEL oude lokale
+// feestplanner-data staat (gekozen cocktails, afgevinkte inkoop/voorbereiding,
+// of een lopende smaaktest), zetten we die eenmalig over naar één feest
+// "Mijn feest" — daarna nooit meer, ook niet als dat feest later verwijderd
+// wordt (vandaar de aparte "migrated"-vlag i.p.v. simpelweg "parties leeg?").
+// Leest de oude Preferences-sleutels rechtstreeks (niet via useStorage) om de
+// race met useStorage's asynchrone eerste load te vermijden: dat zou anders
+// per ongeluk "geen oude data" kunnen concluderen vóórdat de echte waarde is
+// teruggekomen, en dat mag hier niet — "geen dataverlies" is de harde eis.
+async function readLegacyFeestData() {
+  const [chosenRaw, boughtRaw, prepRaw] = await Promise.all([
+    Preferences.get({ key: "thuisbar-feest-chosen" }),
+    Preferences.get({ key: "thuisbar-feest-inkoop-checked" }),
+    Preferences.get({ key: "thuisbar-feest-voorbereiding-checked" }),
+  ]);
+  const parse = (raw, fallback) => { try { return raw.value != null ? JSON.parse(raw.value) : fallback; } catch { return fallback; } };
+  return {
+    cocktailIds: parse(chosenRaw, []),
+    boughtItems: parse(boughtRaw, []),
+    prepDone: parse(prepRaw, []),
+  };
+}
+
+// "Aankomend" = een datum in de toekomst OF geen datum, op kalenderdag
+// vergeleken (niet op exacte tijd) zodat een feest dat vandaag al bezig is
+// niet per ongeluk als "Eerder" telt zodra het geplande tijdstip voorbij is.
+function isPartyUpcoming(party) {
+  if (!party.starts_at) return true;
+  const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+  return new Date(party.starts_at) >= startOfToday;
+}
+// Oplopend op datum, geen-datum-feesten achteraan (net als de referentie:
+// "Aankomend" toont eerst wat een concrete datum heeft).
+function compareUpcomingParties(a, b) {
+  if (!a.starts_at && !b.starts_at) return new Date(a.created_at) - new Date(b.created_at);
+  if (!a.starts_at) return 1;
+  if (!b.starts_at) return -1;
+  return new Date(a.starts_at) - new Date(b.starts_at);
+}
+
+// "Over X dagen" / "Vandaag" / "Geen datum" — gedeeld door de feestenlijst
+// (kaart-chip) en de Bar-tegel, op kalenderdagen (niet exacte uren) net als
+// isPartyUpcoming hierboven.
+function formatPartyWhen(party) {
+  if (!party.starts_at) return "Geen datum";
+  const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+  const startOfThat = new Date(party.starts_at); startOfThat.setHours(0, 0, 0, 0);
+  const days = Math.round((startOfThat - startOfToday) / 86400000);
+  if (days === 0) return "Vandaag";
+  if (days > 0) return `Over ${days} dag${days === 1 ? "" : "en"}`;
+  return `${Math.abs(days)} dag${Math.abs(days) === 1 ? "" : "en"} geleden`;
+}
+
+function useParties(session) {
+  const myId = session?.user?.id;
+  const [parties, setParties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [migrated, setMigrated] = useStorage("thuisbar-feest-migrated", false);
+
+  const reload = async () => {
+    if (!myId) { setParties([]); setLoading(false); return []; }
+    const { data } = await supabase.from("parties").select("*").eq("user_id", myId).order("created_at", { ascending: true });
+    setParties(data || []);
+    setLoading(false);
+    return data || [];
+  };
+
+  useEffect(() => {
+    if (!myId) return;
+    let cancelled = false;
+    (async () => {
+      const existing = await reload();
+      if (cancelled || migrated || existing.length > 0) return;
+      const legacy = await readLegacyFeestData();
+      const hasLegacyData = legacy.cocktailIds.length > 0 || legacy.boughtItems.length > 0 || legacy.prepDone.length > 0;
+      let tasteSurveyId = null;
+      if (hasLegacyData) {
+        const { data: survey } = await supabase.from("party_surveys").select("id").eq("host_user_id", myId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        tasteSurveyId = survey?.id || null;
+      }
+      if (cancelled) return;
+      setMigrated(true);
+      if (!hasLegacyData) return;
+      const { data } = await supabase.from("parties").insert({
+        user_id: myId, name: "Mijn feest", guests: 8, drinks_per_guest: 2,
+        cocktail_ids: legacy.cocktailIds, bought_items: legacy.boughtItems, prep_done: legacy.prepDone,
+        taste_survey_id: tasteSurveyId,
+      }).select().single();
+      if (!cancelled && data) setParties([data]);
+    })();
+    return () => { cancelled = true; };
+  }, [myId]);
+
+  const createParty = async (fields) => {
+    const { data, error } = await supabase.from("parties").insert({ user_id: myId, ...fields }).select().single();
+    if (error) return null;
+    setParties(prev => [...prev, data]);
+    return data;
+  };
+  const updateParty = async (id, patch) => {
+    setParties(prev => prev.map(p => (p.id === id ? { ...p, ...patch } : p)));
+    const { data } = await supabase.from("parties").update(patch).eq("id", id).select().single();
+    if (data) setParties(prev => prev.map(p => (p.id === id ? data : p)));
+  };
+  const deleteParty = async (id) => {
+    setParties(prev => prev.filter(p => p.id !== id));
+    cancelPartyReminder(id);
+    await supabase.from("parties").delete().eq("id", id);
+  };
+
+  return { parties, loading, reload, createParty, updateParty, deleteParty };
+}
+
+// Lokale meldingen ("2 uur van tevoren") voor een feest — puur op het
+// apparaat via @capacitor/local-notifications, geen server/push bij nodig.
+// Notification-id's moeten een 32-bits getal zijn, dus hashen we de
+// (string) feest-id naar een stabiel getal i.p.v. een losse teller bij te
+// houden: hetzelfde feest levert altijd hetzelfde id op, dus een latere
+// cancel/reschedule vindt 'm altijd terug zonder aparte boekhouding.
+function partyNotificationId(partyId) {
+  let hash = 0;
+  for (let i = 0; i < partyId.length; i++) {
+    hash = (hash * 31 + partyId.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) || 1;
+}
+async function cancelPartyReminder(partyId) {
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id: partyNotificationId(partyId) }] });
+  } catch { /* geen native platform (web-preview) of al geannuleerd — niet kritiek */ }
+}
+// Geeft "ok" | "no-date" | "in-past" | "denied" | "failed" terug zodat de UI
+// een concrete reden kan tonen i.p.v. de schakelaar stilzwijgend terug te zetten.
+async function schedulePartyReminder(party) {
+  if (!party.starts_at) return "no-date";
+  const at = new Date(new Date(party.starts_at).getTime() - 2 * 60 * 60 * 1000);
+  if (at.getTime() <= Date.now()) return "in-past";
+  try {
+    const perm = await LocalNotifications.requestPermissions();
+    if (perm.display !== "granted") return "denied";
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: partyNotificationId(party.id),
+        title: "Mijn Thuisbar",
+        body: `Over 2 uur begint ${party.name} – tijd om ijs te halen`,
+        schedule: { at },
+      }],
+    });
+    return "ok";
+  } catch {
+    return "failed";
+  }
+}
+
 function useFriendsFeed(session, active) {
   const myId = session?.user?.id;
   const [friendProfiles, setFriendProfiles] = useState({});
@@ -6202,6 +6391,120 @@ function getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals) {
   return warnings;
 }
 
+// Menu/inkoop-berekening voor één feest — losgetrokken uit het
+// detailscherm zodat de feestenlijst 'm ook kan gebruiken voor de
+// voortgangsbalk ("14 te kopen" / "Alles in huis") zonder de hele
+// inkooplijst-UI te dupliceren.
+function computePartyMenu(party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal) {
+  const chosenRecipes = (party.cocktail_ids || []).map(id => recipes.find(r => r.id === id)).filter(Boolean);
+  const guests = party.guests || 8;
+  const drinksPerGuest = party.drinks_per_guest || 2;
+  const totalDrinks = Math.max(1, guests) * Math.max(1, drinksPerGuest);
+  const n = chosenRecipes.length || 1;
+  const base = Math.floor(totalDrinks / n);
+  const remainder = totalDrinks - base * n;
+  const perRecipeCounts = chosenRecipes.map((_, i) => base + (i < remainder ? 1 : 0));
+
+  const needsMap = new Map();
+  chosenRecipes.forEach((r, i) => {
+    const count = perRecipeCounts[i] || 0;
+    r.ingredients.forEach(ing => {
+      const key = ingredientKey(ing) + "|" + ing.unit;
+      if (!needsMap.has(key)) {
+        needsMap.set(key, { key, label: ingredientLabel(ing), unit: ing.unit, amount: 0, meta: findIngredientMeta(ing, allIngredients), owned: isOwned(ing), ref: ing, recipeNames: new Set() });
+      }
+      needsMap.get(key).amount += ing.amount * count;
+      needsMap.get(key).recipeNames.add(r.name);
+    });
+  });
+  const needs = [...needsMap.values()].map(v => ({ ...v, recipeNames: [...v.recipeNames] })).sort((a, b) => a.label.localeCompare(b.label));
+
+  let totalCost = 0;
+  const rows = needs.map(item => {
+    const { meta, unit, amount, owned, ref } = item;
+    if (owned) {
+      const aantalId = ref.id || meta?.id;
+      const aantal = (aantalId && voorraadAantal[aantalId]) ?? 1;
+      if (meta && meta.bottleMl && meta.bottlePrice && unit !== "dash") {
+        const availableMl = aantal * meta.bottleMl;
+        if (amount <= availableMl) {
+          return { ...item, buyLabel: aantal === 1 ? "al in voorraad" : `al in voorraad (${formatAantal(aantal)} flessen)`, cost: 0 };
+        }
+        const shortfall = amount - availableMl;
+        const bottles = Math.ceil(shortfall / meta.bottleMl);
+        const cost = bottles * meta.bottlePrice;
+        totalCost += cost;
+        return { ...item, buyLabel: `${formatAantal(aantal)} fles${aantal === 1 ? "" : "sen"} in voorraad · ${bottles} bijkopen · ${euro(cost)}`, cost };
+      }
+      return { ...item, buyLabel: aantal === 1 ? "al in voorraad" : `al in voorraad (${formatAantal(aantal)} flessen)`, cost: 0 };
+    }
+    if (meta && meta.bottleMl && meta.bottlePrice) {
+      if (unit === "dash") {
+        totalCost += meta.bottlePrice;
+        return { ...item, buyLabel: `1 fles (${meta.bottleMl} ml)`, cost: meta.bottlePrice };
+      }
+      const bottles = Math.ceil(amount / meta.bottleMl);
+      const cost = bottles * meta.bottlePrice;
+      totalCost += cost;
+      return { ...item, buyLabel: `${bottles} fles${bottles === 1 ? "" : "sen"} (${meta.bottleMl} ml)`, cost };
+    }
+    if (meta && meta.unitPrice) {
+      const stuks = Math.ceil(amount);
+      const cost = stuks * meta.unitPrice;
+      totalCost += cost;
+      return { ...item, buyLabel: `${stuks} stuks`, cost };
+    }
+    return { ...item, buyLabel: "naar smaak", cost: 0 };
+  });
+
+  return { chosenRecipes, perRecipeCounts, totalDrinks, rows, totalCost };
+}
+
+// Voorbereidings-checklist voor één feest — zelfde afgeleide gegevens
+// (glaswerk, garnering, batchbare cocktails) als voorheen inline in het
+// detailscherm, nu ook bruikbaar voor de "x/y voorbereid"-samenvatting op
+// de feestenkaart.
+function computePartyPrepChecklist(chosenRecipes, perRecipeCounts, allIngredients, totalDrinks) {
+  const glasses = new Map();
+  const garnish = new Map();
+  const batchAhead = [];
+  chosenRecipes.forEach((r, i) => {
+    const count = perRecipeCounts[i] || 0;
+    glasses.set(r.glass, (glasses.get(r.glass) || 0) + count);
+    r.ingredients.forEach(ing => {
+      const meta = findIngredientMeta(ing, allIngredients);
+      if (meta && (meta.cat === "Vers" || meta.cat === "Zuivel & room") && !meta.bottleMl) {
+        garnish.set(meta.name, meta.name);
+      }
+    });
+    const techniques = inferTechniques(r.method);
+    const role = getMenuRole(r);
+    if (role === "sterk" && techniques.length > 0 && techniques.every(t => ["stirred", "build"].includes(t))) {
+      batchAhead.push(r.name);
+    }
+  });
+  const kgIjs = Math.round(totalDrinks * 0.15 * 10) / 10;
+  const glassList = [...glasses.entries()];
+  const garnishList = [...garnish.values()];
+
+  const items = [{ id: "boodschappen", group: "dag", label: "Boodschappen doen" }];
+  if (batchAhead.length > 0) items.push({ id: "batchen", group: "dag", label: `Batchen: ${batchAhead.join(", ")}` });
+  items.push({ id: "ijs", group: "2uur", label: `IJs halen (± ${kgIjs} kg)` });
+  if (glassList.length > 0) items.push({ id: "glazen", group: "2uur", label: `Glazen koelen: ${glassList.map(([g, c]) => `${g} (${c}×)`).join(", ")}` });
+  if (garnishList.length > 0) items.push({ id: "garnering", group: "2uur", label: `Garnering klaarzetten: ${garnishList.join(", ")}` });
+  items.push({ id: "menu-delen", group: "aankomst", label: "Menu delen met gasten" });
+  items.push({ id: "eerste-ronde", group: "aankomst", label: "Eerste ronde klaarzetten" });
+  return items;
+}
+
+const KORTE_DAGEN = ["zo", "ma", "di", "wo", "do", "vr", "za"];
+function formatDayShort(date) {
+  return `${KORTE_DAGEN[date.getDay()]} ${date.getDate()} ${KORTE_MAANDEN[date.getMonth()]}`;
+}
+function formatTimeShort(date) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
 // Kleine herbruikbare bevestigingsdialoog voor destructieve acties binnen de
 // Feestplanner (smaaktest verwijderen, menu vervangen) — één component i.p.v.
 // 'm twee keer los uit te schrijven.
@@ -6242,7 +6545,7 @@ function ConfirmDialog({ title, message, cancelLabel = "Annuleer", confirmLabel,
 // geen re-render per pixel) als de rand-swipe-terug-gestiek elders in dit
 // bestand.
 function SwipeRevealRow({ onWissel, onVerwijder, children }) {
-  const actionsWidth = onVerwijder ? 152 : 76;
+  const actionsWidth = (onWissel ? 76 : 0) + (onVerwijder ? 76 : 0);
   const rowRef = useRef(null);
   const drag = useRef({ tracking: false, startX: 0, baseX: 0, x: 0 });
   const [open, setOpen] = useState(false);
@@ -6256,6 +6559,7 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
   };
 
   const onTouchStart = (e) => {
+    if (actionsWidth === 0) return;
     drag.current.tracking = true;
     drag.current.startX = e.touches[0].clientX;
     drag.current.baseX = open ? -actionsWidth : 0;
@@ -6278,12 +6582,14 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
   return (
     <div style={{ position: "relative", borderRadius: 14, overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, display: "flex", justifyContent: "flex-end" }}>
-        <button onClick={() => { close(); onWissel(); }} style={{
-          width: onVerwijder ? 76 : actionsWidth, minHeight: 44, border: "none", background: BRASS, color: CREAM,
-          fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-        }}>
-          <RefreshCw size={14} /> Wissel
-        </button>
+        {onWissel && (
+          <button onClick={() => { close(); onWissel(); }} style={{
+            width: 76, minHeight: 44, border: "none", background: BRASS, color: CREAM,
+            fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+          }}>
+            <RefreshCw size={14} /> Wissel
+          </button>
+        )}
         {onVerwijder && (
           <button onClick={() => { close(); onVerwijder(); }} style={{
             width: 76, minHeight: 44, border: "none", background: BURGUNDY, color: CREAM,
@@ -6301,32 +6607,275 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
   );
 }
 
-function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, chosen, setChosen, voorraadAantal, onSound, onOpenRecipe, active }) {
+function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active,
+  parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled }) {
+  const [selectedPartyId, setSelectedPartyId] = useState(null);
+  const [showNewPartySheet, setShowNewPartySheet] = useState(false);
+  const [creatingParty, setCreatingParty] = useState(false);
+  const [confirmDeletePartyId, setConfirmDeletePartyId] = useState(null);
+
+  // Cross-tab "open dit feest direct" (bijv. vanuit Smaakbalans' "gebruik dit
+  // menu") — zelfde pendingRecipeId-patroon als de rest van de app.
+  useEffect(() => {
+    if (openPartyId) { setSelectedPartyId(openPartyId); onOpenPartyHandled(); }
+  }, [openPartyId]);
+
+  const upcoming = useMemo(() => parties.filter(isPartyUpcoming).sort(compareUpcomingParties), [parties]);
+  const past = useMemo(() => parties.filter(p => !isPartyUpcoming(p)).sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at)), [parties]);
+  const selectedParty = selectedPartyId ? parties.find(p => p.id === selectedPartyId) : null;
+
+  const createParty = async (fields) => {
+    setCreatingParty(true);
+    const party = await onCreateParty({ ...fields, cocktail_ids: [], bought_items: [], prep_done: [] });
+    setCreatingParty(false);
+    setShowNewPartySheet(false);
+    if (party) { onSound("pop"); setSelectedPartyId(party.id); }
+  };
+  const deleteParty = () => {
+    onSound("remove");
+    onDeleteParty(confirmDeletePartyId);
+    setConfirmDeletePartyId(null);
+  };
+
+  if (selectedParty) {
+    return (
+      <PartyDetailScreen key={selectedParty.id} session={session} party={selectedParty}
+        onUpdateParty={patch => onUpdateParty(selectedParty.id, patch)}
+        onBack={() => setSelectedPartyId(null)}
+        recipes={recipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
+        onAddToShoppingList={onAddToShoppingList} voorraadAantal={voorraadAantal} onSound={onSound} onOpenRecipe={onOpenRecipe}
+        active={active} />
+    );
+  }
+
+  return (
+    <div>
+      <SectionLabel>Aankomend</SectionLabel>
+      {upcoming.length === 0 && (
+        <div style={{ border: `1px dashed ${BORDER}`, borderRadius: RADIUS, padding: "24px 20px", textAlign: "center", marginBottom: 20 }}>
+          <PartyPopper size={22} color={MUTED} style={{ marginBottom: 8 }} />
+          <p style={{ fontSize: 13, color: MUTED, margin: 0, lineHeight: 1.5 }}>Nog geen feest gepland. Maak er een aan om te beginnen.</p>
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+        {upcoming.map(party => (
+          <SwipeRevealRow key={party.id} onVerwijder={() => setConfirmDeletePartyId(party.id)}>
+            <PartyCard party={party} recipes={recipes} allIngredients={allIngredients} isOwned={isOwned}
+              ingredientLabel={ingredientLabel} voorraadAantal={voorraadAantal} onOpen={() => setSelectedPartyId(party.id)} />
+          </SwipeRevealRow>
+        ))}
+      </div>
+
+      <button onClick={() => setShowNewPartySheet(true)} className="press-scale" style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 48,
+        background: BOTTLE_DARK, color: CREAM, border: "none", borderRadius: RADIUS, fontSize: 14.5, fontWeight: 700,
+        cursor: "pointer", boxShadow: SHADOW_CTA, marginBottom: 28,
+      }}>
+        <Plus size={16} /> Nieuw feest
+      </button>
+
+      <SectionLabel>Eerder</SectionLabel>
+      {past.length === 0 ? (
+        <div style={{ border: `1px dashed ${BORDER}`, borderRadius: RADIUS, padding: "20px", textAlign: "center" }}>
+          <p style={{ fontSize: 12.5, color: MUTED, margin: 0, lineHeight: 1.5 }}>Nog geen eerdere feesten — afgelopen feesten blijven hier bewaard.</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {past.map(party => (
+            <SwipeRevealRow key={party.id} onVerwijder={() => setConfirmDeletePartyId(party.id)}>
+              <PartyCard party={party} recipes={recipes} allIngredients={allIngredients} isOwned={isOwned}
+                ingredientLabel={ingredientLabel} voorraadAantal={voorraadAantal} onOpen={() => setSelectedPartyId(party.id)} compact />
+            </SwipeRevealRow>
+          ))}
+        </div>
+      )}
+
+      {showNewPartySheet && (
+        <PartyFormSheet busy={creatingParty} onClose={() => setShowNewPartySheet(false)} onSubmit={createParty} />
+      )}
+      {confirmDeletePartyId && (
+        <ConfirmDialog title="Feest verwijderen?" message="Het menu, de inkooplijst en de voorbereiding van dit feest gaan verloren."
+          confirmLabel="Verwijder" onCancel={() => setConfirmDeletePartyId(null)} onConfirm={deleteParty} />
+      )}
+    </div>
+  );
+}
+
+function PartyCard({ party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal, onOpen, compact }) {
+  const { chosenRecipes, perRecipeCounts, totalDrinks, rows } = useMemo(
+    () => computePartyMenu(party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal),
+    [party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal]
+  );
+  const prepItems = useMemo(
+    () => computePartyPrepChecklist(chosenRecipes, perRecipeCounts, allIngredients, totalDrinks),
+    [chosenRecipes, perRecipeCounts, allIngredients, totalDrinks]
+  );
+  const teKopen = rows.filter(r => r.cost > 0).length;
+  const prepDone = (party.prep_done || []).filter(id => prepItems.some(i => i.id === id)).length;
+  const menuPct = chosenRecipes.length > 0 ? 100 : 0;
+  const inkoopPct = rows.length > 0 ? Math.round(((rows.length - teKopen) / rows.length) * 100) : 0;
+  const prepPct = prepItems.length > 0 ? Math.round((prepDone / prepItems.length) * 100) : 0;
+  const firstRecipe = chosenRecipes[0];
+  const photo = firstRecipe ? (localItemImageUrl("cocktail", firstRecipe.id) || firstRecipe.image) : null;
+  const whenTimeLine = party.starts_at
+    ? `${formatDayShort(new Date(party.starts_at))} · ${formatTimeShort(new Date(party.starts_at))} · ${party.guests} gasten`
+    : `${party.guests} gasten`;
+
+  return (
+    <button onClick={onOpen} style={{
+      display: "block", width: "100%", textAlign: "left", background: CREAM, border: `1px solid ${BORDER}`,
+      borderRadius: RADIUS + 4, boxShadow: SHADOW_CARD, cursor: "pointer", padding: 0, overflow: "hidden", fontFamily: sans,
+    }}>
+      {!compact && (
+        <div style={{ position: "relative", height: 130 }}>
+          <img src={photo || feestHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(19,38,34,0.75), rgba(19,38,34,0.05) 60%)" }} />
+          <span className="glass-chip-dark" style={{ position: "absolute", top: 10, left: 10, borderRadius: 100, padding: "4px 10px", fontSize: 10.5, fontWeight: 700 }}>{formatPartyWhen(party)}</span>
+        </div>
+      )}
+      <div style={{ padding: compact ? "11px 14px" : "14px 16px" }}>
+        {compact && <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, letterSpacing: 0.3 }}>{formatPartyWhen(party)}</span>}
+        <div style={{ fontFamily: serif, fontWeight: 700, fontSize: compact ? 15 : 19, color: INK, marginTop: compact ? 2 : 0 }}>{party.name}</div>
+        <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{whenTimeLine}</div>
+        {!compact && (
+          <>
+            <div style={{ display: "flex", gap: 3, marginTop: 12, height: 4 }}>
+              {[menuPct, inkoopPct, prepPct].map((pct, i) => (
+                <div key={i} style={{ flex: 1, borderRadius: 2, background: BORDER, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: BRASS }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10.5, color: MUTED, gap: 6 }}>
+              <span>{chosenRecipes.length > 0 ? "Menu klaar" : "Nog geen menu"}</span>
+              <span>{teKopen > 0 ? `${teKopen} te kopen` : "Alles in huis"}</span>
+              <span>{prepItems.length > 0 ? `${prepDone}/${prepItems.length} voorbereid` : "Voorbereiding"}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const [name, setName] = useState(initial?.name || "");
+  const [date, setDate] = useState(initial?.starts_at ? initial.starts_at.slice(0, 10) : "");
+  const [time, setTime] = useState(initial?.starts_at ? formatTimeShort(new Date(initial.starts_at)) : "20:00");
+  const [guests, setGuests] = useState(initial?.guests || 8);
+  const [drinksPerGuest, setDrinksPerGuest] = useState(initial?.drinks_per_guest || 2);
+
+  const submit = () => {
+    if (!name.trim()) return;
+    const starts_at = date ? new Date(`${date}T${time || "20:00"}:00`).toISOString() : null;
+    onSubmit({ name: name.trim(), starts_at, guests, drinks_per_guest: drinksPerGuest });
+  };
+
+  const inputStyle = { width: "100%", boxSizing: "border-box", padding: "12px 14px", minHeight: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, fontSize: 15, fontFamily: sans, color: INK };
+
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in" style={{
+        position: "relative", maxWidth: 560, width: "100%", margin: "0 auto", maxHeight: "85vh",
+        background: PAPER, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{initial ? "Feest aanpassen" : "Nieuw feest"}</div>
+          <button onClick={close} aria-label="Sluiten" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK }}>
+            <X size={16} />
+          </button>
+        </div>
+        <div style={{ padding: "18px 20px", overflowY: "auto" }}>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Naam</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="bijv. Najaarsborrel" autoFocus style={{ ...inputStyle, marginBottom: 16 }} />
+
+          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Datum (optioneel)</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
+            </div>
+            <div style={{ width: 110 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Tijd</label>
+              <input type="time" value={time} onChange={e => setTime(e.target.value)} disabled={!date} style={{ ...inputStyle, background: date ? CREAM : PAPER_DEEP }} />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 24, marginBottom: 22, flexWrap: "wrap" }}>
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Aantal gasten</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <button onClick={() => setGuests(g => Math.max(1, g - 1))} style={{ width: 44, height: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>−</button>
+                <div style={{ width: 40, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE }}>{guests}</div>
+                <button onClick={() => setGuests(g => Math.min(100, g + 1))} style={{ width: 44, height: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>+</button>
+              </div>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Cocktails per gast</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <button onClick={() => setDrinksPerGuest(v => Math.max(1, v - 1))} style={{ width: 44, height: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>−</button>
+                <div style={{ width: 40, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE }}>{drinksPerGuest}</div>
+                <button onClick={() => setDrinksPerGuest(v => Math.min(10, v + 1))} style={{ width: 44, height: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>+</button>
+              </div>
+            </div>
+          </div>
+
+          <button onClick={submit} disabled={!name.trim() || busy} className="press-scale" style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", minHeight: 44,
+            background: BOTTLE_DARK, color: CREAM, border: "none", borderRadius: RADIUS, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
+          }}>
+            {busy ? "Bezig…" : initial ? "Opslaan" : "Feest aanmaken"}
+          </button>
+        </div>
+      </div>
+    </div>
+  ), document.body);
+}
+
+function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active }) {
+  const [activeTab, setActiveTab] = useState("menu");
+  const [showEditSheet, setShowEditSheet] = useState(false);
   const [shareState, setShareState] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [confirmNieuweSuggestie, setConfirmNieuweSuggestie] = useState(false);
   const [sheetIndex, setSheetIndex] = useState(null);
   const [justAddedId, setJustAddedId] = useState(null);
   const [justAddedAll, setJustAddedAll] = useState(false);
-  const [checkedBuyItems, setCheckedBuyItems] = useStorage("thuisbar-feest-inkoop-checked", []);
   const [showAlInHuis, setShowAlInHuis] = useState(false);
   const [showPriceInfo, setShowPriceInfo] = useState(false);
   const [altOpenKey, setAltOpenKey] = useState(null);
-  const [checkedPrep, setCheckedPrep] = useStorage("thuisbar-feest-voorbereiding-checked", []);
+  const [reminderBusy, setReminderBusy] = useState(false);
+  const [reminderError, setReminderError] = useState(null);
+
+  // Alle feest-eigen state (cocktails, gasten, vinkjes) leeft nu in de
+  // `parties`-rij zelf i.p.v. losse component-state/Preferences, zodat 'm
+  // met een gewone onUpdateParty-call wordt weggeschreven — chosen/setChosen
+  // etc. blijven als lokale namen bestaan zodat de rest van dit scherm
+  // ongewijzigd kan blijven t.o.v. Deel A.
+  const chosen = party.cocktail_ids || [];
+  const setChosen = (next) => onUpdateParty({ cocktail_ids: next });
+  const guests = party.guests || 8;
+  const setGuests = (n) => onUpdateParty({ guests: n });
+  const drinksPerGuest = party.drinks_per_guest || 2;
+  const setDrinksPerGuest = (n) => onUpdateParty({ drinks_per_guest: n });
+  const checkedBuyItems = party.bought_items || [];
   const toggleBuyChecked = (key) => {
     onSound("tick");
-    setCheckedBuyItems(checkedBuyItems.includes(key) ? checkedBuyItems.filter(k => k !== key) : [...checkedBuyItems, key]);
+    onUpdateParty({ bought_items: checkedBuyItems.includes(key) ? checkedBuyItems.filter(k => k !== key) : [...checkedBuyItems, key] });
   };
+  const checkedPrep = party.prep_done || [];
   const togglePrepChecked = (key) => {
     onSound("tick");
-    setCheckedPrep(checkedPrep.includes(key) ? checkedPrep.filter(k => k !== key) : [...checkedPrep, key]);
+    onUpdateParty({ prep_done: checkedPrep.includes(key) ? checkedPrep.filter(k => k !== key) : [...checkedPrep, key] });
   };
 
-  // Smaaktest voor gasten: de host maakt (hoogstens) één actieve test aan,
-  // gasten vullen 'm zonder account in via een gedeelde link (GuestSurveyView
-  // hierboven), en de reacties worden hier opgeteld tot menu-suggesties —
-  // zelfde cosinegelijkenis-score als bij "Aanbevolen voor jou", nu gevoed
-  // door de groep i.p.v. door één persoon.
+  // Smaaktest voor gasten: nu gekoppeld aan DIT feest (party.taste_survey_id)
+  // i.p.v. "de ene lopende test van deze host" — een host kan met Deel B
+  // meerdere feesten (en dus meerdere smaaktests) tegelijk hebben.
   const myId = session?.user?.id;
   const [survey, setSurvey] = useState(undefined); // undefined = laden, null = nog geen
   const [surveyResponses, setSurveyResponses] = useState([]);
@@ -6334,8 +6883,8 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
   const [creatingSurvey, setCreatingSurvey] = useState(false);
 
   const loadSurvey = async () => {
-    if (!myId) return;
-    const { data } = await supabase.from("party_surveys").select("id, title").eq("host_user_id", myId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!party.taste_survey_id) { setSurvey(null); setSurveyResponses([]); return; }
+    const { data } = await supabase.from("party_surveys").select("id, title").eq("id", party.taste_survey_id).maybeSingle();
     setSurvey(data || null);
     if (data) {
       const { data: responses } = await supabase.from("party_survey_responses").select("*").eq("survey_id", data.id).order("created_at", { ascending: false });
@@ -6344,7 +6893,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
       setSurveyResponses([]);
     }
   };
-  useEffect(() => { loadSurvey(); }, [myId]);
+  useEffect(() => { loadSurvey(); }, [party.taste_survey_id]);
 
   // Live updates: i.p.v. steeds handmatig op "Ververs" te moeten drukken,
   // druppelen nieuwe reacties er via Supabase Realtime meteen bij binnen
@@ -6372,9 +6921,9 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
   const createSurvey = async () => {
     if (!myId || creatingSurvey) return;
     setCreatingSurvey(true);
-    const { data } = await supabase.from("party_surveys").insert({ host_user_id: myId, title: "mijn feest" }).select().single();
+    const { data } = await supabase.from("party_surveys").insert({ host_user_id: myId, title: party.name }).select().single();
     setCreatingSurvey(false);
-    if (data) { setSurvey(data); setSurveyResponses([]); onSound("pop"); }
+    if (data) { setSurvey(data); setSurveyResponses([]); onSound("pop"); onUpdateParty({ taste_survey_id: data.id }); }
   };
 
   const [confirmDeleteSurvey, setConfirmDeleteSurvey] = useState(false);
@@ -6385,7 +6934,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
     const { error } = await supabase.from("party_surveys").delete().eq("id", survey.id);
     setDeletingSurvey(false);
     setConfirmDeleteSurvey(false);
-    if (!error) { setSurvey(null); setSurveyResponses([]); onSound("remove"); }
+    if (!error) { setSurvey(null); setSurveyResponses([]); onSound("remove"); onUpdateParty({ taste_survey_id: null }); }
   };
 
   const shareSurvey = async () => {
@@ -6503,9 +7052,6 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
     return picked;
   };
 
-  const [guests, setGuests] = useState(8);
-  const [drinksPerGuest, setDrinksPerGuest] = useState(2);
-
   useEffect(() => {
     if (chosen.length === 0) setChosen(pickRandom(3));
   }, []);
@@ -6517,69 +7063,14 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
   };
   const removeSlot = (i) => { onSound("remove"); setChosen(chosen.filter((_, idx) => idx !== i)); };
 
-  const chosenRecipes = chosen.map(id => recipes.find(r => r.id === id)).filter(Boolean);
-  const totalDrinks = Math.max(1, guests) * Math.max(1, drinksPerGuest);
-  const n = chosenRecipes.length || 1;
-  const base = Math.floor(totalDrinks / n);
-  const remainder = totalDrinks - base * n;
-  const perRecipeCounts = chosenRecipes.map((_, i) => base + (i < remainder ? 1 : 0));
-
-  const needs = useMemo(() => {
-    const map = new Map();
-    chosenRecipes.forEach((r, i) => {
-      const count = perRecipeCounts[i] || 0;
-      r.ingredients.forEach(ing => {
-        const key = ingredientKey(ing) + "|" + ing.unit;
-        if (!map.has(key)) {
-          map.set(key, { key, label: ingredientLabel(ing), unit: ing.unit, amount: 0, meta: findIngredientMeta(ing, allIngredients), owned: isOwned(ing), ref: ing, recipeNames: new Set() });
-        }
-        map.get(key).amount += ing.amount * count;
-        map.get(key).recipeNames.add(r.name);
-      });
-    });
-    return [...map.values()].map(v => ({ ...v, recipeNames: [...v.recipeNames] })).sort((a, b) => a.label.localeCompare(b.label));
-  }, [chosenRecipes, perRecipeCounts, allIngredients, isOwned, ingredientLabel]);
-
-  let totalCost = 0;
-  const rows = needs.map(item => {
-    const { meta, unit, amount, owned, ref } = item;
-    if (owned) {
-      const aantalId = ref.id || meta?.id;
-      const aantal = (aantalId && voorraadAantal[aantalId]) ?? 1;
-      if (meta && meta.bottleMl && meta.bottlePrice && unit !== "dash") {
-        const availableMl = aantal * meta.bottleMl;
-        if (amount <= availableMl) {
-          return { ...item, buyLabel: aantal === 1 ? "al in voorraad" : `al in voorraad (${formatAantal(aantal)} flessen)`, cost: 0 };
-        }
-        const shortfall = amount - availableMl;
-        const bottles = Math.ceil(shortfall / meta.bottleMl);
-        const cost = bottles * meta.bottlePrice;
-        totalCost += cost;
-        return { ...item, buyLabel: `${formatAantal(aantal)} fles${aantal === 1 ? "" : "sen"} in voorraad · ${bottles} bijkopen · ${euro(cost)}`, cost };
-      }
-      return { ...item, buyLabel: aantal === 1 ? "al in voorraad" : `al in voorraad (${formatAantal(aantal)} flessen)`, cost: 0 };
-    }
-    if (meta && meta.bottleMl && meta.bottlePrice) {
-      if (unit === "dash") {
-        totalCost += meta.bottlePrice;
-        return { ...item, buyLabel: `1 fles (${meta.bottleMl} ml)`, cost: meta.bottlePrice };
-      }
-      const bottles = Math.ceil(amount / meta.bottleMl);
-      const cost = bottles * meta.bottlePrice;
-      totalCost += cost;
-      return { ...item, buyLabel: `${bottles} fles${bottles === 1 ? "" : "sen"} (${meta.bottleMl} ml)`, cost };
-    }
-    if (meta && meta.unitPrice) {
-      const stuks = Math.ceil(amount);
-      const cost = stuks * meta.unitPrice;
-      totalCost += cost;
-      return { ...item, buyLabel: `${stuks} stuks`, cost };
-    }
-    return { ...item, buyLabel: "naar smaak", cost: 0 };
-  });
+  const { chosenRecipes, perRecipeCounts, totalDrinks, rows, totalCost } = useMemo(
+    () => computePartyMenu(party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal),
+    [party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal]
+  );
 
   const toBuy = rows.filter(r => !r.owned && r.cost > 0);
-  const teKopenRows = rows.filter(r => r.cost > 0);
+  // "Van duur naar goedkoop" (nieuw in Deel B) — Al in huis blijft alfabetisch.
+  const teKopenRows = [...rows.filter(r => r.cost > 0)].sort((a, b) => b.cost - a.cost);
   const alInHuisRows = rows.filter(r => r.cost === 0);
   const stepperBtn = { width: 32, height: 32, borderRadius: 3, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" };
   const stepperValue = { width: 30, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE };
@@ -6624,48 +7115,46 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
     setAltOpenKey(null);
   };
 
-  // Voorbereiding: glaswerk, garnering en welke cocktails vooraf te batchen zijn
-  const prep = useMemo(() => {
-    const glasses = new Map();
-    const garnish = new Map();
-    const batchAhead = [];
-    chosenRecipes.forEach((r, i) => {
-      const count = perRecipeCounts[i] || 0;
-      glasses.set(r.glass, (glasses.get(r.glass) || 0) + count);
-      r.ingredients.forEach(ing => {
-        const meta = findIngredientMeta(ing, allIngredients);
-        if (meta && (meta.cat === "Vers" || meta.cat === "Zuivel & room") && !meta.bottleMl) {
-          garnish.set(meta.name, garnish.get(meta.name) || meta.name);
-        }
-      });
-      const techniques = inferTechniques(r.method);
-      const role = getMenuRole(r);
-      if (role === "sterk" && techniques.length > 0 && techniques.every(t => ["stirred", "build"].includes(t))) {
-        batchAhead.push(r.name);
-      }
-    });
-    const kgIjs = Math.round(totalDrinks * 0.15 * 10) / 10;
-    return { glasses: [...glasses.entries()], garnish: [...garnish.values()], batchAhead, kgIjs };
-  }, [chosenRecipes, perRecipeCounts, allIngredients, totalDrinks]);
+  const prepChecklist = useMemo(
+    () => computePartyPrepChecklist(chosenRecipes, perRecipeCounts, allIngredients, totalDrinks),
+    [chosenRecipes, perRecipeCounts, allIngredients, totalDrinks]
+  );
+  // Tijdsaanduidingen afgeleid van de feestdatum ("vr 11 okt", "18:00") —
+  // zonder datum blijven het gewoon de kale groepslabels.
+  const PREP_GROUPS = useMemo(() => {
+    const dayBefore = party.starts_at ? new Date(new Date(party.starts_at).getTime() - 86400000) : null;
+    const twoHoursBefore = party.starts_at ? new Date(new Date(party.starts_at).getTime() - 2 * 3600000) : null;
+    return [
+      { key: "dag", label: dayBefore ? `Dag ervoor (${formatDayShort(dayBefore)})` : "Dag ervoor" },
+      { key: "2uur", label: twoHoursBefore ? `2 uur ervoor (${formatTimeShort(twoHoursBefore)})` : "2 uur ervoor" },
+      { key: "aankomst", label: party.starts_at ? `Bij aankomst (${formatTimeShort(new Date(party.starts_at))})` : "Bij aankomst" },
+    ];
+  }, [party.starts_at]);
 
-  // Checklist gegroepeerd per moment i.p.v. losse alinea's — dezelfde
-  // afgeleide data (ijs/glazen/garnering/batchen) uit `prep` hierboven, plus
-  // een paar vaste, niet-data-afhankelijke stappen (boodschappen, menu delen).
-  const PREP_GROUPS = [
-    { key: "dag", label: "Dag ervoor" },
-    { key: "2uur", label: "2 uur ervoor" },
-    { key: "aankomst", label: "Bij aankomst" },
-  ];
-  const prepChecklist = useMemo(() => {
-    const items = [{ id: "boodschappen", group: "dag", label: "Boodschappen doen" }];
-    if (prep.batchAhead.length > 0) items.push({ id: "batchen", group: "dag", label: `Batchen: ${prep.batchAhead.join(", ")}` });
-    items.push({ id: "ijs", group: "2uur", label: `IJs halen (± ${prep.kgIjs} kg)` });
-    if (prep.glasses.length > 0) items.push({ id: "glazen", group: "2uur", label: `Glazen koelen: ${prep.glasses.map(([g, c]) => `${g} (${c}×)`).join(", ")}` });
-    if (prep.garnish.length > 0) items.push({ id: "garnering", group: "2uur", label: `Garnering klaarzetten: ${prep.garnish.join(", ")}` });
-    items.push({ id: "menu-delen", group: "aankomst", label: "Menu delen met gasten" });
-    items.push({ id: "eerste-ronde", group: "aankomst", label: "Eerste ronde klaarzetten" });
-    return items;
-  }, [prep]);
+  const toggleReminder = async (next) => {
+    setReminderError(null);
+    if (!next) {
+      cancelPartyReminder(party.id);
+      onUpdateParty({ reminder_enabled: false });
+      return;
+    }
+    setReminderBusy(true);
+    const result = await schedulePartyReminder(party);
+    setReminderBusy(false);
+    if (result === "ok") { onUpdateParty({ reminder_enabled: true }); return; }
+    setReminderError({
+      "no-date": "Stel eerst een datum en tijd in.",
+      "in-past": "Dit tijdstip ligt al in het verleden.",
+      denied: "Je hebt meldingen geweigerd. Zet ze aan bij de systeeminstellingen.",
+      failed: "Aanzetten is niet gelukt. Probeer het nog eens.",
+    }[result] || "Aanzetten is niet gelukt.");
+  };
+  // Bij een latere datumwijziging automatisch herplannen zolang de
+  // herinnering aan staat, zodat 'm niet stilzwijgend achterhaald raakt.
+  useEffect(() => {
+    if (!party.reminder_enabled || !party.starts_at) return;
+    schedulePartyReminder(party).then(result => { if (result !== "ok") onUpdateParty({ reminder_enabled: false }); });
+  }, [party.starts_at]);
 
   return (
     <div {...surveyPullHandlers} style={{ touchAction: "pan-y" }}>
@@ -6677,51 +7166,88 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
           <Martini size={18} strokeWidth={1.8} />
         </span>
       </div>
-      <div style={{
-        position: "relative", height: 140, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 22,
-        boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}`,
-      }}>
-        <img src={feestHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.88), rgba(19,38,34,0.2) 55%, rgba(19,38,34,0.4))` }} />
-        <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "16px 20px" }}>
-          <div style={{ fontSize: 12, color: "#D9CBAE", letterSpacing: 0.4 }}>Alles klaar voor als de gasten arriveren</div>
-        </div>
-      </div>
 
-      <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16, marginBottom: 24 }}>
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 14 }}>
+      {/* Eigen navigatiebalk (net als een receptdetail): niet sticky, "Feesten"
+          links i.p.v. de vaste "Bar" van de buitenste SecondaryTabScreen. */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
+        height: 44, boxSizing: "border-box", marginBottom: 12, borderBottom: `1px solid ${BORDER}`,
+        marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+      }}>
+        <button onClick={onBack} style={{
+          justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
+          cursor: "pointer", padding: 0, margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
+        }}>
+          <ChevronLeft size={18} strokeWidth={2.4} /> Feesten
+        </button>
+        <div style={{ justifySelf: "center", maxWidth: "100%", fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{party.name}</div>
+        <button onClick={() => shareMenu(chosen)} title="Deel dit menu" style={{
+          justifySelf: "end", width: 32, height: 32, borderRadius: "50%", border: `1px solid ${SAGE}`, flexShrink: 0,
+          background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: SAGE,
+        }}>
+          <Share2 size={14} />
+        </button>
+      </div>
+      {shareState && (
+        <p style={{ fontSize: 11.5, color: SAGE, textAlign: "right", margin: "-8px 0 8px" }}>
+          {shareState === "shared" ? "Gedeeld!" : shareState === "copied" ? "Link gekopieerd!" : "Delen mislukt"}
+        </p>
+      )}
+
+      {/* Samenvatting + segmented control: samen sticky zodat beide zichtbaar
+          blijven tijdens scrollen, i.p.v. losse stapels met vaste 44px-tiers
+          (de samenvatting is zelf al hoger dan 44px). */}
+      <div style={{
+        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 15, background: PAPER,
+        marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, paddingBottom: 12,
+        marginBottom: 20, borderBottom: `1px solid ${BORDER}`,
+      }}>
+        <button onClick={() => setShowEditSheet(true)} style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, width: "100%",
+          background: "none", border: "none", padding: "12px 0 10px", cursor: "pointer", textAlign: "left", fontFamily: sans,
+        }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Aantal gasten</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: INK }}>
+              {party.starts_at ? `${formatDayShort(new Date(party.starts_at))} · ${formatTimeShort(new Date(party.starts_at))}` : "Geen datum"}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }} onClick={e => e.stopPropagation()}>
               <button onClick={() => setGuests(Math.max(1, guests - 1))} style={stepperBtn}>−</button>
               <div style={stepperValue}>{guests}</div>
               <button onClick={() => setGuests(Math.min(100, guests + 1))} style={stepperBtn}>+</button>
+              <span style={{ fontSize: 11.5, color: MUTED }}>gasten</span>
             </div>
           </div>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Cocktails per gast</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <button onClick={() => setDrinksPerGuest(Math.max(1, drinksPerGuest - 1))} style={stepperBtn}>−</button>
-              <div style={stepperValue}>{drinksPerGuest}</div>
-              <button onClick={() => setDrinksPerGuest(Math.min(10, drinksPerGuest + 1))} style={stepperBtn}>+</button>
+          <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: BOTTLE }}>{totalDrinks}</div>
+              <div style={{ fontSize: 9.5, color: MUTED }}>drankjes</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></div>
+              <div style={{ fontSize: 9.5, color: MUTED }}>inkoop</div>
             </div>
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 10, paddingTop: 12, borderTop: `1px dashed ${BORDER}` }}>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}>{totalDrinks}</div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>drankjes totaal</div>
-          </div>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>geschatte inkoop</div>
-          </div>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}>{chosenRecipes.length}</div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>cocktails</div>
-          </div>
+        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[["menu", "Menu"], ["inkoop", "Inkoop"], ["voorbereiding", "Voorbereiding"]].map(([id, label]) => (
+            <button key={id} onClick={() => setActiveTab(id)} style={{
+              flex: 1, padding: "8px 6px", borderRadius: RADIUS, border: `1px solid ${activeTab === id ? BOTTLE : BORDER}`,
+              background: activeTab === id ? BOTTLE : CREAM, color: activeTab === id ? CREAM : INK,
+              fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+            }}>
+              {label}
+            </button>
+          ))}
         </div>
       </div>
+
+      {showEditSheet && (
+        <PartyFormSheet initial={party} onClose={() => setShowEditSheet(false)}
+          onSubmit={fields => { onUpdateParty(fields); setShowEditSheet(false); }} />
+      )}
+
+      {activeTab === "menu" && (
+      <>
 
       <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16, marginBottom: 24 }}>
         <SectionLabel>Smaaktest voor je gasten</SectionLabel>
@@ -6937,20 +7463,16 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
         );
       })()}
 
-      <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <SectionLabel>Gekozen cocktails ({chosenRecipes.length})</SectionLabel>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={() => shareMenu(chosen)}
-                style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 3, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                <Share2 size={13} /> {shareState === "shared" ? "Gedeeld!" : shareState === "copied" ? "Link gekopieerd!" : shareState === "failed" ? "Delen mislukt" : "Deel dit menu"}
-              </button>
-              <button onClick={() => { if (chosen.length > 0) setConfirmNieuweSuggestie(true); else setChosen(pickRandom(1)); }}
-                style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BRASS}`, color: BRASS, borderRadius: 3, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                <Shuffle size={13} /> Nieuwe suggestie
-              </button>
-            </div>
+            <SectionLabel>Menu ({chosenRecipes.length})</SectionLabel>
+            <button onClick={() => { if (chosen.length > 0) setConfirmNieuweSuggestie(true); else setChosen(pickRandom(1)); }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BRASS}`, color: BRASS, borderRadius: 3, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+              <Shuffle size={13} /> Nieuwe suggestie
+            </button>
           </div>
+          {chosenRecipes.length > 0 && (
+            <p style={{ fontSize: 11, color: MUTED, margin: "0 0 8px" }}>Veeg naar links om te wisselen of te verwijderen.</p>
+          )}
           {confirmNieuweSuggestie && (
             <ConfirmDialog title="Nieuwe suggesties?" message="Hele menu vervangen door nieuwe suggesties?"
               confirmLabel="Vervang" confirmColor={BRASS}
@@ -7018,8 +7540,12 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
           <button onClick={addSlot} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "none", border: `1px dashed ${BRASS}`, borderRadius: 14, padding: "13px", minHeight: 44, fontSize: 12.5, fontWeight: 700, color: BRASS, cursor: "pointer", marginTop: 10 }}>
             <Plus size={14} /> Extra cocktail toevoegen
           </button>
+      </>
+      )}
 
-          <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16, marginTop: 26 }}>
+      {activeTab === "inkoop" && (
+      <>
+          <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
               <ShoppingCart size={15} color={BRASS} />
               <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Inkooplijst</span>
@@ -7130,8 +7656,12 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
               )
             )}
           </div>
+      </>
+      )}
 
-          <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16, marginTop: 22 }}>
+      {activeTab === "voorbereiding" && (
+      <>
+          <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
               <ClipboardList size={15} color={BRASS} />
               <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Voorbereiding</span>
@@ -7162,8 +7692,17 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                 </div>
               );
             })}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 6, paddingTop: 14, borderTop: `1px solid ${BORDER}` }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: INK }}>Herinnering 2 uur van tevoren</div>
+                {!party.starts_at && <div style={{ fontSize: 11.5, color: MUTED, marginTop: 2 }}>Stel eerst een datum en tijd in.</div>}
+                {reminderError && <div style={{ fontSize: 11.5, color: BURGUNDY, marginTop: 2 }}>{reminderError}</div>}
+              </div>
+              <Switch checked={!!party.reminder_enabled} disabled={!party.starts_at || reminderBusy} onChange={toggleReminder} />
+            </div>
           </div>
       </>
+      )}
 
       {sheetIndex !== null && chosenRecipes[sheetIndex] && (() => {
         const r = chosenRecipes[sheetIndex];
