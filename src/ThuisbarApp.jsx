@@ -109,9 +109,15 @@ const RADIUS = 8;
 // veilige zone (notch/statusbalk) respecteert werkt overal hetzelfde. Waar
 // twee sticky balken boven elkaar staan (Ontdekken: filter-toggle + zoek-
 // of receptbalk) stapelt de tweede op de hoogte van de eerste.
+// De drie sticky-lagen stapelen exact op elkaars ECHTE hoogte (44px per
+// laag, met expliciete `height` + alignItems:"center" op elke balk i.p.v.
+// een hoogte die uit padding+content-grootte moest worden afgeleid) — een
+// eerdere mismatch tussen deze constanten en de werkelijk gerenderde
+// balkhoogte liet onderliggende, scrollende inhoud even doorschijnen in de
+// naad tussen twee sticky balken. Ook meteen compacter dan de vorige 54/108px.
 const STICKY_TOP = "env(safe-area-inset-top)";
-const STICKY_SUBHEADER_TOP = "calc(env(safe-area-inset-top) + 54px)";
-const STICKY_SUB2HEADER_TOP = "calc(env(safe-area-inset-top) + 108px)";
+const STICKY_SUBHEADER_TOP = "calc(env(safe-area-inset-top) + 44px)";
+const STICKY_SUB2HEADER_TOP = "calc(env(safe-area-inset-top) + 88px)";
 
 // Titels voor de vaste navigatiebalk van elk push-scherm (SecondaryTabScreen)
 // — gecentreerd tussen de terugknop en de rand, zoals een echte iOS-navbar.
@@ -4584,15 +4590,15 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           niet terug naar boven om van filter te wisselen of te zoeken. */}
       <div style={{
         position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 7, background: PAPER,
-        display: "flex", gap: 8, padding: "8px 0", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+        display: "flex", alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
       }}>
         <button onClick={() => setMode("alles")} style={{
-          flex: 1, padding: "10px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "alles" ? BOTTLE : BORDER}`,
+          flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "alles" ? BOTTLE : BORDER}`,
           background: mode === "alles" ? BOTTLE : CREAM, color: mode === "alles" ? CREAM : INK,
           fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
         }}>Alle recepten</button>
         <button onClick={() => setMode("kan")} style={{
-          flex: 1, padding: "10px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "kan" ? BOTTLE : BORDER}`,
+          flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "kan" ? BOTTLE : BORDER}`,
           background: mode === "kan" ? BOTTLE : CREAM, color: mode === "kan" ? CREAM : INK,
           fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
         }}>Wat ik kan maken</button>
@@ -5350,7 +5356,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
       {!recipe ? (
         <div style={{
           position: "sticky", top: STICKY_SUB2HEADER_TOP, zIndex: 6, background: PAPER,
-          padding: "8px 0", marginBottom: 16, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+          padding: "6px 0", marginBottom: 16, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         }}>
           <SectionLabel>Kies een cocktail</SectionLabel>
           <div style={{ marginTop: 8 }}>
@@ -5365,7 +5371,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
         <div style={{
           position: "sticky", top: STICKY_SUB2HEADER_TOP, zIndex: 6, background: PAPER,
           display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
-          padding: "10px 0", marginBottom: 16, borderBottom: `1px solid ${BORDER}`,
+          height: 44, boxSizing: "border-box", marginBottom: 16, borderBottom: `1px solid ${BORDER}`,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         }}>
           <button onClick={() => setSelectedId(null)} style={{
@@ -8032,12 +8038,12 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       <div style={{
         position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 6, background: PAPER,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "6px 0", marginBottom: 8, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+        height: 44, boxSizing: "border-box", marginBottom: 8, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
       }}>
-        <button onClick={onGoVrienden} className="press-scale tap-target-44" aria-label="Vrienden" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
+        <button onClick={onGoVrienden} className="press-scale tap-target-44" aria-label="Vrienden" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
           <Users size={17} strokeWidth={1.8} />
         </button>
-        <button onClick={onGoInstellingen} className="press-scale tap-target-44" aria-label="Instellingen" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
+        <button onClick={onGoInstellingen} className="press-scale tap-target-44" aria-label="Instellingen" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
           <Settings size={17} strokeWidth={1.8} />
         </button>
       </div>
