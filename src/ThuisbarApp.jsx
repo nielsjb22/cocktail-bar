@@ -111,6 +111,7 @@ const RADIUS = 8;
 // of receptbalk) stapelt de tweede op de hoogte van de eerste.
 const STICKY_TOP = "env(safe-area-inset-top)";
 const STICKY_SUBHEADER_TOP = "calc(env(safe-area-inset-top) + 54px)";
+const STICKY_SUB2HEADER_TOP = "calc(env(safe-area-inset-top) + 108px)";
 
 // @capacitor/preferences i.p.v. rechtstreeks localStorage: op web valt het
 // plugin zelf terug op localStorage (dus geen gedragsverandering in de
@@ -2339,21 +2340,24 @@ export default function ThuisbarApp() {
     <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
       {!isOnline && <OfflineBanner />}
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
-      {/* signage band */}
-      <div style={{ background: `radial-gradient(ellipse 900px 300px at 15% -40%, #2A4B42, ${BOTTLE_DARK} 70%)`, borderBottom: `3px solid ${BRASS}`, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, rgba(184,134,46,${timeWarmth}), transparent 60%)`, pointerEvents: "none" }} />
-        <div style={{ maxWidth: 960, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 22px) 20px 20px", display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", flexShrink: 0 }}>
-            <Martini color={BRASS} size={26} strokeWidth={1.5} />
-          </div>
-          <div>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS, marginBottom: 2 }}>{profile?.name ? `${greeting}, ${profile.name}` : greeting}</div>
-            <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: 0, letterSpacing: 0.2 }}>Mijn Thuisbar</h1>
+      {/* Signage band: alleen op Home. Andere tabs krijgen een iOS-large-title
+          i.p.v. dit groene blok — zie LargeTitleHeader binnen elke tab. */}
+      {tab === "home" && (
+        <div style={{ background: `radial-gradient(ellipse 900px 300px at 15% -40%, #2A4B42, ${BOTTLE_DARK} 70%)`, borderBottom: `3px solid ${BRASS}`, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, rgba(184,134,46,${timeWarmth}), transparent 60%)`, pointerEvents: "none" }} />
+          <div style={{ maxWidth: 960, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 22px) 20px 20px", display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", flexShrink: 0 }}>
+              <Martini color={BRASS} size={26} strokeWidth={1.5} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS, marginBottom: 2 }}>{profile?.name ? `${greeting}, ${profile.name}` : greeting}</div>
+              <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: 0, letterSpacing: 0.2 }}>Mijn Thuisbar</h1>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: tab === "home" ? "28px 20px calc(env(safe-area-inset-bottom) + 92px)" : "calc(env(safe-area-inset-top) + 6px) 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
         <TabPanel id="home" active={tab === "home"} visited={visitedTabs.has("home")} panelRef={panelRefs}>
           <HomeTab session={session} profile={profile} greeting={greeting} featuredRecipe={featuredRecipe}
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
@@ -2362,7 +2366,7 @@ export default function ThuisbarApp() {
             onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} />
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
-          <OntdekkenTab
+          <OntdekkenTab active={tab === "ontdekken"}
             openRecipeId={pendingRecipeId} onOpenRecipeHandled={() => setPendingRecipeId(null)}
             recommended={checkinInsights.recommended} favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             allIngredients={allIngredients} onOpenRecipe={openRecipeDetail} onSound={chime}
@@ -2381,12 +2385,12 @@ export default function ThuisbarApp() {
           />
         </TabPanel>
         <TabPanel id="bar" active={tab === "bar"} visited={visitedTabs.has("bar")} panelRef={panelRefs}>
-          <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} />
+          <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} active={tab === "bar"} />
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
           <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
             onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto}
-            onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} />
+            onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} />
         </TabPanel>
 
         <TabPanel id="voorraad" active={tab === "voorraad"} visited={visitedTabs.has("voorraad")} panelRef={panelRefs}>
@@ -2657,7 +2661,7 @@ function AccountDeleteScreen({ onDelete, busy, error }) {
 // achter "Meer") in hun eigen tab, gescheiden van de sociale/ontdek-laag —
 // zodat die laatste niet verdrinkt tussen bijvoorbeeld de Cursus en de
 // Feestplanner. Zelfde lijst-stijl als Profiel, alleen andere items.
-function BarTab({ onSelect, shoppingCount }) {
+function BarTab({ onSelect, shoppingCount, active }) {
   const items = [
     { id: "voorraad", label: "Voorraad", icon: Refrigerator },
     { id: "mandje", label: "Winkelmandje", icon: ShoppingCart },
@@ -2669,7 +2673,7 @@ function BarTab({ onSelect, shoppingCount }) {
   ];
   return (
     <div>
-      <SectionLabel>Bar</SectionLabel>
+      <LargeTitleHeader title="Bar" active={active} />
       <p style={{ color: MUTED, fontSize: 14, marginBottom: 20, maxWidth: 560, lineHeight: 1.5 }}>
         Jouw gereedschap voor thuis: voorraad, boodschappen, schalen, leren en plannen.
       </p>
@@ -3200,6 +3204,46 @@ function SectionLabel({ children }) {
     <div style={{ fontFamily: systemFont, fontSize: 20, fontWeight: 700, color: INK, marginBottom: 12 }}>
       {children}
     </div>
+  );
+}
+
+// iOS-achtige "large title": een grote titel die in de normale flow scrollt,
+// met een sentinel eronder die via IntersectionObserver bijhoudt wanneer 'ie
+// achter de statusbalk verdwijnt — pas dan faalt de compacte titelbalk in.
+// Puur CSS "position: sticky" volstaat niet hier (in tegenstelling tot de
+// andere sticky balken in deze app): die zou constant zichtbaar zijn i.p.v.
+// pas verschijnen zodra de grote titel is weggescrolld.
+function LargeTitleHeader({ title, active = true }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const sentinelRef = useRef(null);
+  useEffect(() => {
+    // Andere tabs blijven gemount (display:none) om scrollpositie te bewaren
+    // — zo'n verborgen element heeft geen afmeting meer, dus de observer zou
+    // 'm als "niet zichtbaar" zien en de titel per ongeluk laten inklappen.
+    // Alleen observeren terwijl deze tab echt actief is voorkomt dat.
+    if (!active) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setCollapsed(!entry.isIntersecting), { rootMargin: "-45px 0px 0px 0px" });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [active]);
+  return (
+    <>
+      <div style={{
+        position: "sticky", top: STICKY_TOP, zIndex: 8, background: PAPER,
+        display: "flex", alignItems: "center", justifyContent: "center", height: 44,
+        marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+        borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent",
+        opacity: collapsed ? 1 : 0, pointerEvents: collapsed ? "auto" : "none",
+        transition: "opacity 0.18s ease, border-color 0.18s ease",
+        fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK,
+      }}>
+        {title}
+      </div>
+      <h1 style={{ fontFamily: systemFont, fontWeight: 800, fontSize: 34, color: INK, margin: "6px 0 20px", letterSpacing: -0.4 }}>{title}</h1>
+      <div ref={sentinelRef} style={{ height: 1, marginTop: -1 }} />
+    </>
   );
 }
 
@@ -4461,18 +4505,18 @@ function BrowseSheet({ label, entries, allIngredients, onSelect, onClose }) {
 // ingang is. Geen van beide tabs is intern aangepast — dit is puur een
 // dunne wrapper die ze toont/verbergt, om het risico op regressies klein te
 // houden terwijl de navigatiestructuur wél klopt met het voorstel.
-function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHandled, recommended, favoriteFamily, allIngredients, onOpenRecipe, onSound }) {
+function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHandled, recommended, favoriteFamily, allIngredients, onOpenRecipe, onSound, active }) {
   const [mode, setMode] = useState("alles");
   // Een aanbevolen cocktail van elders in de app (Home, Check-in) moet altijd
   // in de "Alles"-weergave (Recept) opengaan, ongeacht welke modus actief was.
   useEffect(() => { if (openRecipeId) setMode("alles"); }, [openRecipeId]);
   return (
     <div>
-      <SectionLabel>Ontdekken</SectionLabel>
+      <LargeTitleHeader title="Ontdekken" active={active} />
       {/* Sticky: bij een lange lijst (of lang receptdetail eronder) hoef je zo
           niet terug naar boven om van filter te wisselen of te zoeken. */}
       <div style={{
-        position: "sticky", top: STICKY_TOP, zIndex: 7, background: PAPER,
+        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 7, background: PAPER,
         display: "flex", gap: 8, padding: "8px 0", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
       }}>
         <button onClick={() => setMode("alles")} style={{
@@ -5201,7 +5245,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
           twee nooit tegelijk allebei sticky proberen te zijn. */}
       {!recipe ? (
         <div style={{
-          position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 6, background: PAPER,
+          position: "sticky", top: STICKY_SUB2HEADER_TOP, zIndex: 6, background: PAPER,
           padding: "8px 0", marginBottom: 16, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         }}>
           <SectionLabel>Kies een cocktail</SectionLabel>
@@ -5211,7 +5255,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
         </div>
       ) : (
         <div style={{
-          position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 6, background: PAPER,
+          position: "sticky", top: STICKY_SUB2HEADER_TOP, zIndex: 6, background: PAPER,
           display: "flex", alignItems: "center", gap: 10, padding: "10px 0", marginBottom: 16,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         }}>
@@ -7601,7 +7645,7 @@ function CocktailMap({ locations }) {
   );
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen }) {
+function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active }) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -7792,9 +7836,10 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
   return (
     <div>
+      <LargeTitleHeader title="Profiel" active={active} />
       {/* Topbalk: vrienden linksboven, instellingen rechtsboven — net als bij Untappd altijd binnen handbereik vanaf Profiel. Sticky, want de rest van dit tabblad (stats, prestaties, hele logboek) kan lang worden. */}
       <div style={{
-        position: "sticky", top: STICKY_TOP, zIndex: 6, background: PAPER,
+        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 6, background: PAPER,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "6px 0", marginBottom: 8, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
       }}>
