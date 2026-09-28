@@ -4612,10 +4612,16 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           blijft wel sticky, maar dan meteen bovenaan (STICKY_TOP i.p.v.
           STICKY_SUBHEADER_TOP) want er zit nu geen sticky titelbalk meer
           boven die anders die ruimte al innam. */}
+      {/* .glass-light's eigen tint (rgba(250,246,238,...)) week net genoeg af
+          van de paginakleur (PAPER, #F3ECDD) om als een zichtbare andere
+          band op te vallen zodra er niets kleurrijks onder scrolt — hier
+          overschreven naar PAPER's eigen RGB zodat de balk in rust exact
+          samenvalt met de pagina, en alleen tijdens scrollen (over de
+          Aanbevolen-kaarten) echt als glas oplicht. */}
       <div className="glass-light" style={{
         position: "sticky", top: STICKY_TOP, zIndex: 7,
         display: "flex", alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        border: "none", boxShadow: "none",
+        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.72)",
       }}>
         <button onClick={() => setMode("alles")} style={{
           flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "alles" ? BOTTLE : BORDER}`,
