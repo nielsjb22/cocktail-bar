@@ -5357,10 +5357,8 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
 
   return (
     <div>
-      {/* Sticky, gestapeld onder Ontdekken's filter-toggle: bij het browsen
-          blijft zoeken bereikbaar zonder terug te scrollen; bij een geopend
-          recept maakt dezelfde balk plaats voor naam + favoriet, zodat die
-          twee nooit tegelijk allebei sticky proberen te zijn. */}
+      {/* Geen van beide is nog sticky (op verzoek) — scrollen gewoon mee weg
+          met de rest van de inhoud i.p.v. te blijven plakken. */}
       {!recipe ? (
         <div style={{
           padding: "6px 0", marginBottom: 16, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
@@ -5373,12 +5371,10 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
       ) : (
         // Combineert de terugknop (net als SecondaryTabScreen's navigatiebalk:
         // vorige-schermnaam links van de chevron) met naam + favoriet, i.p.v.
-        // een aparte, niet-sticky "Terug naar ontdekken"-link die eerder
-        // verderop in de inhoud meescrolde.
-        <div className="glass-light" style={{
-          position: "sticky", top: STICKY_SUB2HEADER_TOP, zIndex: 6,
+        // een aparte "Terug naar ontdekken"-link.
+        <div style={{
           display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
-          height: 44, boxSizing: "border-box", marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none",
+          height: 44, boxSizing: "border-box", marginBottom: 16, borderBottom: `1px solid ${BORDER}`,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         }}>
           <button onClick={() => setSelectedId(null)} style={{
