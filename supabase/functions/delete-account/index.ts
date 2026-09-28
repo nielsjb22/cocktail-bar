@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
       await admin.from("party_survey_responses").delete().in("survey_id", ids);
       await admin.from("party_surveys").delete().eq("host_user_id", userId);
     }
+    await admin.from("parties").delete().eq("user_id", userId);
     await admin.from("profiles").delete().eq("id", userId);
 
     const { error: delError } = await admin.auth.admin.deleteUser(userId);
