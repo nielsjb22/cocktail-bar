@@ -1163,7 +1163,7 @@ function GuestMenuView({ recipeIds }) {
             <Martini color={BRASS} size={24} strokeWidth={1.5} />
           </div>
           <div>
-            <h1 style={{ fontFamily: serif, fontSize: 24, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: 0 }}>Het menu van vanavond</h1>
+            <h1 style={{ fontFamily: systemFont, fontSize: 24, fontWeight: 700, color: CREAM, margin: 0 }}>Het menu van vanavond</h1>
             <p style={{ margin: "3px 0 0", fontSize: 12, color: "#B9C4B9" }}>Gedeeld vanuit Mijn Thuisbar</p>
           </div>
         </div>
@@ -1192,21 +1192,21 @@ function GuestMenuView({ recipeIds }) {
                 </div>
                 <div style={{ minWidth: 0, paddingTop: 4 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontFamily: serif, fontStyle: "italic", fontSize: 12, color: BRASS }}>No. {String(idx + 1).padStart(2, "0")}</span>
+                    <span style={{ fontFamily: systemFont, fontSize: 12, color: BRASS }}>No. {String(idx + 1).padStart(2, "0")}</span>
                     <span style={{ width: 3, height: 3, borderRadius: "50%", background: roleInfo.gradient[0] }} />
                     <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: MUTED }}>{roleInfo.label}</span>
                   </div>
-                  <h2 style={{ fontFamily: serif, fontSize: 24, fontWeight: 700, fontStyle: "italic", color: INK, margin: "0 0 3px" }}>{r.name}</h2>
+                  <h2 style={{ fontFamily: serif, fontSize: 24, fontWeight: 700, color: INK, margin: "0 0 3px" }}>{r.name}</h2>
                   <div style={{ fontSize: 12.5, color: MUTED }}>{r.family} · {r.glass}</div>
                 </div>
               </div>
 
-              <p style={{ fontFamily: serif, fontStyle: "italic", fontSize: 14, color: INK, margin: "0 0 10px", lineHeight: 1.5, opacity: 0.85 }}>"{getSfeerQuote(r, role)}"</p>
+              <p style={{ fontFamily: systemFont, fontSize: 14, color: INK, margin: "0 0 10px", lineHeight: 1.5, opacity: 0.85 }}>"{getSfeerQuote(r, role)}"</p>
 
               {funFact && (
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 3 }}>Wist je dat</div>
-                  <p style={{ fontFamily: serif, fontSize: 13, color: INK, margin: 0, lineHeight: 1.55, opacity: 0.9 }}>{funFact}</p>
+                  <p style={{ fontFamily: systemFont, fontSize: 13, color: INK, margin: 0, lineHeight: 1.55, opacity: 0.9 }}>{funFact}</p>
                 </div>
               )}
 
@@ -1337,7 +1337,7 @@ function GuestSurveyView({ surveyId }) {
       )}
       <button onClick={onSubmitStep} disabled={submitting} className="press-scale" style={{
         flex: 1, padding: "13px 18px", borderRadius: 14, border: "none",
-        background: `linear-gradient(135deg, ${BOTTLE}, ${BOTTLE_DARK})`,
+        background: BOTTLE_DARK,
         color: CREAM, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
       }}>
         {step < STEPS - 1 ? "Volgende" : submitting ? "Bezig…" : "Versturen"}
@@ -1353,7 +1353,7 @@ function GuestSurveyView({ surveyId }) {
             <Martini color={BRASS} size={24} strokeWidth={1.5} />
           </div>
           <div>
-            <h1 style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: 0 }}>Smaaktest</h1>
+            <h1 style={{ fontFamily: systemFont, fontSize: 22, fontWeight: 700, color: CREAM, margin: 0 }}>Smaaktest</h1>
             <p style={{ margin: "3px 0 0", fontSize: 12, color: "#B9C4B9" }}>{survey?.title ? `Voor ${survey.title}` : "Gedeeld vanuit Mijn Thuisbar"}</p>
           </div>
         </div>
@@ -1367,13 +1367,13 @@ function GuestSurveyView({ surveyId }) {
         ) : submitted ? (
           <div style={{ textAlign: "center", padding: "40px 20px" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🥂</div>
-            <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 20, marginBottom: 8 }}>Bedankt!</div>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, marginBottom: 8 }}>Bedankt!</div>
             <p style={{ color: MUTED, fontSize: 13.5, lineHeight: 1.5, marginBottom: myPersonality ? 22 : 0 }}>Je voorkeuren zijn doorgegeven. De gastheer stelt hiermee het menu samen.</p>
             {myPersonality && (
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: 18, textAlign: "left" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
                   <span style={{ fontSize: 22 }}>{myPersonality.emoji}</span>
-                  <span style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15, color: "#8F6A21" }}>{myPersonality.title}</span>
+                  <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: "#8F6A21" }}>{myPersonality.title}</span>
                 </div>
                 <p style={{ margin: 0, fontSize: 12.5, color: "#5C5548", fontStyle: "italic", lineHeight: 1.5 }}>Jouw type voor vanavond, gebaseerd op wat je net invulde.</p>
               </div>
@@ -1398,7 +1398,7 @@ function GuestSurveyView({ surveyId }) {
                       <button key={key} onClick={() => toggleTag(key)} className="press-scale" style={{
                         display: "flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 100,
                         border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
-                        background: active ? `linear-gradient(135deg, ${BRASS}, #8F6A21)` : CREAM,
+                        background: active ? BRASS : CREAM,
                         color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
                       }}>
                         {meta.emoji} {meta.label}
@@ -1455,7 +1455,7 @@ function GuestSurveyView({ surveyId }) {
                       <button key={opt.key} onClick={() => setFavoriteSpirit(active ? null : opt.key)} className="press-scale" style={{
                         padding: "9px 15px", borderRadius: 100,
                         border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
-                        background: active ? `linear-gradient(135deg, ${BRASS}, #8F6A21)` : CREAM,
+                        background: active ? BRASS : CREAM,
                         color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
                       }}>
                         {opt.label}
@@ -1470,7 +1470,7 @@ function GuestSurveyView({ surveyId }) {
                       const r = RECIPES.find(x => x.id === id);
                       if (!r) return null;
                       return (
-                        <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: `linear-gradient(135deg, ${BRASS}, #8F6A21)`, color: CREAM, borderRadius: 100, padding: "6px 8px 6px 13px", fontSize: 12.5, fontWeight: 600 }}>
+                        <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: BRASS, color: CREAM, borderRadius: 100, padding: "6px 8px 6px 13px", fontSize: 12.5, fontWeight: 600 }}>
                           {r.name}
                           <button onClick={() => removeFavoriteCocktail(id)} aria-label="Verwijderen" style={{ background: "rgba(255,255,255,0.25)", border: "none", borderRadius: "50%", width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: CREAM, padding: 0 }}>
                             <X size={10} strokeWidth={3} />
@@ -1507,7 +1507,7 @@ function GuestSurveyView({ surveyId }) {
                       <button key={key} onClick={() => toggleDietary(key)} className="press-scale" style={{
                         display: "flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 100,
                         border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
-                        background: active ? `linear-gradient(135deg, ${BRASS}, #8F6A21)` : CREAM,
+                        background: active ? BRASS : CREAM,
                         color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
                       }}>
                         {meta.emoji} {meta.label}
@@ -1551,7 +1551,7 @@ function GuestBrowseShell({
             <Martini color={BRASS} size={22} strokeWidth={1.5} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: 0 }}>Mijn Thuisbar</h1>
+            <h1 style={{ fontFamily: systemFont, fontSize: 22, fontWeight: 700, color: CREAM, margin: 0 }}>Mijn Thuisbar</h1>
             <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "#B9C4B9" }}>Bekijken kan zonder account</p>
           </div>
           <button onClick={onGoLogin} className="press-scale" style={{
@@ -1744,18 +1744,18 @@ function AgeGateScreen({ onConfirm }) {
         </div>
         {declined ? (
           <>
-            <h1 style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 22, color: CREAM, margin: "0 0 12px" }}>Helaas</h1>
+            <h1 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: CREAM, margin: "0 0 12px" }}>Helaas</h1>
             <p style={{ color: "#C7CFC5", fontSize: 14, lineHeight: 1.6, margin: 0 }}>Mijn Thuisbar draait om alcoholische dranken en is niet geschikt voor bezoekers onder de 18 jaar.</p>
           </>
         ) : (
           <>
-            <h1 style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 24, color: CREAM, margin: "0 0 12px" }}>Even een check</h1>
+            <h1 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: CREAM, margin: "0 0 12px" }}>Even een check</h1>
             <p style={{ color: "#C7CFC5", fontSize: 14, lineHeight: 1.6, margin: "0 0 26px" }}>
               Mijn Thuisbar draait om cocktails en alcoholische dranken. Ben je 18 jaar of ouder?
             </p>
             <button onClick={onConfirm} className="press-scale" style={{
               width: "100%", padding: "14px 18px", borderRadius: 14, border: "none", marginBottom: 10,
-              background: `linear-gradient(135deg, ${BRASS}, #8F6A21)`, color: CREAM, fontSize: 15, fontWeight: 700, cursor: "pointer",
+              background: BRASS, color: CREAM, fontSize: 15, fontWeight: 700, cursor: "pointer",
             }}>
               Ja, ik ben 18 jaar of ouder
             </button>
@@ -1819,7 +1819,7 @@ function AuthScreen() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 60, height: 60, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", marginBottom: 14 }}>
             <Martini color={BRASS} size={28} strokeWidth={1.5} />
           </div>
-          <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: 0 }}>Mijn Thuisbar</h1>
+          <h1 style={{ fontFamily: systemFont, fontSize: 30, fontWeight: 700, color: CREAM, margin: 0 }}>Mijn Thuisbar</h1>
           <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "#B9C4B9", letterSpacing: 0.6, textTransform: "uppercase", fontWeight: 500 }}>
             {mode === "login" ? "Log in bij je register" : mode === "signup" ? "Maak je eigen register aan" : "Wachtwoord opnieuw instellen"}
           </p>
@@ -1863,7 +1863,7 @@ function AuthScreen() {
           <button type="submit" disabled={busy} style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px",
             borderRadius: RADIUS, border: "none", cursor: busy ? "default" : "pointer",
-            background: `linear-gradient(135deg, ${BRASS}, #D8AF5C)`, color: BOTTLE_DARK,
+            background: BRASS, color: BOTTLE_DARK,
             fontFamily: sans, fontSize: 14.5, fontWeight: 800, marginTop: 4, opacity: busy ? 0.7 : 1,
           }}>
             {busy ? "Bezig…" : mode === "login" ? "Inloggen" : mode === "signup" ? "Account aanmaken" : "Stuur resetlink"}
@@ -1921,7 +1921,7 @@ function PasswordRecoveryScreen({ onDone }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 60, height: 60, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", marginBottom: 14 }}>
             <Lock color={BRASS} size={26} strokeWidth={1.5} />
           </div>
-          <h1 style={{ fontFamily: serif, fontSize: 26, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: 0, textAlign: "center" }}>Nieuw wachtwoord</h1>
+          <h1 style={{ fontFamily: systemFont, fontSize: 26, fontWeight: 700, color: CREAM, margin: 0, textAlign: "center" }}>Nieuw wachtwoord</h1>
         </div>
         <form onSubmit={submit} style={{ background: "rgba(251,247,236,0.06)", border: "1px solid rgba(184,134,46,0.25)", borderRadius: RADIUS + 4, padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
@@ -1934,7 +1934,7 @@ function PasswordRecoveryScreen({ onDone }) {
           <button type="submit" disabled={busy} style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px",
             borderRadius: RADIUS, border: "none", cursor: busy ? "default" : "pointer",
-            background: `linear-gradient(135deg, ${BRASS}, #D8AF5C)`, color: BOTTLE_DARK,
+            background: BRASS, color: BOTTLE_DARK,
             fontFamily: sans, fontSize: 14.5, fontWeight: 800, marginTop: 4, opacity: busy ? 0.7 : 1,
           }}>
             {busy ? "Bezig…" : "Wachtwoord opslaan"}
@@ -2381,7 +2381,7 @@ export default function ThuisbarApp() {
             </div>
             <div>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS, marginBottom: 2 }}>{profile?.name ? `${greeting}, ${profile.name}` : greeting}</div>
-              <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: 0, letterSpacing: 0.2 }}>Mijn Thuisbar</h1>
+              <h1 style={{ fontFamily: systemFont, fontSize: 30, fontWeight: 700, color: CREAM, margin: 0, letterSpacing: 0.2 }}>Mijn Thuisbar</h1>
             </div>
           </div>
         </div>
@@ -2598,7 +2598,7 @@ function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, onNavig
 // ze "Privacybeleid" aantikken.
 function PrivacyPolicyScreen() {
   const P = ({ children }) => <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.65, margin: "0 0 16px" }}>{children}</p>;
-  const H = ({ children }) => <h3 style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 16, color: BOTTLE, margin: "22px 0 8px" }}>{children}</h3>;
+  const H = ({ children }) => <h3 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: BOTTLE, margin: "22px 0 8px" }}>{children}</h3>;
   return (
     <div>
       <SectionLabel>Privacybeleid</SectionLabel>
@@ -2646,7 +2646,7 @@ function PhotoCreditsScreen() {
         <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden" }}>
           {credited.map((e, i) => (
             <div key={`${e.type}:${e.id}`} style={{ padding: "12px 16px", borderBottom: i < credited.length - 1 ? `1px solid ${BORDER}` : "none" }}>
-              <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 14.5, color: INK }}>{e.name}</div>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 14.5, color: INK }}>{e.name}</div>
               <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
                 {e.maker && <>Foto: {e.maker} · </>}{e.licentie}
               </div>
@@ -2968,7 +2968,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
       {featuredRecipe && (
         <div style={{
           borderRadius: RADIUS + 4, marginBottom: 16, position: "relative", overflow: "hidden", boxSizing: "border-box",
-          background: `linear-gradient(135deg, #2C5148, ${BOTTLE_DARK})`, boxShadow: SHADOW_HERO, color: CREAM, fontFamily: sans,
+          background: BOTTLE_DARK, boxShadow: SHADOW_HERO, color: CREAM, fontFamily: sans,
         }}>
           {localItemImageUrl("cocktail", featuredRecipe.id) || featuredRecipe.image ? (
             <>
@@ -2984,7 +2984,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             <div style={{ display: "inline-block", background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 100, padding: "4px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>
               Uitgelicht
             </div>
-            <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 26 }}>{featuredRecipe.name}</div>
+            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26 }}>{featuredRecipe.name}</div>
             <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 4 }}>{featuredRecipe.family} · {featuredRecipe.glass}</div>
           </button>
           <div style={{ position: "relative", margin: "2px 22px 20px", borderLeft: `2px solid ${BRASS}`, paddingLeft: 12, fontSize: 12.5, lineHeight: 1.5, opacity: 0.92 }}>
@@ -3046,7 +3046,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                   {photo ? (
                     <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
                   ) : (
-                    <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${tint[1]}, ${tint[0]})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ position: "absolute", inset: 0, background: BOTTLE_DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {matched ? (
                         <GlassArt glass={matched.glass} colors={tint} garnishes={inferGarnishes(matched, allIngredients)} rim={inferRim(matched, allIngredients)} foam={inferFoam(matched, allIngredients)} iceStyle={inferIceStyle(matched)} size={100} />
                       ) : (
@@ -3061,7 +3061,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                 </div>
 
                 <div style={{ padding: "0 14px 14px" }}>
-                  <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: INK, marginBottom: 2 }}>{entry.name}</div>
+                  <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 2 }}>{entry.name}</div>
                   {matched && <div style={{ fontSize: 11.5, color: MUTED, marginBottom: 9 }}>{matched.family} · {matched.glass}</div>}
                   {entry.notes && <p style={{ margin: "0 0 9px", fontSize: 12.5, color: INK, lineHeight: 1.5 }}>&ldquo;{entry.notes}&rdquo;</p>}
                   {entry.tasteTags.length > 0 && (
@@ -3546,7 +3546,7 @@ function VoorraadTab({ allIngredients, customIngredients, voorraad, voorraadAant
         <img src={voorraadHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
         <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.88), rgba(19,38,34,0.2) 55%, rgba(19,38,34,0.4))` }} />
         <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "16px 20px" }}>
-          <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 26, color: CREAM }}>Voorraad</div>
+          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 26, color: CREAM }}>Voorraad</div>
           <div style={{ fontSize: 12, color: "#D9CBAE", letterSpacing: 0.4, marginTop: 3 }}>Jouw bar, in kaart gebracht</div>
         </div>
       </div>
@@ -3921,7 +3921,7 @@ function SecondaryTabScreen({ label, title, onBack, children }) {
             <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "50%", background: "rgba(184,134,46,0.14)", flexShrink: 0 }}>
               <MoreHorizontal size={18} color={BRASS} strokeWidth={2} />
             </span>
-            <span style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: INK }}>{label}</span>
+            <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: INK }}>{label}</span>
           </div>
           <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 10 }}>
             {[0, 1, 2].map(i => (
@@ -4364,7 +4364,7 @@ function ItemImage({ id, type, photoUrl, size = 50, radius = "50%", tint, filter
   return (
     <div style={{
       width: size, height: size, borderRadius: radius, overflow: "hidden", flexShrink: 0,
-      aspectRatio: "1 / 1", background: tint ? `linear-gradient(150deg, ${tint[1]}, ${tint[0]})` : undefined,
+      aspectRatio: "1 / 1", background: tint ? BOTTLE_DARK : undefined,
     }}>
       <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter }} />
     </div>
@@ -4379,7 +4379,7 @@ function RecipeCircle({ recipe, allIngredients, size = 50 }) {
       <div style={{
         width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
-        background: `linear-gradient(150deg, ${tint[1]}, ${tint[0]})`,
+        background: BOTTLE_DARK,
       }}>
         <GlassArt glass={recipe.glass} colors={tint} garnishes={garnishes} rim={inferRim(recipe, allIngredients)} foam={inferFoam(recipe, allIngredients)} iceStyle={inferIceStyle(recipe)} size={size * 0.62} />
       </div>
@@ -4421,7 +4421,7 @@ function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMi
         <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
           <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={42} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: INK }}>{recipe.name}</div>
+            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 18, color: INK }}>{recipe.name}</div>
             <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{recipe.family} · {recipe.glass}</div>
           </div>
           <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
@@ -4536,7 +4536,7 @@ function BrowseSheet({ label, entries, allIngredients, onSelect, onClose }) {
             }}>
               <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={38} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15, color: INK }}>{recipe.name}</div>
+                <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK }}>{recipe.name}</div>
                 <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>{recipe.family} · {recipe.glass}</div>
               </div>
               <StatusTag missingCount={missing.length} />
@@ -4595,7 +4595,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                   <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
                 </div>
-                <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 13, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
+                <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
                 <div style={{ fontSize: 11, color: MUTED, marginTop: 4, fontWeight: 500 }}>{recipe.family}</div>
               </button>
             ))}
@@ -4738,7 +4738,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
         <img src={makenHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
         <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.88), rgba(19,38,34,0.2) 55%, rgba(19,38,34,0.4))` }} />
         <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "16px 20px" }}>
-          <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 26, color: CREAM }}>Wat kan ik maken</div>
+          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 26, color: CREAM }}>Wat kan ik maken</div>
           <div style={{ fontSize: 12, color: "#D9CBAE", letterSpacing: 0.4, marginTop: 3 }}>Van je voorraad naar je glas</div>
         </div>
       </div>
@@ -4771,7 +4771,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
               <button onClick={verrasMe} disabled={shuffling} style={{
                 gridColumn: "span 2", display: "flex", alignItems: "center", gap: 12, minHeight: 74, padding: "14px 16px",
                 borderRadius: 14, border: "none", cursor: shuffling ? "default" : "pointer", textAlign: "left",
-                background: `linear-gradient(150deg, #2C5148, ${BOTTLE_DARK})`, color: CREAM, boxShadow: SHADOW_CARD,
+                background: BOTTLE_DARK, color: CREAM, boxShadow: SHADOW_CARD,
               }}>
                 <Shuffle size={22} className={shuffling ? "spin-icon" : undefined} />
                 <div>
@@ -4790,7 +4790,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}><Check size={11} strokeWidth={3} color={CREAM} /></span>
                   <div style={{ marginBottom: 8 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} /></div>
-                  <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 13.5, color: INK, textAlign: "center", lineHeight: 1.25 }}>{recipe.name}</div>
+                  <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13.5, color: INK, textAlign: "center", lineHeight: 1.25 }}>{recipe.name}</div>
                   <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>{recipe.family}</div>
                 </button>
               ))}
@@ -4820,7 +4820,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
                       color: CREAM, fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
                     }}>1</span>
                     <div style={{ marginBottom: 8 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} /></div>
-                    <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 13.5, color: INK, textAlign: "center", lineHeight: 1.25 }}>{recipe.name}</div>
+                    <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13.5, color: INK, textAlign: "center", lineHeight: 1.25 }}>{recipe.name}</div>
                     <div style={{ fontSize: 10.5, color: BURGUNDY, marginTop: 2, fontWeight: 600 }}>mist: {ingredientLabel(missing[0])}</div>
                   </button>
                 ))}
@@ -5032,7 +5032,7 @@ function SchalerTab({ recipes, ingredientLabel, allIngredients }) {
           <SectionLabel>Aantal glazen</SectionLabel>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button onClick={() => setServings(Math.max(1, servings - 1))} style={{ width: 32, height: 32, borderRadius: 3, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>−</button>
-            <div style={{ width: 30, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: serif, color: BOTTLE }}>{servings}</div>
+            <div style={{ width: 30, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE }}>{servings}</div>
             <button onClick={() => setServings(Math.min(24, servings + 1))} style={{ width: 32, height: 32, borderRadius: 3, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>+</button>
           </div>
         </div>
@@ -5042,7 +5042,7 @@ function SchalerTab({ recipes, ingredientLabel, allIngredients }) {
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
           <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
           <div>
-            <h3 style={{ margin: 0, fontFamily: serif, fontStyle: "italic", color: INK, fontSize: 21, fontWeight: 700 }}>{recipe.name}</h3>
+            <h3 style={{ margin: 0, fontFamily: serif, color: INK, fontSize: 21, fontWeight: 700 }}>{recipe.name}</h3>
             <p style={{ margin: "2px 0 0", fontSize: 12.5, color: MUTED, letterSpacing: 0.3 }}>{recipe.family} · {recipe.glass}</p>
           </div>
         </div>
@@ -5051,7 +5051,7 @@ function SchalerTab({ recipes, ingredientLabel, allIngredients }) {
           return (
             <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderTop: idx === 0 ? "none" : `1px dotted ${BORDER}`, fontSize: 15 }}>
               <span style={{ color: INK }}>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
-              <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: serif }}>{scaled} {unitLabel(ing.unit, scaled)}</span>
+              <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{scaled} {unitLabel(ing.unit, scaled)}</span>
             </div>
           );
         })}
@@ -5148,11 +5148,11 @@ function WinkelmandjeTab({ shoppingList, recipes, isOwned, allIngredients, onRem
               <div style={{ flex: 1, minWidth: 0 }}>
                 {item.id && SHOP_LINKS[item.id] ? (
                   <button onClick={() => Browser.open({ url: SHOP_LINKS[item.id] })} title="Bekijk op drankdozijn.nl, goedkoopste eerst"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: serif, fontWeight: 700, color: BOTTLE, fontSize: 16, textDecoration: "none", borderBottom: `1px dotted ${BOTTLE}` }}>
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont, fontWeight: 700, color: BOTTLE, fontSize: 16, textDecoration: "none", borderBottom: `1px dotted ${BOTTLE}` }}>
                     {item.label} <ExternalLink size={13} style={{ flexShrink: 0 }} />
                   </button>
                 ) : (
-                  <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 16 }}>{item.label}</div>
+                  <div style={{ fontFamily: systemFont, fontWeight: 700, color: INK, fontSize: 16 }}>{item.label}</div>
                 )}
                 {item.priceLabel && <div style={{ fontSize: 12.5, color: BOTTLE, fontWeight: 600, marginTop: 3 }}>{item.priceLabel}</div>}
                 {item.recipes && item.recipes.length > 0 && (
@@ -5180,8 +5180,8 @@ function WinkelmandjeTab({ shoppingList, recipes, isOwned, allIngredients, onRem
       </div>
       {totalCost > 0 && (
         <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 2px 4px", fontSize: 16 }}>
-          <span style={{ fontFamily: serif, fontWeight: 700, color: INK }}>Geschatte totaal</span>
-          <span style={{ fontFamily: serif, fontWeight: 700, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></span>
+          <span style={{ fontFamily: systemFont, fontWeight: 700, color: INK }}>Geschatte totaal</span>
+          <span style={{ fontFamily: systemFont, fontWeight: 700, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></span>
         </div>
       )}
       <p style={{ fontSize: 12, color: MUTED, margin: "4px 0 0", lineHeight: 1.5 }}>
@@ -5336,13 +5336,13 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             <button onClick={() => selectRecipe(featured.recipe.id)} style={{
               width: "100%", textAlign: "left", border: "none", cursor: "pointer", borderRadius: RADIUS + 4,
               padding: "20px 22px", marginBottom: 24, position: "relative", overflow: "hidden", boxSizing: "border-box",
-              background: `linear-gradient(135deg, ${MENU_ROLES[getMenuRole(featured.recipe)].gradient[0]}, ${MENU_ROLES[getMenuRole(featured.recipe)].gradient[1]})`,
+              background: BOTTLE_DARK,
               boxShadow: SHADOW_HERO, color: CREAM, fontFamily: sans,
             }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 100, padding: "4px 12px", fontSize: 11.5, fontWeight: 700, marginBottom: 12 }}>
                 {featured.badge}
               </div>
-              <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 26, marginBottom: 4 }}>{featured.recipe.name}</div>
+              <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26, marginBottom: 4 }}>{featured.recipe.name}</div>
               <div style={{ fontSize: 12.5, opacity: 0.85, marginBottom: 10 }}>{featured.recipe.family} · {featured.recipe.glass}</div>
               <div style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.92, maxWidth: 420 }}>{featured.reason}</div>
             </button>
@@ -5375,7 +5375,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                     padding: "12px 8px 10px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", fontFamily: sans,
                   }}>
                     <div style={{ marginBottom: 8 }}><RecipeCircle recipe={r} allIngredients={allIngredients} /></div>
-                    <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 13, color: INK, textAlign: "center" }}>{r.name}</div>
+                    <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: INK, textAlign: "center" }}>{r.name}</div>
                   </button>
                 ))}
               </div>
@@ -5384,7 +5384,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
 
           <button onClick={verrasMe} style={{
             display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", border: "none", cursor: "pointer",
-            borderRadius: 16, padding: "16px 18px", marginBottom: 24, background: `linear-gradient(150deg, #2C5148, ${BOTTLE_DARK})`,
+            borderRadius: 16, padding: "16px 18px", marginBottom: 24, background: BOTTLE_DARK,
             color: CREAM, boxShadow: SHADOW_CARD, fontFamily: sans, boxSizing: "border-box",
           }}>
             <Shuffle size={22} />
@@ -5407,7 +5407,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
           {(() => { const heroPhoto = localItemImageUrl("cocktail", recipe.id) || recipe.image; return (
           <div style={{
             borderRadius: RADIUS + 4, padding: heroPhoto ? "0" : "26px 26px", marginBottom: 24, position: "relative", overflow: "hidden",
-            background: heroPhoto ? INK : `linear-gradient(135deg, ${roleInfo.gradient[0]}, ${roleInfo.gradient[1]})`, boxShadow: SHADOW_HERO,
+            background: heroPhoto ? INK : BOTTLE_DARK, boxShadow: SHADOW_HERO,
             minHeight: heroPhoto ? 240 : undefined,
             display: "flex", alignItems: heroPhoto ? "flex-end" : "center", gap: 20, flexWrap: "wrap"
           }}>
@@ -5431,9 +5431,9 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             </button>
             <div style={{ flex: "1 1 260px", position: "relative", zIndex: 1, padding: heroPhoto ? "26px" : 0 }}>
               <div className="hero-text-in" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.75)", marginBottom: 8, animationDelay: "0.1s" }}>{roleInfo.label}</div>
-              <h2 className="hero-text-in" style={{ fontFamily: serif, fontSize: 34, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: "0 0 6px", animationDelay: "0.18s" }}>{recipe.name}</h2>
+              <h2 className="hero-text-in" style={{ fontFamily: serif, fontSize: 34, fontWeight: 700, color: CREAM, margin: "0 0 6px", animationDelay: "0.18s" }}>{recipe.name}</h2>
               <div className="hero-text-in" style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginBottom: 16, animationDelay: "0.26s" }}>{recipe.family} · {recipe.glass}</div>
-              <p className="hero-text-in" style={{ fontFamily: serif, fontStyle: "italic", fontSize: 15.5, color: CREAM, margin: 0, lineHeight: 1.5, animationDelay: "0.36s" }}>"{getSfeerQuote(recipe, role)}"</p>
+              <p className="hero-text-in" style={{ fontFamily: systemFont, fontSize: 15.5, color: CREAM, margin: 0, lineHeight: 1.5, animationDelay: "0.36s" }}>"{getSfeerQuote(recipe, role)}"</p>
             </div>
             {!heroPhoto && (
               <div className="glass-bounce-in" style={{ position: "relative", zIndex: 1, margin: "0 auto" }}>
@@ -5445,7 +5445,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
 
           <div style={{ marginBottom: 24 }}>
             <SectionLabel>Het verhaal</SectionLabel>
-            <p style={{ fontFamily: serif, fontSize: 15.5, color: INK, lineHeight: 1.75, margin: 0, maxWidth: 640 }}>{story}</p>
+            <p style={{ fontFamily: systemFont, fontSize: 15.5, color: INK, lineHeight: 1.75, margin: 0, maxWidth: 640 }}>{story}</p>
           </div>
 
           {techniques.length > 0 && (
@@ -5490,7 +5490,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               <span style={{ fontSize: 12, color: MUTED }}>Aantal glazen</span>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <button onClick={() => setServings(s => Math.max(1, s - 1))} style={{ width: 26, height: 26, borderRadius: 3, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>−</button>
-                <div style={{ width: 20, textAlign: "center", fontWeight: 700, fontSize: 14.5, fontFamily: serif, color: BOTTLE }}>{servings}</div>
+                <div style={{ width: 20, textAlign: "center", fontWeight: 700, fontSize: 14.5, fontFamily: systemFont, color: BOTTLE }}>{servings}</div>
                 <button onClick={() => setServings(s => Math.min(24, s + 1))} style={{ width: 26, height: 26, borderRadius: 3, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>+</button>
               </div>
             </div>
@@ -5501,7 +5501,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               return (
                 <li key={i} className="ingredient-reveal" style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none", animationDelay: `${0.44 + Math.min(i, 8) * 0.05}s` }}>
                   <span>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
-                  <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: serif }}>{scaled} {unitLabel(ing.unit, scaled)}</span>
+                  <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{scaled} {unitLabel(ing.unit, scaled)}</span>
                 </li>
               );
             })}
@@ -5568,14 +5568,14 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                   <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
                     <div style={{
                       width: 26, height: 26, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: PAPER,
-                      color: BOTTLE, fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 12,
+                      color: BOTTLE, fontFamily: systemFont, fontWeight: 700, fontSize: 12,
                       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>{i + 1}</div>
                     {(i < steps.length - 1 || recipe.garnish) && <div style={{ flex: 1, width: 1, background: BORDER, marginTop: 4 }} />}
                   </div>
                   <div style={{ paddingTop: 2 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED, marginBottom: 3 }}>Stap {i + 1} van {steps.length}</div>
-                    <p style={{ fontFamily: serif, fontSize: 15, lineHeight: 1.55, color: INK, margin: 0 }}>{highlightIngredientMentions(scaleStepText(step, servings), recipe, allIngredients)}</p>
+                    <p style={{ fontFamily: systemFont, fontSize: 15, lineHeight: 1.55, color: INK, margin: 0 }}>{highlightIngredientMentions(scaleStepText(step, servings), recipe, allIngredients)}</p>
                   </div>
                 </div>
               ))}
@@ -5584,13 +5584,13 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                   <div style={{ flex: "0 0 auto" }}>
                     <div style={{
                       width: 26, height: 26, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: BRASS,
-                      color: CREAM, fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 12,
+                      color: CREAM, fontFamily: systemFont, fontWeight: 700, fontSize: 12,
                       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>✓</div>
                   </div>
                   <div style={{ paddingTop: 2 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: BRASS, marginBottom: 3 }}>Afwerking</div>
-                    <p style={{ fontFamily: serif, fontSize: 15, lineHeight: 1.55, color: INK, margin: 0 }}>{highlightIngredientMentions(scaleStepText(recipe.garnish, servings), recipe, allIngredients)}</p>
+                    <p style={{ fontFamily: systemFont, fontSize: 15, lineHeight: 1.55, color: INK, margin: 0 }}>{highlightIngredientMentions(scaleStepText(recipe.garnish, servings), recipe, allIngredients)}</p>
                   </div>
                 </div>
               )}
@@ -5611,7 +5611,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
 }
 
 function LessonBlock({ block }) {
-  if (block.type === "h3") return <h3 style={{ fontFamily: serif, fontSize: 16.5, color: BOTTLE, margin: "20px 0 8px" }}>{block.text}</h3>;
+  if (block.type === "h3") return <h3 style={{ fontFamily: systemFont, fontSize: 16.5, color: BOTTLE, margin: "20px 0 8px" }}>{block.text}</h3>;
   if (block.type === "p") return <p style={{ fontSize: 14.5, color: INK, lineHeight: 1.7, margin: "0 0 12px" }}>{block.text}</p>;
   if (block.type === "table") {
     return (
@@ -5659,7 +5659,7 @@ function QuizBlock({ quiz, onFinish }) {
     <div style={{ marginTop: 8 }}>
       {quiz.map((q, i) => (
         <div key={i} style={{ marginBottom: 22 }}>
-          <p style={{ fontWeight: 700, fontFamily: serif, fontSize: 15, color: INK, margin: "0 0 10px" }}>{i + 1}. {q.q}</p>
+          <p style={{ fontWeight: 700, fontFamily: systemFont, fontSize: 15, color: INK, margin: "0 0 10px" }}>{i + 1}. {q.q}</p>
           {q.options.map((opt, oi) => {
             const isSelected = answers[i] === oi;
             const isCorrect = oi === q.correct;
@@ -5700,7 +5700,7 @@ function QuizBlock({ quiz, onFinish }) {
             display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: RADIUS,
             background: passed ? "rgba(92,122,82,0.14)" : "rgba(122,46,42,0.08)", border: `1px solid ${passed ? SAGE : BURGUNDY}`,
           }}>
-            <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 16, color: passed ? SAGE : BURGUNDY }}>{score}/{quiz.length}</span>
+            <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: passed ? SAGE : BURGUNDY }}>{score}/{quiz.length}</span>
             <span style={{ fontSize: 12.5, color: INK }}>{passed ? "Geslaagd, mooi gedaan!" : "Nog niet geslaagd, probeer het nog eens."}</span>
           </div>
           <button onClick={retry} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${MUTED}`, color: MUTED, borderRadius: RADIUS, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
@@ -5736,7 +5736,7 @@ function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLe
           Les {lesson.number} &middot; {COURSE_PARTS.find(p => p.id === lesson.part)?.title}
         </div>
       )}
-      <h2 style={{ fontFamily: serif, fontSize: 27, fontWeight: 700, fontStyle: "italic", color: INK, margin: "0 0 14px" }}>{lesson.title}</h2>
+      <h2 style={{ fontFamily: systemFont, fontSize: 27, fontWeight: 700, color: INK, margin: "0 0 14px" }}>{lesson.title}</h2>
       <p style={{ fontStyle: "italic", color: MUTED, fontSize: 14, borderLeft: `3px solid ${BRASS}`, paddingLeft: 14, margin: "0 0 22px", lineHeight: 1.55 }}>{lesson.intro}</p>
 
       {lesson.blocks.map((b, i) => <LessonBlock key={i} block={b} />)}
@@ -5784,7 +5784,7 @@ function FinalExamView({ progress, onBack, onComplete }) {
       </button>
 
       <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: BRASS, marginBottom: 6 }}>Eindtoets</div>
-      <h2 style={{ fontFamily: serif, fontSize: 27, fontWeight: 700, fontStyle: "italic", color: INK, margin: "0 0 14px" }}>Van Basis tot Pro</h2>
+      <h2 style={{ fontFamily: systemFont, fontSize: 27, fontWeight: 700, color: INK, margin: "0 0 14px" }}>Van Basis tot Pro</h2>
       <p style={{ fontStyle: "italic", color: MUTED, fontSize: 14, borderLeft: `3px solid ${BRASS}`, paddingLeft: 14, margin: "0 0 22px", lineHeight: 1.55 }}>
         30 vragen, verspreid over alle zes delen: geschiedenis tot en met geavanceerde technieken. Dit is dezelfde stof als de lessen, maar door elkaar en net iets anders gevraagd, om te checken of de kennis ook echt beklijft.
       </p>
@@ -5881,7 +5881,7 @@ function CursusTab({ progress, setProgress, onSound }) {
         <div style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS, marginBottom: 4 }}>
           Niveau {courseInsights.level.level}
         </div>
-        <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 22, color: CREAM, marginBottom: 10 }}>
+        <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: CREAM, marginBottom: 10 }}>
           {courseInsights.level.title}
         </div>
         <div style={{ height: 8, background: "rgba(255,255,255,0.18)", borderRadius: 4, overflow: "hidden" }}>
@@ -5902,7 +5902,7 @@ function CursusTab({ progress, setProgress, onSound }) {
             }}>
               <div style={{
                 position: "relative", width: 52, height: 52, borderRadius: "50%",
-                background: b.unlocked ? `linear-gradient(150deg, #2C5148, ${BOTTLE_DARK})` : PAPER_DEEP,
+                background: b.unlocked ? BOTTLE_DARK : PAPER_DEEP,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 boxShadow: b.unlocked ? SHADOW_CARD : "none",
                 border: b.unlocked ? `2px solid ${BRASS}` : `1.5px dashed ${BORDER}`,
@@ -5935,7 +5935,7 @@ function CursusTab({ progress, setProgress, onSound }) {
       <div style={{ marginBottom: 24, padding: "16px 18px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Jouw voortgang</span>
-          <span style={{ fontSize: 13, color: INK, fontWeight: 700, fontFamily: serif }}><AnimatedNumber value={completedCount} /> / {totalLessons} lessen</span>
+          <span style={{ fontSize: 13, color: INK, fontWeight: 700, fontFamily: systemFont }}><AnimatedNumber value={completedCount} /> / {totalLessons} lessen</span>
         </div>
         <div style={{ height: 8, background: BORDER, borderRadius: 4, overflow: "hidden" }}>
           <div style={{ width: `${(completedCount / totalLessons) * 100}%`, height: "100%", background: BOTTLE, transition: "width 0.3s ease" }} />
@@ -5961,10 +5961,10 @@ function CursusTab({ progress, setProgress, onSound }) {
                       width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                       background: p?.completed ? SAGE : "transparent", border: `1.5px solid ${p?.completed ? SAGE : BORDER}`,
                     }}>
-                      {p?.completed ? <Check size={14} color="#FBF6EA" strokeWidth={3} /> : <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, fontFamily: serif }}>{l.number}</span>}
+                      {p?.completed ? <Check size={14} color="#FBF6EA" strokeWidth={3} /> : <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, fontFamily: systemFont }}>{l.number}</span>}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 15.5 }}>{l.title}</div>
+                      <div style={{ fontFamily: systemFont, fontWeight: 700, color: INK, fontSize: 15.5 }}>{l.title}</div>
                       {p && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>Beste score: {p.bestScore}/{p.total}</div>}
                     </div>
                   </div>
@@ -5979,14 +5979,14 @@ function CursusTab({ progress, setProgress, onSound }) {
 
       <div style={{
         marginTop: 10, padding: "20px 22px", borderRadius: RADIUS + 2, boxShadow: SHADOW_HERO,
-        background: `linear-gradient(135deg, ${BOTTLE}, #8A6A2F)`, position: "relative", overflow: "hidden",
+        background: BOTTLE, position: "relative", overflow: "hidden",
       }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 400px 200px at 100% 0%, rgba(255,255,255,0.14), transparent 60%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.75)", marginBottom: 6 }}>
             {allLessonsDone ? "Alle lessen voltooid" : `${totalLessons - completedCount} les${totalLessons - completedCount === 1 ? "" : "sen"} nog te gaan`}
           </div>
-          <h3 style={{ fontFamily: serif, fontSize: 21, fontWeight: 700, fontStyle: "italic", color: CREAM, margin: "0 0 8px" }}>Eindtoets: Van Basis tot Pro</h3>
+          <h3 style={{ fontFamily: systemFont, fontSize: 21, fontWeight: 700, color: CREAM, margin: "0 0 8px" }}>Eindtoets: Van Basis tot Pro</h3>
           <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.9)", margin: "0 0 16px", lineHeight: 1.5, maxWidth: 480 }}>
             30 vragen door elkaar over alle zes delen. {examProgress?.completed ? `Beste score: ${examProgress.bestScore}/${examProgress.total}.` : "Mag altijd, ook als je nog niet alle lessen hebt afgerond."}
           </p>
@@ -6339,7 +6339,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
 
   const toBuy = rows.filter(r => !r.owned && r.cost > 0);
   const stepperBtn = { width: 32, height: 32, borderRadius: 3, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" };
-  const stepperValue = { width: 30, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: serif, color: BOTTLE };
+  const stepperValue = { width: 30, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE };
 
   // Voorbereiding: glaswerk, garnering en welke cocktails vooraf te batchen zijn
   const prep = useMemo(() => {
@@ -6374,7 +6374,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
         <img src={feestHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
         <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.88), rgba(19,38,34,0.2) 55%, rgba(19,38,34,0.4))` }} />
         <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "16px 20px" }}>
-          <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 26, color: CREAM }}>Feestplanner</div>
+          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 26, color: CREAM }}>Feestplanner</div>
           <div style={{ fontSize: 12, color: "#D9CBAE", letterSpacing: 0.4, marginTop: 3 }}>Alles klaar voor als de gasten arriveren</div>
         </div>
       </div>
@@ -6400,15 +6400,15 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
         </div>
         <div style={{ display: "flex", gap: 10, paddingTop: 12, borderTop: `1px dashed ${BORDER}` }}>
           <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 21, color: BOTTLE }}>{totalDrinks}</div>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}>{totalDrinks}</div>
             <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>drankjes totaal</div>
           </div>
           <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></div>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></div>
             <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>geschatte inkoop</div>
           </div>
           <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 21, color: BOTTLE }}>{chosenRecipes.length}</div>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}>{chosenRecipes.length}</div>
             <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>cocktails</div>
           </div>
         </div>
@@ -6465,7 +6465,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                   <div style={{ display: "flex", alignItems: "center", gap: 12, background: PAPER, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "12px 14px", marginBottom: 16 }}>
                     <span style={{ fontSize: 26, flexShrink: 0 }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].emoji}</span>
                     <div>
-                      <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 14.5, color: INK }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].title}</div>
+                      <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 14.5, color: INK }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].title}</div>
                       <div style={{ fontSize: 12, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].text}</div>
                     </div>
                   </div>
@@ -6567,7 +6567,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                             <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} />
                           </div>
-                          <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 12.5, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
+                          <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 12.5, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
                           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 3, marginTop: 5, minHeight: 15 }}>
                             {mentioned && <span style={{ fontSize: 8.5, color: BRASS, fontWeight: 700, border: `1px solid ${BRASS}`, borderRadius: 100, padding: "1px 5px" }}>genoemd</span>}
                             {spiritMatch && <span style={{ fontSize: 8.5, color: SAGE, fontWeight: 700, border: `1px solid ${SAGE}`, borderRadius: 100, padding: "1px 5px" }}>favoriet</span>}
@@ -6662,7 +6662,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                     <button onClick={() => setSheetIndex(i)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: 0, fontFamily: sans }}>
                       <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
+                        <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                           <StatusTag missingCount={missing.length} />
                           <span style={{ fontSize: 11, color: MUTED, flexShrink: 0 }}>· {perRecipeCounts[i]} glazen</span>
@@ -6707,8 +6707,8 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 2px", marginTop: 4, borderTop: `1px solid ${BORDER}`, fontSize: 15 }}>
-              <span style={{ fontFamily: serif, fontWeight: 700, color: INK }}>Geschatte inkoop</span>
-              <span style={{ fontFamily: serif, fontWeight: 700, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></span>
+              <span style={{ fontFamily: systemFont, fontWeight: 700, color: INK }}>Geschatte inkoop</span>
+              <span style={{ fontFamily: systemFont, fontWeight: 700, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></span>
             </div>
             <p style={{ fontSize: 11.5, color: MUTED, margin: "6px 0 14px", lineHeight: 1.5 }}>
               Richtprijzen o.b.v. drankdozijn.nl ({PRICES_UPDATED}), geen live koppeling, zie dit als indicatie, niet als actuele winkelprijs. Wat je al in voorraad hebt, telt mee volgens het aantal flessen dat je bij Voorraad instelt. Is dat te weinig voor dit feest, dan berekent de app hoeveel je moet bijkopen.
@@ -6957,7 +6957,7 @@ function SmaakbalansTab({ recipes, isOwned, allIngredients, menu, setMenu, onUse
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, color: INK, fontSize: 15.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
+                    <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 15.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
                     <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{r.family} · {r.glass}</div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -7940,7 +7940,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             </div>
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: INK }}>{profile?.name || "Jouw logboek"}</span>
+              <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK }}>{profile?.name || "Jouw logboek"}</span>
               <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, color: "#8F6A21", background: "rgba(184,134,46,0.14)", border: "1px solid rgba(184,134,46,0.35)", borderRadius: 100, padding: "2.5px 7px", flexShrink: 0 }}>NIV. {insights.level.level}</span>
               <button onClick={startEditName} className="press-scale tap-target-44" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", border: `1px solid ${BORDER}`, background: "none", color: MUTED, cursor: "pointer", flexShrink: 0 }}>
                 <Pencil size={11} />
@@ -7955,19 +7955,19 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
         <>
           <div style={{ display: "flex", alignItems: "center", padding: "0 2px", marginBottom: 14 }}>
             <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={stats.total} /></div>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={stats.total} /></div>
               <div style={{ fontSize: 11, color: "#5C5548", marginTop: 2 }}>check-ins</div>
             </div>
             <div style={{ width: 1, height: 28, background: BORDER }} />
             <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={stats.uniques} /></div>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={stats.uniques} /></div>
               <div style={{ fontSize: 11, color: "#5C5548", marginTop: 2 }}>unieke cocktails</div>
             </div>
             <div style={{ width: 1, height: 28, background: BORDER }} />
             <div style={{ flex: 1, textAlign: "center" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
                 <Star size={12} fill={BRASS} color={BRASS} />
-                <span style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 21, color: BOTTLE }}>{stats.avg.toFixed(1)}</span>
+                <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}>{stats.avg.toFixed(1)}</span>
               </div>
               <div style={{ fontSize: 11, color: "#5C5548", marginTop: 2 }}>gem. beoordeling</div>
             </div>
@@ -7988,14 +7988,14 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
           {heroImage ? (
             <img src={heroImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
           ) : (
-            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${heroTint[1]}, ${heroTint[0]})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "absolute", inset: 0, background: BOTTLE_DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {heroMatched && <GlassArt glass={heroMatched.glass} colors={heroTint} garnishes={inferGarnishes(heroMatched, allIngredients)} rim={inferRim(heroMatched, allIngredients)} foam={inferFoam(heroMatched, allIngredients)} iceStyle={inferIceStyle(heroMatched)} size={150} />}
             </div>
           )}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0.05) 0%, rgba(19,38,34,0.18) 45%, rgba(15,26,23,0.94) 100%)" }} />
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "20px 20px 22px" }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "#D8AE5E", marginBottom: 7 }}>Laatste check-in</div>
-            <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 28, color: CREAM, lineHeight: 1.1, marginBottom: 9 }}>{heroEntry.name}</div>
+            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 28, color: CREAM, lineHeight: 1.1, marginBottom: 9 }}>{heroEntry.name}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <div style={{ display: "flex", gap: 2 }}>
                 {[1, 2, 3, 4, 5].map(n => <Star key={n} size={12} fill={n <= heroEntry.rating ? "#D8AE5E" : "none"} color={n <= heroEntry.rating ? "#D8AE5E" : "rgba(251,246,234,0.4)"} />)}
@@ -8007,12 +8007,12 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(251,246,234,0.5)" }} />
               <span style={{ fontSize: 12, color: "rgba(251,246,234,0.82)", fontWeight: 500 }}>{heroEntry.date}</span>
             </div>
-            {heroEntry.notes && <p style={{ margin: "10px 0 0", fontFamily: serif, fontStyle: "italic", fontSize: 13.5, color: "rgba(251,246,234,0.88)", lineHeight: 1.5, maxWidth: 300 }}>&ldquo;{heroEntry.notes}&rdquo;</p>}
+            {heroEntry.notes && <p style={{ margin: "10px 0 0", fontFamily: systemFont, fontSize: 13.5, color: "rgba(251,246,234,0.88)", lineHeight: 1.5, maxWidth: 300 }}>&ldquo;{heroEntry.notes}&rdquo;</p>}
           </div>
         </div>
       ) : (
         <div style={{ borderRadius: 20, border: `1px dashed ${BORDER}`, padding: "30px 20px", textAlign: "center", marginBottom: 20 }}>
-          <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: INK, marginBottom: 4 }}>Nog geen check-ins</div>
+          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 4 }}>Nog geen check-ins</div>
           <p style={{ margin: 0, fontSize: 13, color: MUTED }}>Log je eerste cocktail hieronder — dit wordt jouw eigen barlogboek.</p>
         </div>
       )}
@@ -8026,7 +8026,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
         <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(184,134,46,0.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <Plus size={13} color={BRASS} strokeWidth={2.4} />
         </span>
-        <span style={{ fontFamily: serif, fontStyle: "italic", fontSize: 14.5, color: MUTED, flex: 1, textAlign: "left" }}>Cocktail inchecken</span>
+        <span style={{ fontFamily: systemFont, fontSize: 14.5, color: MUTED, flex: 1, textAlign: "left" }}>Cocktail inchecken</span>
         <ChevronRight size={14} color="#ABA18F" />
       </button>
 
@@ -8034,7 +8034,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
         <div style={{ marginBottom: 24 }}>
           <SectionLabel>Jouw smaak</SectionLabel>
           {insights.personality && (
-            <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 19, color: INK, lineHeight: 1.3, marginBottom: 8 }}>{insights.personality.emoji} {insights.personality.title}</div>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK, lineHeight: 1.3, marginBottom: 8 }}>{insights.personality.emoji} {insights.personality.title}</div>
           )}
           {insights.personality && <p style={{ margin: "0 0 18px", fontSize: 13.5, color: "#5C5548", lineHeight: 1.55 }}>{insights.personality.text}</p>}
           <div style={{ display: "flex", alignItems: "flex-end", gap: 18, height: 52, padding: "0 2px" }}>
@@ -8065,7 +8065,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               return (
                 <button key={entry.id} onClick={() => scrollToEntry(entry.id)} style={{
                   position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", padding: 0, cursor: "pointer", borderRadius: corner,
-                  background: img ? "none" : `linear-gradient(150deg, ${tint[1]}, ${tint[0]})`,
+                  background: img ? "none" : BOTTLE_DARK,
                 }}>
                   {img ? (
                     <img src={img} alt={entry.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER, display: "block" }} />
@@ -8098,7 +8098,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                 }}>
                   <div style={{
                     position: "relative", width: 58, height: 58, borderRadius: "50%",
-                    background: a.unlocked ? `linear-gradient(150deg, #2C5148, ${BOTTLE_DARK})` : PAPER_DEEP,
+                    background: a.unlocked ? BOTTLE_DARK : PAPER_DEEP,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     boxShadow: a.unlocked ? SHADOW_CARD : "none",
                     border: a.unlocked ? `2px solid ${BRASS}` : `1.5px dashed ${BORDER}`,
@@ -8146,7 +8146,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               { value: insights.streak, label: "Langste streak (dagen)" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: BOTTLE }}>{s.value}</div>
+                <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: BOTTLE }}>{s.value}</div>
                 <div style={{ fontSize: 11.5, color: "#5C5548", marginTop: 3, lineHeight: 1.3, fontWeight: 500 }}>{s.label}</div>
               </div>
             ))}
@@ -8188,25 +8188,25 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             {insights.favoriteCocktail && (
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid #7A2E2A`, borderRadius: 14, padding: "13px 14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><span style={{ fontSize: 14 }}>❤️</span> Favoriete cocktail</div>
-                <div style={{ marginTop: 4, fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteCocktail.name}</div>
+                <div style={{ marginTop: 4, fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteCocktail.name}</div>
               </div>
             )}
             {insights.favoriteHomemade && (
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${SAGE}`, borderRadius: 14, padding: "13px 14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><span style={{ fontSize: 14 }}>🏠</span> Favoriet eigen recept</div>
-                <div style={{ marginTop: 4, fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteHomemade.name}</div>
+                <div style={{ marginTop: 4, fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteHomemade.name}</div>
               </div>
             )}
             {insights.favoriteFamilyEntry && (
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${BRASS}`, borderRadius: 14, padding: "13px 14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><span style={{ fontSize: 14 }}>🍸</span> Favoriete stijl</div>
-                <div style={{ marginTop: 4, fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteFamilyEntry[0]}</div>
+                <div style={{ marginTop: 4, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteFamilyEntry[0]}</div>
               </div>
             )}
             {insights.favoriteSpiritEntry && (
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${MUTED}`, borderRadius: 14, padding: "13px 14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><span style={{ fontSize: 14 }}>🥃</span> Favoriete drank</div>
-                <div style={{ marginTop: 4, fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteSpiritEntry[0]}</div>
+                <div style={{ marginTop: 4, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteSpiritEntry[0]}</div>
               </div>
             )}
           </div>
@@ -8224,7 +8224,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                   <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
                 </div>
-                <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 13, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
+                <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
                 <div style={{ fontSize: 11, color: "#5C5548", marginTop: 4, fontWeight: 500 }}>{recipe.family}</div>
               </button>
             ))}
@@ -8394,12 +8394,12 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             const ratingBadge = (
               <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "5px 10px" }}>
                 <Star size={12} fill={BRASS} color={BRASS} />
-                <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: BOTTLE }}>{formatRating(entry.rating)}</span>
+                <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 13, color: BOTTLE }}>{formatRating(entry.rating)}</span>
               </div>
             );
             return (
               <div key={entry.id} ref={el => cardRefs.current[entry.id] = el} style={{ position: "relative", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 18, boxShadow: SHADOW_CARD, scrollMarginTop: 20 }}>
-                {tint && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, borderRadius: "18px 0 0 18px", background: `linear-gradient(180deg, ${tint[1]}, ${tint[0]})` }} />}
+                {tint && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, borderRadius: "18px 0 0 18px", background: BRASS }} />}
                 {entry.photo && (
                   <div style={{ position: "relative", width: "100%", height: 172 }}>
                     <img src={entry.photo} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: "18px 18px 0 0" }} />
@@ -8422,7 +8422,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                         </div>
                       )}
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, color: INK, fontSize: 17.5 }}>{entry.name}</div>
+                        <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 17.5 }}>{entry.name}</div>
                         {matched && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{matched.family} · {matched.glass}</div>}
                       </div>
                     </div>
@@ -8446,7 +8446,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                   )}
 
                   {entry.notes && (
-                    <p style={{ fontFamily: serif, fontStyle: "italic", fontSize: 13.5, color: INK, margin: "10px 0 0", paddingLeft: 10, borderLeft: `2px solid ${BRASS}`, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                    <p style={{ fontFamily: systemFont, fontSize: 13.5, color: INK, margin: "10px 0 0", paddingLeft: 10, borderLeft: `2px solid ${BRASS}`, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                       “{entry.notes}”
                     </p>
                   )}
@@ -8478,7 +8478,7 @@ function Avatar({ name, photo, size = 38 }) {
     <div style={{
       width: size, height: size, borderRadius: "50%", flexShrink: 0, background: color, color: CREAM,
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: serif, fontWeight: 700, fontStyle: "italic", fontSize: size * 0.42,
+      fontFamily: systemFont, fontWeight: 700, fontSize: size * 0.42,
     }}>
       {(name || "?").trim().charAt(0).toUpperCase()}
     </div>
@@ -8539,7 +8539,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
         <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
           <Avatar name={name} photo={friendProfile?.avatar_url} size={44} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 19, color: INK }}>{name}</div>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK }}>{name}</div>
             {insights && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{insights.level.title} · niveau {insights.level.level}</div>}
           </div>
           <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
@@ -8583,7 +8583,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                       { value: insights.streak, label: "Langste streak (dagen)" },
                     ].map((s, i) => (
                       <div key={i} style={{ textAlign: "center" }}>
-                        <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: BOTTLE }}>{s.value}</div>
+                        <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 18, color: BOTTLE }}>{s.value}</div>
                         <div style={{ fontSize: 9.5, color: MUTED, marginTop: 2, lineHeight: 1.25 }}>{s.label}</div>
                       </div>
                     ))}
@@ -8606,10 +8606,10 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                       </div>
                     ))}
                     {insights.personality && (
-                      <div style={{ marginTop: 6, padding: 14, borderRadius: 10, background: "linear-gradient(135deg, rgba(184,134,46,0.16), rgba(184,134,46,0.03))", border: "1px solid rgba(184,134,46,0.25)" }}>
+                      <div style={{ marginTop: 6, padding: 14, borderRadius: 10, background: "rgba(184,134,46,0.12)", border: "1px solid rgba(184,134,46,0.25)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                           <span style={{ fontSize: 22 }}>{insights.personality.emoji}</span>
-                          <span style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 15, color: "#8F6A21" }}>{insights.personality.title}</span>
+                          <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: "#8F6A21" }}>{insights.personality.title}</span>
                         </div>
                         <p style={{ margin: "8px 0 0", fontSize: 12, color: "#5C5548", fontStyle: "italic", lineHeight: 1.5 }}>"{insights.personality.text}"</p>
                       </div>
@@ -8625,7 +8625,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                     <div key={a.id} title={a.text} style={{ width: 72, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7 }}>
                       <div style={{
                         position: "relative", width: 58, height: 58, borderRadius: "50%",
-                        background: a.unlocked ? `linear-gradient(150deg, #2C5148, ${BOTTLE_DARK})` : PAPER_DEEP,
+                        background: a.unlocked ? BOTTLE_DARK : PAPER_DEEP,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         boxShadow: a.unlocked ? SHADOW_CARD : "none",
                         border: a.unlocked ? `2px solid ${BRASS}` : `1.5px dashed ${BORDER}`,
@@ -8652,7 +8652,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                         <div style={{ position: "absolute", top: -18, right: -18, width: 62, height: 62, borderRadius: "50%", background: "rgba(122,46,42,0.14)" }} />
                         <div style={{ width: 32, height: 32, borderRadius: 9, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, position: "relative" }}>❤️</div>
                         <div style={{ marginTop: 9, fontSize: 9.5, letterSpacing: 0.4, textTransform: "uppercase", color: MUTED, position: "relative" }}>Favoriete cocktail</div>
-                        <div style={{ marginTop: 2, fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 13.5, color: INK, position: "relative", lineHeight: 1.25 }}>{insights.favoriteCocktail.name}</div>
+                        <div style={{ marginTop: 2, fontFamily: serif, fontWeight: 700, fontSize: 13.5, color: INK, position: "relative", lineHeight: 1.25 }}>{insights.favoriteCocktail.name}</div>
                       </div>
                     )}
                     {insights.favoriteFamilyEntry && (
@@ -8660,7 +8660,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                         <div style={{ position: "absolute", top: -18, right: -18, width: 62, height: 62, borderRadius: "50%", background: "rgba(184,134,46,0.16)" }} />
                         <div style={{ width: 32, height: 32, borderRadius: 9, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, position: "relative" }}>🍸</div>
                         <div style={{ marginTop: 9, fontSize: 9.5, letterSpacing: 0.4, textTransform: "uppercase", color: MUTED, position: "relative" }}>Favoriete stijl</div>
-                        <div style={{ marginTop: 2, fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 13.5, color: INK, position: "relative", lineHeight: 1.25 }}>{insights.favoriteFamilyEntry[0]}</div>
+                        <div style={{ marginTop: 2, fontFamily: systemFont, fontWeight: 700, fontSize: 13.5, color: INK, position: "relative", lineHeight: 1.25 }}>{insights.favoriteFamilyEntry[0]}</div>
                       </div>
                     )}
                     {insights.favoriteSpiritEntry && (
@@ -8668,7 +8668,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                         <div style={{ position: "absolute", top: -18, right: -18, width: 62, height: 62, borderRadius: "50%", background: "rgba(138,129,113,0.16)" }} />
                         <div style={{ width: 32, height: 32, borderRadius: 9, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, position: "relative" }}>🥃</div>
                         <div style={{ marginTop: 9, fontSize: 9.5, letterSpacing: 0.4, textTransform: "uppercase", color: MUTED, position: "relative" }}>Favoriete drank</div>
-                        <div style={{ marginTop: 2, fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 13.5, color: INK, position: "relative", lineHeight: 1.25 }}>{insights.favoriteSpiritEntry[0]}</div>
+                        <div style={{ marginTop: 2, fontFamily: systemFont, fontWeight: 700, fontSize: 13.5, color: INK, position: "relative", lineHeight: 1.25 }}>{insights.favoriteSpiritEntry[0]}</div>
                       </div>
                     )}
                   </div>
@@ -8687,7 +8687,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                       </div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, fontSize: 14, color: INK }}>{e.name}</div>
+                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 14, color: INK }}>{e.name}</div>
                       <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{e.date} · {e.location}</div>
                     </div>
                     <span style={{ display: "flex", alignItems: "center", gap: 3, color: BRASS, fontWeight: 700, fontSize: 12, flexShrink: 0 }}><Star size={11} fill={BRASS} /> {formatRating(e.rating)}</span>
@@ -9016,7 +9016,7 @@ function EigenRecepten({ customRecipes, setCustomRecipes, allIngredients, onSoun
               <div style={{ display: "flex", gap: 12, minWidth: 0 }}>
                 <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: serif, fontStyle: "italic", fontWeight: 700, color: INK, fontSize: 15.5 }}>{r.name}</div>
+                  <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 15.5 }}>{r.name}</div>
                   <div style={{ fontSize: 12.5, color: MUTED, margin: "2px 0 8px" }}>{r.family} · {r.glass}</div>
                   <ul style={{ margin: "0 0 8px", paddingLeft: 0, listStyle: "none", fontSize: 13.5 }}>
                     {r.ingredients.map((ing, i) => <li key={i} style={{ padding: "2px 0" }}>{ing.amount} {unitLabel(ing.unit, ing.amount)} {ing.name}</li>)}
