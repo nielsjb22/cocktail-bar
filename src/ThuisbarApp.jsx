@@ -1597,10 +1597,9 @@ function GuestBrowseShell({
         )}
       </div>
 
-      <div style={{
+      <div className="glass-light" style={{
         position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
-        background: "var(--dock-bg)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-        borderTop: `1px solid rgba(184,134,46,0.3)`, boxShadow: "0 -6px 18px rgba(43,38,32,0.10)",
+        border: "none", borderTop: "1px solid rgba(184,137,58,0.7)", boxShadow: "0 -6px 18px rgba(43,38,32,0.10)",
       }}>
         <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", padding: "9px 6px calc(env(safe-area-inset-bottom) + 9px)" }}>
           {[{ id: "ontdekken", label: "Ontdekken", icon: Search }, { id: "cursus", label: "Cursus", icon: GraduationCap }].map(t => {
@@ -3004,7 +3003,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             width: "100%", textAlign: "left", border: "none", cursor: "pointer", background: "none", color: "inherit",
             padding: "20px 22px 14px", boxSizing: "border-box", fontFamily: "inherit",
           }}>
-            <div style={{ display: "inline-block", background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 100, padding: "4px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>
+            <div className="glass-chip" style={{ display: "inline-block", borderRadius: 100, padding: "4px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>
               Uitgelicht
             </div>
             <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26 }}>{featuredRecipe.name}</div>
@@ -3078,7 +3077,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                     </div>
                   )}
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0) 45%, rgba(15,26,23,0.5) 100%)" }} />
-                  <div style={{ position: "absolute", left: 12, bottom: 10, display: "flex", alignItems: "center", gap: 4, background: "rgba(15,26,23,0.55)", backdropFilter: "blur(6px)", borderRadius: 100, padding: "4px 9px", color: CREAM, fontSize: 12, fontWeight: 700 }}>
+                  <div className="glass-chip-dark" style={{ position: "absolute", left: 12, bottom: 10, display: "flex", alignItems: "center", gap: 4, borderRadius: 100, padding: "4px 9px", color: CREAM, fontSize: 12, fontWeight: 700 }}>
                     <Star size={11} fill={BRASS} color={BRASS} /> {formatRating(entry.rating)}
                   </div>
                 </div>
@@ -3249,11 +3248,9 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
       position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
       padding: "0 14px calc(env(safe-area-inset-bottom) + 14px)", pointerEvents: "none",
     }}>
-      <div style={{
+      <div className="glass-light" style={{
         maxWidth: 960 - 28, margin: "0 auto", display: "flex", alignItems: "flex-end", pointerEvents: "auto",
-        background: "var(--dock-bg)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-        borderRadius: 28, boxShadow: "0 12px 28px -8px rgba(43,38,32,0.34), 0 2px 10px rgba(43,38,32,0.14)",
-        padding: "9px 6px",
+        borderRadius: 28, padding: "9px 6px",
       }}>
         {left.map(renderBtn)}
         <div style={{ flex: 1, display: "flex", justifyContent: "center", marginTop: -26 }}>
@@ -3302,11 +3299,11 @@ function LargeTitleHeader({ title, active = true }) {
   }, [active]);
   return (
     <>
-      <div style={{
-        position: "sticky", top: STICKY_TOP, zIndex: 8, background: PAPER,
+      <div className="glass-light" style={{
+        position: "sticky", top: STICKY_TOP, zIndex: 8,
         display: "flex", alignItems: "center", justifyContent: "center", height: 44,
         marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent",
+        border: "none", borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent", boxShadow: "none",
         opacity: collapsed ? 1 : 0, pointerEvents: collapsed ? "auto" : "none",
         transition: "opacity 0.18s ease, border-color 0.18s ease",
         fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK,
@@ -3616,9 +3613,9 @@ function VoorraadTab({ allIngredients, customIngredients, voorraad, voorraadAant
             }}>
               <div style={{ position: "relative", aspectRatio: "16 / 9" }}>
                 <CategoryArt cat={cat} />
-                <span style={{
+                <span className="glass-chip-dark" style={{
                   position: "absolute", top: 8, right: 8, minWidth: 26, height: 22, padding: "0 7px",
-                  borderRadius: 11, background: BRASS, color: CREAM, fontSize: 11.5, fontWeight: 700,
+                  borderRadius: 11, fontSize: 11.5, fontWeight: 700,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>{ownedCount}/{items.length}</span>
               </div>
@@ -3979,11 +3976,11 @@ function SecondaryTabScreen({ label, title, onBack, children }) {
             blijft staan terwijl de inhoud eronder scrollt, i.p.v. mee weg te
             scrollen zoals voorheen. marginLeft/Right+paddingLeft/Right span
             de balk edge-to-edge ondanks de 20px zijpadding van de pagina. */}
-        <div style={{
-          position: "sticky", top: STICKY_TOP, zIndex: 20, background: PAPER,
+        <div className="glass-light" style={{
+          position: "sticky", top: STICKY_TOP, zIndex: 20,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
           display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
-          minHeight: 44, marginBottom: 16, borderBottom: `1px solid ${BORDER}`,
+          minHeight: 44, marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none",
         }}>
           {/* Een tik hier is geen voltooide swipe: commitBack() verwacht de
               peek-preview-laag die alleen tijdens een echte sleep gerenderd
@@ -4607,9 +4604,10 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
       <LargeTitleHeader title="Ontdekken" active={active} />
       {/* Sticky: bij een lange lijst (of lang receptdetail eronder) hoef je zo
           niet terug naar boven om van filter te wisselen of te zoeken. */}
-      <div style={{
-        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 7, background: PAPER,
+      <div className="glass-light" style={{
+        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 7,
         display: "flex", alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+        border: "none", boxShadow: "none",
       }}>
         <button onClick={() => setMode("alles")} style={{
           flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "alles" ? BOTTLE : BORDER}`,
@@ -4634,7 +4632,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
             {recommended.map(({ recipe, matchPct }) => (
               <button key={recipe.id} onClick={() => { onSound?.("pop"); onOpenRecipe?.(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
                 {matchPct > 0 && (
-                  <div style={{ position: "absolute", top: 8, right: 8, background: BOTTLE_DARK, border: `1px solid rgba(245,239,230,0.25)`, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700, color: BRASS }}>{matchPct}%</div>
+                  <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>{matchPct}%</div>
                 )}
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                   <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
@@ -5387,10 +5385,10 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
         // vorige-schermnaam links van de chevron) met naam + favoriet, i.p.v.
         // een aparte, niet-sticky "Terug naar ontdekken"-link die eerder
         // verderop in de inhoud meescrolde.
-        <div style={{
-          position: "sticky", top: STICKY_SUB2HEADER_TOP, zIndex: 6, background: PAPER,
+        <div className="glass-light" style={{
+          position: "sticky", top: STICKY_SUB2HEADER_TOP, zIndex: 6,
           display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
-          height: 44, boxSizing: "border-box", marginBottom: 16, borderBottom: `1px solid ${BORDER}`,
+          height: 44, boxSizing: "border-box", marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none",
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         }}>
           <button onClick={() => setSelectedId(null)} style={{
@@ -5571,9 +5569,11 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             ) : (
               <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 500px 260px at 100% 0%, rgba(255,255,255,0.14), transparent 60%)", pointerEvents: "none" }} />
             )}
-            <button onClick={() => { onSound("pop"); onToggleFavorite(recipe.id); }} aria-label={favoriteRecipeIds.includes(recipe.id) ? "Verwijder uit favorieten" : "Bewaar als favoriet"} style={{
+            <button onClick={() => { onSound("pop"); onToggleFavorite(recipe.id); }} aria-label={favoriteRecipeIds.includes(recipe.id) ? "Verwijder uit favorieten" : "Bewaar als favoriet"}
+              className={favoriteRecipeIds.includes(recipe.id) ? "" : "glass-chip"} style={{
               position: "absolute", top: 16, right: 16, zIndex: 2, width: 36, height: 36, borderRadius: "50%", padding: 0,
-              border: "1px solid rgba(255,255,255,0.35)", background: favoriteRecipeIds.includes(recipe.id) ? BURGUNDY : "rgba(255,255,255,0.16)",
+              border: favoriteRecipeIds.includes(recipe.id) ? "1px solid rgba(255,255,255,0.35)" : undefined,
+              background: favoriteRecipeIds.includes(recipe.id) ? BURGUNDY : undefined,
               display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: CREAM,
             }}>
               <Heart size={16} fill={favoriteRecipeIds.includes(recipe.id) ? CREAM : "none"} />
@@ -6712,7 +6712,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                         const warnings = getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals);
                         return (
                         <button key={recipe.id} onClick={() => setSuggestionSheetId(recipe.id)} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                          <div style={{ position: "absolute", top: 8, right: 8, background: BOTTLE_DARK, border: `1px solid rgba(245,239,230,0.25)`, borderRadius: 100, padding: "3px 7px", fontSize: 10.5, fontWeight: 700, color: BRASS }}>{score}%</div>
+                          <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 7px", fontSize: 10.5, fontWeight: 700 }}>{score}%</div>
                           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                             <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} />
                           </div>
@@ -8054,10 +8054,11 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
     <div>
       <LargeTitleHeader title="Profiel" active={active} />
       {/* Topbalk: vrienden linksboven, instellingen rechtsboven — net als bij Untappd altijd binnen handbereik vanaf Profiel. Sticky, want de rest van dit tabblad (stats, prestaties, hele logboek) kan lang worden. */}
-      <div style={{
-        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 6, background: PAPER,
+      <div className="glass-light" style={{
+        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 6,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         height: 44, boxSizing: "border-box", marginBottom: 8, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+        border: "none", boxShadow: "none",
       }}>
         <button onClick={onGoVrienden} className="press-scale tap-target-44" aria-label="Vrienden" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
           <Users size={17} strokeWidth={1.8} />
@@ -8223,7 +8224,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                       <Martini size={26} color="rgba(251,246,234,0.85)" strokeWidth={1.3} />
                     </div>
                   )}
-                  <div style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, background: "rgba(19,38,34,0.55)", borderRadius: 100, padding: "2px 7px" }}>
+                  <div className="glass-chip-dark" style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, borderRadius: 100, padding: "2px 7px" }}>
                     <Star size={9} fill="#D8AE5E" color="#D8AE5E" />
                     <span style={{ fontSize: 10, color: CREAM, fontWeight: 600 }}>{formatRating(entry.rating)}</span>
                   </div>
@@ -8369,7 +8370,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
           <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
             {insights.recommended.map(({ recipe, matchPct }) => (
               <button key={recipe.id} onClick={() => { onSound("pop"); onOpenRecipe(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                <div style={{ position: "absolute", top: 8, right: 8, background: BOTTLE_DARK, border: `1px solid rgba(245,239,230,0.25)`, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700, color: BRASS }}>{matchPct}%</div>
+                <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>{matchPct}%</div>
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                   <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
                 </div>
