@@ -3205,22 +3205,38 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
     const badge = t.id === "bar" && shoppingCount > 0 ? shoppingCount : null;
     return (
       <button key={t.id} onClick={() => setTab(t.id)} style={{
-        flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+        flex: 1, display: "flex", justifyContent: "center",
         background: "none", border: "none", cursor: "pointer", padding: "4px 2px",
         fontFamily: sans, color: active ? BOTTLE : MUTED,
       }}>
-        <span style={{ position: "relative", display: "flex" }}>
-          <Icon size={21} strokeWidth={active ? 2.1 : 1.7} />
-          {badge && (
-            <span style={{
-              position: "absolute", top: -5, right: -8, minWidth: 15, height: 15, borderRadius: 8,
-              background: BRASS, color: CREAM, fontSize: 9.5, fontWeight: 700,
-              display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
-            }}>{badge}</span>
-          )}
+        {/* "Glas"-pil achter de actieve tab i.p.v. het kleine bolletje eronder.
+            De dock zelf (--dock-bg) is met ~0.94 alpha al bijna dekkend, dus
+            een té ondoorzichtige pil daarbovenop (eerdere poging: 0.55 wit)
+            oogde meteen als een vlak wit blokje i.p.v. glas. Lagere alpha +
+            een diagonaal verloop (donkerder onder, een lichtglans linksboven)
+            + een dunne lichte rand bovenaan verkopen het "glas erbovenop"-
+            gevoel ook al is er weinig scherps eronder om echt te vervagen. */}
+        <span style={{
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+          padding: "6px 14px 7px", borderRadius: 16, transition: "background 0.2s ease, box-shadow 0.2s ease",
+          background: active ? "linear-gradient(160deg, rgba(255,255,255,0.42), rgba(255,255,255,0.08))" : "transparent",
+          boxShadow: active
+            ? "inset 0 1px 0 rgba(255,255,255,0.65), inset 0 0 0 1px rgba(184,134,46,0.22), 0 3px 8px rgba(43,38,32,0.12)"
+            : "none",
+          backdropFilter: active ? "blur(10px) saturate(160%)" : "none", WebkitBackdropFilter: active ? "blur(10px) saturate(160%)" : "none",
+        }}>
+          <span style={{ position: "relative", display: "flex" }}>
+            <Icon size={21} strokeWidth={active ? 2.1 : 1.7} />
+            {badge && (
+              <span style={{
+                position: "absolute", top: -5, right: -8, minWidth: 15, height: 15, borderRadius: 8,
+                background: BRASS, color: CREAM, fontSize: 9.5, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
+              }}>{badge}</span>
+            )}
+          </span>
+          <span style={{ fontSize: 10.5, fontWeight: active ? 700 : 500 }}>{DOCK_LABELS[t.id] || t.label}</span>
         </span>
-        <span style={{ fontSize: 10.5, fontWeight: active ? 700 : 500 }}>{DOCK_LABELS[t.id] || t.label}</span>
-        <span style={{ width: 4, height: 4, borderRadius: "50%", background: BRASS, opacity: active ? 1 : 0, marginTop: -2 }} />
       </button>
     );
   };
