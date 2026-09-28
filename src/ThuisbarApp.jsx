@@ -3282,7 +3282,7 @@ function SectionLabel({ children }) {
 // Puur CSS "position: sticky" volstaat niet hier (in tegenstelling tot de
 // andere sticky balken in deze app): die zou constant zichtbaar zijn i.p.v.
 // pas verschijnen zodra de grote titel is weggescrolld.
-function LargeTitleHeader({ title, active = true }) {
+function LargeTitleHeader({ title, active = true, sticky = true }) {
   const [collapsed, setCollapsed] = useState(false);
   const sentinelRef = useRef(null);
   useEffect(() => {
@@ -3290,28 +3290,30 @@ function LargeTitleHeader({ title, active = true }) {
     // — zo'n verborgen element heeft geen afmeting meer, dus de observer zou
     // 'm als "niet zichtbaar" zien en de titel per ongeluk laten inklappen.
     // Alleen observeren terwijl deze tab echt actief is voorkomt dat.
-    if (!active) return;
+    if (!active || !sticky) return;
     const el = sentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(([entry]) => setCollapsed(!entry.isIntersecting), { rootMargin: "-45px 0px 0px 0px" });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [active]);
+  }, [active, sticky]);
   return (
     <>
-      <div className="glass-light" style={{
-        position: "sticky", top: STICKY_TOP, zIndex: 8,
-        display: "flex", alignItems: "center", justifyContent: "center", height: 44,
-        marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        border: "none", borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent", boxShadow: "none",
-        opacity: collapsed ? 1 : 0, pointerEvents: collapsed ? "auto" : "none",
-        transition: "opacity 0.18s ease, border-color 0.18s ease",
-        fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK,
-      }}>
-        {title}
-      </div>
+      {sticky && (
+        <div className="glass-light" style={{
+          position: "sticky", top: STICKY_TOP, zIndex: 8,
+          display: "flex", alignItems: "center", justifyContent: "center", height: 44,
+          marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+          border: "none", borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent", boxShadow: "none",
+          opacity: collapsed ? 1 : 0, pointerEvents: collapsed ? "auto" : "none",
+          transition: "opacity 0.18s ease, border-color 0.18s ease",
+          fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK,
+        }}>
+          {title}
+        </div>
+      )}
       <h1 style={{ fontFamily: systemFont, fontWeight: 800, fontSize: 34, color: INK, margin: "6px 0 20px", letterSpacing: -0.4 }}>{title}</h1>
-      <div ref={sentinelRef} style={{ height: 1, marginTop: -1 }} />
+      {sticky && <div ref={sentinelRef} style={{ height: 1, marginTop: -1 }} />}
     </>
   );
 }
@@ -4599,13 +4601,19 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   // Een aanbevolen cocktail van elders in de app (Home, Check-in) moet altijd
   // in de "Alles"-weergave (Recept) opengaan, ongeacht welke modus actief was.
   useEffect(() => { if (openRecipeId) setMode("alles"); }, [openRecipeId]);
+  // Hoogste match eerst, zodat "meest aanbevolen" ook echt links staat i.p.v.
+  // de score-volgorde uit computeCheckinInsights (die weegt ook smaakprofiel
+  // mee, waardoor het zichtbare percentage niet altijd aflopend stond).
+  const sortedRecommended = recommended ? [...recommended].sort((a, b) => b.matchPct - a.matchPct) : recommended;
   return (
     <div>
-      <LargeTitleHeader title="Ontdekken" active={active} />
-      {/* Sticky: bij een lange lijst (of lang receptdetail eronder) hoef je zo
-          niet terug naar boven om van filter te wisselen of te zoeken. */}
+      <LargeTitleHeader title="Ontdekken" active={active} sticky={false} />
+      {/* De titel zelf is niet meer sticky (op verzoek) — deze toggle-balk
+          blijft wel sticky, maar dan meteen bovenaan (STICKY_TOP i.p.v.
+          STICKY_SUBHEADER_TOP) want er zit nu geen sticky titelbalk meer
+          boven die anders die ruimte al innam. */}
       <div className="glass-light" style={{
-        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 7,
+        position: "sticky", top: STICKY_TOP, zIndex: 7,
         display: "flex", alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         border: "none", boxShadow: "none",
       }}>
@@ -4629,7 +4637,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           <SectionLabel>Aanbevolen voor jou</SectionLabel>
           <div style={{ fontSize: 12.5, color: MUTED, margin: "-6px 0 13px" }}>Gebaseerd op je smaakprofiel en je voorraad</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-            {recommended.map(({ recipe, matchPct }) => (
+            {sortedRecommended.map(({ recipe, matchPct }) => (
               <button key={recipe.id} onClick={() => { onSound?.("pop"); onOpenRecipe?.(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
                 {matchPct > 0 && (
                   <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>{matchPct}%</div>
@@ -5248,9 +5256,6 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const [servings, setServings] = useState(1);
   const [justAddedShopping, setJustAddedShopping] = useState(false);
   const [justAddedFeest, setJustAddedFeest] = useState(false);
-  const [browseSpirit, setBrowseSpirit] = useState(null);
-  const [browseTaste, setBrowseTaste] = useState(null);
-  const [browseGlass, setBrowseGlass] = useState(null);
   const recipe = recipes.find(r => r.id === selectedId) || null;
   const missing = recipe ? recipe.ingredients.filter(ing => !ing.optional).filter(ing => !isOwned(ing)) : [];
   const role = recipe ? getMenuRole(recipe) : null;
@@ -5313,30 +5318,10 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   }, [recipes, isOwned, recipe]);
   const scoredById = useMemo(() => new Map(allScored.map(s => [s.recipe.id, s])), [allScored]);
 
-  // Raster "Alle recepten" met filterchips: basisdrank via de bestaande
-  // FAVORITE_SPIRIT_OPTIONS-groepen (dezelfde ingrediënt-id's als de
-  // smaaktest-matching), smaak via FAMILY_TASTE (elke familie heeft één of
-  // meer smaaktrekken), glas via de letterlijke recipe.glass-waarden — geen
-  // van deze drie is nieuw verzonnen, alleen hergebruikt als filter i.p.v.
-  // alleen als scoringsdata.
-  const browseGlasses = useMemo(() => [...new Set(recipes.map(r => r.glass).filter(Boolean))].sort(), [recipes]);
-  const browseTasteKeys = useMemo(() => {
-    const keys = new Set();
-    Object.values(FAMILY_TASTE).forEach(vec => Object.keys(vec).forEach(k => keys.add(k)));
-    return Object.keys(TASTE_META).filter(k => keys.has(k));
-  }, []);
-  const browseAll = useMemo(() => {
-    if (recipe) return [];
-    return recipes.filter(r => {
-      if (browseSpirit) {
-        const ids = FAVORITE_SPIRIT_OPTIONS.find(o => o.key === browseSpirit)?.ids || [];
-        if (!r.ingredients.some(i => ids.includes(i.id))) return false;
-      }
-      if (browseTaste && !(FAMILY_TASTE[r.family] || {})[browseTaste]) return false;
-      if (browseGlass && r.glass !== browseGlass) return false;
-      return true;
-    });
-  }, [recipes, recipe, browseSpirit, browseTaste, browseGlass]);
+  // Raster "Alle recepten": gewoon de volledige lijst, geen filterchips meer
+  // (op verzoek weggehaald — vond de gebruiker overbodig naast Aanbevolen/
+  // Cocktail van de week/Favorieten/Onlangs bekeken/Verras me hierboven).
+  const browseAll = recipe ? [] : recipes;
 
   // "Van de dag" wint als vandaag in de kalender staat; anders "van de week".
   // De hoofdreden komt nu uit het seizoensthema van de huidige maand (waarom
@@ -5409,35 +5394,32 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
 
       {!recipe && (
         <div>
-          {featured && (
-            <button onClick={() => selectRecipe(featured.recipe.id)} style={{
-              width: "100%", textAlign: "left", border: "none", cursor: "pointer", borderRadius: RADIUS + 4,
-              padding: "20px 22px", marginBottom: 24, position: "relative", overflow: "hidden", boxSizing: "border-box",
-              background: BOTTLE_DARK,
-              boxShadow: SHADOW_HERO, color: CREAM, fontFamily: sans,
-            }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 100, padding: "4px 12px", fontSize: 11.5, fontWeight: 700, marginBottom: 12 }}>
-                {featured.badge}
-              </div>
-              <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26, marginBottom: 4 }}>{featured.recipe.name}</div>
-              <div style={{ fontSize: 12.5, opacity: 0.85, marginBottom: 10 }}>{featured.recipe.family} · {featured.recipe.glass}</div>
-              <div style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.92, maxWidth: 420 }}>{featured.reason}</div>
-            </button>
-          )}
-
-          {recentRecipeIds.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <SectionLabel>Onlangs bekeken</SectionLabel>
-              <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 4 }}>
-                {recentRecipeIds.map(id => scoredById.get(id)).filter(Boolean).map(({ recipe: r }) => (
-                  <button key={r.id} onClick={() => selectRecipe(r.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flexShrink: 0, width: 62, background: "none", border: "none", cursor: "pointer", fontFamily: sans }}>
-                    <RecipeCircle recipe={r} allIngredients={allIngredients} size={54} />
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: INK, textAlign: "center", lineHeight: 1.25 }}>{r.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {featured && (() => {
+            const photo = localItemImageUrl("cocktail", featured.recipe.id) || featured.recipe.image;
+            return (
+              <button onClick={() => selectRecipe(featured.recipe.id)} style={{
+                width: "100%", textAlign: "left", border: "none", cursor: "pointer", borderRadius: RADIUS + 4,
+                padding: "20px 22px", marginBottom: 24, position: "relative", overflow: "hidden", boxSizing: "border-box",
+                minHeight: photo ? 220 : undefined, display: "flex", flexDirection: "column", justifyContent: "flex-end",
+                background: BOTTLE_DARK, boxShadow: SHADOW_HERO, color: CREAM, fontFamily: sans,
+              }}>
+                {photo && (
+                  <>
+                    <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(19,38,34,0.92), rgba(19,38,34,0.3) 55%, rgba(19,38,34,0.1))" }} />
+                  </>
+                )}
+                <div style={{ position: "relative" }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 100, padding: "4px 12px", fontSize: 11.5, fontWeight: 700, marginBottom: 12 }}>
+                    {featured.badge}
+                  </div>
+                  <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26, marginBottom: 4 }}>{featured.recipe.name}</div>
+                  <div style={{ fontSize: 12.5, opacity: 0.85, marginBottom: 10 }}>{featured.recipe.family} · {featured.recipe.glass}</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.92, maxWidth: 420 }}>{featured.reason}</div>
+                </div>
+              </button>
+            );
+          })()}
 
           {favoriteRecipeIds.length > 0 && (
             <div style={{ marginBottom: 24 }}>
@@ -5459,6 +5441,20 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             </div>
           )}
 
+          {recentRecipeIds.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <SectionLabel>Onlangs bekeken</SectionLabel>
+              <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 4 }}>
+                {recentRecipeIds.map(id => scoredById.get(id)).filter(Boolean).map(({ recipe: r }) => (
+                  <button key={r.id} onClick={() => selectRecipe(r.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flexShrink: 0, width: 62, background: "none", border: "none", cursor: "pointer", fontFamily: sans }}>
+                    <RecipeCircle recipe={r} allIngredients={allIngredients} size={54} />
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: INK, textAlign: "center", lineHeight: 1.25 }}>{r.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <button onClick={verrasMe} style={{
             display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", border: "none", cursor: "pointer",
             borderRadius: 16, padding: "16px 18px", marginBottom: 24, background: BOTTLE_DARK,
@@ -5468,74 +5464,29 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             <div><div style={{ fontSize: 14.5, fontWeight: 800 }}>Verras me</div><div style={{ fontSize: 11.5, opacity: 0.82 }}>Ontdek een willekeurige cocktail</div></div>
           </button>
 
-          {/* Volledig raster met foto + filterchips i.p.v. alleen de kleine
-              persoonlijke lijstjes hierboven — voor wie gewoon wil bladeren
-              zonder eerst te zoeken. Filters zijn los te combineren (basis-
-              drank + smaak + glas tegelijk), nogmaals aantikken zet 'm uit. */}
+          {/* Volledig raster met foto, geen filterchips meer (op verzoek
+              weggehaald als overbodig naast de persoonlijke lijstjes
+              hierboven) — gewoon alle recepten, in rijen van 2. */}
           <div>
             <SectionLabel>Alle recepten</SectionLabel>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-              {FAVORITE_SPIRIT_OPTIONS.map(opt => {
-                const active = browseSpirit === opt.key;
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {browseAll.map(r => {
+                const photo = localItemImageUrl("cocktail", r.id) || r.image;
                 return (
-                  <button key={opt.key} onClick={() => setBrowseSpirit(active ? null : opt.key)} className="press-scale" style={{
-                    padding: "7px 13px", borderRadius: 100, fontSize: 12.5, fontWeight: 700, fontFamily: sans, cursor: "pointer",
-                    background: active ? BRASS : CREAM, color: active ? CREAM : INK, border: `1px solid ${active ? BRASS : BORDER}`,
+                  <button key={r.id} onClick={() => selectRecipe(r.id)} style={{
+                    position: "relative", height: 132, borderRadius: RADIUS + 4, overflow: "hidden", border: "none",
+                    cursor: "pointer", padding: 0, boxShadow: SHADOW_CARD, background: BOTTLE_DARK,
                   }}>
-                    {opt.label}
+                    {photo && <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(19,38,34,0.9), rgba(19,38,34,0.1) 60%)" }} />
+                    <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "10px 12px", textAlign: "left" }}>
+                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 14, color: CREAM, lineHeight: 1.2 }}>{r.name}</div>
+                      <div style={{ fontSize: 10.5, color: "#D9CBAE", marginTop: 2 }}>{r.family}</div>
+                    </div>
                   </button>
                 );
               })}
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-              {browseTasteKeys.map(key => {
-                const meta = TASTE_META[key];
-                const active = browseTaste === key;
-                return (
-                  <button key={key} onClick={() => setBrowseTaste(active ? null : key)} className="press-scale" style={{
-                    padding: "7px 13px", borderRadius: 100, fontSize: 12.5, fontWeight: 700, fontFamily: sans, cursor: "pointer",
-                    background: active ? BRASS : CREAM, color: active ? CREAM : INK, border: `1px solid ${active ? BRASS : BORDER}`,
-                  }}>
-                    {meta.emoji} {meta.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-              {browseGlasses.map(g => {
-                const active = browseGlass === g;
-                return (
-                  <button key={g} onClick={() => setBrowseGlass(active ? null : g)} className="press-scale" style={{
-                    padding: "7px 13px", borderRadius: 100, fontSize: 12.5, fontWeight: 700, fontFamily: sans, cursor: "pointer",
-                    background: active ? BRASS : CREAM, color: active ? CREAM : INK, border: `1px solid ${active ? BRASS : BORDER}`,
-                  }}>
-                    {g}
-                  </button>
-                );
-              })}
-            </div>
-            {browseAll.length === 0 ? (
-              <p style={{ fontSize: 13, color: MUTED, fontFamily: sans, margin: 0 }}>Geen recepten bij deze combinatie filters.</p>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                {browseAll.map(r => {
-                  const photo = localItemImageUrl("cocktail", r.id) || r.image;
-                  return (
-                    <button key={r.id} onClick={() => selectRecipe(r.id)} style={{
-                      position: "relative", height: 132, borderRadius: RADIUS + 4, overflow: "hidden", border: "none",
-                      cursor: "pointer", padding: 0, boxShadow: SHADOW_CARD, background: BOTTLE_DARK,
-                    }}>
-                      {photo && <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
-                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(19,38,34,0.9), rgba(19,38,34,0.1) 60%)" }} />
-                      <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "10px 12px", textAlign: "left" }}>
-                        <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 14, color: CREAM, lineHeight: 1.2 }}>{r.name}</div>
-                        <div style={{ fontSize: 10.5, color: "#D9CBAE", marginTop: 2 }}>{r.family}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
       )}
