@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Snowflake, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag } from "lucide-react";
+import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Snowflake, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "./supabaseClient";
@@ -7327,13 +7327,17 @@ function computeLevel(xp) {
   return { level: idx + 1, title: LEVEL_TITLES[idx], xp, from, to, progress: to ? Math.min(1, (xp - from) / (to - from)) : 1 };
 }
 
+// `icon` is de centrale emoji->lijn-icoon-mapping voor prestaties (voorlopig
+// alleen gebruikt op de eigen Profiel-pagina, zie LogboekTab — FriendProfile-
+// Sheet toont vriendjes-prestaties nog met de oude `emoji`, bewust nog niet
+// aangepast). `emoji` blijft staan zodat niets anders breekt dat 'm leest.
 const ACHIEVEMENT_DEFS = [
-  { id: "eerste-slok", emoji: "🍸", label: "Eerste Slok", text: "Je eerste cocktail ingecheckt." },
-  { id: "streak7", emoji: "🔥", label: "7 Op Rij", text: "7 dagen achter elkaar een cocktail gelogd." },
-  { id: "proever", emoji: "🌍", label: "Proever", text: "10 verschillende cocktails geproefd." },
-  { id: "eigen-recept", emoji: "🏠", label: "Eigen Recept", text: "Een zelf toegevoegd recept ingecheckt." },
-  { id: "smaakvast", emoji: "🎯", label: "Smaakvast", text: "5 keer dezelfde cocktailfamilie gelogd." },
-  { id: "vaste-klant", emoji: "⭐", label: "Vaste Klant", text: "50 check-ins verzameld." },
+  { id: "eerste-slok", emoji: "🍸", icon: Martini, label: "Eerste Slok", text: "Je eerste cocktail ingecheckt." },
+  { id: "streak7", emoji: "🔥", icon: Flame, label: "7 Op Rij", text: "7 dagen achter elkaar een cocktail gelogd." },
+  { id: "proever", emoji: "🌍", icon: Globe, label: "Proever", text: "10 verschillende cocktails geproefd." },
+  { id: "eigen-recept", emoji: "🏠", icon: Home, label: "Eigen Recept", text: "Een zelf toegevoegd recept ingecheckt." },
+  { id: "smaakvast", emoji: "🎯", icon: Target, label: "Smaakvast", text: "5 keer dezelfde cocktailfamilie gelogd." },
+  { id: "vaste-klant", emoji: "⭐", icon: Star, label: "Vaste Klant", text: "50 check-ins verzameld." },
 ];
 
 // Eigen niveau-lijn voor de Cursus, los van het Check-in-niveau: XP komt puur
@@ -7750,9 +7754,20 @@ function CocktailMap({ locations }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namesKey]);
 
+  const [expanded, setExpanded] = useState(false);
+
   useEffect(() => {
     if (!mapElRef.current || mapRef.current) return;
-    mapRef.current = L.map(mapElRef.current, { attributionControl: true }).setView([GRONINGEN.lat, GRONINGEN.lon], 12);
+    // Dit is alleen nog een niet-interactieve voorvertoning — pinchen/slepen
+    // op deze kleine kaart ving voorheen de scroll-gestiek van de hele pagina
+    // af (Leaflet claimt touch-events zodra 'm interactief is). Alle
+    // gebruikersinteractie staat daarom uit; tikken opent de schermvullende,
+    // wél volledig interactieve kaart hieronder (MapFullscreenSheet).
+    mapRef.current = L.map(mapElRef.current, {
+      attributionControl: true,
+      dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false,
+      boxZoom: false, keyboard: false, tap: false, zoomControl: false,
+    }).setView([GRONINGEN.lat, GRONINGEN.lon], 12);
     // CARTO's gratis raster-tegels blijken inmiddels achter een verplichte
     // API-sleutel te zitten (watermark "API KEY REQUIRED" eroverheen, ook op
     // Voyager) en Esri's gratis alternatieven zijn óf te grijs/kaal (Light
@@ -7804,7 +7819,11 @@ function CocktailMap({ locations }) {
 
   return (
     <div>
-      <div ref={mapElRef} className="thuisbar-map" style={{ height: 190, borderRadius: "14px 14px 0 0" }} />
+      <button onClick={() => setExpanded(true)} aria-label="Kaart vergroten" style={{
+        display: "block", width: "100%", border: "none", padding: 0, margin: 0, cursor: "pointer", background: "none",
+      }}>
+        <div ref={mapElRef} className="thuisbar-map" style={{ height: 190, borderRadius: "14px 14px 0 0", touchAction: "pan-y" }} />
+      </button>
       {pending && <div style={{ fontSize: 10.5, color: MUTED, padding: "6px 15px 0" }}>Locaties opzoeken op de kaart…</div>}
       <div style={{ padding: "13px 15px" }}>
         {locations.map(loc => {
@@ -7823,8 +7842,61 @@ function CocktailMap({ locations }) {
         })}
         <div style={{ marginTop: 11, fontSize: 11, color: MUTED }}>{locations.length} {locations.length === 1 ? "locatie" : "locaties"} bijgehouden</div>
       </div>
+      {expanded && <MapFullscreenSheet locations={locations} coords={coords} onClose={() => setExpanded(false)} />}
     </div>
   );
+}
+
+// Losse, wél volledig interactieve Leaflet-instantie voor de schermvullende
+// kaart — eigen mount/unmount i.p.v. de niet-interactieve voorvertoning
+// hierboven toggelen, want Leaflet's interactiviteit kun je niet na init
+// meer aan-/uitzetten zonder de hele kaart opnieuw op te bouwen.
+function MapFullscreenSheet({ locations, coords, onClose }) {
+  useBodyScrollLock();
+  const elRef = useRef(null);
+  useEffect(() => {
+    if (!elRef.current) return;
+    const map = L.map(elRef.current, { attributionControl: true, zoomControl: true }).setView([GRONINGEN.lat, GRONINGEN.lon], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>-bijdragers',
+    }).addTo(map);
+    const pinIcon = L.divIcon({
+      className: "",
+      html: `<div style="width:26px;height:32px;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4));"><svg viewBox="0 0 16 20" width="26" height="32"><path d="M8 0C3.6 0 0 3.6 0 8c0 5.5 8 12 8 12s8-6.5 8-12c0-4.4-3.6-8-8-8z" fill="${BRASS}"/><circle cx="8" cy="8" r="3" fill="${BOTTLE_DARK}"/></svg></div>`,
+      iconSize: [26, 32], iconAnchor: [13, 32], popupAnchor: [0, -30],
+    });
+    const bounds = [];
+    locations.forEach(loc => {
+      const key = loc.name.trim().toLowerCase();
+      const c = loc.lat != null ? { lat: loc.lat, lon: loc.lon } : coords[key];
+      if (!c) return;
+      L.marker([c.lat, c.lon], { icon: pinIcon }).addTo(map)
+        .bindPopup(`<strong>${escapeHtml(loc.name)}</strong><br/>${loc.count} check-in${loc.count === 1 ? "" : "s"}`);
+      bounds.push([c.lat, c.lon]);
+    });
+    if (bounds.length > 0) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    setTimeout(() => map.invalidateSize(), 60);
+    return () => map.remove();
+  }, [locations, coords]);
+
+  return createPortal((
+    <div className="tab-fade" style={{ position: "fixed", inset: 0, zIndex: 40, background: PAPER, display: "flex", flexDirection: "column" }}>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "calc(env(safe-area-inset-top) + 14px) 16px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
+      }}>
+        <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK }}>Jouw cocktailkaart</div>
+        <button onClick={onClose} aria-label="Sluiten" className="press-scale" style={{
+          display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%",
+          border: `1px solid ${BORDER}`, background: CREAM, color: INK, cursor: "pointer",
+        }}>
+          <X size={17} />
+        </button>
+      </div>
+      <div ref={elRef} className="thuisbar-map" style={{ flex: 1 }} />
+    </div>
+  ), document.body);
 }
 
 function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active }) {
@@ -8044,9 +8116,9 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
         <input ref={photoInputRef} type="file" accept="image/*" onChange={handleProfilePhotoFile} style={{ display: "none" }} />
         <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" style={{ position: "relative", border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0, borderRadius: "50%" }}>
-          <Avatar name={profile?.name || "Jij"} photo={profile?.avatar_url} size={46} />
-          <span style={{ position: "absolute", bottom: -2, right: -2, display: "flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: BOTTLE, border: `1.5px solid ${CREAM}`, color: CREAM }}>
-            <Camera size={10} strokeWidth={2} />
+          <Avatar name={profile?.name || "Jij"} photo={profile?.avatar_url} size={88} />
+          <span style={{ position: "absolute", bottom: -3, right: -3, display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", background: BOTTLE, border: `2px solid ${CREAM}`, color: CREAM }}>
+            <Camera size={18} strokeWidth={2} />
           </span>
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -8062,14 +8134,14 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             </div>
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK }}>{profile?.name || "Jouw logboek"}</span>
-              <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, color: "#8F6A21", background: "rgba(184,134,46,0.14)", border: "1px solid rgba(184,134,46,0.35)", borderRadius: 100, padding: "2.5px 7px", flexShrink: 0 }}>NIV. {insights.level.level}</span>
+              <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: INK }}>{profile?.name || "Jouw logboek"}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.4, color: "#8F6A21", background: "rgba(184,134,46,0.14)", border: "1px solid rgba(184,134,46,0.35)", borderRadius: 100, padding: "5px 10px", flexShrink: 0 }}>NIV. {insights.level.level}</span>
               <button onClick={startEditName} className="press-scale tap-target-44" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", border: `1px solid ${BORDER}`, background: "none", color: MUTED, cursor: "pointer", flexShrink: 0 }}>
                 <Pencil size={11} />
               </button>
             </div>
           )}
-          <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{insights.level.title}</div>
+          <div style={{ fontSize: 17, fontWeight: 500, color: BRASS, marginTop: 2 }}>{insights.level.title}</div>
         </div>
       </div>
 
@@ -8156,7 +8228,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
         <div style={{ marginBottom: 24 }}>
           <SectionLabel>Jouw smaak</SectionLabel>
           {insights.personality && (
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK, lineHeight: 1.3, marginBottom: 8 }}>{insights.personality.emoji} {insights.personality.title}</div>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK, lineHeight: 1.3, marginBottom: 8 }}>{insights.personality.title}</div>
           )}
           {insights.personality && <p style={{ margin: "0 0 18px", fontSize: 13.5, color: "#5C5548", lineHeight: 1.55 }}>{insights.personality.text}</p>}
           <div style={{ display: "flex", alignItems: "flex-end", gap: 18, height: 52, padding: "0 2px" }}>
@@ -8213,7 +8285,9 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
           <div style={{ marginBottom: 24 }}>
             <SectionLabel>Prestaties</SectionLabel>
             <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
-              {insights.achievements.map(a => (
+              {insights.achievements.map(a => {
+                const AchIcon = a.icon;
+                return (
                 <button key={a.id} onClick={() => setActiveAchievementId(a.id)} style={{
                   border: "none", background: "none", padding: 0, margin: 0, cursor: "pointer", width: 72, flexShrink: 0,
                   color: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 7,
@@ -8225,7 +8299,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                     boxShadow: a.unlocked ? SHADOW_CARD : "none",
                     border: a.unlocked ? `2px solid ${BRASS}` : `1.5px dashed ${BORDER}`,
                   }}>
-                    <span style={{ fontSize: 23, opacity: a.unlocked ? 1 : 0.4, filter: a.unlocked ? "none" : "grayscale(1)" }}>{a.emoji}</span>
+                    <AchIcon size={24} strokeWidth={1.8} color={a.unlocked ? BRASS : MUTED} />
                     {!a.unlocked && (
                       <div style={{ position: "absolute", bottom: -2, right: -2, width: 19, height: 19, borderRadius: "50%", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Lock size={9} color={MUTED} strokeWidth={2.6} />
@@ -8234,10 +8308,11 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                   </div>
                   <span style={{ fontSize: 11.5, textAlign: "center", lineHeight: 1.25, color: a.unlocked ? "#4A4438" : "#7D7461", fontWeight: 600 }}>{a.label}</span>
                 </button>
-              ))}
+                );
+              })}
             </div>
             <div style={{ marginTop: 12, padding: "11px 13px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 10, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 17 }}>{activeAch.emoji}</span>
+              {(() => { const ActiveIcon = activeAch.icon; return <ActiveIcon size={19} strokeWidth={1.8} color={activeAch.unlocked ? BRASS : MUTED} />; })()}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: INK }}>{activeAch.label}{!activeAch.unlocked && " (nog niet ontgrendeld)"}</div>
                 <div style={{ fontSize: 12, color: "#5C5548", marginTop: 1 }}>{activeAch.text}</div>
@@ -8309,25 +8384,25 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 11 }}>
             {insights.favoriteCocktail && (
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid #7A2E2A`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><span style={{ fontSize: 14 }}>❤️</span> Favoriete cocktail</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Heart size={13} color="#7A2E2A" fill="#7A2E2A" /> Favoriete cocktail</div>
                 <div style={{ marginTop: 4, fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteCocktail.name}</div>
               </div>
             )}
             {insights.favoriteHomemade && (
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${SAGE}`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><span style={{ fontSize: 14 }}>🏠</span> Favoriet eigen recept</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Home size={13} color={SAGE} /> Favoriet eigen recept</div>
                 <div style={{ marginTop: 4, fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteHomemade.name}</div>
               </div>
             )}
             {insights.favoriteFamilyEntry && (
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${BRASS}`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><span style={{ fontSize: 14 }}>🍸</span> Favoriete stijl</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Martini size={13} color={BRASS} /> Favoriete stijl</div>
                 <div style={{ marginTop: 4, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteFamilyEntry[0]}</div>
               </div>
             )}
             {insights.favoriteSpiritEntry && (
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${MUTED}`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><span style={{ fontSize: 14 }}>🥃</span> Favoriete drank</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Wine size={13} color={MUTED} /> Favoriete drank</div>
                 <div style={{ marginTop: 4, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteSpiritEntry[0]}</div>
               </div>
             )}
@@ -8555,7 +8630,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 }}>
                       {entry.tasteTags.filter(k => TASTE_META[k]).map(k => (
                         <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "#8F6A21", background: "rgba(184,134,46,0.12)", border: "1px solid rgba(184,134,46,0.3)", borderRadius: 100, padding: "3px 9px" }}>
-                          {TASTE_META[k].emoji} {TASTE_META[k].label}
+                          {TASTE_META[k].label}
                         </span>
                       ))}
                     </div>
