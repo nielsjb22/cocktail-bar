@@ -3225,23 +3225,26 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
     );
   };
   return (
+    // Zwevende pil i.p.v. een balk die vastzit aan de onderrand: de buitenste
+    // laag is onzichtbaar en alleen voor de veilige-marges-padding
+    // (pointerEvents:none, zodat de ruimte ernaast/eronder gewoon aantikbaar
+    // blijft), de échte balk erbinnen heeft de marge, afronding en schaduw.
     <div style={{
       position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
-      background: "var(--dock-bg)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-      borderTop: `1px solid rgba(184,134,46,0.3)`,
-      boxShadow: "0 -6px 18px rgba(43,38,32,0.10)",
-      transform: "translateZ(0)",
+      padding: "0 14px calc(env(safe-area-inset-bottom) + 14px)", pointerEvents: "none",
     }}>
       <div style={{
-        maxWidth: 960, margin: "0 auto", display: "flex", alignItems: "flex-end",
-        padding: "9px 6px calc(env(safe-area-inset-bottom) + 9px)",
+        maxWidth: 960 - 28, margin: "0 auto", display: "flex", alignItems: "flex-end", pointerEvents: "auto",
+        background: "var(--dock-bg)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        borderRadius: 28, boxShadow: "0 12px 28px -8px rgba(43,38,32,0.34), 0 2px 10px rgba(43,38,32,0.14)",
+        padding: "9px 6px",
       }}>
         {left.map(renderBtn)}
         <div style={{ flex: 1, display: "flex", justifyContent: "center", marginTop: -26 }}>
           <button onClick={onCheckin} aria-label="Inchecken" className="press-scale" style={{
             width: 54, height: 54, borderRadius: "50%", background: BRASS, border: `4px solid ${PAPER}`,
-            boxShadow: "0 6px 16px -4px rgba(184,134,46,0.6)", display: "flex", alignItems: "center",
-            justifyContent: "center", color: CREAM, cursor: "pointer",
+            boxShadow: "0 6px 16px -4px rgba(184,134,46,0.6), 0 0 0 8px rgba(184,134,46,0.14)",
+            display: "flex", alignItems: "center", justifyContent: "center", color: CREAM, cursor: "pointer",
           }}>
             <Plus size={24} strokeWidth={2.4} />
           </button>
