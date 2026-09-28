@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Snowflake, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine } from "lucide-react";
+import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "./supabaseClient";
@@ -2463,7 +2463,8 @@ export default function ThuisbarApp() {
         <TabPanel id="feest" active={tab === "feest"} visited={visitedTabs.has("feest")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.feest} onBack={() => navigateTo("bar")}>
             <FeestplannerTab session={session} recipes={allRecipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
-              onAddToShoppingList={addToShoppingList} chosen={feestChosen} setChosen={setFeestChosen} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail} />
+              onAddToShoppingList={addToShoppingList} chosen={feestChosen} setChosen={setFeestChosen} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail}
+              active={tab === "feest"} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="eigen" active={tab === "eigen"} visited={visitedTabs.has("eigen")} panelRef={panelRefs}>
@@ -6162,10 +6163,12 @@ function computeGroupRecommendations(responses, recipes, excludeIds, isOwned) {
       const spiritMatch = topSpiritIds.size > 0 && r.ingredients.some(i => topSpiritIds.has(i.id));
       const mentioned = mentionedIds.has(r.id);
       const required = r.ingredients.filter(i => !i.optional);
-      const matchPct = isOwned && required.length > 0 ? Math.round(((required.length - required.filter(i => !isOwned(i)).length) / required.length) * 100) : null;
+      const missingCount = isOwned ? required.filter(i => !isOwned(i)).length : null;
+      const ownedCount = missingCount != null ? required.length - missingCount : null;
+      const matchPct = isOwned && required.length > 0 ? Math.round((ownedCount / required.length) * 100) : null;
 
       const score = Math.round(tasteScore * 0.55 + (matchPct != null ? matchPct * 0.25 : 0) + (spiritMatch ? 15 : 0) + (mentioned ? 20 : 0));
-      return { recipe: r, score, matchPct, mentioned, spiritMatch };
+      return { recipe: r, score, matchPct, ownedCount, requiredCount: required.length, mentioned, spiritMatch };
     })
     .filter(x => x.score > 0 || x.mentioned)
     .sort((a, b) => b.score - a.score)
@@ -6199,12 +6202,125 @@ function getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals) {
   return warnings;
 }
 
-function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, chosen, setChosen, voorraadAantal, onSound, onOpenRecipe }) {
+// Kleine herbruikbare bevestigingsdialoog voor destructieve acties binnen de
+// Feestplanner (smaaktest verwijderen, menu vervangen) — één component i.p.v.
+// 'm twee keer los uit te schrijven.
+function ConfirmDialog({ title, message, cancelLabel = "Annuleer", confirmLabel, confirmColor = BURGUNDY, busy, onCancel, onConfirm }) {
+  return createPortal(
+    <div role="dialog" aria-modal="true" style={{
+      position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center",
+      background: "rgba(19,20,16,0.45)", padding: 20,
+    }} onClick={() => !busy && onCancel()}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: CREAM, borderRadius: RADIUS + 4, border: `1px solid ${BORDER}`, boxShadow: SHADOW_HERO,
+        padding: 22, maxWidth: 340, width: "100%",
+      }}>
+        <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 8 }}>{title}</div>
+        <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.5, margin: "0 0 20px" }}>{message}</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onCancel} className="press-scale" style={{
+            flex: 1, minHeight: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: "none",
+            color: INK, fontSize: 14, fontWeight: 700, cursor: "pointer",
+          }}>
+            {cancelLabel}
+          </button>
+          <button onClick={onConfirm} disabled={busy} className="press-scale" style={{
+            flex: 1, minHeight: 44, borderRadius: RADIUS, border: "none", background: confirmColor,
+            color: CREAM, fontSize: 14, fontWeight: 700, cursor: "pointer",
+          }}>
+            {busy ? "Bezig…" : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// iOS-stijl swipe-acties (naar links vegen onthult knoppen) i.p.v. losse
+// icoontjes naast de rij — zelfde imperatieve transform-aanpak (via ref,
+// geen re-render per pixel) als de rand-swipe-terug-gestiek elders in dit
+// bestand.
+function SwipeRevealRow({ onWissel, onVerwijder, children }) {
+  const actionsWidth = onVerwijder ? 152 : 76;
+  const rowRef = useRef(null);
+  const drag = useRef({ tracking: false, startX: 0, baseX: 0, x: 0 });
+  const [open, setOpen] = useState(false);
+
+  const setX = (x, animated) => {
+    drag.current.x = x;
+    if (rowRef.current) {
+      rowRef.current.style.transition = animated ? "transform 0.22s cubic-bezier(.32,.72,.35,1)" : "none";
+      rowRef.current.style.transform = `translateX(${x}px)`;
+    }
+  };
+
+  const onTouchStart = (e) => {
+    drag.current.tracking = true;
+    drag.current.startX = e.touches[0].clientX;
+    drag.current.baseX = open ? -actionsWidth : 0;
+  };
+  const onTouchMove = (e) => {
+    if (!drag.current.tracking) return;
+    const dx = e.touches[0].clientX - drag.current.startX;
+    const next = Math.max(-actionsWidth, Math.min(0, drag.current.baseX + dx));
+    setX(next, false);
+  };
+  const onTouchEnd = () => {
+    if (!drag.current.tracking) return;
+    drag.current.tracking = false;
+    const shouldOpen = drag.current.x < -actionsWidth / 2;
+    setOpen(shouldOpen);
+    setX(shouldOpen ? -actionsWidth : 0, true);
+  };
+  const close = () => { setOpen(false); setX(0, true); };
+
+  return (
+    <div style={{ position: "relative", borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, display: "flex", justifyContent: "flex-end" }}>
+        <button onClick={() => { close(); onWissel(); }} style={{
+          width: onVerwijder ? 76 : actionsWidth, minHeight: 44, border: "none", background: BRASS, color: CREAM,
+          fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+        }}>
+          <RefreshCw size={14} /> Wissel
+        </button>
+        {onVerwijder && (
+          <button onClick={() => { close(); onVerwijder(); }} style={{
+            width: 76, minHeight: 44, border: "none", background: BURGUNDY, color: CREAM,
+            fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+          }}>
+            <Trash2 size={14} /> Verwijder
+          </button>
+        )}
+      </div>
+      <div ref={rowRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
+        style={{ position: "relative", touchAction: "pan-y" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, chosen, setChosen, voorraadAantal, onSound, onOpenRecipe, active }) {
   const [shareState, setShareState] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [confirmNieuweSuggestie, setConfirmNieuweSuggestie] = useState(false);
   const [sheetIndex, setSheetIndex] = useState(null);
   const [justAddedId, setJustAddedId] = useState(null);
   const [justAddedAll, setJustAddedAll] = useState(false);
+  const [checkedBuyItems, setCheckedBuyItems] = useStorage("thuisbar-feest-inkoop-checked", []);
+  const [showAlInHuis, setShowAlInHuis] = useState(false);
+  const [showPriceInfo, setShowPriceInfo] = useState(false);
+  const [altOpenKey, setAltOpenKey] = useState(null);
+  const [checkedPrep, setCheckedPrep] = useStorage("thuisbar-feest-voorbereiding-checked", []);
+  const toggleBuyChecked = (key) => {
+    onSound("tick");
+    setCheckedBuyItems(checkedBuyItems.includes(key) ? checkedBuyItems.filter(k => k !== key) : [...checkedBuyItems, key]);
+  };
+  const togglePrepChecked = (key) => {
+    onSound("tick");
+    setCheckedPrep(checkedPrep.includes(key) ? checkedPrep.filter(k => k !== key) : [...checkedPrep, key]);
+  };
 
   // Smaaktest voor gasten: de host maakt (hoogstens) één actieve test aan,
   // gasten vullen 'm zonder account in via een gedeelde link (GuestSurveyView
@@ -6242,6 +6358,16 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [survey?.id]);
+
+  // Automatisch elke 30s verversen zolang dit scherm open is, i.p.v. een
+  // handmatige "Ververs"-knop — stopt zodra je wegnavigeert (active=false).
+  useEffect(() => {
+    if (!active || !survey?.id) return;
+    const interval = setInterval(loadSurvey, 30000);
+    return () => clearInterval(interval);
+  }, [active, survey?.id]);
+
+  const { indicatorRef: surveyPullRef, refreshing: surveyPullRefreshing, handlers: surveyPullHandlers } = usePullToRefresh(loadSurvey);
 
   const createSurvey = async () => {
     if (!myId || creatingSurvey) return;
@@ -6453,8 +6579,50 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
   });
 
   const toBuy = rows.filter(r => !r.owned && r.cost > 0);
+  const teKopenRows = rows.filter(r => r.cost > 0);
+  const alInHuisRows = rows.filter(r => r.cost === 0);
   const stepperBtn = { width: 32, height: 32, borderRadius: 3, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" };
   const stepperValue = { width: 30, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE };
+
+  // Eén recept scoren tegen de groepssmaak (smaaktest) als die er is, anders
+  // tegen hoeveel van de verplichte ingrediënten je al in huis hebt — zelfde
+  // twee signalen als de suggestiekaarten hierboven, nu herbruikt om "houd de
+  // beste N" en een alternatief-zoekopdracht te kunnen scoren.
+  const scoreForGroupOrOwn = (recipe) => {
+    if (surveyResponses.length > 0) {
+      return computeGroupRecommendations(surveyResponses, [recipe], [], isOwned)[0]?.score ?? 0;
+    }
+    const required = recipe.ingredients.filter(i => !i.optional);
+    if (required.length === 0) return 100;
+    return Math.round(((required.length - required.filter(i => !isOwned(i)).length) / required.length) * 100);
+  };
+
+  const guestTiers = guests <= 6 ? { label: "3", target: 3 } : guests <= 12 ? { label: "4", target: 4 } : { label: "5–6", target: 6 };
+  const keepBest = (n) => {
+    onSound("tick");
+    const scored = chosenRecipes.map(r => ({ id: r.id, score: scoreForGroupOrOwn(r) }));
+    scored.sort((a, b) => b.score - a.score);
+    setChosen(scored.slice(0, n).map(x => x.id));
+  };
+
+  // Flessen boven €40 die maar in 1 gekozen cocktail terugkomen: het risico
+  // dat je 'm speciaal voor die ene cocktail moet kopen. Alternatief: een
+  // andere cocktail uit dezelfde familie die de fles niet gebruikt, gekozen
+  // op dezelfde score als hierboven.
+  const expensiveSingleUseRows = teKopenRows.filter(r => (r.meta?.bottlePrice || 0) > 40 && r.recipeNames.length === 1);
+  const findAlternative = (row) => {
+    const usingRecipe = chosenRecipes.find(r => r.name === row.recipeNames[0]);
+    if (!usingRecipe) return null;
+    const costlyId = row.ref?.id;
+    const candidates = recipes.filter(r => r.id !== usingRecipe.id && r.family === usingRecipe.family && !r.ingredients.some(i => i.id === costlyId));
+    if (candidates.length === 0) return null;
+    return candidates.map(r => ({ recipe: r, score: scoreForGroupOrOwn(r) })).sort((a, b) => b.score - a.score)[0].recipe;
+  };
+  const swapForAlternative = (usingRecipeId, altRecipeId) => {
+    onSound("shuffle");
+    setChosen(chosen.map(id => id === usingRecipeId ? altRecipeId : id));
+    setAltOpenKey(null);
+  };
 
   // Voorbereiding: glaswerk, garnering en welke cocktails vooraf te batchen zijn
   const prep = useMemo(() => {
@@ -6480,17 +6648,43 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
     return { glasses: [...glasses.entries()], garnish: [...garnish.values()], batchAhead, kgIjs };
   }, [chosenRecipes, perRecipeCounts, allIngredients, totalDrinks]);
 
+  // Checklist gegroepeerd per moment i.p.v. losse alinea's — dezelfde
+  // afgeleide data (ijs/glazen/garnering/batchen) uit `prep` hierboven, plus
+  // een paar vaste, niet-data-afhankelijke stappen (boodschappen, menu delen).
+  const PREP_GROUPS = [
+    { key: "dag", label: "Dag ervoor" },
+    { key: "2uur", label: "2 uur ervoor" },
+    { key: "aankomst", label: "Bij aankomst" },
+  ];
+  const prepChecklist = useMemo(() => {
+    const items = [{ id: "boodschappen", group: "dag", label: "Boodschappen doen" }];
+    if (prep.batchAhead.length > 0) items.push({ id: "batchen", group: "dag", label: `Batchen: ${prep.batchAhead.join(", ")}` });
+    items.push({ id: "ijs", group: "2uur", label: `IJs halen (± ${prep.kgIjs} kg)` });
+    if (prep.glasses.length > 0) items.push({ id: "glazen", group: "2uur", label: `Glazen koelen: ${prep.glasses.map(([g, c]) => `${g} (${c}×)`).join(", ")}` });
+    if (prep.garnish.length > 0) items.push({ id: "garnering", group: "2uur", label: `Garnering klaarzetten: ${prep.garnish.join(", ")}` });
+    items.push({ id: "menu-delen", group: "aankomst", label: "Menu delen met gasten" });
+    items.push({ id: "eerste-ronde", group: "aankomst", label: "Eerste ronde klaarzetten" });
+    return items;
+  }, [prep]);
+
   return (
-    <div>
+    <div {...surveyPullHandlers} style={{ touchAction: "pan-y" }}>
+      <div ref={surveyPullRef} aria-hidden style={{
+        height: 0, opacity: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
+        marginBottom: 4, color: BRASS,
+      }}>
+        <span className={`ptr-icon${surveyPullRefreshing ? " spin-icon" : ""}`} style={{ display: "flex", transition: "transform 0.1s linear" }}>
+          <Martini size={18} strokeWidth={1.8} />
+        </span>
+      </div>
       <div style={{
-        position: "relative", height: 176, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 22,
+        position: "relative", height: 140, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 22,
         boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}`,
       }}>
         <img src={feestHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
         <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.88), rgba(19,38,34,0.2) 55%, rgba(19,38,34,0.4))` }} />
         <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "16px 20px" }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 26, color: CREAM }}>Feestplanner</div>
-          <div style={{ fontSize: 12, color: "#D9CBAE", letterSpacing: 0.4, marginTop: 3 }}>Alles klaar voor als de gasten arriveren</div>
+          <div style={{ fontSize: 12, color: "#D9CBAE", letterSpacing: 0.4 }}>Alles klaar voor als de gasten arriveren</div>
         </div>
       </div>
 
@@ -6551,25 +6745,19 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                 {surveyResponses.length === 0 ? "Nog geen reacties" : `${surveyResponses.length} reactie${surveyResponses.length === 1 ? "" : "s"} binnen`}
               </span>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <button onClick={loadSurvey} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 3, padding: "6px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  <RefreshCw size={12} /> Ververs
-                </button>
-                <button onClick={shareSurvey} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 3, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                <button onClick={shareSurvey} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 3, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                   <Share2 size={13} /> {surveyShareState === "shared" ? "Gedeeld!" : surveyShareState === "copied" ? "Link gekopieerd!" : surveyShareState === "failed" ? "Delen mislukt" : "Deel de link"}
                 </button>
-                {!confirmDeleteSurvey ? (
-                  <button onClick={() => setConfirmDeleteSurvey(true)} title="Verwijder smaaktest" className="press-scale" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, background: "none", border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 3, cursor: "pointer", flexShrink: 0 }}>
-                    <Trash2 size={13} />
-                  </button>
-                ) : (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, whiteSpace: "nowrap" }}>
-                    <span style={{ color: MUTED }}>Verwijderen?</span>
-                    <button onClick={deleteSurvey} disabled={deletingSurvey} style={{ background: "none", border: "none", color: BURGUNDY, fontWeight: 700, cursor: "pointer", padding: 0, fontSize: 11.5 }}>{deletingSurvey ? "…" : "Ja"}</button>
-                    <button onClick={() => setConfirmDeleteSurvey(false)} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", padding: 0, fontSize: 11.5 }}>Nee</button>
-                  </span>
-                )}
+                <button onClick={() => setConfirmDeleteSurvey(true)} title="Verwijder smaaktest" className="press-scale" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, background: "none", border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 3, cursor: "pointer", flexShrink: 0 }}>
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
+            {confirmDeleteSurvey && (
+              <ConfirmDialog title="Smaaktest verwijderen?" message="De reacties van je gasten gaan verloren."
+                confirmLabel="Verwijder" busy={deletingSurvey}
+                onCancel={() => setConfirmDeleteSurvey(false)} onConfirm={deleteSurvey} />
+            )}
             {survey && (
               <p style={{ fontSize: 11, color: MUTED, margin: "-8px 0 14px" }}>Klaar met dit feest? Verwijder de test en maak een nieuwe aan voor de volgende keer.</p>
             )}
@@ -6577,12 +6765,9 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
             {surveyResponses.length > 0 && (
               <>
                 {surveyGroupPersonalityKey && GROUP_PERSONALITY[surveyGroupPersonalityKey] && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, background: PAPER, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "12px 14px", marginBottom: 16 }}>
-                    <span style={{ fontSize: 26, flexShrink: 0 }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].emoji}</span>
-                    <div>
-                      <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 14.5, color: INK }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].title}</div>
-                      <div style={{ fontSize: 12, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].text}</div>
-                    </div>
+                  <div style={{ background: PAPER, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "12px 14px", marginBottom: 16 }}>
+                    <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 14.5, color: INK }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].title}</div>
+                    <div style={{ fontSize: 12, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].text}</div>
                   </div>
                 )}
 
@@ -6592,7 +6777,6 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                     const pct = Math.round((surveyTasteTotals[key] / surveyResponses.length) * 100);
                     return (
                       <div key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                        <span style={{ fontSize: 14, width: 18, textAlign: "center", flexShrink: 0 }}>{meta.emoji}</span>
                         <span style={{ fontSize: 11.5, color: INK, width: 50, flexShrink: 0 }}>{meta.label}</span>
                         <div style={{ flex: 1, height: 6, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
                           <div style={{ height: "100%", borderRadius: 3, background: BRASS, width: `${pct}%` }} />
@@ -6601,16 +6785,18 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                       </div>
                     );
                   })}
-                  {surveyAvgStrength != null && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                      <span style={{ fontSize: 14, width: 18, textAlign: "center", flexShrink: 0 }}>🥃</span>
-                      <span style={{ fontSize: 11.5, color: INK, width: 50, flexShrink: 0 }}>Sterk</span>
-                      <div style={{ flex: 1, height: 6, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
-                        <div style={{ height: "100%", borderRadius: 3, background: BOTTLE, width: `${Math.round(((surveyAvgStrength - 1) / 4) * 100)}%` }} />
+                  {surveyAvgStrength != null && (() => {
+                    const strengthPct = Math.round(((surveyAvgStrength - 1) / 4) * 100);
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                        <span style={{ fontSize: 11.5, color: INK, width: 50, flexShrink: 0 }}>Sterk</span>
+                        <div style={{ flex: 1, height: 6, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
+                          <div style={{ height: "100%", borderRadius: 3, background: BOTTLE, width: `${strengthPct}%` }} />
+                        </div>
+                        <span style={{ fontSize: 10.5, color: MUTED, fontWeight: 700, width: 30, textAlign: "right", flexShrink: 0 }}>{strengthPct}%</span>
                       </div>
-                      <span style={{ fontSize: 10.5, color: MUTED, fontWeight: 700, width: 30, textAlign: "right", flexShrink: 0 }}>{surveyAvgStrength.toFixed(1)}</span>
-                    </div>
-                  )}
+                    );
+                  })()}
                   {surveyAlcoholFreeCount > 0 && (
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
                       {surveyAlcoholFreeCount} van de {surveyResponses.length} wil liever alcoholvrij.
@@ -6624,7 +6810,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {SURVEY_TASTE_KEYS.filter(k => surveyDislikeTotals[k] > 0).map(k => (
                         <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(122,46,42,0.08)", border: `1px solid rgba(122,46,42,0.25)`, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: BURGUNDY, fontWeight: 600 }}>
-                          {TASTE_META[k].emoji} {TASTE_META[k].label} ({surveyDislikeTotals[k]})
+                          {TASTE_META[k].label} ({surveyDislikeTotals[k]})
                         </span>
                       ))}
                     </div>
@@ -6674,20 +6860,24 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                     </div>
                     <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>Tik op een kaart voor het recept, of gebruik + om 'm direct toe te voegen.</div>
                     <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-                      {surveyRecommended.map(({ recipe, score, matchPct, mentioned, spiritMatch }) => {
+                      {surveyRecommended.map(({ recipe, score, ownedCount, requiredCount, mentioned, spiritMatch }) => {
                         const warnings = getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals);
                         return (
                         <button key={recipe.id} onClick={() => setSuggestionSheetId(recipe.id)} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                          <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 7px", fontSize: 10.5, fontWeight: 700 }}>{score}%</div>
+                          <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 7px", fontSize: 10.5, fontWeight: 700 }}>{score}% match</div>
                           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                             <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} />
                           </div>
                           <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 12.5, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
-                          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 3, marginTop: 5, minHeight: 15 }}>
-                            {mentioned && <span style={{ fontSize: 8.5, color: BRASS, fontWeight: 700, border: `1px solid ${BRASS}`, borderRadius: 100, padding: "1px 5px" }}>genoemd</span>}
-                            {spiritMatch && <span style={{ fontSize: 8.5, color: SAGE, fontWeight: 700, border: `1px solid ${SAGE}`, borderRadius: 100, padding: "1px 5px" }}>favoriet</span>}
-                            {matchPct != null && <span style={{ fontSize: 8.5, color: MUTED, fontWeight: 700, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "1px 5px" }}>{matchPct}% in huis</span>}
-                          </div>
+                          {requiredCount > 0 && (
+                            <div style={{ fontSize: 10.5, color: MUTED, marginTop: 4 }}>{ownedCount} van {requiredCount} ingrediënten in huis</div>
+                          )}
+                          {(mentioned || spiritMatch) && (
+                            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 3, marginTop: 5 }}>
+                              {mentioned && <span style={{ fontSize: 8.5, color: BRASS, fontWeight: 700, border: `1px solid ${BRASS}`, borderRadius: 100, padding: "1px 5px" }}>genoemd</span>}
+                              {spiritMatch && <span style={{ fontSize: 8.5, color: SAGE, fontWeight: 700, border: `1px solid ${SAGE}`, borderRadius: 100, padding: "1px 5px" }}>favoriet</span>}
+                            </div>
+                          )}
                           {warnings.length > 0 && (
                             <div title={warnings.join(", ")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 5, fontSize: 9.5, color: BURGUNDY, fontWeight: 700 }}>
                               ⚠️ {warnings[0]}
@@ -6697,9 +6887,9 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                             role="button"
                             tabIndex={0}
                             onClick={(e) => { e.stopPropagation(); onSound("shuffle"); setChosen([...chosen, recipe.id]); }}
-                            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 7, fontSize: 10.5, color: BRASS, fontWeight: 700, border: `1px dashed ${BRASS}`, borderRadius: 3, padding: "5px 0", cursor: "pointer" }}
+                            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 7, minHeight: 44, fontSize: 11, color: CREAM, fontWeight: 700, background: BRASS, border: "none", borderRadius: 3, cursor: "pointer" }}
                           >
-                            <Plus size={11} /> toevoegen
+                            <Plus size={12} /> toevoegen
                           </div>
                         </button>
                         );
@@ -6718,7 +6908,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                         <div key={r.id} style={{ background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "9px 12px", fontSize: 12, color: INK, lineHeight: 1.5 }}>
                           <div style={{ fontWeight: 700, marginBottom: 2 }}>{r.guest_name || "Naamloze gast"}</div>
                           <div style={{ color: MUTED }}>
-                            {(r.taste_tags || []).map(k => TASTE_META[k]?.emoji).filter(Boolean).join(" ") || "geen smaak opgegeven"}
+                            {(r.taste_tags || []).map(k => TASTE_META[k]?.label).filter(Boolean).join(", ") || "geen smaak opgegeven"}
                             {r.strength != null && ` · sterkte ${r.strength}/5`}
                             {r.alcohol_free && " · alcoholvrij"}
                             {r.favorite_spirit && ` · ${FAVORITE_SPIRIT_OPTIONS.find(o => o.key === r.favorite_spirit)?.label || r.favorite_spirit}`}
@@ -6755,31 +6945,39 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                 style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 3, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 <Share2 size={13} /> {shareState === "shared" ? "Gedeeld!" : shareState === "copied" ? "Link gekopieerd!" : shareState === "failed" ? "Delen mislukt" : "Deel dit menu"}
               </button>
-              <button onClick={() => setChosen(pickRandom(Math.max(1, chosen.length)))}
-                style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BRASS}`, color: BRASS, borderRadius: 3, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+              <button onClick={() => { if (chosen.length > 0) setConfirmNieuweSuggestie(true); else setChosen(pickRandom(1)); }}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BRASS}`, color: BRASS, borderRadius: 3, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 <Shuffle size={13} /> Nieuwe suggestie
               </button>
             </div>
           </div>
+          {confirmNieuweSuggestie && (
+            <ConfirmDialog title="Nieuwe suggesties?" message="Hele menu vervangen door nieuwe suggesties?"
+              confirmLabel="Vervang" confirmColor={BRASS}
+              onCancel={() => setConfirmNieuweSuggestie(false)}
+              onConfirm={() => { setConfirmNieuweSuggestie(false); setChosen(pickRandom(Math.max(1, chosen.length))); }} />
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {chosenRecipes.map((r, i) => {
               const required = r.ingredients.filter(ing => !ing.optional);
               const missing = required.filter(ing => !isOwned(ing));
               const isEditing = editingIndex === i;
               const warnings = surveyResponses.length > 0 ? getSurveyWarnings(r, surveyDietaryTotals, surveyDislikeTotals) : [];
-              return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
+              const row = (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
                   {isEditing ? (
                     <RecipePicker recipes={recipes} value={r.id} listId={`feest-recipe-${i}`}
                       onChange={id => { const next = chosen.slice(); next[i] = id; setChosen(next); setEditingIndex(null); }}
                       style={{ flex: 1, minWidth: 0 }} />
                   ) : (
-                    <button onClick={() => setSheetIndex(i)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: 0, fontFamily: sans }}>
+                    <button onClick={() => setSheetIndex(i)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, minHeight: 44, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: 0, fontFamily: sans }}>
                       <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                          <StatusTag missingCount={missing.length} />
+                          <span style={{ fontSize: 12, fontWeight: 700, color: missing.length === 0 ? SAGE : MUTED }}>
+                            {missing.length === 0 ? "Alles in huis" : `${missing.length} fles${missing.length === 1 ? "" : "sen"} kopen`}
+                          </span>
                           <span style={{ fontSize: 11, color: MUTED, flexShrink: 0 }}>· {perRecipeCounts[i]} glazen</span>
                         </div>
                         {warnings.length > 0 && (
@@ -6790,21 +6988,34 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                       </div>
                     </button>
                   )}
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                    <button onClick={() => setEditingIndex(isEditing ? null : i)} title="Wissel cocktail" style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: PAPER_DEEP, color: isEditing ? BOTTLE : MUTED, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                      <RefreshCw size={14} />
-                    </button>
-                    {chosen.length > 1 && (
-                      <button onClick={() => removeSlot(i)} title="Verwijder cocktail" style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: PAPER_DEEP, color: MUTED, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                        <X size={15} />
-                      </button>
-                    )}
-                  </div>
                 </div>
+              );
+              return (
+                <SwipeRevealRow key={i} onWissel={() => setEditingIndex(isEditing ? null : i)} onVerwijder={chosen.length > 1 ? () => removeSlot(i) : null}>
+                  {row}
+                </SwipeRevealRow>
               );
             })}
           </div>
-          <button onClick={addSlot} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "none", border: `1px dashed ${BRASS}`, borderRadius: 14, padding: "13px", fontSize: 12.5, fontWeight: 700, color: BRASS, cursor: "pointer", marginTop: 10 }}>
+
+          {chosenRecipes.length > guestTiers.target && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(184,134,46,0.08)", border: `1px solid ${BRASS}`, borderRadius: RADIUS, padding: "12px 14px", marginTop: 12 }}>
+              <Sparkles size={15} color={BRASS} style={{ marginTop: 2, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 13, color: INK, margin: "0 0 8px", lineHeight: 1.5 }}>
+                  Voor {guests} gasten raden we {guestTiers.label} cocktails aan. Je hebt er {chosenRecipes.length}.
+                </p>
+                <button onClick={() => keepBest(guestTiers.target)} className="press-scale" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, minHeight: 40, background: BRASS, color: CREAM,
+                  border: "none", borderRadius: 3, padding: "0 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+                }}>
+                  Houd de beste {guestTiers.target}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button onClick={addSlot} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "none", border: `1px dashed ${BRASS}`, borderRadius: 14, padding: "13px", minHeight: 44, fontSize: 12.5, fontWeight: 700, color: BRASS, cursor: "pointer", marginTop: 10 }}>
             <Plus size={14} /> Extra cocktail toevoegen
           </button>
 
@@ -6813,21 +7024,99 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
               <ShoppingCart size={15} color={BRASS} />
               <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Inkooplijst</span>
             </div>
-            {rows.map((row, i) => (
-              <div key={row.key} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderTop: i === 0 ? "none" : `1px dotted ${BORDER}`, fontSize: 13.5 }}>
-                <span style={{ color: INK }}>{row.label}</span>
-                <span style={{ color: row.cost > 0 ? MUTED : SAGE, fontWeight: 600 }}>
-                  {row.buyLabel}{row.cost > 0 && !row.buyLabel.includes("€") ? ` · ${euro(row.cost)}` : ""}
-                </span>
+
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, margin: "4px 0 4px" }}>Te kopen ({teKopenRows.length})</div>
+            {teKopenRows.length === 0 && (
+              <p style={{ fontSize: 12.5, color: SAGE, fontWeight: 600, margin: "0 0 8px" }}>Niets te kopen — alles in huis.</p>
+            )}
+            {teKopenRows.map((row, i) => {
+              const checked = checkedBuyItems.includes(row.key);
+              const expensiveFlag = expensiveSingleUseRows.some(r => r.key === row.key);
+              return (
+                <div key={row.key}>
+                  <button onClick={() => toggleBuyChecked(row.key)} style={{
+                    display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none",
+                    padding: "9px 0", minHeight: 44, borderTop: i === 0 ? "none" : `1px dotted ${BORDER}`, cursor: "pointer", textAlign: "left", fontFamily: sans,
+                  }}>
+                    <span style={{
+                      width: 20, height: 20, borderRadius: "50%", border: `1.5px solid ${checked ? SAGE : BORDER}`,
+                      background: checked ? SAGE : "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      {checked && <Check size={13} color={CREAM} strokeWidth={3} />}
+                    </span>
+                    <span style={{ flex: 1, fontSize: 13.5, color: checked ? MUTED : INK, textDecoration: checked ? "line-through" : "none" }}>{row.label}</span>
+                    <span style={{ fontSize: 13, color: checked ? MUTED : INK, fontWeight: 600, textDecoration: checked ? "line-through" : "none", flexShrink: 0 }}>
+                      {row.buyLabel}{row.cost > 0 && !row.buyLabel.includes("€") ? ` · ${euro(row.cost)}` : ""}
+                    </span>
+                  </button>
+                  {expensiveFlag && (() => {
+                    const alt = altOpenKey === row.key ? findAlternative(row) : null;
+                    const usingRecipe = chosenRecipes.find(r => r.name === row.recipeNames[0]);
+                    return (
+                      <div style={{ background: "rgba(122,46,42,0.06)", border: `1px solid rgba(122,46,42,0.2)`, borderRadius: 10, padding: "8px 10px", marginBottom: 8 }}>
+                        <p style={{ fontSize: 11.5, color: BURGUNDY, margin: "0 0 6px", lineHeight: 1.4 }}>
+                          {row.label} ({euro(row.meta.bottlePrice)}) gebruik je maar in 1 cocktail.
+                        </p>
+                        {altOpenKey === row.key ? (
+                          alt ? (
+                            <button onClick={() => swapForAlternative(usingRecipe.id, alt.id)} className="press-scale" style={{
+                              display: "flex", alignItems: "center", gap: 6, minHeight: 40, background: "none", border: `1px solid ${BRASS}`,
+                              color: BRASS, borderRadius: 3, padding: "0 10px", fontSize: 11.5, fontWeight: 700, cursor: "pointer",
+                            }}>
+                              <RefreshCw size={12} /> Wissel naar {alt.name}
+                            </button>
+                          ) : (
+                            <p style={{ fontSize: 11.5, color: MUTED, margin: 0 }}>Geen vergelijkbaar alternatief gevonden.</p>
+                          )
+                        ) : (
+                          <button onClick={() => setAltOpenKey(row.key)} className="press-scale" style={{
+                            display: "flex", alignItems: "center", gap: 6, minHeight: 40, background: "none", border: `1px solid ${BURGUNDY}`,
+                            color: BURGUNDY, borderRadius: 3, padding: "0 10px", fontSize: 11.5, fontWeight: 700, cursor: "pointer",
+                          }}>
+                            Toon alternatief
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })}
+
+            {alInHuisRows.length > 0 && (
+              <div style={{ marginTop: 6 }}>
+                <button onClick={() => setShowAlInHuis(v => !v)} className="press-scale" style={{
+                  display: "flex", alignItems: "center", gap: 6, width: "100%", minHeight: 40, background: "none", border: "none",
+                  padding: "6px 0", cursor: "pointer", fontSize: 11.5, fontWeight: 700, color: MUTED, fontFamily: sans,
+                }}>
+                  {showAlInHuis ? <ChevronUp size={13} /> : <ChevronDown size={13} />} Al in huis ({alInHuisRows.length})
+                </button>
+                {showAlInHuis && alInHuisRows.map((row, i) => (
+                  <div key={row.key} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderTop: i === 0 ? "none" : `1px dotted ${BORDER}`, fontSize: 13.5 }}>
+                    <span style={{ color: INK }}>{row.label}</span>
+                    <span style={{ color: SAGE, fontWeight: 600 }}>{row.buyLabel}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+
             <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 2px", marginTop: 4, borderTop: `1px solid ${BORDER}`, fontSize: 15 }}>
               <span style={{ fontFamily: systemFont, fontWeight: 700, color: INK }}>Geschatte inkoop</span>
               <span style={{ fontFamily: systemFont, fontWeight: 700, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></span>
             </div>
-            <p style={{ fontSize: 11.5, color: MUTED, margin: "6px 0 14px", lineHeight: 1.5 }}>
-              Richtprijzen o.b.v. drankdozijn.nl ({PRICES_UPDATED}), geen live koppeling, zie dit als indicatie, niet als actuele winkelprijs. Wat je al in voorraad hebt, telt mee volgens het aantal flessen dat je bij Voorraad instelt. Is dat te weinig voor dit feest, dan berekent de app hoeveel je moet bijkopen.
-            </p>
+            <div style={{ margin: "6px 0 14px" }}>
+              <button onClick={() => setShowPriceInfo(v => !v)} className="press-scale" style={{
+                display: "flex", alignItems: "center", gap: 5, minHeight: 32, background: "none", border: "none", padding: 0,
+                cursor: "pointer", fontSize: 11.5, color: MUTED, fontFamily: sans,
+              }}>
+                Richtprijzen <Info size={12} />
+              </button>
+              {showPriceInfo && (
+                <p style={{ fontSize: 11.5, color: MUTED, margin: "6px 0 0", lineHeight: 1.5 }}>
+                  Richtprijzen o.b.v. drankdozijn.nl ({PRICES_UPDATED}), geen live koppeling, zie dit als indicatie, niet als actuele winkelprijs. Wat je al in voorraad hebt, telt mee volgens het aantal flessen dat je bij Voorraad instelt. Is dat te weinig voor dit feest, dan berekent de app hoeveel je moet bijkopen.
+                </p>
+              )}
+            </div>
             {toBuy.length > 0 && (
               justAddedAll ? (
                 <span className="success-pop" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: SAGE, fontSize: 14, fontWeight: 700, padding: "11px 0" }}>
@@ -6835,7 +7124,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
                 </span>
               ) : (
                 <button onClick={() => addAllMissing(toBuy.map(row => ({ ref: row.ref, recipeNames: row.recipeNames })))}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: BOTTLE, color: "#FBF6EA", border: "none", borderRadius: RADIUS, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA }}>
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", minHeight: 44, background: BOTTLE, color: "#FBF6EA", border: "none", borderRadius: RADIUS, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA }}>
                   <ShoppingCart size={15} /> Zet ontbrekende in winkelmandje
                 </button>
               )
@@ -6847,30 +7136,32 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
               <ClipboardList size={15} color={BRASS} />
               <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Voorbereiding</span>
             </div>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
-              <Snowflake size={15} color={MUTED} style={{ marginTop: 2, flexShrink: 0 }} />
-              <p style={{ fontSize: 13.5, color: INK, margin: 0, lineHeight: 1.5 }}>
-                Reken op ongeveer <strong>{prep.kgIjs} kg ijs</strong> voor {totalDrinks} drankjes (vuistregel: ~150 g per drankje).
-              </p>
-            </div>
-            {prep.glasses.length > 0 && (
-              <div style={{ marginBottom: 10 }}>
-                <p style={{ fontSize: 13.5, color: INK, margin: "0 0 4px", lineHeight: 1.5 }}><strong>Glazen koelen:</strong></p>
-                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: INK, lineHeight: 1.6 }}>
-                  {prep.glasses.map(([glass, count]) => <li key={glass}>{glass}: {count}×</li>)}
-                </ul>
-              </div>
-            )}
-            {prep.garnish.length > 0 && (
-              <p style={{ fontSize: 13.5, color: INK, margin: "0 0 10px", lineHeight: 1.5 }}>
-                <strong>Vooraf snijden/klaarzetten:</strong> {prep.garnish.join(", ")}.
-              </p>
-            )}
-            {prep.batchAhead.length > 0 && (
-              <p style={{ fontSize: 13.5, color: INK, margin: 0, lineHeight: 1.5 }}>
-                <strong>Kun je vooraf batchen</strong> (zonder ijs, gekoeld bewaren tot het feest): {prep.batchAhead.join(", ")}.
-              </p>
-            )}
+            {PREP_GROUPS.map(group => {
+              const items = prepChecklist.filter(item => item.group === group.key);
+              if (items.length === 0) return null;
+              return (
+                <div key={group.key} style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 0.3, marginBottom: 4 }}>{group.label}</div>
+                  {items.map((item, i) => {
+                    const checked = checkedPrep.includes(item.id);
+                    return (
+                      <button key={item.id} onClick={() => togglePrepChecked(item.id)} style={{
+                        display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none",
+                        padding: "8px 0", minHeight: 44, borderTop: i === 0 ? "none" : `1px dotted ${BORDER}`, cursor: "pointer", textAlign: "left", fontFamily: sans,
+                      }}>
+                        <span style={{
+                          width: 20, height: 20, borderRadius: "50%", border: `1.5px solid ${checked ? SAGE : BORDER}`,
+                          background: checked ? SAGE : "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        }}>
+                          {checked && <Check size={13} color={CREAM} strokeWidth={3} />}
+                        </span>
+                        <span style={{ flex: 1, fontSize: 13.5, color: checked ? MUTED : INK, textDecoration: checked ? "line-through" : "none", lineHeight: 1.4 }}>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
       </>
 
