@@ -113,6 +113,26 @@ const STICKY_TOP = "env(safe-area-inset-top)";
 const STICKY_SUBHEADER_TOP = "calc(env(safe-area-inset-top) + 54px)";
 const STICKY_SUB2HEADER_TOP = "calc(env(safe-area-inset-top) + 108px)";
 
+// Titels voor de vaste navigatiebalk van elk push-scherm (SecondaryTabScreen)
+// — gecentreerd tussen de terugknop en de rand, zoals een echte iOS-navbar.
+// Ook gebruikt om te bepalen welke tabs bij wissel in-vanaf-rechts schuiven
+// i.p.v. faden (zie de tab-effect in ThuisbarApp).
+const PUSH_SCREEN_TITLES = {
+  voorraad: "Voorraad",
+  mandje: "Winkelmandje",
+  schaler: "Schaler",
+  balans: "Smaakbalans",
+  cursus: "Cursus",
+  feest: "Feestplanner",
+  eigen: "Eigen recepten",
+  vrienden: "Vrienden",
+  instellingen: "Instellingen",
+  privacybeleid: "Privacybeleid",
+  "account-verwijderen": "Account verwijderen",
+  fotoverantwoording: "Fotoverantwoording",
+};
+const PUSH_SCREENS = new Set(Object.keys(PUSH_SCREEN_TITLES));
+
 // @capacitor/preferences i.p.v. rechtstreeks localStorage: op web valt het
 // plugin zelf terug op localStorage (dus geen gedragsverandering in de
 // browser), maar op iOS gebruikt het de native UserDefaults — die overleeft
@@ -2067,11 +2087,21 @@ export default function ThuisbarApp() {
   const panelRefs = useRef({});
   useEffect(() => {
     const el = panelRefs.current[tab];
-    if (el) {
-      el.classList.remove("tab-fade");
+    if (!el) return;
+    if (PUSH_SCREENS.has(tab)) {
+      // Push-schermen schuiven in vanaf rechts i.p.v. te faden, en de klasse
+      // gaat er na afloop weer af — anders blijft transform (zelfs
+      // translateX(0) via fill-mode "both") permanent een containing block
+      // vormen voor position:fixed-kinderen van dit paneel.
+      el.classList.remove("push-slide-in");
       void el.offsetWidth;
-      el.classList.add("tab-fade");
+      el.classList.add("push-slide-in");
+      const timer = setTimeout(() => el.classList.remove("push-slide-in"), 340);
+      return () => clearTimeout(timer);
     }
+    el.classList.remove("tab-fade");
+    void el.offsetWidth;
+    el.classList.add("tab-fade");
   }, [tab]);
   // Pas een tab écht opbouwen zodra 'm voor het eerst bezocht wordt, en dan
   // nooit meer afbreken — zo blijft het opstartscherm licht (niet alle elf
@@ -2394,7 +2424,7 @@ export default function ThuisbarApp() {
         </TabPanel>
 
         <TabPanel id="voorraad" active={tab === "voorraad"} visited={visitedTabs.has("voorraad")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.voorraad} onBack={() => navigateTo("bar")}>
             <VoorraadTab allIngredients={allIngredients} customIngredients={customIngredients} voorraad={voorraad}
               voorraadAantal={voorraadAantal} onAdjustAantal={adjustAantal}
               onToggle={toggleIngredient} onAddCustom={addCustomIngredient} onRemoveCustom={removeCustomIngredient}
@@ -2402,61 +2432,61 @@ export default function ThuisbarApp() {
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="mandje" active={tab === "mandje"} visited={visitedTabs.has("mandje")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.mandje} onBack={() => navigateTo("bar")}>
             <WinkelmandjeTab shoppingList={shoppingList} recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
               onRemove={removeFromShoppingList} onBuy={buyShoppingItem} onClear={clearShoppingList} onAdd={addToShoppingList} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="schaler" active={tab === "schaler"} visited={visitedTabs.has("schaler")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.schaler} onBack={() => navigateTo("bar")}>
             <SchalerTab recipes={allRecipes} ingredientLabel={ingredientLabel} allIngredients={allIngredients} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="balans" active={tab === "balans"} visited={visitedTabs.has("balans")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.balans} onBack={() => navigateTo("bar")}>
             <SmaakbalansTab recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
               menu={smaakMenu} setMenu={setSmaakMenu} onSound={chime}
               onUseInFeestplanner={(ids) => { setFeestChosen(ids); navigateTo("feest"); }} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="cursus" active={tab === "cursus"} visited={visitedTabs.has("cursus")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.cursus} onBack={() => navigateTo("bar")}>
             <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="feest" active={tab === "feest"} visited={visitedTabs.has("feest")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.feest} onBack={() => navigateTo("bar")}>
             <FeestplannerTab session={session} recipes={allRecipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
               onAddToShoppingList={addToShoppingList} chosen={feestChosen} setChosen={setFeestChosen} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="eigen" active={tab === "eigen"} visited={visitedTabs.has("eigen")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.eigen} onBack={() => navigateTo("bar")}>
             <EigenRecepten customRecipes={customRecipes} setCustomRecipes={setCustomRecipes} allIngredients={allIngredients} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="vrienden" active={tab === "vrienden"} visited={visitedTabs.has("vrienden")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Profiel" onBack={() => navigateTo("profiel")}>
+          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.vrienden} onBack={() => navigateTo("profiel")}>
             <VriendenTab session={session} profile={profile} recipes={allRecipes} allIngredients={allIngredients} onSound={chime} active={tab === "vrienden"} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Profiel" onBack={() => navigateTo("profiel")}>
+          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel")}>
             <InstellingenTab soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={() => supabase.auth.signOut()} push={push} onNavigate={navigateTo} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="privacybeleid" active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Instellingen" onBack={() => navigateTo("instellingen")}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.privacybeleid} onBack={() => navigateTo("instellingen")}>
             <PrivacyPolicyScreen />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="account-verwijderen" active={tab === "account-verwijderen"} visited={visitedTabs.has("account-verwijderen")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Instellingen" onBack={() => navigateTo("instellingen")}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES["account-verwijderen"]} onBack={() => navigateTo("instellingen")}>
             <AccountDeleteScreen onDelete={deleteAccount} busy={deletingAccount} error={deleteAccountError} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="fotoverantwoording" active={tab === "fotoverantwoording"} visited={visitedTabs.has("fotoverantwoording")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Instellingen" onBack={() => navigateTo("instellingen")}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.fotoverantwoording} onBack={() => navigateTo("instellingen")}>
             <PhotoCreditsScreen />
           </SecondaryTabScreen>
         </TabPanel>
@@ -3878,7 +3908,7 @@ function useEdgeSwipeBack(onBack) {
 // rij-silhouetten — geen echte tweede instantie van MeerTab, puur decoratief)
 // vanaf links mee naar binnen, net als de "vorige scherm wordt zichtbaar"-
 // parallax van een echte iOS-navigatiestack, i.p.v. een vlak gedimd vlak.
-function SecondaryTabScreen({ label, onBack, children }) {
+function SecondaryTabScreen({ label, title, onBack, children }) {
   const { contentRef, peekRef, scrimRef, showPeek, commitBack, handlers } = useEdgeSwipeBack(onBack);
   return (
     <div style={{ position: "relative" }}>
@@ -3902,19 +3932,39 @@ function SecondaryTabScreen({ label, onBack, children }) {
         </div>
       )}
       <div ref={contentRef} {...handlers} style={{ touchAction: "pan-y", position: "relative", background: PAPER }}>
-        {/* Een tik hier is geen voltooide swipe: commitBack() verwacht de
-            peek-preview-laag die alleen tijdens een echte sleep gerenderd
-            wordt, dus die reuseden gaf een korte "lege" flits. Een tik
-            schakelt daarom rechtstreeks (net zo instant als de dock-tabs).
-            stopPropagation op touchstart voorkomt ook dat een tik hier de
-            rand-swipe-gestiek zelf arm't — de knop staat namelijk al
-            binnen de 90px edge-zone. */}
-        <button onClick={onBack} onTouchStart={(e) => e.stopPropagation()} style={{
-          display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer",
-          padding: "0 0 16px", margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
+        {/* Vaste navigatiebalk: terugknop links (vorige-schermnaam, net als
+            echte iOS), gecentreerde titel van dít scherm — sticky zodat hij
+            blijft staan terwijl de inhoud eronder scrollt, i.p.v. mee weg te
+            scrollen zoals voorheen. marginLeft/Right+paddingLeft/Right span
+            de balk edge-to-edge ondanks de 20px zijpadding van de pagina. */}
+        <div style={{
+          position: "sticky", top: STICKY_TOP, zIndex: 20, background: PAPER,
+          marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+          display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
+          minHeight: 44, marginBottom: 16, borderBottom: `1px solid ${BORDER}`,
         }}>
-          <ChevronLeft size={18} strokeWidth={2.4} /> {label}
-        </button>
+          {/* Een tik hier is geen voltooide swipe: commitBack() verwacht de
+              peek-preview-laag die alleen tijdens een echte sleep gerenderd
+              wordt, dus die reuseden gaf een korte "lege" flits. Een tik
+              schakelt daarom rechtstreeks (net zo instant als de dock-tabs).
+              stopPropagation op touchstart voorkomt ook dat een tik hier de
+              rand-swipe-gestiek zelf arm't — de knop staat namelijk al
+              binnen de 90px edge-zone. */}
+          <button onClick={onBack} onTouchStart={(e) => e.stopPropagation()} style={{
+            justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
+            cursor: "pointer", padding: "10px 8px 10px 0", margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
+          }}>
+            <ChevronLeft size={18} strokeWidth={2.4} /> {label}
+          </button>
+          {title && (
+            <div style={{
+              justifySelf: "center", fontFamily: systemFont, fontWeight: 600, fontSize: 17, color: INK, whiteSpace: "nowrap",
+            }}>
+              {title}
+            </div>
+          )}
+          <div aria-hidden />
+        </div>
         {children}
       </div>
     </div>

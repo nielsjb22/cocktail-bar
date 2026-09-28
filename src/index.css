@@ -439,10 +439,26 @@ button:focus-visible {
   animation: glassShimmer 4s ease-in-out 1.1s infinite;
 }
 
+/* Push-scherm (Voorraad, Cursus, Schaler, Feestplanner, Eigen recepten,
+   Winkelmandje, Profiel-subschermen enz.): schuift vanaf rechts in, net als
+   een iOS-navigatiestack die een nieuw scherm pusht. Anders dan .tab-fade
+   mag dit wél transform gebruiken, want de klasse wordt na afloop weer
+   verwijderd (zie de tab-effect in ThuisbarApp) — zo blijft transform maar
+   heel even (tijdens de animatie) een containing block voor position:fixed-
+   kinderen i.p.v. permanent, wat .tab-fade juist wilde vermijden. */
+@keyframes pushSlideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.push-slide-in {
+  animation: pushSlideIn 0.32s cubic-bezier(.32,.72,.35,1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tab-fade, .accordion-reveal, .glass-liquid-fill, .success-pop,
   .glass-bounce-in, .glass-drop-fall, .hero-text-in, .ingredient-reveal,
-  .check-pop, .ring-pop, .spin-icon, .glass-shimmer, .sheet-backdrop-in, .sheet-slide-in {
+  .check-pop, .ring-pop, .spin-icon, .glass-shimmer, .sheet-backdrop-in, .sheet-slide-in,
+  .push-slide-in {
     animation: none !important;
   }
 }
