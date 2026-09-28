@@ -5304,14 +5304,25 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
           </div>
         </div>
       ) : (
+        // Combineert de terugknop (net als SecondaryTabScreen's navigatiebalk:
+        // vorige-schermnaam links van de chevron) met naam + favoriet, i.p.v.
+        // een aparte, niet-sticky "Terug naar ontdekken"-link die eerder
+        // verderop in de inhoud meescrolde.
         <div style={{
           position: "sticky", top: STICKY_SUB2HEADER_TOP, zIndex: 6, background: PAPER,
-          display: "flex", alignItems: "center", gap: 10, padding: "10px 0", marginBottom: 16,
+          display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
+          padding: "10px 0", marginBottom: 16, borderBottom: `1px solid ${BORDER}`,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         }}>
-          <div style={{ flex: 1, minWidth: 0, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</div>
+          <button onClick={() => setSelectedId(null)} style={{
+            justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
+            cursor: "pointer", padding: 0, margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
+          }}>
+            <ChevronLeft size={18} strokeWidth={2.4} /> Ontdekken
+          </button>
+          <div style={{ justifySelf: "center", maxWidth: "100%", fontFamily: systemFont, fontWeight: 600, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</div>
           <button onClick={() => { onSound("pop"); onToggleFavorite(recipe.id); }} aria-label={favoriteRecipeIds.includes(recipe.id) ? "Verwijder uit favorieten" : "Bewaar als favoriet"} style={{
-            width: 32, height: 32, borderRadius: "50%", border: `1px solid ${BORDER}`, flexShrink: 0,
+            justifySelf: "end", width: 32, height: 32, borderRadius: "50%", border: `1px solid ${BORDER}`, flexShrink: 0,
             background: favoriteRecipeIds.includes(recipe.id) ? BURGUNDY : CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
           }}>
             <Heart size={15} color={favoriteRecipeIds.includes(recipe.id) ? CREAM : BOTTLE} fill={favoriteRecipeIds.includes(recipe.id) ? CREAM : "none"} />
@@ -5384,10 +5395,15 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
 
       {recipe && (
         <EdgeSwipeBackArea key={recipe.id} onBack={() => setSelectedId(null)}>
-          <button onClick={() => setSelectedId(null)} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 13, fontWeight: 700, padding: 0, marginBottom: 16, fontFamily: sans }}>
-            <ChevronDown size={14} style={{ transform: "rotate(90deg)" }} /> Terug naar ontdekken
-          </button>
-
+          {/* Apart element van EdgeSwipeBackArea's eigen contentRef (die de
+              rand-swipe-terug-physics imperatief op translateX zet) zodat de
+              mount-animatie hier niet met die transform kan botsen. De klasse
+              gaat er zelf na de animatie weer af — deze node bestaat toch
+              maar zo lang dit recept open staat (volledige unmount bij
+              teruggaan), maar hetzelfde principe als .push-slide-in verderop:
+              een blijvende transform:translateX(0) zou een containing block
+              vormen voor eventuele position:fixed-kinderen. */}
+          <div ref={el => { if (el) { el.classList.add("push-slide-in"); setTimeout(() => el.classList.remove("push-slide-in"), 340); } }}>
           {(() => { const heroPhoto = localItemImageUrl("cocktail", recipe.id) || recipe.image; return (
           <div style={{
             borderRadius: RADIUS + 4, padding: heroPhoto ? "0" : "26px 26px", marginBottom: 24, position: "relative", overflow: "hidden",
@@ -5587,6 +5603,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               )}
             </div>
           )}
+          </div>
         </EdgeSwipeBackArea>
       )}
     </div>
