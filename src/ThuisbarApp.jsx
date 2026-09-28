@@ -2415,7 +2415,8 @@ export default function ThuisbarApp() {
           />
         </TabPanel>
         <TabPanel id="bar" active={tab === "bar"} visited={visitedTabs.has("bar")} panelRef={panelRefs}>
-          <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} active={tab === "bar"} />
+          <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} active={tab === "bar"}
+            voorraadCount={voorraad.size} customRecipesCount={customRecipes.length} feestCount={feestChosen.length} courseProgress={courseProgress} />
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
           <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
@@ -2691,42 +2692,58 @@ function AccountDeleteScreen({ onDelete, busy, error }) {
 // achter "Meer") in hun eigen tab, gescheiden van de sociale/ontdek-laag —
 // zodat die laatste niet verdrinkt tussen bijvoorbeeld de Cursus en de
 // Feestplanner. Zelfde lijst-stijl als Profiel, alleen andere items.
-function BarTab({ onSelect, shoppingCount, active }) {
+function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesCount, feestCount, courseProgress }) {
+  // Subtitels tonen echte staat i.p.v. altijd dezelfde statische tekst —
+  // net als de rest van de app ("geen verzonnen smaakscheikunde"): een
+  // lege voorraad/winkelmandje/eigen-recepten zegt dat het leeg is, en de
+  // cursus toont voortgang zodra er voortgang ís, anders de vaste
+  // structuur (6 delen komt letterlijk uit COURSE_PARTS).
+  const completedLessons = COURSE_LESSONS.filter(l => courseProgress?.[l.id]?.completed).length;
+  const courseSubtitle = completedLessons > 0 ? `${completedLessons}/${COURSE_LESSONS.length} lessen` : `${COURSE_PARTS.length} delen`;
+
   const items = [
-    { id: "voorraad", label: "Voorraad", icon: Refrigerator },
-    { id: "mandje", label: "Winkelmandje", icon: ShoppingCart },
-    { id: "schaler", label: "Schaler", icon: Scale },
-    { id: "balans", label: "Smaakbalans", icon: Sparkles },
-    { id: "cursus", label: "Cursus", icon: GraduationCap },
-    { id: "feest", label: "Feestplanner", icon: PartyPopper },
-    { id: "eigen", label: "Eigen recepten", icon: FlaskConical },
+    { id: "mandje", label: "Winkelmandje", icon: ShoppingCart, subtitle: shoppingCount > 0 ? `${shoppingCount} item${shoppingCount === 1 ? "" : "s"}` : "Leeg" },
+    { id: "feest", label: "Feestplanner", icon: PartyPopper, subtitle: feestCount > 0 ? `${feestCount} cocktail${feestCount === 1 ? "" : "s"} gekozen` : "Plan een avond" },
+    { id: "cursus", label: "Cursus", icon: GraduationCap, subtitle: courseSubtitle },
+    { id: "eigen", label: "Eigen recepten", icon: FlaskConical, subtitle: customRecipesCount > 0 ? `${customRecipesCount} eigen recept${customRecipesCount === 1 ? "" : "en"}` : "Maak je eerste" },
+    { id: "schaler", label: "Schaler", icon: Scale, subtitle: "Voor een groep" },
+    { id: "balans", label: "Smaakbalans", icon: Sparkles, subtitle: "Stel je cocktail bij" },
   ];
   return (
     <div>
       <LargeTitleHeader title="Bar" active={active} />
-      <p style={{ color: MUTED, fontSize: 14, marginBottom: 20, maxWidth: 560, lineHeight: 1.5 }}>
-        Jouw gereedschap voor thuis: voorraad, boodschappen, schalen, leren en plannen.
-      </p>
-      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden" }}>
-        {items.map((t, i) => {
+
+      <button onClick={() => onSelect("voorraad")} className="press-scale" style={{
+        width: "100%", display: "flex", alignItems: "center", gap: 14, textAlign: "left", boxSizing: "border-box",
+        background: BOTTLE_DARK, border: "none", borderRadius: RADIUS + 8, padding: "16px 18px", marginBottom: 14,
+        cursor: "pointer", color: CREAM, fontFamily: sans, boxShadow: SHADOW_CARD,
+      }}>
+        <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: RADIUS, background: "rgba(245,239,230,0.14)", flexShrink: 0 }}>
+          <Refrigerator size={19} strokeWidth={1.8} color={BRASS} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 15.5 }}>Voorraad</div>
+          <div style={{ fontSize: 12.5, opacity: 0.8, marginTop: 1 }}>{voorraadCount > 0 ? `${voorraadCount} in huis` : "Nog leeg · vul in wat je hebt"}</div>
+        </span>
+        <ChevronRight size={17} color={CREAM} style={{ opacity: 0.7, flexShrink: 0 }} />
+      </button>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {items.map(t => {
           const Icon = t.icon;
           return (
-            <button key={t.id} onClick={() => onSelect(t.id)} style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
-              background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
-              borderBottom: i < items.length - 1 ? `1px solid ${BORDER}` : "none",
-              fontFamily: sans, fontSize: 14.5, color: INK,
+            <button key={t.id} onClick={() => onSelect(t.id)} className="press-scale" style={{
+              display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10, textAlign: "left", boxSizing: "border-box",
+              background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS + 6, padding: "16px 14px",
+              cursor: "pointer", fontFamily: sans, boxShadow: SHADOW_CARD, position: "relative",
             }}>
-              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
-                <Icon size={16} strokeWidth={1.8} />
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+                <Icon size={17} strokeWidth={1.8} />
               </span>
-              <span style={{ flex: 1, fontWeight: 600 }}>{t.label}</span>
-              {t.id === "mandje" && shoppingCount > 0 && (
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 20, height: 20, borderRadius: 10, background: BRASS, color: CREAM, fontSize: 11, fontWeight: 700, padding: "0 5px" }}>
-                  {shoppingCount}
-                </span>
-              )}
-              <ChevronRight size={16} color={MUTED} />
+              <span>
+                <div style={{ fontWeight: 700, fontSize: 14.5, color: INK }}>{t.label}</div>
+                <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{t.subtitle}</div>
+              </span>
             </button>
           );
         })}
