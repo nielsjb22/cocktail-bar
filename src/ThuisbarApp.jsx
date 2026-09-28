@@ -5357,7 +5357,6 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
           twee nooit tegelijk allebei sticky proberen te zijn. */}
       {!recipe ? (
         <div style={{
-          position: "sticky", top: STICKY_SUB2HEADER_TOP, zIndex: 6, background: PAPER,
           padding: "6px 0", marginBottom: 16, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         }}>
           <SectionLabel>Kies een cocktail</SectionLabel>
