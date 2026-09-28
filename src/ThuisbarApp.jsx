@@ -5262,6 +5262,11 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const [servings, setServings] = useState(1);
   const [justAddedShopping, setJustAddedShopping] = useState(false);
   const [justAddedFeest, setJustAddedFeest] = useState(false);
+  // Onthoudt welke recepten deze sessie al eens hun intro-animatie hebben
+  // gehad — anders speelt de inschuif-animatie élke keer opnieuw af zodra je
+  // hetzelfde recept nogmaals opent (bijv. via Winkelmandje of Feestplanner),
+  // terwijl het alleen de allereerste keer een "nieuw scherm"-gevoel moet geven.
+  const animatedRecipeIdsRef = useRef(new Set());
   const recipe = recipes.find(r => r.id === selectedId) || null;
   const missing = recipe ? recipe.ingredients.filter(ing => !ing.optional).filter(ing => !isOwned(ing)) : [];
   const role = recipe ? getMenuRole(recipe) : null;
@@ -5501,8 +5506,17 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               maar zo lang dit recept open staat (volledige unmount bij
               teruggaan), maar hetzelfde principe als .push-slide-in verderop:
               een blijvende transform:translateX(0) zou een containing block
-              vormen voor eventuele position:fixed-kinderen. */}
-          <div ref={el => { if (el) { el.classList.add("push-slide-in"); setTimeout(() => el.classList.remove("push-slide-in"), 340); } }}>
+              vormen voor eventuele position:fixed-kinderen. Speelt bewust
+              maar één keer per recept: de tweede/derde keer dat je hetzelfde
+              recept opent (bijv. vanuit Winkelmandje of Feestplanner) voelt
+              een steeds herhaalde "nieuw scherm"-animatie overbodig aan. */}
+          <div ref={el => {
+            if (el && !animatedRecipeIdsRef.current.has(recipe.id)) {
+              animatedRecipeIdsRef.current.add(recipe.id);
+              el.classList.add("push-slide-in");
+              setTimeout(() => el.classList.remove("push-slide-in"), 340);
+            }
+          }}>
           {(() => { const heroPhoto = localItemImageUrl("cocktail", recipe.id) || recipe.image; return (
           <div style={{
             borderRadius: RADIUS + 4, padding: heroPhoto ? "0" : "26px 26px", marginBottom: 24, position: "relative", overflow: "hidden",
