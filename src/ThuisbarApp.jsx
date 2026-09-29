@@ -1635,8 +1635,14 @@ function urlBase64ToUint8Array(base64String) {
 // Web Push werkt op iPhone alleen als PWA vanaf het beginscherm (iOS 16.4+),
 // niet in een gewoon Safari-tabblad — de aanmeld-permissie zelf werkt overal
 // hetzelfde, maar zonder "Toevoegen aan beginscherm" komt er nooit een melding door.
+//
+// In de native iOS-app werkt Web Push niet (WKWebView heeft geen PushManager
+// voor apps) en hoort het ook niet: native meldingen komen later via
+// @capacitor/push-notifications (zie CLAUDE.md). Daar geldt dus
+// "niet ondersteund" — geen service worker, en de schakelaar in Instellingen
+// blijft verborgen zodat er geen knop staat die niets doet.
 function usePushNotifications(session) {
-  const [supported] = useState(() => typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window);
+  const [supported] = useState(() => !isNativeShell && typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   // Voorheen slikte enable() elke fout stil in (permissie geweigerd, een
