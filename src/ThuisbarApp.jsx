@@ -4,12 +4,13 @@ import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock } from "lucide-react";
+import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { supabase } from "./supabaseClient";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor } from "./native";
-import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS, SHOP_LINKS } from "./recipes.js";
+import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
 import voorraadHeaderImg from "./assets/voorraad-header.jpg";
 import feestHeaderImg from "./assets/feest-header.jpg";
@@ -120,7 +121,7 @@ const STICKY_SUB2HEADER_TOP = "calc(env(safe-area-inset-top) + 88px)";
 // i.p.v. faden (zie de tab-effect in ThuisbarApp).
 const PUSH_SCREEN_TITLES = {
   voorraad: "Voorraad",
-  mandje: "Winkelmandje",
+  mandje: "Boodschappen",
   schaler: "Batch-calculator",
   balans: "Menu-assistent",
   cursus: "Cursus",
@@ -2517,6 +2518,14 @@ export default function ThuisbarApp() {
     if (item.id) setVoorraad(voorraadArr.includes(item.id) ? voorraadArr : [...voorraadArr, item.id]);
     removeFromShoppingList(item.key);
   };
+  // "Ongedaan maken" na afvinken: terug op de lijst, en uit de voorraad als
+  // het daar vóór het afvinken nog niet stond.
+  const undoBuyShoppingItem = (item, wasOwned) => {
+    if (item.id && !wasOwned) setVoorraad(voorraadArr.filter(id => id !== item.id));
+    setShoppingList(shoppingList.some(i => i.key === item.key) ? shoppingList : [...shoppingList, item]);
+  };
+  // Per drank de gekozen fles uit "Fles kiezen" (product-id uit `producten`).
+  const [chosenBottles, setChosenBottles] = useStorage("thuisbar-gekozen-flessen", {});
 
   // De native splash (launchAutoHide: false) ging voorheen alleen weg via de
   // in-app SplashScreen, en die draait enkel voor ingelogde gebruikers — bij
@@ -2624,7 +2633,8 @@ export default function ThuisbarApp() {
         <TabPanel id="mandje" active={tab === "mandje"} visited={visitedTabs.has("mandje")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.mandje} onBack={() => navigateTo("bar", { restore: true })}>
             <WinkelmandjeTab shoppingList={shoppingList} recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
-              onRemove={removeFromShoppingList} onBuy={buyShoppingItem} onClear={clearShoppingList} onAdd={addToShoppingList} onSound={chime} />
+              onRemove={removeFromShoppingList} onBuy={buyShoppingItem} onUndoBuy={undoBuyShoppingItem} onClear={clearShoppingList} onAdd={addToShoppingList} onSound={chime}
+              chosenBottles={chosenBottles} onChooseBottle={(ingredientId, productId) => setChosenBottles({ ...chosenBottles, [ingredientId]: productId })} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="schaler" active={tab === "schaler"} visited={visitedTabs.has("schaler")} panelRef={panelRefs}>
@@ -4757,7 +4767,7 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
 
 // Zelfde reden als RecipePicker hierboven: vrij-tekst suggesties i.p.v. <datalist>
 // zodat de lijst ook op iPhone/iOS Safari echt zichtbaar is.
-function IngredientAutocomplete({ value, onChange, options, style, placeholder = "Ingrediënt" }) {
+function IngredientAutocomplete({ value, onChange, options, style, placeholder = "Ingrediënt", variant }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
   const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 200);
@@ -4780,7 +4790,9 @@ function IngredientAutocomplete({ value, onChange, options, style, placeholder =
     <div ref={wrapRef} data-kb-scope style={{ position: "relative", ...style }}>
       <input value={value} onChange={e => { onChange(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
         placeholder={placeholder} enterKeyHint="search" autoCapitalize="words" autoCorrect="off"
-        style={{ ...fieldStyle(), padding: "8px 9px", fontSize: 13.5, width: "100%" }} />
+        style={variant === "bare"
+          ? { width: "100%", minHeight: 44, border: "none", background: "transparent", outline: "none", fontFamily: sans, fontSize: 15, color: INK, padding: 0, boxSizing: "border-box" }
+          : { ...fieldStyle(), padding: "8px 9px", fontSize: 13.5, width: "100%" }} />
       {open && value.trim() && filtered.length > 0 && (
         <div style={{
           position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: CREAM,
@@ -5980,129 +5992,406 @@ function BatchCalculatorTab({ recipes, ingredientLabel, allIngredients, isOwned,
   );
 }
 
-function WinkelmandjeTab({ shoppingList, recipes, isOwned, allIngredients, onRemove, onBuy, onClear, onAdd, onSound }) {
-  const [customName, setCustomName] = useState("");
-  const [justAddedCustom, setJustAddedCustom] = useState(false);
-  const ingredientNames = allIngredients.map(i => i.name);
+// Vers fruit i.p.v. een fles sap: hoeveel sap één vrucht ongeveer geeft,
+// plus een richtprijs per stuk (supermarkt, indicatief).
+const FRESH_FRUIT = {
+  lime_juice: { ml: 25, label: "Limoenen", one: "limoen", price: 0.35 },
+  lemon_juice: { ml: 35, label: "Citroenen", one: "citroen", price: 0.4 },
+};
+// Een prijs die ouder is dan 30 dagen tonen we niet meer als actueel.
+const PRICE_MAX_AGE_DAYS = 30;
+const MONTHS_NL = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+function formatDateNl(value) {
+  if (!value) return "";
+  const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(String(value));
+  if (!m) return String(value);
+  const month = MONTHS_NL[Number(m[2]) - 1];
+  return m[3] ? `${Number(m[3])} ${month.slice(0, 3)} ${m[1]}` : `${month} ${m[1]}`;
+}
+function formatInhoud(ml) {
+  if (!ml) return "";
+  if (ml >= 1000) return `${String(ml / 1000).replace(".", ",")} L`;
+  return `${Math.round(ml / 10 * 10) / 10} cl`.replace(".", ",");
+}
+function isPriceFresh(product) {
+  if (product?.prijs == null || !product.prijs_gecontroleerd_op) return false;
+  const age = (Date.now() - new Date(product.prijs_gecontroleerd_op).getTime()) / 86400000;
+  return age >= 0 && age <= PRICE_MAX_AGE_DAYS;
+}
+// Alleen echte productpagina's op drankdozijn.nl openen — nooit iets anders.
+function isDrankdozijnUrl(url) {
+  try { const u = new URL(url); return u.protocol === "https:" && /(^|\.)drankdozijn\.nl$/.test(u.hostname); } catch { return false; }
+}
+// Goedgekeurde flessen voor één ingrediënt, met de labels
+// "Goedkoopste geschikte" (laagste prijs) en "Voordeligst per liter".
+function rankProducts(products) {
+  const withMeta = products.map(p => {
+    const fresh = isPriceFresh(p);
+    const usable = fresh && p.op_voorraad !== false;
+    return { ...p, fresh, usable, perLiter: fresh && p.inhoud_ml ? p.prijs / (p.inhoud_ml / 1000) : null };
+  });
+  const usable = withMeta.filter(p => p.usable);
+  const cheapest = usable.slice().sort((a, b) => a.prijs - b.prijs)[0] || null;
+  const bestPerLiter = usable.filter(p => p.perLiter != null).sort((a, b) => a.perLiter - b.perLiter)[0] || null;
+  return withMeta
+    .map(p => ({ ...p, isCheapest: cheapest?.id === p.id, isBestPerLiter: bestPerLiter?.id === p.id && bestPerLiter?.id !== cheapest?.id }))
+    .sort((a, b) => (b.usable - a.usable) || ((a.prijs ?? 1e9) - (b.prijs ?? 1e9)));
+}
 
+function FlesKiezenSheet({ item, meta, products, chosenId, recipeNames, onChoose, onClose }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const ranked = useMemo(() => rankProducts(products), [products]);
+  const defaultId = ranked.find(p => p.isCheapest)?.id || ranked[0]?.id || null;
+  const [selected, setSelected] = useState(chosenId && ranked.some(p => p.id === chosenId) ? chosenId : defaultId);
+  const current = ranked.find(p => p.id === selected) || null;
+  const spec = DRANK_SPECS[meta?.id] || null;
+  const forText = recipeNames.length ? recipeNames.slice(0, 2).join(" en ") + (recipeNames.length > 2 ? ` en ${recipeNames.length - 2} meer` : "") : null;
+  const checkedDates = ranked.map(p => p.prijs_gecontroleerd_op).filter(Boolean).sort();
+  const lastChecked = checkedDates[checkedDates.length - 1];
+  const pick = (id) => { setSelected(id); onChoose(id); };
+  const openShop = () => { if (current && isDrankdozijnUrl(current.url)) Browser.open({ url: current.url }); };
+
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in sheet-max-92" style={{
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
+        background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "6px 20px 14px", touchAction: "none" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}><ItemArt ing={meta || { id: item.key, name: item.label, cat: "Sterke drank" }} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: serif, fontSize: 23, fontWeight: 700, lineHeight: 1.15 }}>{item.label}</div>
+            {spec && <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>{spec.omschrijving}</div>}
+          </div>
+          <button onClick={close} aria-label="Sluiten" onTouchStart={e => e.stopPropagation()} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
+          {spec && (
+            <div style={{ display: "flex", gap: 10, padding: "12px 14px", borderRadius: 14, background: "rgba(92,122,82,0.14)", marginBottom: 16 }}>
+              <ShieldCheck size={17} color={SAGE} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div style={{ fontSize: 13.5, lineHeight: 1.5, color: INK }}>
+                <strong>{forText ? `Juiste fles voor ${forText}.` : "Waar de fles aan moet voldoen."}</strong> {spec.eis}
+              </div>
+            </div>
+          )}
+
+          {ranked.length > 0 ? (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Kies je fles</div>
+              <div role="radiogroup" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {ranked.map(p => {
+                  const on = p.id === selected;
+                  return (
+                    <button key={p.id} role="radio" aria-checked={on} onClick={() => pick(p.id)} style={{
+                      display: "flex", alignItems: "center", gap: 12, minHeight: 64, padding: "10px 14px", borderRadius: 14, cursor: "pointer", textAlign: "left",
+                      background: CREAM, border: `1.5px solid ${on ? BOTTLE : BORDER}`, fontFamily: sans, color: INK, opacity: p.usable ? 1 : 0.7,
+                    }}>
+                      <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${on ? BOTTLE : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxSizing: "border-box" }}>
+                        {on && <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOTTLE }} />}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>{[p.variant || p.productnaam, formatInhoud(p.inhoud_ml)].filter(Boolean).join(" · ")}</span>
+                        {p.isCheapest && <span style={{ display: "inline-block", marginTop: 4, fontSize: 11.5, fontWeight: 700, color: SAGE, background: "rgba(92,122,82,0.16)", borderRadius: 100, padding: "2px 8px" }}>Goedkoopste geschikte</span>}
+                        {p.isBestPerLiter && <span style={{ display: "inline-block", marginTop: 4, fontSize: 11.5, fontWeight: 700, color: BRASS, background: "rgba(184,134,46,0.16)", borderRadius: 100, padding: "2px 8px" }}>Voordeligst per liter</span>}
+                        {p.op_voorraad === false && <span style={{ display: "block", marginTop: 3, fontSize: 12, color: BURGUNDY }}>Niet op voorraad</span>}
+                      </span>
+                      <span style={{ textAlign: "right", flexShrink: 0 }}>
+                        {p.fresh ? (
+                          <>
+                            <span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>{euro(p.prijs)}</span>
+                            {p.perLiter != null && <span style={{ display: "block", fontSize: 11.5, color: MUTED, marginTop: 1 }}>{euro(p.perLiter)} / L</span>}
+                          </>
+                        ) : (
+                          <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: MUTED }}>Prijs onbekend</span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {lastChecked && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: MUTED, marginTop: 12 }}>
+                  <Clock size={13} /> Prijs gecontroleerd op {formatDateNl(lastChecked)} bij Drankdozijn
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700 }}>Nog geen gecontroleerde fles</div>
+              <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.5, marginTop: 4 }}>
+                Voor deze drank hebben we nog geen fles bij Drankdozijn nagekeken. Tot die tijd tonen we geen link, zodat je nooit bij een verkeerde fles uitkomt. Let bij het kopen op de eis hierboven.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {current && (
+          <div style={{ padding: "12px 20px calc(env(safe-area-inset-bottom) + 14px)", borderTop: `1px solid ${BORDER}`, background: PAPER }}>
+            <button onClick={openShop} disabled={!isDrankdozijnUrl(current.url)} className="press-scale" style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14, border: "none",
+              background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer",
+            }}>
+              Bekijk bij Drankdozijn <ExternalLink size={16} />
+            </button>
+            <div style={{ fontSize: 12, color: MUTED, textAlign: "center", marginTop: 8 }}>Opent de productpagina van precies deze fles</div>
+          </div>
+        )}
+      </div>
+    </div>
+  ), document.body);
+}
+
+function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBuy, onUndoBuy, onClear, onAdd, onSound, isOwned, producten = [], chosenBottles = {}, onChooseBottle }) {
+  const [customName, setCustomName] = useState("");
+  const [bought, setBought] = useState([]); // [{ item, wasOwned }] — alleen deze sessie, doorgestreept
+  const [toast, setToast] = useState(null);
+  const [sheetKey, setSheetKey] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const toastTimer = useRef(null);
+  const ingredientNames = allIngredients.map(i => i.name);
+  const metaById = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
+  const recipesByName = useMemo(() => new Map(recipes.map(r => [r.name, r])), [recipes]);
+  const productsByIngredient = useMemo(() => {
+    const map = new Map();
+    producten.filter(p => p.status === "goedgekeurd").forEach(p => {
+      if (!map.has(p.ingredient_id)) map.set(p.ingredient_id, []);
+      map.get(p.ingredient_id).push(p);
+    });
+    return map;
+  }, [producten]);
+
+  // …-menu rechts in de navigatiebalk (Leegmaken).
+  const setNavOverride = useContext(NavOverrideContext);
+  useEffect(() => {
+    if (!setNavOverride) return;
+    setNavOverride({
+      right: (
+        <button onClick={() => setMenuOpen(v => !v)} aria-label="Meer opties" aria-expanded={menuOpen} style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "flex-end", background: "none", border: "none", cursor: "pointer", color: BRASS }}>
+          <MoreHorizontal size={20} />
+        </button>
+      ),
+    });
+  }, [setNavOverride, menuOpen]);
+  useEffect(() => () => setNavOverride && setNavOverride(null), [setNavOverride]);
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  const showToast = (t) => {
+    clearTimeout(toastTimer.current);
+    setToast(t);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  };
   const addCustom = () => {
     const trimmed = customName.trim();
     if (!trimmed) return;
-    onAdd([{ ref: { name: trimmed }, recipeNames: [] }]);
+    const meta = allIngredients.find(i => i.name.toLowerCase() === trimmed.toLowerCase());
+    onAdd([{ ref: meta ? { id: meta.id } : { name: trimmed }, recipeNames: [] }]);
     onSound("tick");
     setCustomName("");
-    setJustAddedCustom(true);
-    setTimeout(() => setJustAddedCustom(false), 1800);
+  };
+  const check = (row) => {
+    const wasOwned = row.meta ? isOwned({ id: row.meta.id }) : false;
+    onSound("tick");
+    onBuy(row.item);
+    setBought(prev => [...prev.filter(b => b.item.key !== row.item.key), { item: row.item, wasOwned, row }]);
+    showToast({ key: row.item.key, text: row.meta ? `${row.label} staat nu in je voorraad` : `${row.label} afgevinkt` });
+  };
+  const undo = (key) => {
+    const entry = bought.find(b => b.item.key === key);
+    if (!entry) return;
+    onSound("pop");
+    onUndoBuy(entry.item, entry.wasOwned);
+    setBought(prev => prev.filter(b => b.item.key !== key));
+    setToast(null);
   };
 
-  const addForm = (
-    <div style={{ marginBottom: 22 }}>
-      <form onSubmit={e => { e.preventDefault(); addCustom(); }} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <IngredientAutocomplete value={customName} onChange={setCustomName} options={ingredientNames}
-          placeholder="Zelf iets toevoegen, bijv. limoensap" style={{ flex: "1 1 220px" }} />
-        <button type="submit" disabled={!customName.trim()} style={{
-          display: "flex", alignItems: "center", gap: 6, background: customName.trim() ? BOTTLE : BORDER,
-          color: customName.trim() ? CREAM : MUTED, border: "none", borderRadius: RADIUS, padding: "8px 14px",
-          fontSize: 13, fontWeight: 700, cursor: customName.trim() ? "pointer" : "default", flexShrink: 0,
-        }}>
-          <Plus size={14} /> Toevoegen
-        </button>
-      </form>
-      {justAddedCustom && (
-        <p className="success-pop" style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, margin: "8px 0 0" }}>
-          <Check size={14} strokeWidth={3} /> Toegevoegd aan winkelmandje
-        </p>
-      )}
-    </div>
-  );
+  const describe = (item) => {
+    const meta = item.id ? metaById.get(item.id) : allIngredients.find(i => i.name.toLowerCase() === (item.label || "").toLowerCase());
+    const names = item.recipes || [];
+    const fruit = meta && FRESH_FRUIT[meta.id];
+    let label = item.label, price = null, inhoud = "", note = null;
+    if (fruit) {
+      // Sap uit een fles → verse vruchten: optellen wat de cocktails nodig hebben.
+      const ml = names.reduce((s, n) => {
+        const ing = recipesByName.get(n)?.ingredients.find(i => (findIngredientMeta(i, allIngredients)?.id || i.id) === meta.id);
+        return s + (ing?.unit === "ml" ? ing.amount : 0);
+      }, 0);
+      const count = Math.max(2, Math.ceil((ml || fruit.ml * 2) / fruit.ml));
+      label = `${fruit.label} (±${count})`;
+      price = count * fruit.price;
+      inhoud = "los";
+    } else if (meta?.bottleMl && meta?.bottlePrice) {
+      price = meta.bottlePrice; inhoud = formatInhoud(meta.bottleMl);
+    } else if (meta?.unitPrice) {
+      price = meta.unitPrice; inhoud = "per stuk";
+    }
+    if (meta?.id === "sugar_syrup") note = "Of zelf maken: suiker + water";
+    const group = shopGroupFor(meta);
+    const products = meta ? productsByIngredient.get(meta.id) || [] : [];
+    // Is er voor deze drank een goedgekeurde fles gekozen (of de goedkoopste)?
+    let bottle = null;
+    if (group === "drankwinkel" && products.length) {
+      const ranked = rankProducts(products);
+      bottle = ranked.find(p => p.id === chosenBottles[meta.id]) || ranked.find(p => p.isCheapest) || null;
+      if (bottle) { price = bottle.fresh ? bottle.prijs : null; inhoud = formatInhoud(bottle.inhoud_ml); }
+    }
+    const sub = names.length ? `Voor ${names[0]}${names.length > 1 ? ` · +${names.length - 1} cocktail${names.length > 2 ? "s" : ""}` : ""}` : "Zelf toegevoegd";
+    return { item, meta, label, price, inhoud, note, group, products, bottle, sub };
+  };
 
-  if (shoppingList.length === 0) {
-    return (
-      <div>
-        {addForm}
-        <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "50px 0", lineHeight: 1.6 }}>
-          Je winkelmandje is leeg.<br />Voeg ontbrekende ingrediënten toe vanuit "Wat kan ik maken", de Feestplanner, of hierboven zelf.
-        </p>
-      </div>
-    );
-  }
-
-  let totalCost = 0;
-  const priced = shoppingList.map(item => {
-    const meta = item.id ? allIngredients.find(i => i.id === item.id) : null;
-    let priceLabel = null, cost = 0;
-    if (meta?.bottleMl && meta?.bottlePrice) { cost = meta.bottlePrice; priceLabel = `${euro(cost)} · fles (${meta.bottleMl} ml)`; }
-    else if (meta?.unitPrice) { cost = meta.unitPrice; priceLabel = `${euro(cost)} · per stuk`; }
-    if (cost) totalCost += cost;
-    return { ...item, priceLabel };
+  const rows = shoppingList.map(describe);
+  const boughtRows = bought.map(b => ({ ...describe(b.item), done: true }));
+  const groups = [
+    { key: "drankwinkel", title: "Drankwinkel", icon: Wine },
+    { key: "supermarkt", title: "Supermarkt", icon: ShoppingCart },
+  ].map(g => {
+    const open = rows.filter(r => r.group === g.key);
+    const done = boughtRows.filter(r => r.group === g.key);
+    return { ...g, open, done, subtotal: open.reduce((s, r) => s + (r.price || 0), 0) };
   });
+  const total = groups.reduce((s, g) => s + g.subtotal, 0);
+  const allNames = [...new Set(shoppingList.flatMap(i => i.recipes || []))];
+  const hasFruit = rows.some(r => r.meta && FRESH_FRUIT[r.meta.id]);
+  const usedDates = rows.map(r => r.bottle?.fresh ? r.bottle.prijs_gecontroleerd_op : null).filter(Boolean).sort();
+  const priceDate = usedDates.length ? formatDateNl(usedDates[0]) : formatDateNl(PRICES_UPDATED);
+  const sheetRow = sheetKey ? rows.find(r => r.item.key === sheetKey) : null;
 
-  return (
-    <div>
-      {addForm}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <SectionLabel>{shoppingList.length} item{shoppingList.length === 1 ? "" : "s"} op je lijst</SectionLabel>
-        <button onClick={() => { onSound("remove"); onClear(); }} style={{ background: "none", border: "none", color: MUTED, fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>
-          Leegmaken
+  const renderRow = (r, i) => {
+    const content = (
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px 0 12px", background: CREAM }}>
+        <button onClick={() => (r.done ? undo(r.item.key) : check(r))} aria-label={r.done ? `${r.label}: afvinken ongedaan maken` : `${r.label} afvinken als gekocht`} aria-pressed={!!r.done}
+          style={{ width: 44, height: 44, margin: "0 -6px 0 -8px", display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}>
+          <span style={{ width: 24, height: 24, borderRadius: "50%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", border: r.done ? "none" : `1.5px solid ${BORDER}`, background: r.done ? SAGE : "transparent" }}>
+            {r.done && <Check size={14} strokeWidth={3} color={CREAM} />}
+          </span>
         </button>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {priced.map((item, idx) => {
-        const alsoUnlocks = recipes.filter(r => {
-          const required = r.ingredients.filter(i => !i.optional);
-          const missing = required.filter(i => !isOwned(i));
-          return missing.length === 1 && ingredientKey(missing[0]) === item.key;
-        }).map(r => r.name).filter(name => !(item.recipes || []).includes(name));
-        const meta = item.id ? allIngredients.find(i => i.id === item.id) : allIngredients.find(i => i.name.toLowerCase() === item.label.toLowerCase());
-        const artRef = { id: item.id || item.key, name: item.label, cat: meta?.cat || "Vers" };
-
-        return (
-          <SwipeToDelete key={item.key} borderRadius={14} onDelete={() => { onSound("remove"); onRemove(item.key); }}>
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: "12px 14px" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: "50%", overflow: "hidden", flexShrink: 0, marginTop: 2 }}><ItemArt ing={artRef} /></div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {item.id && SHOP_LINKS[item.id] ? (
-                  <button onClick={() => Browser.open({ url: SHOP_LINKS[item.id] })} title="Bekijk op drankdozijn.nl, goedkoopste eerst"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont, fontWeight: 700, color: BOTTLE, fontSize: 16, textDecoration: "none", borderBottom: `1px dotted ${BOTTLE}` }}>
-                    {item.label} <ExternalLink size={13} style={{ flexShrink: 0 }} />
-                  </button>
-                ) : (
-                  <div style={{ fontFamily: systemFont, fontWeight: 700, color: INK, fontSize: 16 }}>{item.label}</div>
-                )}
-                {item.priceLabel && <div style={{ fontSize: 12.5, color: BOTTLE, fontWeight: 600, marginTop: 3 }}>{item.priceLabel}</div>}
-                {item.recipes && item.recipes.length > 0 && (
-                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>Toegevoegd voor: {item.recipes.join(", ")}</div>
-                )}
-                {alsoUnlocks.length > 0 && (
-                  <div style={{ fontSize: 12.5, color: BRASS, marginTop: 2 }}>Ontgrendelt ook: {alsoUnlocks.slice(0, 4).join(", ")}{alsoUnlocks.length > 4 ? ", …" : ""}</div>
-                )}
-              </div>
-              <button onClick={() => { onSound("remove"); onRemove(item.key); }} title="Verwijder" className="tap-target-44" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", flexShrink: 0 }}>
-                <X size={16} color={MUTED} />
+        <div style={{ width: 40, height: 40, borderRadius: 10, overflow: "hidden", flexShrink: 0, opacity: r.done ? 0.5 : 1 }}>
+          <ItemArt ing={r.meta || { id: r.item.id || r.item.key, name: r.label, cat: "Vers" }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, alignSelf: "stretch" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: r.done ? MUTED : INK, textDecoration: r.done ? "line-through" : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.label}</div>
+            <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.done ? "Gekocht · in je voorraad" : (r.note || r.sub)}</div>
+            {!r.done && r.group === "drankwinkel" && r.meta && (
+              <button onClick={() => setSheetKey(r.item.key)} style={{ display: "inline-flex", alignItems: "center", gap: 2, minHeight: 32, padding: 0, marginTop: 1, background: "none", border: "none", cursor: "pointer", color: BOTTLE, fontFamily: sans, fontSize: 12.5, fontWeight: 700 }}>
+                {r.products.length ? `Kies fles · ${r.products.length} ${r.products.length === 1 ? "optie" : "opties"}` : "Fles kiezen"} <ChevronRight size={14} />
               </button>
-            </div>
-            {item.id && (
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-                <button onClick={() => { onSound("tick"); onBuy(item); }} title="Zet in voorraad" style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 3, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  <Check size={13} strokeWidth={3} /> In voorraad
-                </button>
-              </div>
             )}
           </div>
-          </SwipeToDelete>
-        );
-      })}
+          <div style={{ textAlign: "right", flexShrink: 0, opacity: r.done ? 0.5 : 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: INK }}>{r.price != null ? euro(r.price) : r.bottle ? "Prijs onbekend" : ""}</div>
+            {r.inhoud && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{r.inhoud}</div>}
+          </div>
+        </div>
       </div>
-      {totalCost > 0 && (
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 2px 4px", fontSize: 16 }}>
-          <span style={{ fontFamily: systemFont, fontWeight: 700, color: INK }}>Geschatte totaal</span>
-          <span style={{ fontFamily: systemFont, fontWeight: 700, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></span>
+    );
+    if (r.done) return <div key={`done-${r.item.key}`}>{content}</div>;
+    return (
+      <SwipeToDelete key={r.item.key} onDelete={() => { onSound("remove"); onRemove(r.item.key); }}>{content}</SwipeToDelete>
+    );
+  };
+
+  return (
+    <div style={{ fontFamily: sans, position: "relative" }}>
+      {menuOpen && (
+        <>
+          <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 25 }} />
+          <div style={{ position: "absolute", top: -12, right: 0, zIndex: 26, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_HERO, minWidth: 190, overflow: "hidden" }}>
+            <button onClick={() => { setMenuOpen(false); if (shoppingList.length) setConfirmClear(true); }} disabled={!shoppingList.length} style={{
+              display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, padding: "0 16px", background: "none", border: "none",
+              cursor: shoppingList.length ? "pointer" : "default", color: shoppingList.length ? BURGUNDY : MUTED, fontFamily: sans, fontSize: 15, fontWeight: 600,
+            }}>
+              <Trash2 size={16} /> Leegmaken
+            </button>
+          </div>
+        </>
+      )}
+
+      <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.15 }}>
+        {shoppingList.length === 0 ? "Niets te halen" : `${shoppingList.length} te halen`}
+      </h1>
+      {allNames.length > 0 && (
+        <div style={{ fontSize: 13.5, color: MUTED, marginTop: 4 }}>
+          Voor {allNames.length <= 2 ? allNames.join(" en ") : `${allNames.slice(0, 2).join(", ")} en ${allNames.length - 2} meer`}
         </div>
       )}
-      <p style={{ fontSize: 12, color: MUTED, margin: "4px 0 0", lineHeight: 1.5 }}>
-        Richtprijzen o.b.v. drankdozijn.nl ({PRICES_UPDATED}), per fles of stuk, geen live koppeling.
-      </p>
+
+      <form onSubmit={e => { e.preventDefault(); addCustom(); }} style={{ display: "flex", alignItems: "center", gap: 6, margin: "16px 0 18px", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "0 6px 0 12px" }}>
+        <button type="submit" aria-label="Toevoegen" disabled={!customName.trim()} style={{ width: 32, height: 44, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", color: customName.trim() ? BOTTLE : MUTED, cursor: "pointer", padding: 0, flexShrink: 0 }}>
+          <Plus size={18} />
+        </button>
+        <IngredientAutocomplete value={customName} onChange={setCustomName} options={ingredientNames} placeholder="Iets toevoegen, bijv. ijsblokjes" style={{ flex: 1 }} variant="bare" />
+      </form>
+
+      {shoppingList.length === 0 && bought.length === 0 && (
+        <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "40px 0", lineHeight: 1.6 }}>
+          Je boodschappenlijst is leeg.<br />Voeg ontbrekende ingrediënten toe vanuit "Wat kan ik maken", een recept of de Feestplanner.
+        </p>
+      )}
+
+      {groups.filter(g => g.open.length || g.done.length).map(g => {
+        const Icon = g.icon;
+        return (
+          <div key={g.key} style={{ marginBottom: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 4px 8px" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: MUTED }}>
+                <Icon size={14} /> {g.title}
+              </span>
+              {g.subtotal > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: MUTED }}>{euro(g.subtotal)}</span>}
+            </div>
+            <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+              {[...g.open, ...g.done].map(renderRow)}
+            </div>
+            {g.key === "supermarkt" && hasFruit && (
+              <p style={{ fontSize: 12.5, color: MUTED, margin: "8px 4px 0", lineHeight: 1.5 }}>Tip: vers geperst sap is voor cocktails veel beter dan uit een fles.</p>
+            )}
+          </div>
+        );
+      })}
+
+      {total > 0 && (
+        <div style={{ background: "#1F3A33", color: "#F3ECDD", borderRadius: 16, padding: "16px 18px", marginTop: 6, boxShadow: SHADOW_CARD }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>Geschat totaal</span>
+            <span style={{ fontFamily: serif, fontSize: 28, fontWeight: 700 }}><AnimatedNumber value={total} format={euro} /></span>
+          </div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 6, color: "rgba(243,236,221,0.82)" }}>
+            Richtprijzen, gecontroleerd {usedDates.length ? "op" : "in"} {priceDate}. Prijzen in de winkel kunnen afwijken.
+          </div>
+        </div>
+      )}
+      {(shoppingList.length > 0 || bought.length > 0) && (
+        <p style={{ fontSize: 12, color: MUTED, textAlign: "center", margin: "12px 0 0" }}>Afvinken = gekocht · het gaat dan vanzelf naar je voorraad · veeg naar links om te verwijderen</p>
+      )}
+
+      {toast && createPortal((
+        <div role="status" className="success-pop" style={{
+          position: "fixed", left: 16, right: 16, bottom: "calc(env(safe-area-inset-bottom) + 92px)", zIndex: 40, maxWidth: 520, margin: "0 auto",
+          display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 8px 16px", borderRadius: 14, background: "#1F2A26", color: "#F3ECDD",
+          boxShadow: "0 10px 26px rgba(0,0,0,0.3)", fontFamily: sans,
+        }}>
+          <Check size={16} color="#9CC28E" strokeWidth={3} />
+          <span style={{ flex: 1, fontSize: 14 }}>{toast.text}</span>
+          <button onClick={() => undo(toast.key)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: "rgba(243,236,221,0.12)", color: "#F1D9A6", fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Ongedaan maken</button>
+        </div>
+      ), document.body)}
+
+      {confirmClear && (
+        <ConfirmDialog title="Lijst leegmaken?" message="Alle items verdwijnen van je boodschappenlijst." confirmLabel="Leegmaken"
+          onCancel={() => setConfirmClear(false)} onConfirm={() => { setConfirmClear(false); onSound("remove"); onClear(); setBought([]); }} />
+      )}
+
+      {sheetRow && (
+        <FlesKiezenSheet item={sheetRow.item} meta={sheetRow.meta} products={sheetRow.products} chosenId={chosenBottles[sheetRow.meta?.id]}
+          recipeNames={sheetRow.item.recipes || []} onChoose={(id) => onChooseBottle?.(sheetRow.meta.id, id)} onClose={() => setSheetKey(null)} />
+      )}
     </div>
   );
 }
