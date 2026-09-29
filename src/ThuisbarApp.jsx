@@ -2526,6 +2526,7 @@ export default function ThuisbarApp() {
   };
   // Per drank de gekozen fles uit "Fles kiezen" (product-id uit `producten`).
   const [chosenBottles, setChosenBottles] = useStorage("thuisbar-gekozen-flessen", {});
+  const producten = useProducten(visitedTabs.has("mandje"));
 
   // De native splash (launchAutoHide: false) ging voorheen alleen weg via de
   // in-app SplashScreen, en die draait enkel voor ingelogde gebruikers — bij
@@ -2634,7 +2635,7 @@ export default function ThuisbarApp() {
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.mandje} onBack={() => navigateTo("bar", { restore: true })}>
             <WinkelmandjeTab shoppingList={shoppingList} recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
               onRemove={removeFromShoppingList} onBuy={buyShoppingItem} onUndoBuy={undoBuyShoppingItem} onClear={clearShoppingList} onAdd={addToShoppingList} onSound={chime}
-              chosenBottles={chosenBottles} onChooseBottle={(ingredientId, productId) => setChosenBottles({ ...chosenBottles, [ingredientId]: productId })} />
+              producten={producten} chosenBottles={chosenBottles} onChooseBottle={(ingredientId, productId) => setChosenBottles({ ...chosenBottles, [ingredientId]: productId })} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="schaler" active={tab === "schaler"} visited={visitedTabs.has("schaler")} panelRef={panelRefs}>
@@ -3035,6 +3036,23 @@ function formatPartyWhen(party) {
   if (days === 0) return "Vandaag";
   if (days > 0) return `Over ${days} dag${days === 1 ? "" : "en"}`;
   return `${Math.abs(days)} dag${Math.abs(days) === 1 ? "" : "en"} geleden`;
+}
+
+// Goedgekeurde flessen (Supabase-tabel `producten`, RLS: alleen status
+// 'goedgekeurd' is leesbaar). Pas geladen zodra de boodschappenlijst open
+// gaat; lukt het niet (offline, migratie nog niet gedraaid), dan blijft de
+// lijst leeg en toont "Fles kiezen" gewoon dat er nog niets gecontroleerd is.
+function useProducten(enabled) {
+  const [producten, setProducten] = useState([]);
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    supabase.from("producten").select("*").eq("status", "goedgekeurd").then(({ data, error }) => {
+      if (!cancelled && !error && Array.isArray(data)) setProducten(data);
+    });
+    return () => { cancelled = true; };
+  }, [enabled]);
+  return producten;
 }
 
 function useParties(session) {
