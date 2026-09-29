@@ -9,6 +9,7 @@
 - Verplicht voor Apple, meebouwen: account verwijderen in de app, content melden, gebruikers blokkeren, link naar privacybeleid, leeftijdsbevestiging 18+.
 - Recepten en cursus moeten zonder account te gebruiken zijn.
 - Werk met git: commit na elke afgeronde functie.
+- Vraagt de gebruiker om een Netlify-zip: draai `npm run netlify:zip` en lever `thuisbar-netlify.zip` direct aan als bestand. Vereist VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY (in .env of als omgevingsvariabele); ontbreken die, zeg dat dan in plaats van een zip te leveren die niet werkt.
 
 ## Afbeeldingen – zoekregels
 Toegestane bronnen, in deze volgorde:

@@ -10,7 +10,8 @@
     "ios:sync": "vite build && npx cap sync ios",
     "ios:open": "npx cap open ios",
     "check:images": "node scripts/check-images.mjs",
-    "sync:images-catalog": "node scripts/sync-images-catalog.mjs"
+    "sync:images-catalog": "node scripts/sync-images-catalog.mjs",
+    "netlify:zip": "node scripts/netlify-zip.mjs"
   },
   "dependencies": {
     "@capacitor/browser": "^8.0.4",

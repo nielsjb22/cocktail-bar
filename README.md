@@ -28,6 +28,7 @@ Deze horen bij je eigen Supabase-project en worden nooit gecommit.
 ## Overige scripts
 
 - `npm run build` — productie-build
+- `npm run netlify:zip` — productie-build ingepakt als `thuisbar-netlify.zip`, klaar om naar Netlify te slepen
 - `npm run preview` — bekijk de productie-build lokaal
 - `npm run ios:sync` — build + synchroniseer met het iOS-project (`ios/`)
 - `npm run ios:open` — open het iOS-project in Xcode
