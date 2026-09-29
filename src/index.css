@@ -707,3 +707,20 @@ html.kb-open .bottom-dock {
 html.kb-open .checkin-footer {
   display: none;
 }
+
+/* Menu-assistent: de Terug/Volgende-balk wijkt voor het toetsenbord
+   (zoekveld bij "Moet er iets per se in?"). */
+html.kb-open .menu-assist-footer {
+  display: none;
+}
+
+/* Navigatiebalk van push-schermen (‹ Bar | Titel): crème in licht, donker
+   in donkere modus — anders was de witte titel onleesbaar. */
+.secondary-navbar {
+  background: rgba(243, 236, 221, 0.92) !important;
+}
+@media (prefers-color-scheme: dark) {
+  .secondary-navbar {
+    background: rgba(23, 19, 14, 0.92) !important;
+  }
+}

@@ -4,7 +4,7 @@ import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda } from "lucide-react";
+import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "./supabaseClient";
@@ -122,7 +122,7 @@ const PUSH_SCREEN_TITLES = {
   voorraad: "Voorraad",
   mandje: "Winkelmandje",
   schaler: "Schaler",
-  balans: "Smaakbalans",
+  balans: "Menu-assistent",
   cursus: "Cursus",
   feest: "Feestplanner",
   eigen: "Eigen recepten",
@@ -283,7 +283,7 @@ const TAGS = [
   { id: "maken", label: "Wat kan ik maken", icon: Martini },
   { id: "mandje", label: "Winkelmandje", icon: ShoppingCart },
   { id: "schaler", label: "Schaler", icon: Scale },
-  { id: "balans", label: "Smaakbalans", icon: Sparkles },
+  { id: "balans", label: "Menu-assistent", icon: Sparkles },
   { id: "verhaal", label: "Recept", icon: BookOpen },
   { id: "cursus", label: "Cursus", icon: GraduationCap },
   { id: "feest", label: "Feestplanner", icon: PartyPopper },
@@ -2227,7 +2227,6 @@ export default function ThuisbarApp() {
   const [customIngredients, setCustomIngredients] = useStorage("thuisbar-custom-ingredients", []);
   const [customRecipes, setCustomRecipes] = useStorage("thuisbar-custom-recipes", []);
   const [shoppingList, setShoppingList] = useStorage("thuisbar-shopping-list", []);
-  const [smaakMenu, setSmaakMenu] = useStorage("thuisbar-smaakbalans-menu", []);
   const [voorraadAantal, setVoorraadAantal] = useStorage("thuisbar-voorraad-aantal", {});
   const [courseProgress, setCourseProgress] = useStorage("thuisbar-cursus-voortgang", {});
   const [recentRecipeIds, setRecentRecipeIds] = useStorage("thuisbar-recent-recepten", []);
@@ -2253,17 +2252,17 @@ export default function ThuisbarApp() {
     [parties.parties]
   );
   // Springt na een cross-tab actie (bijv. "gebruik dit menu" vanuit
-  // Smaakbalans) direct naar het juiste feest-detailscherm — zelfde patroon
+  // Menu-assistent) direct naar het juiste feest-detailscherm — zelfde patroon
   // als pendingRecipeId hierboven. FeestplannerTab maakt 'm zelf weer leeg.
   const [openPartyId, setOpenPartyId] = useState(null);
   // Voor de "Feestplanner"-snelkoppelingen elders in de app (Maken,
-  // receptdetail, Smaakbalans): één cocktail toevoegen mikt altijd op het
+  // receptdetail, Menu-assistent): één cocktail toevoegen mikt altijd op het
   // eerstvolgende feest, of maakt (zonder te vragen) "Mijn feest" aan als er
   // nog helemaal geen feest bestaat — een keuzescherm tussen meerdere
   // feesten voegt hier meer gedoe toe dan het oplost.
-  const resolveTargetParty = async () => {
+  const resolveTargetParty = async ({ guests } = {}) => {
     if (upcomingParties[0]) return upcomingParties[0];
-    return parties.createParty({ name: "Mijn feest", guests: 8, drinks_per_guest: 2, cocktail_ids: [], bought_items: [], prep_done: [] });
+    return parties.createParty({ name: "Mijn feest", guests: guests || 8, drinks_per_guest: 2, cocktail_ids: [], bought_items: [], prep_done: [] });
   };
 
   useEffect(() => {
@@ -2413,7 +2412,7 @@ export default function ThuisbarApp() {
 
   // Eén recept toevoegen aan de Feestplanner-keuze, vanuit Maken of een
   // recept-detail — dus niet via de bulk "gebruik dit menu"-actie van
-  // Smaakbalans, maar één-voor-één met eigen feedback.
+  // de oude Smaakbalans, maar één-voor-één met eigen feedback.
   const addRecipeToFeest = async (id) => {
     const target = await resolveTargetParty();
     const current = target?.cocktail_ids || [];
@@ -2440,6 +2439,12 @@ export default function ThuisbarApp() {
     () => computeCheckinInsights(logboek, allRecipes, allIngredients, isOwned, checkinStats.uniques),
     [logboek, allRecipes, allIngredients, isOwned, checkinStats.uniques]
   );
+  // Lichte voorkeur in de Menu-assistent: het smaakprofiel uit je check-ins.
+  const menuTasteLikes = useMemo(() => {
+    const t = checkinInsights?.taste;
+    if (!t || !t.some(x => x.pct > 0) || logboek.length < 3) return null;
+    return Object.fromEntries(t.map(x => [x.key, x.pct]));
+  }, [checkinInsights, logboek.length]);
   const greeting = useMemo(() => getGreeting(), []);
   const timeWarmth = useMemo(() => getTimeWarmth(), []);
 
@@ -2624,10 +2629,11 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="balans" active={tab === "balans"} visited={visitedTabs.has("balans")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.balans} onBack={() => navigateTo("bar", { restore: true })}>
-            <SmaakbalansTab recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
-              menu={smaakMenu} setMenu={setSmaakMenu} onSound={chime}
-              onUseInFeestplanner={async (ids) => {
-                const target = await resolveTargetParty();
+            <MenuAssistentTab recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients} ingredientLabel={ingredientLabel}
+              favoriteRecipeIds={favoriteRecipeIds} recentRecipeIds={recentRecipeIds} tasteLikes={menuTasteLikes}
+              onAddToShoppingList={addToShoppingList} onSound={chime}
+              onUseInFeestplanner={async (ids, guests) => {
+                const target = await resolveTargetParty({ guests });
                 if (!target) return;
                 parties.updateParty(target.id, { cocktail_ids: ids });
                 setOpenPartyId(target.id);
@@ -2895,7 +2901,7 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
     { id: "cursus", label: "Cursus", icon: GraduationCap, subtitle: courseSubtitle },
     { id: "eigen", label: "Eigen recepten", icon: FlaskConical, subtitle: customRecipesCount > 0 ? `${customRecipesCount} eigen recept${customRecipesCount === 1 ? "" : "en"}` : "Maak je eerste" },
     { id: "schaler", label: "Schaler", icon: Scale, subtitle: "Voor een groep" },
-    { id: "balans", label: "Smaakbalans", icon: Sparkles, subtitle: "Stel je cocktail bij" },
+    { id: "balans", label: "Menu-assistent", icon: ListChecks, subtitle: "Stel in 1 minuut een menu in balans samen" },
   ];
   return (
     <div>
@@ -4347,11 +4353,11 @@ function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOn
             blijft staan terwijl de inhoud eronder scrollt, i.p.v. mee weg te
             scrollen zoals voorheen. marginLeft/Right+paddingLeft/Right span
             de balk edge-to-edge ondanks de 20px zijpadding van de pagina. */}
-        <div className="glass-light" style={{
+        <div className="glass-light secondary-navbar" style={{
           position: "sticky", top: STICKY_TOP, zIndex: 20,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
           display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
-          minHeight: 44, marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none", background: "rgba(243,236,221,0.92)",
+          minHeight: 44, marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none",
         }}>
           {/* Een tik hier is geen voltooide swipe: commitBack() verwacht de
               peek-preview-laag die alleen tijdens een echte sleep gerenderd
@@ -4723,7 +4729,7 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder="Zoek een cocktail…"
-        style={{ padding: "7px 9px", borderRadius: 3, border: `1px solid ${BORDER}`, fontSize: 14, fontFamily: serif, background: CREAM, color: INK, width: "100%", boxSizing: "border-box" }} />
+        style={{ padding: "0 14px", minHeight: 44, borderRadius: 12, border: `1px solid ${BORDER}`, fontSize: 15, fontFamily: sans, background: CREAM, color: INK, width: "100%", boxSizing: "border-box" }} />
       {open && filtered.length > 0 && (
         <div style={{
           position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: CREAM,
@@ -4732,7 +4738,7 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
         }}>
           {filtered.map(r => (
             <div key={r.id} onMouseDown={e => e.preventDefault()} onClick={() => select(r)} className="list-row-tap"
-              style={{ padding: "9px 11px", fontSize: 14, fontFamily: serif, color: INK, cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}>
+              style={{ padding: "11px 14px", fontSize: 14.5, fontFamily: sans, color: INK, cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}>
               {r.name}
             </div>
           ))}
@@ -6942,7 +6948,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
   const [creatingParty, setCreatingParty] = useState(false);
   const [confirmDeletePartyId, setConfirmDeletePartyId] = useState(null);
 
-  // Cross-tab "open dit feest direct" (bijv. vanuit Smaakbalans' "gebruik dit
+  // Cross-tab "open dit feest direct" (bijv. vanuit Menu-assistent' "gebruik dit
   // menu") — zelfde pendingRecipeId-patroon als de rest van de app.
   useEffect(() => {
     if (openPartyId) { setSelectedPartyId(openPartyId); onOpenPartyHandled(); }
@@ -8060,228 +8066,662 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
   );
 }
 
-function SmaakbalansTab({ recipes, isOwned, allIngredients, menu, setMenu, onUseInFeestplanner, onSound }) {
-  const [pickerValues, setPickerValues] = useState({});
-  const [expandedWhy, setExpandedWhy] = useState(null);
+// ===== Menu-assistent =====
+// Vervangt de oude Smaakbalans: in 7 korte vragen een menu in balans, per
+// smaakhoek (zelfde indeling als MENU_ROLES/getMenuRole) de best passende
+// cocktail. Antwoorden blijven bewaard (useStorage → Preferences).
+const MENU_ASSISTANT_DEFAULTS = {
+  count: 4, guests: 4, adventure: "mix", strength: "gemiddeld", effort: "werk",
+  avoid: [], mustHave: null, minBottles: false, buy: "max2", alcoholvrij: true,
+};
+const MENU_ASSISTANT_STEPS = 7;
+// Wat telt als "fles" bij bijkopen en "zo min mogelijk flessen": de sterke
+// drank, likeuren en bitters. Sap, frisdrank en citroenen zijn gewone
+// boodschappen en tellen niet mee.
+const MENU_BOTTLE_CATS = new Set(["Sterke drank", "Likeuren & versterkte wijnen", "Bitters"]);
+// Uit "Mixers", maar wél een fles die je apart koopt.
+const MENU_BOTTLE_EXTRA = new Set(["prosecco", "white_wine", "red_wine", "sake", "peach_schnapps", "beer", "stout"]);
+// Bekende klassiekers (wat de meeste gasten kennen of weleens besteld
+// hebben); de rest geldt als "minder bekend" voor de avontuurlijkheidsvraag.
+const MENU_CLASSICS = new Set([
+  "whiskey_sour", "daiquiri", "margarita", "pisco_sour", "gimlet", "cosmopolitan", "sidecar", "caipirinha",
+  "amaretto_sour", "gin_tonic", "cuba_libre", "moscow_mule", "paloma", "dark_n_stormy", "mojito", "long_island",
+  "americano", "sex_on_the_beach", "tequila_sunrise", "bloody_mary", "screwdriver", "pimms_cup", "old_fashioned",
+  "negroni", "sazerac", "boulevardier", "mint_julep", "martini", "manhattan", "dirty_martini", "tom_collins",
+  "french_75", "espresso_martini", "kir_royale", "bellini", "mimosa", "gin_fizz", "porn_star_martini",
+  "aperol_spritz", "pina_colada", "mai_tai", "bramble", "zombie", "white_russian", "black_russian",
+  "irish_coffee", "hot_toddy", "mulled_wine", "godfather", "rusty_nail", "brandy_alexander", "grasshopper",
+  "virgin_mojito", "virgin_pina_colada", "virgin_mule", "shirley_temple", "hugo", "blue_lagoon", "rob_roy",
+]);
+const MENU_AVOID_OPTIONS = [
+  { key: "eiwit", label: "Eiwit", ids: ["egg_white", "egg_yolk", "advocaat"] },
+  { key: "zuivel", label: "Room/zuivel", ids: ["heavy_cream", "whipped_cream", "milk", "irish_cream", "butter", "egg_yolk"] },
+  { key: "koffie", label: "Koffie", ids: ["espresso", "hot_coffee", "coffee_liqueur"] },
+  { key: "noten", label: "Noten", ids: ["amaretto", "orgeat", "frangelico", "creme_de_noyaux"] },
+  { key: "gin", label: "Gin", ids: ["gin", "sloe_gin"] },
+  { key: "whisky", label: "Whisky", ids: ["bourbon", "rye", "scotch", "irish_whiskey", "drambuie"] },
+  { key: "tequila", label: "Tequila", ids: ["tequila_blanco", "mezcal"] },
+  { key: "rum", label: "Rum", ids: ["white_rum", "dark_rum"] },
+  { key: "anijs", label: "Anijs", ids: ["absinthe", "galliano"] },
+  { key: "zoet", label: "Heel zoet", ids: [] },
+];
+const MENU_HOMEMADE_SYRUPS = new Set(["honey_syrup", "honey_ginger_syrup", "raspberry_syrup"]);
+const MENU_FRESH_JUICES = new Set(["lemon_juice", "lime_juice", "orange_juice", "grapefruit_juice", "pineapple_juice", "passion_fruit_puree", "peach_puree", "tomato_juice"]);
+const MENU_CORNER_COLORS = { fris: "var(--sage)", sterk: "var(--brass)", avontuurlijk: "var(--burgundy)", comfort: "#8A6A4A", alcoholvrij: "var(--sage)" };
+const MENU_CORNER_TITLES = { fris: "Fris & verfrissend", sterk: "Sterk & aromatisch", avontuurlijk: "Avontuurlijk", comfort: "Comfort", alcoholvrij: "Alcoholvrij" };
+const MENU_ANSWER_LABELS = {
+  adventure: { klassiek: "Vooral klassiekers", mix: "Een mix", verras: "Verras ze maar" },
+  strength: { licht: "Licht", gemiddeld: "Gemiddeld sterk", stevig: "Stevig" },
+  effort: { snel: "Snel en simpel", werk: "Mag wat werk zijn", bar: "Achter de bar" },
+  buy: { geen: "Alleen wat in huis is", max2: "Max 1–2 flessen", vrij: "Bijkopen mag" },
+};
 
-  const addFromRole = (roleKey) => {
-    const id = pickerValues[roleKey];
-    if (!id || menu.includes(id)) return;
-    onSound("pop");
-    setMenu([...menu, id]);
-    setPickerValues({ ...pickerValues, [roleKey]: null });
-  };
-  const removeFromMenu = (id) => { onSound("remove"); setMenu(menu.filter(x => x !== id)); };
+// Welke smaakhoeken er op een menu van N cocktails komen. De alcoholvrije
+// optie telt mee in N (zoals op een echte menukaart), de rest vult in deze
+// volgorde: fris, sterk, avontuurlijk, comfort, en daarna nog een fris/sterk.
+function menuSlotsFor(count, alcoholvrij) {
+  const base = [
+    { key: "fris", corner: "fris" }, { key: "sterk", corner: "sterk" },
+    { key: "avontuurlijk", corner: "avontuurlijk" }, { key: "comfort", corner: "comfort" },
+    { key: "fris2", corner: "fris" }, { key: "sterk2", corner: "sterk" },
+  ];
+  const n = alcoholvrij ? Math.max(1, count - 1) : count;
+  const slots = base.slice(0, n);
+  if (alcoholvrij) slots.push({ key: "alcoholvrij", corner: "alcoholvrij" });
+  return slots;
+}
 
-  const recipesByRole = useMemo(() => {
-    const map = {};
-    MENU_ROLE_KEYS.forEach(k => { map[k] = []; });
-    recipes.forEach(r => {
-      const role = getMenuRole(r);
-      if (map[role]) map[role].push(r);
-    });
-    return map;
-  }, [recipes]);
+function menuRecipeFacts(recipe, allIngredients, isOwned) {
+  const required = recipe.ingredients.filter(i => !i.optional);
+  const metas = recipe.ingredients.map(ing => ({ ing, meta: findIngredientMeta(ing, allIngredients) }));
+  const ids = new Set(metas.map(({ ing, meta }) => meta?.id || ing.id).filter(Boolean));
+  const missing = required.filter(ing => !isOwned(ing));
+  const bottleOf = (ing) => { const m = findIngredientMeta(ing, allIngredients); return m && (MENU_BOTTLE_CATS.has(m.cat) || MENU_BOTTLE_EXTRA.has(m.id)) ? m.id : null; };
+  const bottles = [...new Set(required.map(bottleOf).filter(Boolean))];
+  const missingBottles = [...new Set(missing.map(bottleOf).filter(Boolean))];
+  const techniques = inferTechniques(recipe.method);
+  const hasEgg = ids.has("egg_white") || ids.has("egg_yolk");
+  const hasDairy = [...ids].some(id => ["heavy_cream", "whipped_cream", "milk", "egg_yolk", "irish_cream", "butter"].includes(id));
+  const hasHomemade = [...ids].some(id => MENU_HOMEMADE_SYRUPS.has(id));
+  const hasFreshJuice = required.some(ing => MENU_FRESH_JUICES.has(findIngredientMeta(ing, allIngredients)?.id || ing.id));
+  const hot = [...ids].some(id => ["hot_water", "hot_coffee", "espresso"].includes(id)) || recipe.family === "Warme dranken";
+  // Vooraf te batchen: geen vers sap, ei, room of koffie en niets om te
+  // muddelen/laagjes te gieten. Bruis (tonic, soda) mag: dat gaat er bij
+  // het serveren pas bij.
+  const batchable = !hasFreshJuice && !hasEgg && !hasDairy && !hot && !techniques.some(t => ["muddle", "float_layer", "blend", "dry_shake"].includes(t));
+  const taste = getTasteProfile(recipe, allIngredients);
+  return { recipe, required, ids, missing, bottles, missingBottles, techniques, hasEgg, hasHomemade, batchable, taste };
+}
 
-  const menuRecipes = menu.map(id => recipes.find(r => r.id === id)).filter(Boolean);
+function menuCornerOf(recipe, taste) {
+  const role = getMenuRole(recipe);
+  if (role !== "overig") return role;
+  return taste.sterk >= 4 ? "sterk" : "fris";
+}
 
-  const roleCounts = useMemo(() => {
-    const counts = {};
-    MENU_ROLE_KEYS.forEach(k => { counts[k] = 0; });
-    menuRecipes.forEach(r => {
-      const role = getMenuRole(r);
-      if (role !== "overig") counts[role] = (counts[role] || 0) + 1;
-    });
-    return counts;
-  }, [menuRecipes]);
-  const maxCount = Math.max(1, ...Object.values(roleCounts));
+// Harde filters op de antwoorden (vragen 3, 4, 5 en 7).
+function menuPassesFilters(f, answers, corner) {
+  const avoidIds = new Set(MENU_AVOID_OPTIONS.filter(o => answers.avoid.includes(o.key)).flatMap(o => o.ids));
+  if ([...f.ids].some(id => avoidIds.has(id))) return false;
+  if (answers.avoid.includes("zoet") && f.taste.zoet >= 4) return false;
+  if (answers.effort === "snel" && (f.required.length > 3 || f.hasEgg || f.hasHomemade || f.techniques.includes("dry_shake") || f.techniques.includes("float_layer"))) return false;
+  if (answers.effort === "werk" && (f.required.length > 5 || f.techniques.includes("float_layer") || f.techniques.includes("blend"))) return false;
+  if (corner !== "alcoholvrij") {
+    if (answers.strength === "licht" && f.taste.sterk > 3) return false;
+    if (answers.strength === "gemiddeld" && f.taste.sterk > 4) return false;
+  }
+  if (answers.buy === "geen" && f.missingBottles.length > 0) return false;
+  if (answers.buy === "max2" && f.missingBottles.length > 2) return false;
+  return true;
+}
 
-  const sharedIngredients = useMemo(() => {
-    const count = new Map();
-    menuRecipes.forEach(r => {
-      const seen = new Set();
-      r.ingredients.forEach(ing => {
-        const key = ingredientKey(ing);
-        if (seen.has(key)) return;
-        seen.add(key);
-        const label = findIngredientMeta(ing, allIngredients)?.name || ing.name || ing.id;
-        const entry = count.get(key) || { label, n: 0 };
-        entry.n += 1;
-        count.set(key, entry);
-      });
-    });
-    return [...count.values()].filter(e => e.n >= 2).sort((a, b) => b.n - a.n);
-  }, [menuRecipes, allIngredients]);
+function menuScore(f, answers, corner, menuBottles, tasteLikes, allIngredients) {
+  const reasons = [];
+  let score = 0;
+  const classic = MENU_CLASSICS.has(f.recipe.id);
+  if (answers.adventure === "klassiek") { score += classic ? 3 : -1.5; if (classic) reasons.push({ w: 3, t: "Klassieker" }); }
+  else if (answers.adventure === "verras") { score += classic ? -1 : 2.5; if (!classic) reasons.push({ w: 3, t: "Jouw verrassing" }); }
+  else {
+    // Een mix: klassiekers in de vertrouwde hoeken, een verrassing in de avontuurlijke.
+    const wantSurprise = corner === "avontuurlijk";
+    score += classic === !wantSurprise ? 1.5 : 0;
+    if (classic && !wantSurprise) reasons.push({ w: 2, t: "Klassieker" });
+    if (!classic && wantSurprise) reasons.push({ w: 2.5, t: "Jouw verrassing" });
+  }
+  // In huis hebben weegt zwaar: ontbrekende flessen kosten geld, ontbrekende
+  // boodschappen (limoen, tonic) veel minder.
+  score -= f.missingBottles.length * 2.2;
+  score -= (f.missing.length - f.missingBottles.length) * 0.9;
+  if (f.missing.length === 0) score += 1.5;
+  if (f.batchable) { score += 0.8; reasons.push({ w: 1, t: "te batchen" }); }
+  if (answers.strength === "licht" && corner !== "alcoholvrij") score += (3 - f.taste.sterk) * 0.4;
+  if (answers.strength === "stevig" && corner !== "alcoholvrij") score += f.taste.sterk * 0.35;
+  if (answers.effort === "snel") score += (4 - f.required.length) * 0.3;
+  if (f.required.length <= 3) reasons.push({ w: 1.2, t: `${f.required.length} ingrediënten` });
+  if (answers.minBottles) {
+    const shared = f.bottles.filter(b => menuBottles.has(b));
+    score += shared.length * 1.6;
+    if (shared.length > 0) {
+      const name = (findIngredientMeta({ id: shared[0] }, allIngredients)?.name || shared[0]).split(" (")[0].toLowerCase();
+      reasons.push({ w: 4, t: `${name} dubbel gebruikt` });
+    }
+  }
+  // Zonder "zo min mogelijk flessen" juist wat afwisseling: niet vier keer dezelfde basis.
+  if (!answers.minBottles) score -= f.bottles.filter(b => menuBottles.has(b)).length * 0.6;
+  if (tasteLikes) {
+    const fit = ["zoet", "zuur", "bitter", "sterk"].reduce((s, k) => s + ((tasteLikes[k] || 0) / 100) * (f.taste[k] / 5), 0);
+    score += fit * 0.8;
+    if (fit >= 1) reasons.push({ w: 1.5, t: "past bij jouw smaak" });
+  }
+  if (corner === "fris" && f.taste.sterk <= 2) reasons.push({ w: 0.8, t: "fris en licht" });
+  if (corner === "sterk") reasons.push({ w: 0.5, t: "stevig en aromatisch" });
+  if (corner === "comfort") reasons.push({ w: 0.6, t: "zacht en romig" });
+  if (corner === "alcoholvrij") reasons.push({ w: 0.9, t: "voor wie niet drinkt" });
+  // Kleine, vaste tie-breaker zodat het menu niet bij elke render verspringt.
+  score += (hashString(f.recipe.id) % 100) / 1000;
+  const top = reasons.sort((a, b) => b.w - a.w).slice(0, 2).map(r => r.t);
+  const why = top.length ? top.join(" · ").replace(/^./, c => c.toUpperCase()) : "";
+  return { score, why };
+}
 
-  const tasteAvg = useMemo(() => {
-    if (menuRecipes.length === 0) return null;
-    const sums = { zoet: 0, zuur: 0, bitter: 0, sterk: 0 };
-    menuRecipes.forEach(r => {
-      const p = getTasteProfile(r, allIngredients);
-      sums.zoet += p.zoet; sums.zuur += p.zuur; sums.bitter += p.bitter; sums.sterk += p.sterk;
-    });
-    const n = menuRecipes.length;
-    return { zoet: sums.zoet / n, zuur: sums.zuur / n, bitter: sums.bitter / n, sterk: sums.sterk / n };
-  }, [menuRecipes, allIngredients]);
+// Stelt het menu samen: vastgezette kaarten eerst, dan per smaakhoek de
+// hoogste score (of — na "Wissel" — de volgende kandidaat).
+function buildAssistantMenu({ facts, answers, slots, locks, swaps, tasteLikes, allIngredients }) {
+  const byId = new Map(facts.map(f => [f.recipe.id, f]));
+  const chosen = new Map();
+  const usedIds = new Set();
+  const menuBottles = new Set();
+  const missingBottles = new Set();
+  slots.forEach(slot => {
+    const id = locks[slot.key];
+    const f = id && byId.get(id);
+    if (!f) return;
+    chosen.set(slot.key, { f, locked: true, why: menuScore(f, answers, slot.corner, new Set(), tasteLikes, allIngredients).why });
+    usedIds.add(id);
+    f.bottles.forEach(b => menuBottles.add(b));
+    f.missingBottles.forEach(b => missingBottles.add(b));
+  });
+  slots.forEach(slot => {
+    if (chosen.has(slot.key)) return;
+    const candidates = facts
+      .filter(f => !usedIds.has(f.recipe.id) && f.corner === slot.corner && menuPassesFilters(f, answers, slot.corner))
+      .filter(f => answers.buy !== "max2" || new Set([...missingBottles, ...f.missingBottles]).size <= 2)
+      .map(f => ({ f, ...menuScore(f, answers, slot.corner, menuBottles, tasteLikes, allIngredients) }))
+      .sort((a, b) => b.score - a.score);
+    if (candidates.length === 0) { chosen.set(slot.key, { f: null, count: 0 }); return; }
+    const pick = candidates[(swaps[slot.key] || 0) % candidates.length];
+    chosen.set(slot.key, { f: pick.f, why: pick.why, count: candidates.length });
+    usedIds.add(pick.f.recipe.id);
+    pick.f.bottles.forEach(b => menuBottles.add(b));
+    pick.f.missingBottles.forEach(b => missingBottles.add(b));
+  });
+  return slots.map(slot => ({ slot, ...chosen.get(slot.key) }));
+}
 
-  const weakestAxis = useMemo(() => {
-    if (!tasteAvg || menuRecipes.length < 2) return null;
-    const [key, value] = Object.entries(tasteAvg).sort((a, b) => a[1] - b[1])[0];
-    return value < 1.5 ? key : null;
-  }, [tasteAvg, menuRecipes.length]);
-
-  const suggestions = useMemo(() => {
-    if (!weakestAxis) return [];
-    return recipes
-      .filter(r => !menu.includes(r.id))
-      .map(r => {
-        const score = getTasteProfile(r, allIngredients)[weakestAxis];
-        const missingCount = r.ingredients.filter(ing => !ing.optional).filter(ing => !isOwned(ing)).length;
-        return { r, score, missingCount };
-      })
-      .filter(x => x.score >= 3)
-      .sort((a, b) => (a.missingCount - b.missingCount) || (b.score - a.score))
-      .slice(0, 2);
-  }, [weakestAxis, recipes, menu, allIngredients, isOwned]);
-
-  const addToMenu = (id) => { if (!menu.includes(id)) { onSound("pop"); setMenu([...menu, id]); } };
-
+function MenuOptionCard({ selected, onClick, icon, title, subtitle }) {
   return (
-    <div>
-      <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 18, marginBottom: 26 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-          <Sparkles size={15} color={BRASS} />
-          <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Hoe bartending-menu's in elkaar zitten</span>
-        </div>
-        <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: "0 0 10px" }}>
-          Menuguides voor bars werken met een "smaakmatrix" van vier hoeken: <strong>fris &amp; verfrissend</strong>,
-          <strong> avontuurlijk</strong>, <strong>sterk &amp; aromatisch</strong> en <strong>comfort</strong>, met daarnaast altijd
-          een volwaardige <strong>alcoholvrije</strong> optie. Elke hoek moet ongeveer even zwaar wegen, anders voelt het menu
-          eenzijdig aan. Voor een bar is 10-12 opties gangbaar; voor een housefeestje is 3-6 cocktails ruim genoeg.
-        </p>
-        <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: 0 }}>
-          Praktische vuistregels die er direct bij horen: reken op 2 drankjes per gast het eerste uur en daarna 1 per uur;
-          een fles van 70cl levert ongeveer 16 drankjes van 45 ml op; en gestirde cocktails zonder vers sap of ei
-          (Sterk &amp; aromatisch) zijn het makkelijkst om vooraf te batchen, wat jou als gastheer tijd bespaart tijdens het feest.
-          Bouw hieronder je eigen menu: de balk per smaakhoek laat live zien of je iets mist.
-        </p>
-      </div>
+    <button onClick={onClick} role="radio" aria-checked={selected} className="press-scale" style={{
+      display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 64, boxSizing: "border-box",
+      padding: "12px 14px", marginBottom: 10, textAlign: "left", cursor: "pointer", fontFamily: sans,
+      background: CREAM, borderRadius: 14, border: `1.5px solid ${selected ? BOTTLE : BORDER}`,
+      boxShadow: selected ? "none" : SHADOW_CARD, transition: "border-color 0.15s ease",
+    }}>
+      <span style={{
+        width: 38, height: 38, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+        background: selected ? BOTTLE : PAPER_DEEP, color: selected ? "#F1D9A6" : BRASS, fontFamily: serif, fontWeight: 700, fontSize: 16,
+      }}>{icon}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: INK }}>{title}</span>
+        {subtitle && <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{subtitle}</span>}
+      </span>
+      <span aria-hidden style={{
+        width: 22, height: 22, borderRadius: "50%", flexShrink: 0, boxSizing: "border-box",
+        border: `2px solid ${selected ? BOTTLE : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        {selected && <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOTTLE }} />}
+      </span>
+    </button>
+  );
+}
 
-      <div style={{ marginBottom: 26 }}>
-        <SectionLabel>Voeg toe per smaakhoek</SectionLabel>
-        <p style={{ fontSize: 12.5, color: MUTED, margin: "0 0 14px", lineHeight: 1.5 }}>
-          Kies hieronder per hoek een cocktail, zo weet je meteen onder welke categorie 'm valt, in plaats van dat pas achteraf te zien.
-        </p>
-        {MENU_ROLE_KEYS.map(key => {
-          const role = MENU_ROLES[key];
-          const roleRecipes = recipesByRole[key];
-          const value = pickerValues[key] || null;
-          return (
-            <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: BRASS, letterSpacing: 0.4, minWidth: 150 }}>{role.label}</span>
-              <RecipePicker recipes={roleRecipes} value={value} listId={`balans-add-${key}`}
-                onChange={id => setPickerValues({ ...pickerValues, [key]: id })} style={{ flex: "1 1 180px" }} />
-              <button onClick={() => addFromRole(key)} disabled={!value}
-                style={{ display: "flex", alignItems: "center", gap: 5, background: value ? BOTTLE : BORDER, color: value ? "#FBF6EA" : MUTED, border: "none", borderRadius: 3, padding: "8px 13px", fontSize: 13, fontWeight: 700, cursor: value ? "pointer" : "default" }}>
-                <Plus size={13} /> Toevoegen
-              </button>
-            </div>
-          );
-        })}
+function MenuToggleRow({ title, subtitle, checked, onChange }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 64, boxSizing: "border-box", padding: "12px 14px", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, marginTop: 6 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>{title}</div>
+        {subtitle && <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{subtitle}</div>}
       </div>
+      <Switch checked={checked} onChange={onChange} />
+    </div>
+  );
+}
 
-      <div style={{ marginBottom: 28 }}>
-        <SectionLabel>Balans van je menu</SectionLabel>
-        {MENU_ROLE_KEYS.map(key => {
-          const role = MENU_ROLES[key];
-          const count = roleCounts[key] || 0;
-          return (
-            <div key={key} style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                <span style={{ color: INK, fontWeight: 600 }}>{role.label}</span>
-                <span style={{ color: count === 0 ? BURGUNDY : MUTED, fontWeight: 600 }}>{count}</span>
-              </div>
-              <div style={{ height: 6, background: BORDER, borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ width: `${(count / maxCount) * 100}%`, height: "100%", background: count === 0 ? BURGUNDY : BOTTLE }} />
-              </div>
-              {count === 0 && menuRecipes.length > 0 && (
-                <p style={{ fontSize: 12, color: MUTED, margin: "5px 0 0", lineHeight: 1.5 }}>Nog niets hier: {role.why}</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
+function MenuBalanceInfo() {
+  return (
+    <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 16px", margin: "4px 0 16px" }}>
+      <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: "0 0 8px" }}>
+        Bars bouwen een menu op vier smaakhoeken: <strong>fris &amp; verfrissend</strong>, <strong>sterk &amp; aromatisch</strong>,
+        {" "}<strong>avontuurlijk</strong> en <strong>comfort</strong>, met daarnaast een volwaardige <strong>alcoholvrije</strong> optie.
+        Zo vindt elke gast iets en voelt het menu niet eenzijdig.
+      </p>
+      <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: 0 }}>
+        Vuistregels: reken op 2 drankjes per gast het eerste uur en daarna 1 per uur. Geroerde cocktails zonder vers sap of ei
+        kun je vooraf batchen, dan sta je tijdens het feest minder achter de bar.
+      </p>
+    </div>
+  );
+}
 
-      {weakestAxis && suggestions.length > 0 && (
-        <div style={{ marginBottom: 22, padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: BRASS, marginBottom: 6 }}>Slimme aanvulling</div>
-          <p style={{ fontSize: 13, color: INK, margin: "0 0 10px", lineHeight: 1.5 }}>
-            Je menu scoort laag op <strong>{{ zoet: "zoet", zuur: "zuur", bitter: "bitter", sterk: "sterk" }[weakestAxis]}</strong>. Dit zijn recepten die dat aanvullen, met voorrang voor wat je al in huis hebt:
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {suggestions.map(({ r, missingCount }) => (
-              <button key={r.id} onClick={() => addToMenu(r.id)}
-                style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: RADIUS, padding: "7px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                <Plus size={13} /> {r.name}
-                <StatusTag missingCount={missingCount} />
-              </button>
-            ))}
+function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, favoriteRecipeIds = [], recentRecipeIds = [], tasteLikes, onAddToShoppingList, onUseInFeestplanner, onSound }) {
+  const [stored, setStored] = useStorage("thuisbar-menu-assistent", MENU_ASSISTANT_DEFAULTS);
+  const answers = { ...MENU_ASSISTANT_DEFAULTS, ...stored };
+  const setAnswer = (patch) => setStored({ ...answers, ...patch });
+  const [step, setStep] = useState(1); // 1..7, 8 = menu
+  const [locks, setLocks] = useState({});
+  const [swaps, setSwaps] = useState({});
+  const [showInfo, setShowInfo] = useState(false);
+  const [listAdded, setListAdded] = useState(false);
+  const [shareState, setShareState] = useState(null);
+  const [swapFlash, setSwapFlash] = useState(null);
+  const showMenu = step > MENU_ASSISTANT_STEPS;
+
+  const goTo = (next) => { setStep(next); setShowInfo(false); window.scrollTo({ top: 0 }); };
+
+  // Navigatiebalk: "Sla over" bij de optionele vragen, op het menu "‹ Vragen" + info.
+  const setNavOverride = useContext(NavOverrideContext);
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  useEffect(() => {
+    if (!setNavOverride) return;
+    const linkStyle = { background: "none", border: "none", cursor: "pointer", color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700, padding: "10px 0 10px 8px", minHeight: 44 };
+    if (showMenu) {
+      setNavOverride({
+        label: "Vragen", title: "Menu-assistent", onBack: () => goTo(MENU_ASSISTANT_STEPS),
+        right: (
+          <button onClick={() => setShowInfo(v => !v)} aria-label="Hoe werkt een gebalanceerd menu?" style={{ ...linkStyle, display: "flex", alignItems: "center", minWidth: 44, justifyContent: "flex-end" }}>
+            <Info size={18} />
+          </button>
+        ),
+      });
+    } else if (step >= 2 && step <= 6) {
+      setNavOverride({ right: <button onClick={() => goTo(stepRef.current + 1)} style={linkStyle}>Sla over</button> });
+    } else {
+      setNavOverride(null);
+    }
+  }, [setNavOverride, step, showMenu]);
+  useEffect(() => () => setNavOverride && setNavOverride(null), [setNavOverride]);
+
+  const facts = useMemo(() => recipes.map(r => {
+    const f = menuRecipeFacts(r, allIngredients, isOwned);
+    return { ...f, corner: menuCornerOf(r, f.taste) };
+  }), [recipes, allIngredients, isOwned]);
+  const factsById = useMemo(() => new Map(facts.map(f => [f.recipe.id, f])), [facts]);
+
+  const slots = useMemo(() => {
+    const s = menuSlotsFor(answers.count, answers.alcoholvrij);
+    const must = answers.mustHave && factsById.get(answers.mustHave);
+    if (must && !s.some(x => x.corner === must.corner)) {
+      // Must-have valt in een hoek die bij dit aantal niet op het menu staat:
+      // die hoek vervangt dan de laatste niet-alcoholvrije plek.
+      const idx = s.reduce((acc, x, i) => (x.corner !== "alcoholvrij" ? i : acc), -1);
+      if (idx >= 0) s[idx] = { key: must.corner, corner: must.corner };
+    }
+    return s;
+  }, [answers.count, answers.alcoholvrij, answers.mustHave, factsById]);
+
+  const startMenu = () => {
+    onSound?.("chime");
+    const must = answers.mustHave && factsById.get(answers.mustHave);
+    const nextLocks = {};
+    if (must) {
+      const slot = slots.find(s => s.corner === must.corner);
+      if (slot) nextLocks[slot.key] = must.recipe.id;
+    }
+    setLocks(nextLocks);
+    setSwaps({});
+    setListAdded(false);
+    goTo(MENU_ASSISTANT_STEPS + 1);
+  };
+
+  const menu = useMemo(
+    () => showMenu ? buildAssistantMenu({ facts, answers, slots, locks, swaps, tasteLikes, allIngredients }) : [],
+    [showMenu, facts, stored, slots, locks, swaps, tasteLikes, allIngredients]
+  );
+  const picked = menu.filter(m => m.f);
+  const makeable = picked.filter(m => m.f.missing.length === 0).length;
+  const batchCount = picked.filter(m => m.f.batchable).length;
+  const missingRows = useMemo(() => {
+    const map = new Map();
+    picked.forEach(m => m.f.missing.forEach(ing => {
+      const key = ingredientKey(ing);
+      if (!map.has(key)) map.set(key, { ref: ing, label: ingredientLabel(ing), recipeNames: [] });
+      map.get(key).recipeNames.push(m.f.recipe.name);
+    }));
+    return [...map.values()];
+  }, [menu]);
+  const missingKey = missingRows.map(r => ingredientKey(r.ref)).join("|");
+  useEffect(() => { setListAdded(false); }, [missingKey]);
+  const drinks = Math.round(answers.guests * 2.5);
+
+  const toggleLock = (slotKey, recipeId) => {
+    onSound?.("tick");
+    setLocks(prev => {
+      const next = { ...prev };
+      if (next[slotKey]) delete next[slotKey]; else next[slotKey] = recipeId;
+      return next;
+    });
+  };
+  const swap = (slotKey) => {
+    onSound?.("pop");
+    setSwaps(prev => ({ ...prev, [slotKey]: (prev[slotKey] || 0) + 1 }));
+    setSwapFlash(slotKey);
+    setTimeout(() => setSwapFlash(k => (k === slotKey ? null : k)), 350);
+  };
+
+  const shareMenu = async () => {
+    const names = picked.map(m => m.f.recipe.name);
+    if (names.length === 0) return;
+    onSound?.("share");
+    const title = "Mijn Thuisbar: menu";
+    const text = `Het cocktailmenu voor vanavond:\n${names.map(n => `• ${n}`).join("\n")}`;
+    const url = publicAppUrl(`menu=${picked.map(m => m.f.recipe.id).join(",")}`);
+    let result;
+    if (url) {
+      result = await shareLink({ title, text: "Bekijk het cocktailmenu voor vanavond!", url });
+    } else {
+      // Nog geen openbare webversie ingesteld: deel het menu dan als tekst.
+      try {
+        if (isNativeShell) { await Share.share({ title, text, dialogTitle: title }); result = "shared"; }
+        else if (navigator.share) { await navigator.share({ title, text }); result = "shared"; }
+        else { await navigator.clipboard.writeText(text); result = "copied"; }
+      } catch (e) {
+        result = /cancel|abort/i.test(`${e?.name} ${e?.message}`) ? "cancelled" : "failed";
+      }
+    }
+    if (result === "cancelled") return;
+    setShareState(result === "no-url" ? "failed" : result);
+    setTimeout(() => setShareState(null), 2500);
+  };
+
+  const answerChips = [
+    MENU_ANSWER_LABELS.adventure[answers.adventure],
+    MENU_ANSWER_LABELS.strength[answers.strength],
+    MENU_ANSWER_LABELS.effort[answers.effort],
+    ...MENU_AVOID_OPTIONS.filter(o => answers.avoid.includes(o.key)).map(o => `Zonder ${o.label.toLowerCase()}`),
+    answers.minBottles ? "Min. flessen" : null,
+    MENU_ANSWER_LABELS.buy[answers.buy],
+  ].filter(Boolean);
+
+  // ---------- Menu ----------
+  if (showMenu) {
+    const allFilled = menu.every(m => m.f);
+    const smallBtn = (active) => ({
+      width: 44, height: 44, borderRadius: 12, border: `1px solid ${active ? BRASS : BORDER}`,
+      background: active ? "rgba(184,134,46,0.16)" : PAPER_DEEP, color: active ? BRASS : MUTED,
+      display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0,
+    });
+    return (
+      <div style={{ fontFamily: sans }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+          <div>
+            <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.15 }}>Jouw menu</h1>
+            <div style={{ fontSize: 13.5, color: MUTED, marginTop: 4 }}>{menu.length} cocktails · {answers.guests} {answers.guests === 1 ? "gast" : "gasten"}</div>
           </div>
+          <button onClick={() => goTo(1)} style={{ background: "none", border: "none", color: BRASS, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer", minHeight: 44, padding: "0 0 0 8px" }}>Aanpassen</button>
         </div>
-      )}
 
-      <SectionLabel>Jouw menu ({menuRecipes.length})</SectionLabel>
-      {menuRecipes.length === 0 ? (
-        <p style={{ color: MUTED, fontSize: 14, padding: "10px 0 20px" }}>Nog leeg. Zoek hierboven een cocktail op en voeg 'm toe.</p>
-      ) : (
+        {showInfo && <MenuBalanceInfo />}
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+          {answerChips.map(c => (
+            <span key={c} style={{ fontSize: 12, fontWeight: 600, color: INK, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "5px 10px" }}>{c}</span>
+          ))}
+        </div>
+
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "11px 14px", borderRadius: 12, marginBottom: 14, fontSize: 13.5, fontWeight: 600,
+          background: allFilled ? "rgba(92,122,82,0.16)" : "rgba(122,46,42,0.10)", color: allFilled ? SAGE : BURGUNDY,
+        }}>
+          {allFilled ? <Check size={16} strokeWidth={2.6} /> : <Info size={16} />}
+          {allFilled
+            ? (menu.length >= 4 ? "In balans: elke smaakhoek is vertegenwoordigd" : "In balans: drie verschillende smaakhoeken")
+            : "Niet elke smaakhoek heeft een match"}
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {menuRecipes.map(r => {
-            const role = getMenuRole(r);
-            const roleInfo = MENU_ROLES[role];
-            const missingCount = r.ingredients.filter(ing => !ing.optional).filter(ing => !isOwned(ing)).length;
-            const isExpanded = expandedWhy === r.id;
-            return (
-              <div key={r.id} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 15.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
-                    <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{r.family} · {r.glass}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                    <button onClick={() => setExpandedWhy(isExpanded ? null : r.id)}
-                      style={{ background: "none", border: `1px solid ${BRASS}`, color: BRASS, borderRadius: 3, padding: "4px 9px", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", cursor: "pointer" }}>
-                      {roleInfo.label}
-                    </button>
-                    <StatusTag missingCount={missingCount} />
-                    <button onClick={() => removeFromMenu(r.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
-                      <X size={15} color={MUTED} />
-                    </button>
-                  </div>
+          {menu.map(({ slot, f, why, locked, count }) => {
+            const isLocked = !!locks[slot.key];
+            if (!f) {
+              return (
+                <div key={slot.key} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "14px 14px", boxShadow: SHADOW_CARD }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: MENU_CORNER_COLORS[slot.corner] }}>{MENU_CORNER_TITLES[slot.corner]}</div>
+                  <div style={{ fontFamily: serif, fontSize: 17, fontWeight: 700, color: INK, marginTop: 4 }}>Geen match</div>
+                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>Niets in deze smaakhoek past bij je antwoorden. Pas je antwoorden aan, bijvoorbeeld wat je wilt vermijden of bijkopen.</div>
+                  <button onClick={() => goTo(1)} style={{ marginTop: 8, background: "none", border: "none", color: BRASS, fontWeight: 700, fontSize: 13.5, cursor: "pointer", padding: 0, minHeight: 44, fontFamily: sans }}>Antwoorden aanpassen</button>
                 </div>
-                {isExpanded && <p style={{ fontSize: 12.5, color: MUTED, margin: "10px 0 0", lineHeight: 1.5 }}>{roleInfo.why}</p>}
+              );
+            }
+            const missingLabels = f.missing.map(ing => ingredientLabel(ing));
+            const status = f.missing.length === 0
+              ? `Alles in huis${f.batchable ? " · batchbaar" : ""}`
+              : `Mist: ${missingLabels.join(", ")}${f.batchable ? " · batchbaar" : ""}`;
+            const canSwap = !isLocked && (count || 0) > 1;
+            return (
+              <div key={slot.key} className={swapFlash === slot.key ? "success-pop" : undefined} style={{
+                display: "flex", alignItems: "center", gap: 12, background: CREAM, borderRadius: 16, padding: 10, boxShadow: SHADOW_CARD,
+                border: `1.5px solid ${isLocked ? BRASS : BORDER}`,
+              }}>
+                <RecipeCircle recipe={f.recipe} allIngredients={allIngredients} size={72} radius={12} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: MENU_CORNER_COLORS[slot.corner] }}>{MENU_CORNER_TITLES[slot.corner]}</div>
+                  <div style={{ fontFamily: serif, fontSize: 18, fontWeight: 700, color: INK, marginTop: 2, lineHeight: 1.2 }}>{f.recipe.name}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 3, color: f.missing.length === 0 ? SAGE : BURGUNDY, lineHeight: 1.35 }}>{status}</div>
+                  {why && <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.35 }}>{why}</div>}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                  <button onClick={() => canSwap && swap(slot.key)} disabled={!canSwap} aria-label={`Wissel ${f.recipe.name}`}
+                    style={{ ...smallBtn(false), opacity: canSwap ? 1 : 0.4, cursor: canSwap ? "pointer" : "default" }}>
+                    <RefreshCw size={17} />
+                  </button>
+                  <button onClick={() => toggleLock(slot.key, f.recipe.id)} aria-label={isLocked ? `Maak ${f.recipe.name} los` : `Zet ${f.recipe.name} vast`} aria-pressed={isLocked}
+                    style={smallBtn(isLocked)}>
+                    <Lock size={16} strokeWidth={isLocked ? 2.4 : 1.8} />
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
-      )}
+        <p style={{ fontSize: 12, color: MUTED, textAlign: "center", margin: "10px 0 18px" }}>Tik op ↻ voor een ander voorstel · slotje = deze houden</p>
 
-      {sharedIngredients.length > 0 && (
-        <div style={{ marginTop: 22, padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: BOTTLE, marginBottom: 6 }}>Efficiënt inkopen</div>
-          <p style={{ fontSize: 13, color: INK, margin: 0, lineHeight: 1.5 }}>
-            Deze ingrediënten komen in meerdere gekozen cocktails voor, dus je koopt ze toch maar één keer:{" "}
-            {sharedIngredients.map(e => `${e.label} (${e.n}×)`).join(", ")}.
-          </p>
+        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, boxShadow: SHADOW_CARD, padding: "4px 14px", marginBottom: 16 }}>
+          {[
+            { icon: <Check size={16} strokeWidth={2.4} />, content: <span><strong>{makeable} van {picked.length}</strong> kun je nu maken</span> },
+            missingRows.length > 0 && {
+              icon: <ShoppingCart size={16} />, color: BURGUNDY,
+              content: <span><span style={{ display: "block" }}>Nog nodig</span><span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>{missingRows.map(r => r.label).join(", ")}</span></span>,
+              action: listAdded ? (
+                <span className="success-pop" style={{ display: "flex", alignItems: "center", gap: 4, color: SAGE, fontSize: 13, fontWeight: 700, minHeight: 36 }}><Check size={14} strokeWidth={3} /> Op lijst</span>
+              ) : (
+                <button onClick={() => { onAddToShoppingList(missingRows.map(r => ({ ref: r.ref, recipeNames: r.recipeNames }))); onSound?.("tick"); setListAdded(true); }}
+                  style={{ background: BOTTLE, color: "#FBF6EA", border: "none", borderRadius: 100, padding: "0 14px", minHeight: 36, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: sans, flexShrink: 0 }}>
+                  Op lijst
+                </button>
+              ),
+            },
+            { icon: <Clock size={16} />, content: <span><strong>{batchCount} van {picked.length}</strong> kun je vooraf batchen</span> },
+            { icon: <Users size={16} />, content: <span>Voor {answers.guests} {answers.guests === 1 ? "gast" : "gasten"}: <strong>± {drinks} drankjes</strong></span> },
+          ].filter(Boolean).map((row, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, fontSize: 14, color: INK }}>
+              <span style={{ width: 30, height: 30, borderRadius: 9, background: PAPER_DEEP, color: row.color || SAGE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{row.icon}</span>
+              <div style={{ flex: 1, minWidth: 0, lineHeight: 1.35 }}>{row.content}</div>
+              {row.action}
+            </div>
+          ))}
         </div>
-      )}
 
-      {menuRecipes.length > 0 && (
-        <button onClick={() => { onSound("chime"); onUseInFeestplanner(menuRecipes.map(r => r.id)); }}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: BOTTLE, color: "#FBF6EA", border: "none", borderRadius: RADIUS, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA, marginTop: 24 }}>
-          <Sparkles size={15} /> Gebruik dit menu in de Feestplanner
+        <button onClick={shareMenu} disabled={picked.length === 0} className="press-scale" style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14,
+          background: BOTTLE_DARK, color: "#FBF6EA", border: "none", fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA, marginBottom: 10,
+        }}>
+          <Share2 size={17} /> {shareState === "copied" ? "Gekopieerd" : shareState === "shared" ? "Gedeeld" : shareState === "failed" ? "Delen lukte niet" : "Deel menu"}
         </button>
-      )}
+        <button onClick={() => { onSound?.("chime"); onUseInFeestplanner(picked.map(m => m.f.recipe.id), answers.guests); }} disabled={picked.length === 0} className="press-scale" style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14,
+          background: "rgba(184,134,46,0.18)", color: INK, border: "none", fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+        }}>
+          <PartyPopper size={17} color={BRASS} /> Gebruik voor een feest
+        </button>
+      </div>
+    );
+  }
+
+  // ---------- Vragen ----------
+  const segBtn = (active) => ({
+    flex: 1, minHeight: 44, border: "none", borderRadius: 10, cursor: "pointer", fontFamily: sans, fontSize: 16, fontWeight: 700,
+    background: active ? BOTTLE : "transparent", color: active ? "#FBF6EA" : INK, transition: "background 0.15s ease",
+  });
+  const roundBtn = { width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(184,134,46,0.2)", color: INK, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 600, fontFamily: sans };
+
+  const QUESTIONS = {
+    1: { title: "Voor wie maak je het menu?", sub: "Dan kloppen de hoeveelheden meteen." },
+    2: { title: "Hoe avontuurlijk zijn je gasten?", sub: "Zo kiezen we tussen bekende klassiekers en verrassende cocktails." },
+    3: { title: "Hoe sterk mag het zijn?", sub: "Lichter is fijn bij een lange avond of veel gasten." },
+    4: { title: "Hoeveel moeite wil je doen?", sub: "We houden rekening met ingrediënten en bereiding." },
+    5: { title: "Iets wat je wilt vermijden?", sub: "Kies er zoveel je wilt, of sla over." },
+    6: { title: "Moet er iets per se in?", sub: "Kies één cocktail die zeker op het menu komt." },
+    7: { title: "Hoeveel wil je bijkopen?", sub: "Dan houden we rekening met je voorraad." },
+  };
+  const q = QUESTIONS[step];
+
+  const mustHaveChoices = (() => {
+    const ids = [...new Set([answers.mustHave, ...favoriteRecipeIds, ...recentRecipeIds].filter(Boolean))];
+    return ids.map(id => recipes.find(r => r.id === id)).filter(Boolean).slice(0, 4);
+  })();
+
+  let body = null;
+  if (step === 1) {
+    body = (
+      <>
+        <div style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 8 }}>Hoeveel cocktails op het menu?</div>
+        <div role="radiogroup" style={{ display: "flex", gap: 4, padding: 4, background: "rgba(184,134,46,0.16)", borderRadius: 14, marginBottom: 18 }}>
+          {[3, 4, 5].map(n => (
+            <button key={n} role="radio" aria-checked={answers.count === n} onClick={() => setAnswer({ count: n })} style={segBtn(answers.count === n)}>{n}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "12px 14px", minHeight: 64, boxSizing: "border-box" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>Aantal gasten</div>
+            <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Inclusief jezelf</div>
+          </div>
+          <button aria-label="Minder gasten" onClick={() => setAnswer({ guests: Math.max(1, answers.guests - 1) })} style={roundBtn}>−</button>
+          <span style={{ minWidth: 28, textAlign: "center", fontSize: 18, fontWeight: 700, color: INK }}>{answers.guests}</span>
+          <button aria-label="Meer gasten" onClick={() => setAnswer({ guests: Math.min(100, answers.guests + 1) })} style={roundBtn}>+</button>
+        </div>
+        <button onClick={() => setShowInfo(v => !v)} style={{ background: "none", border: "none", color: BRASS, fontFamily: sans, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0, minHeight: 44, marginTop: 10, display: "flex", alignItems: "center", gap: 5 }}>
+          <Info size={14} /> Hoe werkt een gebalanceerd menu?
+        </button>
+        {showInfo && <MenuBalanceInfo />}
+      </>
+    );
+  } else if (step === 2) {
+    body = [
+      { v: "klassiek", icon: "K", t: "Vooral klassiekers", s: "Bekende favorieten zoals Mojito en Margarita" },
+      { v: "mix", icon: "M", t: "Een mix", s: "Een paar klassiekers en één of twee verrassingen" },
+      { v: "verras", icon: "!", t: "Verras ze maar", s: "Minder bekende pareltjes zoals Penicillin of Last Word" },
+    ].map(o => <MenuOptionCard key={o.v} selected={answers.adventure === o.v} onClick={() => setAnswer({ adventure: o.v })} icon={o.icon} title={o.t} subtitle={o.s} />);
+  } else if (step === 3) {
+    body = [
+      { v: "licht", icon: "1", t: "Licht", s: "Highballs en spritzes, lekker lang drinken" },
+      { v: "gemiddeld", icon: "2", t: "Gemiddeld", s: "Een goede mix van licht en krachtig" },
+      { v: "stevig", icon: "3", t: "Stevig", s: "Meer spirit-forward, zoals Negroni en Old Fashioned" },
+    ].map(o => <MenuOptionCard key={o.v} selected={answers.strength === o.v} onClick={() => setAnswer({ strength: o.v })} icon={o.icon} title={o.t} subtitle={o.s} />);
+  } else if (step === 4) {
+    body = [
+      { v: "snel", icon: <Zap size={18} />, t: "Snel en simpel", s: "Max 3 ingrediënten, geen eiwit of zelfgemaakte siroop" },
+      { v: "werk", icon: <Sparkle size={18} />, t: "Mag wat werk zijn", s: "Shaken en een verse garnering is prima" },
+      { v: "bar", icon: <Star size={18} />, t: "Ik sta graag achter de bar", s: "Alles mag, ook eiwit en huisgemaakte siropen" },
+    ].map(o => <MenuOptionCard key={o.v} selected={answers.effort === o.v} onClick={() => setAnswer({ effort: o.v })} icon={o.icon} title={o.t} subtitle={o.s} />);
+  } else if (step === 5) {
+    body = (
+      <>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {MENU_AVOID_OPTIONS.map(o => {
+            const on = answers.avoid.includes(o.key);
+            return (
+              <button key={o.key} aria-pressed={on} onClick={() => setAnswer({ avoid: on ? answers.avoid.filter(k => k !== o.key) : [...answers.avoid, o.key] })} style={{
+                display: "flex", alignItems: "center", gap: 5, minHeight: 44, padding: "0 16px", borderRadius: 100, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 600,
+                background: on ? BOTTLE : CREAM, color: on ? "#FBF6EA" : INK, border: `1px solid ${on ? BOTTLE : BORDER}`,
+              }}>
+                {on && <X size={14} strokeWidth={2.6} />}{o.label}
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5, margin: "12px 0 0" }}>Handig bij allergieën, veganistische gasten of een drank waar iemand niet van houdt.</p>
+      </>
+    );
+  } else if (step === 6) {
+    body = (
+      <>
+        <MenuOptionCard selected={!answers.mustHave} onClick={() => setAnswer({ mustHave: null })} icon={<X size={17} />} title="Geen voorkeur" subtitle="De assistent kiest alles zelf" />
+        {mustHaveChoices.map(r => (
+          <MenuOptionCard key={r.id} selected={answers.mustHave === r.id} onClick={() => setAnswer({ mustHave: r.id })}
+            icon={<RecipeCircle recipe={r} allIngredients={allIngredients} size={38} radius={10} />} title={r.name}
+            subtitle={favoriteRecipeIds.includes(r.id) ? "Favoriet" : answers.mustHave === r.id ? "Gekozen" : "Recent bekeken"} />
+        ))}
+        <div style={{ fontSize: 13, fontWeight: 700, color: INK, margin: "8px 0 6px" }}>Of zoek een cocktail</div>
+        <RecipePicker recipes={recipes} value={mustHaveChoices.some(r => r.id === answers.mustHave) ? null : answers.mustHave} listId="menu-assistent-must"
+          onChange={id => setAnswer({ mustHave: id || null })} style={{ width: "100%", boxSizing: "border-box" }} />
+        <div style={{ height: 8 }} />
+        <MenuToggleRow title="Zo min mogelijk flessen" subtitle="Flessen dubbel gebruiken, dan hoef je minder te kopen" checked={answers.minBottles} onChange={v => setAnswer({ minBottles: v })} />
+      </>
+    );
+  } else if (step === 7) {
+    body = (
+      <>
+        {[
+          { v: "geen", icon: <Refrigerator size={18} />, t: "Alleen wat ik in huis heb", s: "Geen nieuwe flessen, hooguit verse boodschappen" },
+          { v: "max2", icon: <ShoppingCart size={18} />, t: "Max 1–2 flessen", s: "Een paar nieuwe flessen is prima" },
+          { v: "vrij", icon: <Wine size={18} />, t: "Maakt niet uit", s: "Kies gewoon het beste menu" },
+        ].map(o => <MenuOptionCard key={o.v} selected={answers.buy === o.v} onClick={() => setAnswer({ buy: o.v })} icon={o.icon} title={o.t} subtitle={o.s} />)}
+        <MenuToggleRow title="Alcoholvrije optie" subtitle="Een volwaardige cocktail zonder alcohol op het menu" checked={answers.alcoholvrij} onChange={v => setAnswer({ alcoholvrij: v })} />
+      </>
+    );
+  }
+
+  return (
+    // minHeight + negatieve marge: de knoppenbalk staat bij korte vragen
+    // precies boven de onderbalk, zonder dat de pagina daardoor gaat scrollen.
+    <div style={{ fontFamily: sans, display: "flex", flexDirection: "column", minHeight: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 154px)", marginBottom: -62 }}>
+      <div style={{ display: "flex", gap: 5, marginBottom: 14 }} aria-hidden>
+        {Array.from({ length: MENU_ASSISTANT_STEPS }, (_, i) => (
+          <span key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < step ? BOTTLE : BORDER, transition: "background 0.2s ease" }} />
+        ))}
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Vraag {step} van {MENU_ASSISTANT_STEPS}</div>
+      <h1 style={{ fontFamily: serif, fontSize: 27, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.2 }}>{q.title}</h1>
+      <p style={{ fontSize: 14, color: MUTED, margin: "6px 0 20px", lineHeight: 1.45 }}>{q.sub}</p>
+      <div key={step} className="tab-fade" role={step >= 2 && step <= 4 ? "radiogroup" : undefined}>{body}</div>
+
+      <div className="menu-assist-footer" style={{
+        marginTop: "auto", padding: "18px 0 8px", display: "flex", gap: 10,
+        position: "sticky", bottom: "calc(env(safe-area-inset-bottom) + 80px)", zIndex: 5,
+        background: `linear-gradient(180deg, transparent 0, ${PAPER} 16px)`,
+      }}>
+        {step > 1 && (
+          <button onClick={() => goTo(step - 1)} className="press-scale" style={{
+            flex: "0 0 32%", minHeight: 52, borderRadius: 14, border: "none", background: "rgba(184,134,46,0.22)", color: INK,
+            fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+          }}>Terug</button>
+        )}
+        <button onClick={() => (step < MENU_ASSISTANT_STEPS ? goTo(step + 1) : startMenu())} className="press-scale" style={{
+          flex: 1, minHeight: 52, borderRadius: 14, border: "none", background: BOTTLE_DARK, color: "#FBF6EA",
+          fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
+        }}>
+          {step < MENU_ASSISTANT_STEPS ? "Volgende" : "Stel mijn menu voor"}
+        </button>
+      </div>
     </div>
   );
 }
