@@ -3389,9 +3389,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                   {entry.notes && <p style={{ margin: "0 0 9px", fontSize: 12.5, color: INK, lineHeight: 1.5 }}>&ldquo;{entry.notes}&rdquo;</p>}
                   {entry.tasteTags.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 11 }}>
-                      {entry.tasteTags.map(k => TASTE_META[k] && (
+                      {entry.tasteTags.map(k => CHECKIN_TASTE_META[k] && (
                         <span key={k} style={{ fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 100, background: PAPER_DEEP, color: INK, border: `1px solid ${BORDER}` }}>
-                          {TASTE_META[k].emoji} {TASTE_META[k].label}
+                          {CHECKIN_TASTE_META[k].emoji} {CHECKIN_TASTE_META[k].label}
                         </span>
                       ))}
                     </div>
@@ -8132,30 +8132,6 @@ function formatRating(value) {
 // tikken op een ster zet 'm meteen op een heel getal; de fijnafstemming in
 // kwarten gebeurt via een los schuifbalkje eronder (zie de check-in-sheet),
 // want precies op een kwart ster tikken is op een telefoon niet te doen.
-function StarPicker({ value, onChange, size = 19, onSound }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ display: "flex", gap: 4 }}>
-        {[0, 1, 2, 3, 4].map(i => {
-          const filled = Math.min(1, Math.max(0, value - i));
-          return (
-            <button key={i} onClick={() => { const v = i + 1; if (onSound && v !== value) onSound("tick"); onChange(v); }}
-              className="press-scale" style={{ position: "relative", width: size, height: size, flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-              <Star size={size} color="#C9BC9C" strokeWidth={1.5} style={{ display: "block" }} />
-              {filled > 0 && (
-                <div style={{ position: "absolute", inset: 0, width: `${filled * 100}%`, overflow: "hidden" }}>
-                  <Star size={size} fill={BRASS} color={BRASS} strokeWidth={1.5} style={{ display: "block" }} />
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
-      {value > 0 && <span style={{ fontFamily: systemFont, fontWeight: 600, fontSize: 15, color: INK }}>{formatRating(value)}</span>}
-    </div>
-  );
-}
-
 // Eén notitieregel die vanzelf meegroeit met de tekst — geen zichtbare rand
 // of resize-greep, past bij het vlakke, kaderloze veldontwerp van de
 // check-in-sheet.
@@ -8284,6 +8260,92 @@ const TASTE_META = {
   sterk: { emoji: "🥃", label: "Sterk" },
   bitter: { emoji: "🍫", label: "Bitter" },
 };
+// Smaaklabels bij het inchecken ("Wat proefde je?"). De eerste vijf zijn de
+// bestaande smaaktags met exact dezelfde betekenis (smaakprofiel,
+// aanbevelingen, vriendenfeed tellen alleen die vijf — zie TASTE_META);
+// de rest zijn extra beschrijvende labels die gewoon mee worden opgeslagen
+// in taste_tags en in de check-in zichtbaar zijn.
+const CHECKIN_TASTE_TAGS = [
+  { key: "bitter", label: "Bitter", emoji: "🍫" },
+  { key: "sterk", label: "Sterk", emoji: "🥃" },
+  { key: "zoet", label: "Zoet", emoji: "🍬" },
+  { key: "zuur", label: "Zuur", emoji: "🍋" },
+  { key: "fruitig", label: "Fruitig", emoji: "🍓" },
+  { key: "kruidig", label: "Kruidig", emoji: "🌿" },
+  { key: "fris", label: "Fris", emoji: "🧊" },
+  { key: "romig", label: "Romig", emoji: "🥛" },
+  { key: "licht", label: "Licht", emoji: "🪶" },
+  { key: "rokerig", label: "Rokerig", emoji: "🔥" },
+];
+const CHECKIN_TASTE_META = Object.fromEntries(CHECKIN_TASTE_TAGS.map(t => [t.key, t]));
+
+// Voorzet voor de smaaklabels bij een herkend recept: de familie-heuristiek
+// (FAMILY_TASTE, gewicht ≥ 0,6) plus een paar duidelijke ingrediënt-signalen
+// — zo krijgt een Negroni (familie "Spirit-forward" = alleen sterk) via
+// Campari en zoete vermouth ook Bitter en Kruidig. De gebruiker corrigeert.
+const TASTE_INGREDIENT_HINTS = {
+  bitter: ["campari", "aperol", "amaro_nonino", "cynar", "fernet_branca"],
+  kruidig: ["sweet_vermouth", "yellow_chartreuse", "green_chartreuse", "benedictine", "ginger_beer", "ginger_wine", "ginger_root", "honey_ginger_syrup"],
+  rokerig: ["mezcal"],
+  romig: ["heavy_cream", "whipped_cream", "coconut_cream", "irish_cream", "milk"],
+  fris: ["mint", "cucumber", "soda_water", "tonic", "grapefruit_soda", "prosecco"],
+};
+function suggestTasteTags(recipe) {
+  if (!recipe) return [];
+  const tags = new Set();
+  Object.entries(FAMILY_TASTE[recipe.family] || {}).forEach(([k, w]) => { if (w >= 0.6) tags.add(k); });
+  const ids = new Set(recipe.ingredients.map(i => i.id));
+  Object.entries(TASTE_INGREDIENT_HINTS).forEach(([tag, list]) => { if (list.some(id => ids.has(id))) tags.add(tag); });
+  if (["Highballs", "Mocktail / alcoholvrij"].includes(recipe.family) && !tags.has("sterk")) tags.add("licht");
+  return CHECKIN_TASTE_TAGS.map(t => t.key).filter(k => tags.has(k));
+}
+
+const RATING_WORDS = { 1: "Matig", 2: "Oké", 3: "Goed", 4: "Heerlijk", 5: "Top" };
+
+// Grote, gecentreerde sterren voor het inchecken: tik = hele ster, nog eens
+// op dezelfde ster tikken = halve ster (4 → 3,5), en weer terug.
+function CheckinStars({ value, onChange, onSound }) {
+  const size = 44;
+  const tap = (n) => {
+    const next = value === n ? n - 0.5 : n;
+    if (next !== value) onSound?.("tick");
+    onChange(next);
+  };
+  const shown = value > 0 ? Math.min(5, Math.max(1, Math.round(value))) : 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {[1, 2, 3, 4, 5].map(n => {
+          const filled = Math.min(1, Math.max(0, value - (n - 1)));
+          return (
+            <button key={n} onClick={() => tap(n)} aria-label={`${n} ${n === 1 ? "ster" : "sterren"}`} className="press-scale" style={{
+              position: "relative", width: size, height: size, flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer",
+            }}>
+              <Star size={size} color="#C9BC9C" strokeWidth={1.4} style={{ display: "block" }} />
+              {filled > 0 && (
+                <div style={{ position: "absolute", inset: 0, width: `${filled * 100}%`, overflow: "hidden" }}>
+                  <Star size={size} fill={BRASS} color={BRASS} strokeWidth={1.4} style={{ display: "block" }} />
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 10, minHeight: 30 }}>
+        {value > 0 ? (
+          <>
+            <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 24, color: INK }}>{String(value).replace(".", ",")}</span>
+            <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: BRASS }}>{RATING_WORDS[shown]}</span>
+          </>
+        ) : (
+          <span style={{ fontFamily: systemFont, fontSize: 15, color: MUTED }}>Hoe was 'ie?</span>
+        )}
+      </div>
+      <div style={{ fontFamily: systemFont, fontSize: 12, color: MUTED, marginTop: 2 }}>Tik op een ster · nog een keer tikken = halve ster</div>
+    </div>
+  );
+}
+
 const PERSONALITY = {
   fruitig: { emoji: "🍓", title: "DE FRUITIGE ONTDEKKER", text: "Je check-ins laten zien dat je houdt van fruitige, verfrissende cocktails." },
   zoet: { emoji: "🍬", title: "DE ZOETEKAUW", text: "Je check-ins laten zien dat je een zwak hebt voor romige, zoete cocktails." },
@@ -8450,8 +8512,12 @@ function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqu
 
   const tasteTotals = { fruitig: 0, zoet: 0, zuur: 0, sterk: 0, bitter: 0 };
   matched.forEach(({ entry, recipe }) => {
-    if (entry.tasteTags && entry.tasteTags.length > 0) {
-      entry.tasteTags.forEach(k => { if (k in tasteTotals) tasteTotals[k] += 1; });
+    // Alleen de vijf kernsmaken tellen mee; nieuwe labels (kruidig, fris…)
+    // zijn beschrijvend. Heeft een check-in géén kernsmaak (bv. alleen
+    // "Kruidig"), dan valt die terug op de familie, net als zonder tags.
+    const coreTags = (entry.tasteTags || []).filter(k => k in tasteTotals);
+    if (coreTags.length > 0) {
+      coreTags.forEach(k => { tasteTotals[k] += 1; });
     } else if (recipe) {
       const weights = FAMILY_TASTE[recipe.family];
       if (weights) Object.entries(weights).forEach(([k, w]) => { tasteTotals[k] += w; });
@@ -8538,8 +8604,9 @@ function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqu
     const recencyWeight = Math.pow(0.5, daysAgo / 90); // halveert ongeveer elke 90 dagen
     const ratingWeight = Math.max(0.2, entry.rating / 5);
     const weight = recencyWeight * ratingWeight;
-    const source = (entry.tasteTags && entry.tasteTags.length > 0)
-      ? Object.fromEntries(entry.tasteTags.map(k => [k, 1]))
+    const coreTags = (entry.tasteTags || []).filter(k => k in weightedTaste);
+    const source = coreTags.length > 0
+      ? Object.fromEntries(coreTags.map(k => [k, 1]))
       : (recipe ? (FAMILY_TASTE[recipe.family] || {}) : {});
     Object.entries(source).forEach(([k, w]) => { if (k in weightedTaste) weightedTaste[k] += w * weight; });
   });
@@ -8960,35 +9027,15 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const [stampNumber, setStampNumber] = useState(null);
   const fileInputRef = useRef(null);
   const handleLocationChange = (text, place) => { setLocation(text); setLocationCoords(place ? { lat: place.lat, lon: place.lon } : null); };
-  // Drie sliders (Zoet/Zuur, Licht/Sterk, Bitter/Fruitig) i.p.v. losse
-  // smaak-chips — 50 is het neutrale midden. De derde slider dekt de twee
-  // tags (bitter, fruitig) die anders bij de sliders-omslag zouden
-  // wegvallen, zodat het bestaande smaakprofiel (elders in de app) nog
-  // steeds op alle vijf smaken kan blijven bouwen. Bij het herkennen van een
-  // recept stellen we een voorzet voor uit de bestaande familie-heuristiek,
-  // maar de gebruiker kan 'm vóór het inchecken nog verschuiven.
-  const [tasteBalance, setTasteBalance] = useState(50);
-  const [strengthBalance, setStrengthBalance] = useState(50);
-  const [fruitBalance, setFruitBalance] = useState(50);
-  useEffect(() => {
-    if (!matchedRecipe) return;
-    const fam = FAMILY_TASTE[matchedRecipe.family] || {};
-    if (fam.zuur) setTasteBalance(20);
-    else if (fam.zoet) setTasteBalance(80);
-    else setTasteBalance(50);
-    setStrengthBalance(fam.sterk ? 75 : 40);
-    if (fam.bitter) setFruitBalance(20);
-    else if (fam.fruitig) setFruitBalance(80);
-    else setFruitBalance(50);
-  }, [matchedRecipe?.id]);
-  const derivedTasteTags = () => {
-    const tags = [];
-    if (tasteBalance <= 35) tags.push("zuur");
-    else if (tasteBalance >= 65) tags.push("zoet");
-    if (strengthBalance >= 65) tags.push("sterk");
-    if (fruitBalance <= 35) tags.push("bitter");
-    else if (fruitBalance >= 65) tags.push("fruitig");
-    return tags;
+  // Smaaklabels ("Wat proefde je?") i.p.v. de drie schuifjes: meerdere aan
+  // tegelijk. Bij een herkend recept vullen we een voorzet in
+  // (suggestTasteTags), de gebruiker corrigeert alleen. Wat hier aan staat
+  // gaat letterlijk als taste_tags de database in.
+  const [tasteTags, setTasteTags] = useState([]);
+  useEffect(() => { setTasteTags(suggestTasteTags(matchedRecipe)); }, [matchedRecipe?.id]);
+  const toggleTasteTag = (key) => {
+    onSound("tick");
+    setTasteTags(prev => prev.includes(key) ? prev.filter(k => k !== key) : CHECKIN_TASTE_TAGS.map(t => t.key).filter(k => k === key || prev.includes(k)));
   };
   const recentCocktails = useMemo(() => {
     const seen = new Set();
@@ -9038,7 +9085,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       recipeId: matchedRecipe ? matchedRecipe.id : null,
       name, rating, notes: notes.trim(), photo, location: location.trim() || "Thuis",
       locationLat: locationCoords?.lat ?? null, locationLon: locationCoords?.lon ?? null,
-      tasteTags: derivedTasteTags(),
+      tasteTags: tasteTags,
     });
     onSound("chime");
     setStampNumber(checkinNumber);
@@ -9046,7 +9093,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       setStampNumber(null);
       closeCheckinSheet();
       setNameInput(""); setNotes(""); setRating(0); setPhoto(null); setLocation("Thuis"); setLocationCoords(null);
-      setTasteBalance(50); setStrengthBalance(50); setFruitBalance(50); setMoreOpen(false);
+      setTasteTags([]); setMoreOpen(false);
     }, 1050);
   };
   const removeEntry = (id) => { onSound("remove"); onRemoveEntry(id); };
@@ -9499,11 +9546,29 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                 <RecipeSearchWithPhotos recipes={recipes} value={nameInput} onChange={setNameInput} onOpenChange={setCocktailSearchOpen}
                   onSelect={(r) => setNameInput(r.name)} allIngredients={allIngredients} recent={recentCocktails} />
 
+                <CheckinStars value={rating} onChange={setRating} onSound={onSound} />
+
                 <div>
-                  <StarPicker value={rating} onChange={setRating} size={32} onSound={onSound} />
-                  <input type="range" min="0" max="5" step="0.25" value={rating}
-                    onChange={e => { const v = Number(e.target.value); if (v !== rating) onSound("tick"); setRating(v); }}
-                    style={{ width: "100%", accentColor: BRASS, marginTop: 12 }} />
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+                    <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: INK }}>Wat proefde je?</span>
+                    <span style={{ fontFamily: systemFont, fontSize: 12, color: MUTED }}>Kies er zoveel je wilt</span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {CHECKIN_TASTE_TAGS.map(({ key, label }) => {
+                      const on = tasteTags.includes(key);
+                      return (
+                        <button key={key} onClick={() => toggleTasteTag(key)} aria-pressed={on} className="press-scale" style={{
+                          height: 40, padding: "0 16px", borderRadius: 100, boxSizing: "border-box",
+                          display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                          border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : PAPER, color: on ? CREAM : INK,
+                          fontFamily: systemFont, fontSize: 14, fontWeight: 600,
+                        }}>
+                          {on && <Check size={14} strokeWidth={3} color="#DDB877" />}
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <AutoGrowTextField value={notes} onChange={setNotes} placeholder="Voeg een notitie toe…" />
@@ -9516,24 +9581,6 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
                   {moreOpen && (
                     <div className="accordion-reveal" style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 20 }}>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>
-                          <span>Zuur</span><span>Zoet</span>
-                        </div>
-                        <input type="range" min="0" max="100" value={tasteBalance} onChange={e => setTasteBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
-                      </div>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>
-                          <span>Licht</span><span>Sterk</span>
-                        </div>
-                        <input type="range" min="0" max="100" value={strengthBalance} onChange={e => setStrengthBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
-                      </div>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>
-                          <span>Bitter</span><span>Fruitig</span>
-                        </div>
-                        <input type="range" min="0" max="100" value={fruitBalance} onChange={e => setFruitBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
-                      </div>
                       <div>
                         <div style={{ fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>Locatie</div>
                         <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
@@ -9645,9 +9692,9 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
                   {entry.tasteTags && entry.tasteTags.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 }}>
-                      {entry.tasteTags.filter(k => TASTE_META[k]).map(k => (
+                      {entry.tasteTags.filter(k => CHECKIN_TASTE_META[k]).map(k => (
                         <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "#8F6A21", background: "rgba(184,134,46,0.12)", border: "1px solid rgba(184,134,46,0.3)", borderRadius: 100, padding: "3px 9px" }}>
-                          {TASTE_META[k].label}
+                          {CHECKIN_TASTE_META[k].label}
                         </span>
                       ))}
                     </div>
