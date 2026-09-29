@@ -697,8 +697,8 @@ html.kb-open .bottom-dock {
 /* Check-in-venster: max. 92% van het zichtbare scherm. dvh volgt de ruimte
    boven het toetsenbord; vh is de terugval voor oudere iOS-versies. */
 .sheet-max-92 {
-  max-height: 92vh;
-  max-height: 92dvh;
+  max-height: calc(92vh - var(--kb-pad, 0px));
+  max-height: calc(92dvh - var(--kb-pad, 0px));
 }
 
 /* Check-in: zolang het toetsenbord open is verdwijnt de Inchecken-balk

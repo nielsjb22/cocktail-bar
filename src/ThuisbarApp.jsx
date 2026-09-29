@@ -1999,6 +1999,26 @@ function useOnlineStatus() {
   return online;
 }
 
+// Zet een veld binnen een pop-up in beeld door alleen de scrollbare inhoud
+// van die pop-up te verschuiven (niet de pagina): het veld komt net boven de
+// onderrand van wat zichtbaar is, met wat lucht eronder.
+function revealInSheet(el) {
+  let box = el.parentElement;
+  while (box && box !== document.body) {
+    const oy = getComputedStyle(box).overflowY;
+    if ((oy === "auto" || oy === "scroll") && box.scrollHeight > box.clientHeight) break;
+    box = box.parentElement;
+  }
+  if (!box || box === document.body) return;
+  const boxRect = box.getBoundingClientRect();
+  const vv = window.visualViewport;
+  const visibleBottom = Math.min(boxRect.bottom, vv ? vv.offsetTop + vv.height : window.innerHeight);
+  const r = el.getBoundingClientRect();
+  const margin = 24;
+  if (r.bottom > visibleBottom - margin) box.scrollTop += r.bottom - (visibleBottom - margin);
+  else if (r.top < boxRect.top + margin) box.scrollTop -= (boxRect.top + margin) - r.top;
+}
+
 // Native toetsenbordgedrag voor alle tekstvelden in de app, op één plek:
 // (1) een veld dat straks door het toetsenbord bedekt zou worden scrollt
 // zichzelf in beeld, net als UIKit automatisch doet voor de actieve
@@ -2029,10 +2049,13 @@ function useKeyboardBehavior() {
       // krijgt; gewone velden alleen als ze anders achter het toetsenbord
       // zouden verdwijnen.
       const picker = el.closest("[data-kb-scope]");
-      // Meerregelige velden (notitie) altijd midden in beeld zetten, twee keer:
-      // het iOS-toetsenbord schuift in stappen omhoog.
-      if (el.tagName === "TEXTAREA") {
-        [320, 650].forEach(t => setTimeout(() => { if (document.activeElement === el) el.scrollIntoView({ block: "center", behavior: "smooth" }); }, t));
+      // Velden in een pop-up (check-in-notitie, locatie): alleen de
+      // scrollbare inhoud van de pop-up zelf verschuiven, nooit de pagina —
+      // scrollIntoView schoof op iOS ook de (vastgezette) pagina mee, wat
+      // het veld soms juist áchter het toetsenbord liet belanden. Een paar
+      // keer, want het toetsenbord komt in stappen omhoog.
+      if ((el.tagName === "TEXTAREA" || el.closest(".sheet-max-92")) && !picker) {
+        [80, 350, 700].forEach(t => setTimeout(() => { if (document.activeElement === el) revealInSheet(el); }, t));
         return;
       }
       setTimeout(() => {
@@ -2045,6 +2068,23 @@ function useKeyboardBehavior() {
         }
       }, 320);
     };
+    // Zodra het toetsenbord echt helemaal open is (native event) of de
+    // zichtbare hoogte verandert: het actieve veld nog één keer in beeld zetten.
+    const onKeyboardShown = () => {
+      const el = document.activeElement;
+      if (isTextInput(el) && (el.tagName === "TEXTAREA" || el.closest(".sheet-max-92")) && !el.closest("[data-kb-scope]")) revealInSheet(el);
+    };
+    window.addEventListener("app-keyboard-shown", onKeyboardShown);
+    // Web (Safari/PWA): hetzelfde --kb-pad als native, op basis van visualViewport.
+    const vv = window.visualViewport;
+    const onViewport = () => {
+      if (isNativeShell || !vv) return;
+      const covered = window.innerHeight - vv.height - vv.offsetTop;
+      document.documentElement.style.setProperty("--kb-pad", `${covered > 80 ? Math.round(covered) : 0}px`);
+      onKeyboardShown();
+    };
+    vv?.addEventListener("resize", onViewport);
+
     const onFocusOut = (e) => {
       if (isNativeShell || !isTextInput(e.target)) return;
       blurTimer = setTimeout(() => { if (!isTextInput(document.activeElement)) setKbOpen(false); }, 120);
@@ -2090,6 +2130,8 @@ function useKeyboardBehavior() {
     document.addEventListener("touchstart", onTouchStart, { capture: true, passive: true });
     document.addEventListener("touchmove", onTouchMove, { capture: true, passive: true });
     return () => {
+      window.removeEventListener("app-keyboard-shown", onKeyboardShown);
+      vv?.removeEventListener("resize", onViewport);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
       document.removeEventListener("click", onClickCapture, true);
@@ -9530,7 +9572,7 @@ function AutoGrowTextField({ value, onChange, placeholder, bare }) {
     ref.current.style.height = `${ref.current.scrollHeight}px`;
     // Groeit het veld tijdens het typen, dan blijft de onderkant (waar je
     // typt) zichtbaar boven het toetsenbord.
-    if (document.activeElement === ref.current) ref.current.scrollIntoView({ block: "nearest" });
+    if (document.activeElement === ref.current) revealInSheet(ref.current);
   }, [value]);
   return (
     <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={1} style={{
@@ -11045,7 +11087,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       })()}
 
       {showCheckinSheet && createPortal((
-        <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: "var(--kb-pad, 0px)", transition: "padding-bottom 0.25s ease" }}>
           <div className="sheet-backdrop-in" onClick={closeCheckinSheet} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: checkinClosing ? 0 : 1, transition: "opacity 0.22s ease" }} />
           <div ref={checkinPanelRef} className="sheet-slide-in sheet-max-92" style={{
             position: "relative", maxWidth: 960, width: "100%", margin: "0 auto",
