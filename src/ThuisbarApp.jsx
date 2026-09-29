@@ -1148,9 +1148,6 @@ function SplashScreen({ onDone }) {
         <h1 className="splash-title">Mijn Thuisbar</h1>
         <div className="splash-sub">Welkom in de wereld van de cocktail</div>
       </div>
-      {/* De intro duurt bewust een paar seconden voor het merkgevoel, maar
-          niemand hoeft 'm elke keer helemaal uit te zitten. */}
-      <div className="splash-skip-hint">Tik om te slaan</div>
     </div>
   );
 }
