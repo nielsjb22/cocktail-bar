@@ -1538,7 +1538,7 @@ function GuestBrowseShell({
   recipes, allIngredients, isOwned, ingredientLabel, onSound,
   onAddToShoppingList, onAddToFeest, feestChosen,
   recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite,
-  courseProgress, setCourseProgress, onGoLogin,
+  courseProgress, setCourseProgress, onGoLogin, shoppingKeys, onRemoveFromShoppingList,
 }) {
   const [tab, setTab] = useState("ontdekken");
   // Zelfde gedrag als de ingelogde app: een andere tab openen begint bovenaan.
@@ -1580,6 +1580,7 @@ function GuestBrowseShell({
             makenProps={{
               recipes, isOwned, ingredientLabel, allIngredients,
               onAddToShoppingList, onSound, onOpenRecipe: setPendingRecipeId, onAddToFeest, feestChosen,
+              shoppingKeys, onRemoveFromShoppingList,
             }}
             verhaalProps={{
               recipes, ingredientLabel, allIngredients, isOwned,
@@ -2452,6 +2453,9 @@ export default function ThuisbarApp() {
     setShoppingList([...map.values()]);
   };
   const removeFromShoppingList = (key) => setShoppingList(shoppingList.filter(i => i.key !== key));
+  // Welke ingrediënten al op de boodschappenlijst staan — zo tonen knoppen
+  // elders (Wat kan ik maken) de échte staat, ook na verwijderen in het mandje.
+  const shoppingKeys = useMemo(() => new Set(shoppingList.map(i => i.key)), [shoppingList]);
   const clearShoppingList = () => setShoppingList([]);
   const buyShoppingItem = (item) => {
     if (item.id) setVoorraad(voorraadArr.includes(item.id) ? voorraadArr : [...voorraadArr, item.id]);
@@ -2480,6 +2484,7 @@ export default function ThuisbarApp() {
       <GuestBrowseShell
         recipes={allRecipes} allIngredients={allIngredients} isOwned={isOwned} ingredientLabel={ingredientLabel} onSound={chime}
         onAddToShoppingList={addToShoppingList} onAddToFeest={addRecipeToFeest} feestChosen={feestChosen}
+        shoppingKeys={shoppingKeys} onRemoveFromShoppingList={removeFromShoppingList}
         recentRecipeIds={recentRecipeIds} onViewRecipe={addRecentRecipe} favoriteRecipeIds={favoriteRecipeIds} onToggleFavorite={toggleFavoriteRecipe}
         courseProgress={courseProgress} setCourseProgress={setCourseProgress}
         onGoLogin={() => setWantsLogin(true)}
@@ -2528,6 +2533,7 @@ export default function ThuisbarApp() {
               recipes: allRecipes, isOwned, ingredientLabel, allIngredients,
               onAddToShoppingList: addToShoppingList, onSound: chime,
               onOpenRecipe: openRecipeDetail, onAddToFeest: addRecipeToFeest, feestChosen,
+              shoppingKeys, onRemoveFromShoppingList: removeFromShoppingList,
             }}
             verhaalProps={{
               recipes: allRecipes, ingredientLabel, allIngredients, isOwned,
@@ -2539,7 +2545,7 @@ export default function ThuisbarApp() {
           />
         </TabPanel>
         <TabPanel id="bar" active={tab === "bar"} visited={visitedTabs.has("bar")} panelRef={panelRefs}>
-          <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} active={tab === "bar"}
+          <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} feestCount={feestChosen.length} active={tab === "bar"}
             voorraadCount={voorraad.size} customRecipesCount={customRecipes.length}
             feestSubtitle={upcomingParties[0] ? `${upcomingParties[0].name} · ${formatPartyWhen(upcomingParties[0]).toLowerCase()}` : "Plan een avond"}
             courseProgress={courseProgress} />
@@ -2827,7 +2833,7 @@ function AccountDeleteScreen({ onDelete, busy, error }) {
 // achter "Meer") in hun eigen tab, gescheiden van de sociale/ontdek-laag —
 // zodat die laatste niet verdrinkt tussen bijvoorbeeld de Cursus en de
 // Feestplanner. Zelfde lijst-stijl als Profiel, alleen andere items.
-function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesCount, feestSubtitle, courseProgress }) {
+function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesCount, feestSubtitle, courseProgress, feestCount = 0 }) {
   // Subtitels tonen echte staat i.p.v. altijd dezelfde statische tekst —
   // net als de rest van de app ("geen verzonnen smaakscheikunde"): een
   // lege voorraad/winkelmandje/eigen-recepten zegt dat het leeg is, en de
@@ -2837,8 +2843,8 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
   const courseSubtitle = completedLessons > 0 ? `${completedLessons}/${COURSE_LESSONS.length} lessen` : `${COURSE_PARTS.length} delen`;
 
   const items = [
-    { id: "mandje", label: "Winkelmandje", icon: ShoppingCart, subtitle: shoppingCount > 0 ? `${shoppingCount} item${shoppingCount === 1 ? "" : "s"}` : "Leeg" },
-    { id: "feest", label: "Feestplanner", icon: PartyPopper, subtitle: feestSubtitle },
+    { id: "mandje", label: "Winkelmandje", icon: ShoppingCart, subtitle: shoppingCount > 0 ? `${shoppingCount} item${shoppingCount === 1 ? "" : "s"}` : "Leeg", badge: shoppingCount },
+    { id: "feest", label: "Feestplanner", icon: PartyPopper, subtitle: feestSubtitle, badge: feestCount },
     { id: "cursus", label: "Cursus", icon: GraduationCap, subtitle: courseSubtitle },
     { id: "eigen", label: "Eigen recepten", icon: FlaskConical, subtitle: customRecipesCount > 0 ? `${customRecipesCount} eigen recept${customRecipesCount === 1 ? "" : "en"}` : "Maak je eerste" },
     { id: "schaler", label: "Schaler", icon: Scale, subtitle: "Voor een groep" },
@@ -2872,8 +2878,17 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
               background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS + 6, padding: "16px 14px",
               cursor: "pointer", fontFamily: sans, boxShadow: SHADOW_CARD, position: "relative",
             }}>
-              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+              <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
                 <Icon size={17} strokeWidth={1.8} />
+                {/* Klein tellerbolletje (zoals op de onderbalk): aantal items in
+                    het winkelmandje / cocktails op het menu van het volgende feest. */}
+                {t.badge > 0 && (
+                  <span aria-label={`${t.badge}`} style={{
+                    position: "absolute", top: -6, right: -8, minWidth: 18, height: 18, borderRadius: 9, padding: "0 5px", boxSizing: "border-box",
+                    background: BRASS, color: CREAM, fontSize: 10.5, fontWeight: 700, fontFamily: sans,
+                    display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${CREAM}`,
+                  }}>{t.badge > 99 ? "99+" : t.badge}</span>
+                )}
               </span>
               <span>
                 <div style={{ fontWeight: 700, fontSize: 14.5, color: INK }}>{t.label}</div>
@@ -4995,7 +5010,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   );
 }
 
-function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen, onBack }) {
+function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen, onBack, shoppingKeys, onRemoveFromShoppingList }) {
   const [view, setView] = useState("ontdekken");
   const [openId, setOpenId] = useState(null);
   const [query, setQuery] = useState("");
@@ -5092,8 +5107,21 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
 
   const HERO_GREEN = "#1F3D36", HERO_CREAM = "#FBF6EA", HERO_GOLD = "#DDB877";
   const linkBtn = { background: "none", border: "none", padding: "6px 0", cursor: "pointer", color: BRASS, fontFamily: sans, fontSize: 14, fontWeight: 600 };
+  // Staat dit ingrediënt al op de boodschappenlijst? Leest de echte lijst
+  // (niet alleen wat hier is aangetikt), zodat het vinkje klopt, ook na
+  // verwijderen in het winkelmandje. Tikken op een vinkje haalt het eraf.
+  const onList = (ref) => shoppingKeys ? shoppingKeys.has(ingredientKey(ref)) : false;
+  const toggleOnList = (id, ref, recipeNames) => {
+    if (onList(ref)) {
+      onRemoveFromShoppingList?.(ingredientKey(ref));
+      onSound("remove");
+      setAddedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    } else {
+      addMissing(id, [{ ref, recipeNames }]);
+    }
+  };
   const roundBtn = (done) => ({
-    width: 40, height: 40, flexShrink: 0, borderRadius: "50%", cursor: done ? "default" : "pointer",
+    width: 40, height: 40, flexShrink: 0, borderRadius: "50%", cursor: "pointer",
     display: "flex", alignItems: "center", justifyContent: "center",
     border: `1px solid ${done ? SAGE : BORDER}`, background: done ? SAGE : PAPER, color: done ? CREAM : BOTTLE,
   });
@@ -5183,7 +5211,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
               </div>
               <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>
                 {bijnaShown.map(({ recipe, missing }, i) => {
-                  const done = addedIds.has(recipe.id);
+                  const done = onList(missing[0]);
                   return (
                     <div key={recipe.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderTop: i === 0 ? "none" : `1px solid ${PAPER_DEEP}` }}>
                       <button onClick={() => setSheetRecipeId(recipe.id)} style={{
@@ -5195,8 +5223,8 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
                           <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Mist: <span style={{ color: BURGUNDY, fontWeight: 600 }}>{ingredientLabel(missing[0])}</span></div>
                         </div>
                       </button>
-                      <button aria-label={done ? `${ingredientLabel(missing[0])} staat op je boodschappenlijst` : `${ingredientLabel(missing[0])} op boodschappenlijst`} className="tap-target-44"
-                        onClick={() => !done && addMissing(recipe.id, [{ ref: missing[0], recipeNames: [recipe.name] }])} style={roundBtn(done)}>
+                      <button aria-label={done ? `${ingredientLabel(missing[0])} van boodschappenlijst halen` : `${ingredientLabel(missing[0])} op boodschappenlijst`} aria-pressed={done} className="tap-target-44"
+                        onClick={() => toggleOnList(recipe.id, missing[0], [recipe.name])} style={roundBtn(done)}>
                         {done ? <Check size={17} strokeWidth={3} /> : <Plus size={18} />}
                       </button>
                     </div>
@@ -5215,7 +5243,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
                 )}
               </div>
               {koopadvies.map((item, i) => {
-                const done = addedIds.has(`koop:${item.key}`);
+                const done = onList(item.ref);
                 return (
                   <div key={item.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -5224,8 +5252,8 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
                         Dan kun je er {item.recipeNames.length} cocktails bij maken: {item.recipeNames.slice(0, 3).join(", ")}{item.recipeNames.length > 3 ? ", …" : ""}
                       </div>
                     </div>
-                    <button aria-label={done ? `${item.label} staat op je boodschappenlijst` : `${item.label} op boodschappenlijst`} className="tap-target-44"
-                      onClick={() => !done && addMissing(`koop:${item.key}`, [{ ref: item.ref, recipeNames: item.recipeNames }])}
+                    <button aria-label={done ? `${item.label} van boodschappenlijst halen` : `${item.label} op boodschappenlijst`} aria-pressed={done} className="tap-target-44"
+                      onClick={() => toggleOnList(`koop:${item.key}`, item.ref, item.recipeNames)}
                       style={{ ...roundBtn(done), background: done ? SAGE : BOTTLE, border: "none", color: "#FBF6EA" }}>
                       {done ? <Check size={17} strokeWidth={3} /> : <ShoppingCart size={17} />}
                     </button>
