@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
@@ -1547,6 +1547,8 @@ function GuestBrowseShell({
   courseProgress, setCourseProgress, onGoLogin,
 }) {
   const [tab, setTab] = useState("ontdekken");
+  // Zelfde gedrag als de ingelogde app: een andere tab openen begint bovenaan.
+  useLayoutEffect(() => { window.scrollTo(0, 0); }, [tab]);
   const [pendingRecipeId, setPendingRecipeId] = useState(null);
 
   return (
@@ -2069,12 +2071,22 @@ export default function ThuisbarApp() {
   // springt dat naar boven én ververst het de tijdlijn (via homeTapTick,
   // die HomeTab hieronder oppikt).
   const [homeTapTick, setHomeTapTick] = useState(0);
-  const navigateTo = (nextTab) => {
+  // Een scherm openen begint altijd bovenaan (net als een native app); alleen
+  // "terug" (restore: true — terugknop/terugvegen) zet je weer op de plek
+  // waar je was. Nogmaals op de actieve tab tikken scrollt soepel naar boven
+  // (Home ververst daarbij ook, Ontdekken sluit een open recept).
+  const [ontdekkenTapTick, setOntdekkenTapTick] = useState(0);
+  const navigateTo = (nextTab, { restore = false } = {}) => {
     if (nextTab === tab) {
       if (nextTab === "home") setHomeTapTick(t => t + 1);
+      else {
+        if (nextTab === "ontdekken") setOntdekkenTapTick(t => t + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
       return;
     }
     scrollPositions.current[tab] = window.scrollY;
+    if (!restore) scrollPositions.current[nextTab] = 0;
     setTab(nextTab);
   };
   useLayoutEffect(() => {
@@ -2280,7 +2292,7 @@ export default function ThuisbarApp() {
   const returnFromRecipe = () => {
     const origin = recipeOrigin;
     setRecipeOrigin(null);
-    if (origin) navigateTo(origin);
+    if (origin) navigateTo(origin, { restore: true });
   };
   const recipeBackLabel = recipeOrigin
     ? (PUSH_SCREEN_TITLES[recipeOrigin] || DOCK_LABELS[recipeOrigin] || TAGS.find(t => t.id === recipeOrigin)?.label || "Terug")
@@ -2450,7 +2462,7 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
-            recipeBackLabel={recipeBackLabel} onRecipeBack={recipeOrigin ? returnFromRecipe : null}
+            recipeBackLabel={recipeBackLabel} onRecipeBack={recipeOrigin ? returnFromRecipe : null} rootTapTick={ontdekkenTapTick}
             openRecipeId={pendingRecipeId} onOpenRecipeHandled={() => setPendingRecipeId(null)}
             recommended={checkinInsights.recommended} favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             allIngredients={allIngredients} onOpenRecipe={openRecipeDetail} onSound={chime}
@@ -2481,7 +2493,7 @@ export default function ThuisbarApp() {
         </TabPanel>
 
         <TabPanel id="voorraad" active={tab === "voorraad"} visited={visitedTabs.has("voorraad")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.voorraad} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.voorraad} onBack={() => navigateTo("bar", { restore: true })}>
             <VoorraadTab allIngredients={allIngredients} customIngredients={customIngredients} voorraad={voorraad}
               voorraadAantal={voorraadAantal} onAdjustAantal={adjustAantal}
               onToggle={toggleIngredient} onAddCustom={addCustomIngredient} onRemoveCustom={removeCustomIngredient}
@@ -2489,18 +2501,18 @@ export default function ThuisbarApp() {
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="mandje" active={tab === "mandje"} visited={visitedTabs.has("mandje")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.mandje} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.mandje} onBack={() => navigateTo("bar", { restore: true })}>
             <WinkelmandjeTab shoppingList={shoppingList} recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
               onRemove={removeFromShoppingList} onBuy={buyShoppingItem} onClear={clearShoppingList} onAdd={addToShoppingList} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="schaler" active={tab === "schaler"} visited={visitedTabs.has("schaler")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.schaler} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.schaler} onBack={() => navigateTo("bar", { restore: true })}>
             <SchalerTab recipes={allRecipes} ingredientLabel={ingredientLabel} allIngredients={allIngredients} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="balans" active={tab === "balans"} visited={visitedTabs.has("balans")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.balans} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.balans} onBack={() => navigateTo("bar", { restore: true })}>
             <SmaakbalansTab recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
               menu={smaakMenu} setMenu={setSmaakMenu} onSound={chime}
               onUseInFeestplanner={async (ids) => {
@@ -2513,12 +2525,12 @@ export default function ThuisbarApp() {
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="cursus" active={tab === "cursus"} visited={visitedTabs.has("cursus")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.cursus} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.cursus} onBack={() => navigateTo("bar", { restore: true })}>
             <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="feest" active={tab === "feest"} visited={visitedTabs.has("feest")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.feest} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.feest} onBack={() => navigateTo("bar", { restore: true })}>
             <FeestplannerTab session={session} recipes={allRecipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
               onAddToShoppingList={addToShoppingList} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail}
               parties={parties.parties} onCreateParty={parties.createParty} onUpdateParty={parties.updateParty} onDeleteParty={parties.deleteParty}
@@ -2527,32 +2539,32 @@ export default function ThuisbarApp() {
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="eigen" active={tab === "eigen"} visited={visitedTabs.has("eigen")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.eigen} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.eigen} onBack={() => navigateTo("bar", { restore: true })}>
             <EigenRecepten customRecipes={customRecipes} setCustomRecipes={setCustomRecipes} allIngredients={allIngredients} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="vrienden" active={tab === "vrienden"} visited={visitedTabs.has("vrienden")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.vrienden} onBack={() => navigateTo("profiel")}>
+          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.vrienden} onBack={() => navigateTo("profiel", { restore: true })}>
             <VriendenTab session={session} profile={profile} recipes={allRecipes} allIngredients={allIngredients} onSound={chime} active={tab === "vrienden"} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel")}>
+          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel", { restore: true })}>
             <InstellingenTab soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={() => supabase.auth.signOut()} push={push} onNavigate={navigateTo} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="privacybeleid" active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.privacybeleid} onBack={() => navigateTo("instellingen")}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.privacybeleid} onBack={() => navigateTo("instellingen", { restore: true })}>
             <PrivacyPolicyScreen />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="account-verwijderen" active={tab === "account-verwijderen"} visited={visitedTabs.has("account-verwijderen")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES["account-verwijderen"]} onBack={() => navigateTo("instellingen")}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES["account-verwijderen"]} onBack={() => navigateTo("instellingen", { restore: true })}>
             <AccountDeleteScreen onDelete={deleteAccount} busy={deletingAccount} error={deleteAccountError} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="fotoverantwoording" active={tab === "fotoverantwoording"} visited={visitedTabs.has("fotoverantwoording")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.fotoverantwoording} onBack={() => navigateTo("instellingen")}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.fotoverantwoording} onBack={() => navigateTo("instellingen", { restore: true })}>
             <PhotoCreditsScreen />
           </SecondaryTabScreen>
         </TabPanel>
@@ -4197,7 +4209,16 @@ function useEdgeSwipeBack(onBack) {
 // rij-silhouetten — geen echte tweede instantie van MeerTab, puur decoratief)
 // vanaf links mee naar binnen, net als de "vorige scherm wordt zichtbaar"-
 // parallax van een echte iOS-navigatiestack, i.p.v. een vlak gedimd vlak.
-function SecondaryTabScreen({ label, title, onBack, children }) {
+// Laat een scherm dieper in een SecondaryTabScreen (bv. een geopend feest)
+// de ene navigatiebalk bovenaan overnemen — label, titel, terugactie en een
+// knop rechts — i.p.v. een tweede balk eronder te tekenen.
+const NavOverrideContext = createContext(null);
+
+function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOnBack, children }) {
+  const [navOverride, setNavOverride] = useState(null);
+  const label = navOverride?.label ?? baseLabel;
+  const title = navOverride?.title ?? baseTitle;
+  const onBack = navOverride?.onBack ?? baseOnBack;
   const { contentRef, peekRef, scrimRef, showPeek, commitBack, handlers } = useEdgeSwipeBack(onBack);
   return (
     <div style={{ position: "relative" }}>
@@ -4248,13 +4269,16 @@ function SecondaryTabScreen({ label, title, onBack, children }) {
           {title && (
             <div style={{
               justifySelf: "center", fontFamily: systemFont, fontWeight: 600, fontSize: 17, color: INK, whiteSpace: "nowrap",
+              overflow: "hidden", textOverflow: "ellipsis", maxWidth: "46vw",
             }}>
               {title}
             </div>
           )}
-          <div aria-hidden />
+          {navOverride?.right ? <div style={{ justifySelf: "end" }}>{navOverride.right}</div> : <div aria-hidden />}
         </div>
-        {children}
+        <NavOverrideContext.Provider value={setNavOverride}>
+          {children}
+        </NavOverrideContext.Provider>
       </div>
     </div>
   );
@@ -4854,7 +4878,7 @@ function MatchPill({ pct, label }) {
 }
 
 function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHandled, recommended, favoriteFamily, allIngredients, onOpenRecipe, onSound, active,
-  recipeBackLabel = "Ontdekken", onRecipeBack = null }) {
+  recipeBackLabel = "Ontdekken", onRecipeBack = null, rootTapTick = 0 }) {
   const [mode, setMode] = useState("alles");
   // Staat er een recept open, dan is dit scherm puur dat recept: geen grote
   // titel, geen Alle/Maken-schakelaar en geen "Aanbevolen voor jou" erboven.
@@ -4944,7 +4968,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
       </div>
       <div style={{ display: mode === "alles" ? "" : "none" }}>
         <VerhaalTab {...verhaalProps} openRecipeId={openRecipeId} onOpenRecipeHandled={onOpenRecipeHandled}
-          backLabel={recipeBackLabel} onBackToOrigin={onRecipeBack} onRecipeOpenChange={handleRecipeOpenChange} />
+          backLabel={recipeBackLabel} onBackToOrigin={onRecipeBack} onRecipeOpenChange={handleRecipeOpenChange} rootTapTick={rootTapTick} />
       </div>
     </div>
   );
@@ -5511,7 +5535,7 @@ function WinkelmandjeTab({ shoppingList, recipes, isOwned, allIngredients, onRem
 
 function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite, onSound,
   openRecipeId, onOpenRecipeHandled, onAddToShoppingList, onAddToFeest, feestChosen, onOpenCheckin,
-  backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange }) {
+  backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange, rootTapTick = 0 }) {
   const [selectedId, setSelectedId] = useState(null);
   // Scrollpositie van de lijst vlak vóór een recept openging, zodat "terug"
   // je weer precies daar neerzet i.p.v. halverwege of bovenaan.
@@ -5568,6 +5592,8 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
     }
   };
   useEffect(() => { onRecipeOpenChange?.(!!selectedId); }, [!!selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Op de al actieve Ontdekken-tab tikken = terug naar het overzicht (iOS).
+  useEffect(() => { if (rootTapTick) setSelectedId(null); }, [rootTapTick]);
 
   // Van buitenaf (Maken, Check-in "aanbevolen") direct naar dit recept
   // gestuurd worden: openRecipeId komt binnen, we selecteren 'm en melden
@@ -6206,6 +6232,8 @@ function FinalExamView({ progress, onBack, onComplete }) {
 function CursusTab({ progress, setProgress, onSound }) {
   const [selectedId, setSelectedId] = useState(null);
   const [examOpen, setExamOpen] = useState(false);
+  // Een les of toets openen begint bovenaan, niet halverwege de lessenlijst.
+  useEffect(() => { window.scrollTo(0, 0); }, [selectedId, examOpen]);
   const [activeBadgeId, setActiveBadgeId] = useState(null);
   const lesson = COURSE_LESSONS.find(l => l.id === selectedId) || null;
   const totalLessons = COURSE_LESSONS.length;
@@ -6700,6 +6728,8 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
 function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active,
   parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled }) {
   const [selectedPartyId, setSelectedPartyId] = useState(null);
+  // Een feest openen (of terug naar de lijst) begint bovenaan.
+  useEffect(() => { window.scrollTo(0, 0); }, [selectedPartyId]);
   const [showNewPartySheet, setShowNewPartySheet] = useState(false);
   const [creatingParty, setCreatingParty] = useState(false);
   const [confirmDeletePartyId, setConfirmDeletePartyId] = useState(null);
@@ -7246,6 +7276,32 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
     schedulePartyReminder(party).then(result => { if (result !== "ok") onUpdateParty({ reminder_enabled: false }); });
   }, [party.starts_at]);
 
+  // Eén navigatiebalk: de bovenste balk (van SecondaryTabScreen) toont hier
+  // "‹ Feesten · naam van het feest" met de deelknop, i.p.v. een tweede
+  // balk eronder. Terugvegen gaat daardoor ook naar de feestenlijst.
+  const setNavOverride = useContext(NavOverrideContext);
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+  const shareRef = useRef(null);
+  shareRef.current = () => shareMenu(chosen);
+  useEffect(() => {
+    if (!setNavOverride) return;
+    setNavOverride({
+      label: "Feesten",
+      title: party.name,
+      onBack: () => onBackRef.current(),
+      right: (
+        <button onClick={() => shareRef.current()} onTouchStart={(e) => e.stopPropagation()} title="Deel dit menu" aria-label="Deel dit menu" style={{
+          width: 32, height: 32, borderRadius: "50%", border: `1px solid ${SAGE}`, flexShrink: 0,
+          background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: SAGE,
+        }}>
+          <Share2 size={14} />
+        </button>
+      ),
+    });
+  }, [setNavOverride, party.name]);
+  useEffect(() => () => setNavOverride?.(null), [setNavOverride]);
+
   return (
     <div {...surveyPullHandlers} style={{ touchAction: "pan-y" }}>
       <div ref={surveyPullRef} aria-hidden style={{
@@ -7257,27 +7313,6 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
         </span>
       </div>
 
-      {/* Eigen navigatiebalk (net als een receptdetail): niet sticky, "Feesten"
-          links i.p.v. de vaste "Bar" van de buitenste SecondaryTabScreen. */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
-        height: 44, boxSizing: "border-box", marginBottom: 12, borderBottom: `1px solid ${BORDER}`,
-        marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-      }}>
-        <button onClick={onBack} style={{
-          justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
-          cursor: "pointer", padding: 0, margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
-        }}>
-          <ChevronLeft size={18} strokeWidth={2.4} /> Feesten
-        </button>
-        <div style={{ justifySelf: "center", maxWidth: "100%", fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{party.name}</div>
-        <button onClick={() => shareMenu(chosen)} title="Deel dit menu" style={{
-          justifySelf: "end", width: 32, height: 32, borderRadius: "50%", border: `1px solid ${SAGE}`, flexShrink: 0,
-          background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: SAGE,
-        }}>
-          <Share2 size={14} />
-        </button>
-      </div>
       {shareState && (
         <p style={{ fontSize: 11.5, color: SAGE, textAlign: "right", margin: "-8px 0 8px" }}>
           {shareState === "shared" ? "Gedeeld!" : shareState === "copied" ? "Link gekopieerd!" : "Delen mislukt"}
