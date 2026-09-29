@@ -11,7 +11,6 @@ import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor
 import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS, SHOP_LINKS } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
 import voorraadHeaderImg from "./assets/voorraad-header.jpg";
-import makenHeaderImg from "./assets/maken-header.jpg";
 import feestHeaderImg from "./assets/feest-header.jpg";
 import catSterkeDrankImg from "./assets/categories/sterke-drank.jpeg";
 import catLikeurenImg from "./assets/categories/likeuren.jpeg";
@@ -2269,7 +2268,23 @@ export default function ThuisbarApp() {
   // meteen weer leeggemaakt door VerhaalTab zodra 'm verwerkt is, zodat
   // hetzelfde recept ook een tweede keer achter elkaar geopend kan worden.
   const [pendingRecipeId, setPendingRecipeId] = useState(null);
-  const openRecipeDetail = (id) => { navigateTo("ontdekken"); setPendingRecipeId(id); };
+  // Een recept geopend vanaf een ander scherm (Home, Feestplanner, Check-in…)
+  // opent als eigen, rustig receptscherm met een terugknop naar dát scherm —
+  // niet naar de Ontdekken-lijst waar het technisch in leeft.
+  const [recipeOrigin, setRecipeOrigin] = useState(null);
+  const openRecipeDetail = (id) => {
+    setRecipeOrigin(tab === "ontdekken" ? null : tab);
+    navigateTo("ontdekken");
+    setPendingRecipeId(id);
+  };
+  const returnFromRecipe = () => {
+    const origin = recipeOrigin;
+    setRecipeOrigin(null);
+    if (origin) navigateTo(origin);
+  };
+  const recipeBackLabel = recipeOrigin
+    ? (PUSH_SCREEN_TITLES[recipeOrigin] || DOCK_LABELS[recipeOrigin] || TAGS.find(t => t.id === recipeOrigin)?.label || "Terug")
+    : "Ontdekken";
 
   // Zelfde idee, maar dan voor inchecken: het formulier leeft als een sheet
   // ín LogboekTab (die portal't naar document.body, dus verschijnt sowieso al
@@ -2435,6 +2450,7 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
+            recipeBackLabel={recipeBackLabel} onRecipeBack={recipeOrigin ? returnFromRecipe : null}
             openRecipeId={pendingRecipeId} onOpenRecipeHandled={() => setPendingRecipeId(null)}
             recommended={checkinInsights.recommended} favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             allIngredients={allIngredients} onOpenRecipe={openRecipeDetail} onSound={chime}
@@ -4828,18 +4844,42 @@ function BrowseSheet({ label, entries, allIngredients, onSelect, onClose }) {
 // ingang is. Geen van beide tabs is intern aangepast — dit is puur een
 // dunne wrapper die ze toont/verbergt, om het risico op regressies klein te
 // houden terwijl de navigatiestructuur wél klopt met het voorstel.
-function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHandled, recommended, favoriteFamily, allIngredients, onOpenRecipe, onSound, active }) {
+// Klein, altijd leesbaar match-label onder de naam van een aanbevelingskaart.
+function MatchPill({ pct, label }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
+      <span className="glass-chip-dark" style={{ borderRadius: 100, padding: "2px 8px", fontSize: 10.5, fontWeight: 700, whiteSpace: "nowrap" }}>{pct}%{label ? ` ${label}` : ""}</span>
+    </div>
+  );
+}
+
+function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHandled, recommended, favoriteFamily, allIngredients, onOpenRecipe, onSound, active,
+  recipeBackLabel = "Ontdekken", onRecipeBack = null }) {
   const [mode, setMode] = useState("alles");
-  // Een aanbevolen cocktail van elders in de app (Home, Check-in) moet altijd
-  // in de "Alles"-weergave (Recept) opengaan, ongeacht welke modus actief was.
-  useEffect(() => { if (openRecipeId) setMode("alles"); }, [openRecipeId]);
+  // Staat er een recept open, dan is dit scherm puur dat recept: geen grote
+  // titel, geen Alle/Maken-schakelaar en geen "Aanbevolen voor jou" erboven.
+  const [recipeOpen, setRecipeOpen] = useState(false);
+  // Een recept van elders (Home, Maken, Check-in) opent altijd in de
+  // "Alles"-weergave (daar leeft het receptscherm); kwam je uit "Wat ik kan
+  // maken", dan keer je bij terug ook weer daarheen terug.
+  const returnModeRef = useRef(null);
+  useEffect(() => {
+    if (!openRecipeId) return;
+    returnModeRef.current = mode === "kan" ? "kan" : null;
+    setMode("alles");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRecipeId]);
+  const handleRecipeOpenChange = (open) => {
+    setRecipeOpen(open);
+    if (!open && returnModeRef.current) { setMode(returnModeRef.current); returnModeRef.current = null; }
+  };
   // Hoogste match eerst, zodat "meest aanbevolen" ook echt links staat i.p.v.
   // de score-volgorde uit computeCheckinInsights (die weegt ook smaakprofiel
   // mee, waardoor het zichtbare percentage niet altijd aflopend stond).
   const sortedRecommended = recommended ? [...recommended].sort((a, b) => b.matchPct - a.matchPct) : recommended;
   return (
     <div>
-      <LargeTitleHeader title="Ontdekken" active={active} sticky={false} />
+      {!recipeOpen && <LargeTitleHeader title="Ontdekken" active={active} sticky={false} />}
       {/* De titel zelf is niet meer sticky (op verzoek) — deze toggle-balk
           blijft wel sticky, maar dan meteen bovenaan (STICKY_TOP i.p.v.
           STICKY_SUBHEADER_TOP) want er zit nu geen sticky titelbalk meer
@@ -4851,8 +4891,9 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           samenvalt met de pagina, en alleen tijdens scrollen (over de
           Aanbevolen-kaarten) echt als glas oplicht. */}
       <div className="glass-light" style={{
+        display: recipeOpen ? "none" : "flex",
         position: "sticky", top: STICKY_TOP, zIndex: 7,
-        display: "flex", alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+        alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)",
       }}>
         <button onClick={() => setMode("alles")} style={{
@@ -4870,21 +4911,21 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
       {/* Zelfde aanbevelingslogica als Check-in ("Jouw favoriete stijl"),
           hier vooraan getoond zodat ontdekken ook persoonlijk aanvoelt i.p.v.
           alleen een kale lijst — precies zoals in het UX-voorstel. */}
-      {recommended && recommended.length > 0 && (
+      {/* Alleen op de "Alle recepten"-overzichtspagina: niet in "Wat ik kan
+          maken" (op verzoek, rustiger) en niet boven een geopend recept. */}
+      {mode === "alles" && !recipeOpen && recommended && recommended.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <SectionLabel>Aanbevolen voor jou</SectionLabel>
           <div style={{ fontSize: 12.5, color: MUTED, margin: "-6px 0 13px" }}>Gebaseerd op je smaakprofiel en je voorraad</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
             {sortedRecommended.map(({ recipe, matchPct }) => (
               <button key={recipe.id} onClick={() => { onSound?.("pop"); onOpenRecipe?.(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                {matchPct > 0 && (
-                  <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>{matchPct}%</div>
-                )}
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                   <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
                 </div>
                 <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
                 <div style={{ fontSize: 11, color: MUTED, marginTop: 4, fontWeight: 500 }}>{recipe.family}</div>
+                {matchPct > 0 && <MatchPill pct={matchPct} label="match" />}
                 {/* 0% match betekent hier geen enkel ingrediënt in huis (niet
                     "geen data") — dan is "0%" een ontmoedigend getal i.p.v.
                     een bruikbaar signaal, dus tonen we de oplossing i.p.v.
@@ -4902,7 +4943,8 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
         <MakenTab {...makenProps} />
       </div>
       <div style={{ display: mode === "alles" ? "" : "none" }}>
-        <VerhaalTab {...verhaalProps} openRecipeId={openRecipeId} onOpenRecipeHandled={onOpenRecipeHandled} />
+        <VerhaalTab {...verhaalProps} openRecipeId={openRecipeId} onOpenRecipeHandled={onOpenRecipeHandled}
+          backLabel={recipeBackLabel} onBackToOrigin={onRecipeBack} onRecipeOpenChange={handleRecipeOpenChange} />
       </div>
     </div>
   );
@@ -5026,54 +5068,46 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
 
   return (
     <div>
-      <div style={{
-        position: "relative", height: 176, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 22,
-        boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}`,
-      }}>
-        <img src={makenHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.88), rgba(19,38,34,0.2) 55%, rgba(19,38,34,0.4))` }} />
-        <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "16px 20px" }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 26, color: CREAM }}>Wat kan ik maken</div>
-          <div style={{ fontSize: 12, color: "#D9CBAE", letterSpacing: 0.4, marginTop: 3 }}>Van je voorraad naar je glas</div>
-        </div>
-      </div>
-
-      <div style={{ position: "relative", marginBottom: 14 }}>
+      {/* Rustiger opgezet (op verzoek): geen grote kopfoto en geen tweede
+          "Ontdekken / Alle recepten"-schakelaar meer — Ontdekken heeft zelf al
+          een titel en schakelaar erboven. Zoeken (of "alle recepten met
+          filters" onderaan) opent de volledige lijst; een terug-link brengt je
+          weer naar dit overzicht. */}
+      <div style={{ position: "relative", marginBottom: view === "alle" ? 12 : 22 }}>
         <Search size={15} color={MUTED} style={{ position: "absolute", left: 12, top: 12 }} />
         <input value={query} onChange={e => { setQuery(e.target.value); if (e.target.value.trim() && view !== "alle") setView("alle"); }} placeholder="Zoek op naam of familie…"
           enterKeyHint="search" autoCapitalize="words"
-          style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 3, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans }} />
+          style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: RADIUS, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans }} />
       </div>
-
-      <div style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS + 3, marginBottom: 22 }}>
-        {[["ontdekken", "Ontdekken"], ["alle", "Alle recepten"]].map(([id, label]) => (
-          <button key={id} onClick={() => setView(id)} style={{
-            flex: 1, padding: "9px 4px", borderRadius: RADIUS, border: "none", cursor: "pointer",
-            background: view === id ? CREAM : "none", color: view === id ? BOTTLE : MUTED,
-            fontFamily: sans, fontSize: 13, fontWeight: 700, boxShadow: view === id ? SHADOW_CARD : "none",
-          }}>{label}</button>
-        ))}
-      </div>
+      {view === "alle" && (
+        <button onClick={() => { setView("ontdekken"); setQuery(""); setFamilyFilter(""); setGlassFilter(""); setSpiritFilter(""); setOpenId(null); }} style={{
+          display: "flex", alignItems: "center", gap: 3, background: "none", border: "none", padding: "4px 0", marginBottom: 16,
+          color: BRASS, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
+        }}>
+          <ChevronLeft size={16} strokeWidth={2.4} /> Terug naar wat je kunt maken
+        </button>
+      )}
 
       {view === "ontdekken" && (
         <div>
           <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-              <SectionLabel>Uitgelicht</SectionLabel>
-              <span style={{ fontSize: 12, color: MUTED }}>{makeableAll.length} kun je nu maken</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+              <SectionLabel>{`Kun je nu maken${makeableAll.length > 0 ? ` (${makeableAll.length})` : ""}`}</SectionLabel>
+              {makeableAll.length > 0 && (
+                <button onClick={verrasMe} disabled={shuffling} className="press-scale" style={{
+                  display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${BORDER}`, borderRadius: 100,
+                  padding: "5px 11px", color: BOTTLE, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: shuffling ? "default" : "pointer", flexShrink: 0,
+                }}>
+                  <Shuffle size={13} className={shuffling ? "spin-icon" : undefined} /> Verras me
+                </button>
+              )}
             </div>
+            {makeableAll.length === 0 && (
+              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "16px 16px", fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>
+                Nog geen cocktail compleet. Vink onder <strong style={{ color: INK }}>Bar → Voorraad</strong> aan wat je in huis hebt, dan verschijnt hier wat je kunt maken.
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: 12 }}>
-              <button onClick={verrasMe} disabled={shuffling} style={{
-                gridColumn: "span 2", display: "flex", alignItems: "center", gap: 12, minHeight: 74, padding: "14px 16px",
-                borderRadius: 14, border: "none", cursor: shuffling ? "default" : "pointer", textAlign: "left",
-                background: BOTTLE_DARK, color: CREAM, boxShadow: SHADOW_CARD,
-              }}>
-                <Shuffle size={22} className={shuffling ? "spin-icon" : undefined} />
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 800 }}>Verras me</div>
-                  <div style={{ fontSize: 11.5, opacity: 0.82, marginTop: 1 }}>Kies willekeurig uit wat je kan maken</div>
-                </div>
-              </button>
 
               {uitgelichtShown.map(({ recipe }) => (
                 <button key={recipe.id} onClick={() => setSheetRecipeId(recipe.id)} style={{
@@ -5129,41 +5163,24 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
             </div>
           )}
 
-          {bySpirit.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <SectionLabel>Op basisdrank</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
-                {bySpirit.map(({ label, entries }) => (
-                  <button key={label} onClick={() => setBrowseGroup({ label, entries })} style={{
-                    background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD,
-                    padding: "10px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer",
-                  }}>
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", overflow: "hidden", position: "relative" }}><SpiritArt label={label} /></div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: INK, textAlign: "center" }}>{label}</div>
-                    <div style={{ fontSize: 10, color: MUTED }}>{entries.length} recepten</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {byFamily.length > 0 && (
+          {(bySpirit.length > 0 || byFamily.length > 0) && (
             <div style={{ marginBottom: 4 }}>
-              <SectionLabel>Op stijl</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
-                {byFamily.map(({ label, entries }) => (
-                  <button key={label} onClick={() => setBrowseGroup({ label, entries })} style={{
-                    background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD,
-                    padding: "10px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer",
-                  }}>
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <GlassArt glass={entries[0].recipe.glass} mono size={22} />
-                    </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: INK, textAlign: "center" }}>{label}</div>
-                    <div style={{ fontSize: 10, color: MUTED }}>{entries.length} recepten</div>
-                  </button>
-                ))}
-              </div>
+              <SectionLabel>Bladeren</SectionLabel>
+              {[["Op basisdrank", bySpirit], ["Op stijl", byFamily]].filter(([, groups]) => groups.length > 0).map(([title, groups]) => (
+                <div key={title} style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: MUTED, fontWeight: 600, marginBottom: 7 }}>{title}</div>
+                  <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, scrollbarWidth: "none" }}>
+                    {groups.map(({ label, entries }) => (
+                      <button key={label} onClick={() => setBrowseGroup({ label, entries })} className="press-scale" style={{
+                        flexShrink: 0, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "7px 13px",
+                        fontFamily: sans, fontSize: 13, fontWeight: 700, color: INK, cursor: "pointer", whiteSpace: "nowrap",
+                      }}>
+                        {label} <span style={{ color: MUTED, fontWeight: 500 }}>{entries.length}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -5199,6 +5216,12 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
               )}
             </div>
           )}
+          <button onClick={() => setView("alle")} style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 4, width: "100%", marginTop: 20,
+            background: "none", border: "none", padding: "10px 0", color: BRASS, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
+          }}>
+            Zoeken met filters (familie, glas, drank) <ChevronRight size={15} strokeWidth={2.4} />
+          </button>
         </div>
       )}
 
@@ -5487,8 +5510,12 @@ function WinkelmandjeTab({ shoppingList, recipes, isOwned, allIngredients, onRem
 }
 
 function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite, onSound,
-  openRecipeId, onOpenRecipeHandled, onAddToShoppingList, onAddToFeest, feestChosen, onOpenCheckin }) {
+  openRecipeId, onOpenRecipeHandled, onAddToShoppingList, onAddToFeest, feestChosen, onOpenCheckin,
+  backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange }) {
   const [selectedId, setSelectedId] = useState(null);
+  // Scrollpositie van de lijst vlak vóór een recept openging, zodat "terug"
+  // je weer precies daar neerzet i.p.v. halverwege of bovenaan.
+  const listScrollRef = useRef(0);
   const [openTech, setOpenTech] = useState(null);
   const [recipeView, setRecipeView] = useState("steps");
   const [servings, setServings] = useState(1);
@@ -5512,6 +5539,10 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const canBatchAhead = recipe && role === "sterk" && techniques.length > 0 && techniques.every(t => ["stirred", "build"].includes(t));
 
   const selectRecipe = (id) => {
+    if (!selectedId) listScrollRef.current = window.scrollY;
+    // Een recept begint altijd bovenaan (net als een nieuw scherm op iOS),
+    // niet op de scrollpositie van de lijst waar je op tikte.
+    requestAnimationFrame(() => window.scrollTo(0, 0));
     setSelectedId(id);
     setOpenTech(null);
     setRecipeView("steps");
@@ -5522,6 +5553,21 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
     onSound("shuffle");
     selectRecipe(recipes[Math.floor(Math.random() * recipes.length)].id);
   };
+
+  const goBack = () => {
+    const y = listScrollRef.current;
+    setSelectedId(null);
+    if (onBackToOrigin) {
+      // Terug naar het scherm waar je het recept opende (Home, Feestplanner…).
+      // Eerst de lijstpositie herstellen: navigateTo onthoudt de huidige
+      // scrollY als die van Ontdekken, anders zou dat de receptpositie zijn.
+      window.scrollTo(0, y);
+      onBackToOrigin();
+    } else {
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+  };
+  useEffect(() => { onRecipeOpenChange?.(!!selectedId); }, [!!selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Van buitenaf (Maken, Check-in "aanbevolen") direct naar dit recept
   // gestuurd worden: openRecipeId komt binnen, we selecteren 'm en melden
@@ -5605,30 +5651,10 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             <RecipePicker recipes={recipes} value={selectedId} listId="verhaal-recipe" onChange={selectRecipe} style={{ width: "100%", boxSizing: "border-box" }} />
           </div>
         </div>
-      ) : (
-        // Combineert de terugknop (net als SecondaryTabScreen's navigatiebalk:
-        // vorige-schermnaam links van de chevron) met naam + favoriet, i.p.v.
-        // een aparte "Terug naar ontdekken"-link.
-        <div style={{
-          display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
-          height: 44, boxSizing: "border-box", marginBottom: 16, borderBottom: `1px solid ${BORDER}`,
-          marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        }}>
-          <button onClick={() => setSelectedId(null)} style={{
-            justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
-            cursor: "pointer", padding: 0, margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
-          }}>
-            <ChevronLeft size={18} strokeWidth={2.4} /> Ontdekken
-          </button>
-          <div style={{ justifySelf: "center", maxWidth: "100%", fontFamily: systemFont, fontWeight: 600, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</div>
-          <button onClick={() => { onSound("pop"); onToggleFavorite(recipe.id); }} aria-label={favoriteRecipeIds.includes(recipe.id) ? "Verwijder uit favorieten" : "Bewaar als favoriet"} style={{
-            justifySelf: "end", width: 32, height: 32, borderRadius: "50%", border: `1px solid ${BORDER}`, flexShrink: 0,
-            background: favoriteRecipeIds.includes(recipe.id) ? BURGUNDY : CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-          }}>
-            <Heart size={15} color={favoriteRecipeIds.includes(recipe.id) ? CREAM : BOTTLE} fill={favoriteRecipeIds.includes(recipe.id) ? CREAM : "none"} />
-          </button>
-        </div>
-      )}
+      ) : null}
+      {/* De navigatiebalk van een geopend recept staat nu bínnen het
+          veeggebied hieronder (sticky, terug naar het scherm van herkomst);
+          de favoriet-knop zit al rechtsboven in de receptfoto. */}
 
       {!recipe && (
         <div>
@@ -5730,7 +5756,29 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
       )}
 
       {recipe && (
-        <EdgeSwipeBackArea key={recipe.id} onBack={() => setSelectedId(null)}>
+        <EdgeSwipeBackArea key={recipe.id} onBack={goBack}>
+          {/* Eigen iOS-navigatiebalk, net als de Bar-schermen: terug naar waar
+              je vandaan kwam, met de naam van het recept in het midden. */}
+          <div className="glass-light" style={{
+            position: "sticky", top: STICKY_TOP, zIndex: 20,
+            marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+            display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
+            minHeight: 44, marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none", background: "rgba(243,236,221,0.92)",
+          }}>
+            <button onClick={goBack} onTouchStart={(e) => e.stopPropagation()} style={{
+              justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
+              cursor: "pointer", padding: "10px 8px 10px 0", margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
+            }}>
+              <ChevronLeft size={18} strokeWidth={2.4} /> {backLabel}
+            </button>
+            <div style={{
+              justifySelf: "center", fontFamily: systemFont, fontWeight: 600, fontSize: 17, color: INK, whiteSpace: "nowrap",
+              overflow: "hidden", textOverflow: "ellipsis", maxWidth: "46vw",
+            }}>
+              {recipe.name}
+            </div>
+            <div aria-hidden />
+          </div>
           {/* Apart element van EdgeSwipeBackArea's eigen contentRef (die de
               rand-swipe-terug-physics imperatief op translateX zet) zodat de
               mount-animatie hier niet met die transform kan botsen. De klasse
@@ -7432,11 +7480,13 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
                         const warnings = getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals);
                         return (
                         <button key={recipe.id} onClick={() => setSuggestionSheetId(recipe.id)} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                          <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 7px", fontSize: 10.5, fontWeight: 700 }}>{score}% match</div>
                           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                             <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} />
                           </div>
                           <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 12.5, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
+                          {/* Match-label in de gewone flow i.p.v. absoluut rechtsboven:
+                              daar viel het achter de ronde foto en was het onleesbaar. */}
+                          <MatchPill pct={score} label="match" />
                           {requiredCount > 0 && (
                             <div style={{ fontSize: 10.5, color: MUTED, marginTop: 4 }}>{ownedCount} van {requiredCount} ingrediënten in huis</div>
                           )}
