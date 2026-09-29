@@ -39,6 +39,11 @@ export function initNativeShell() {
   StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
   syncStatusBarWithTheme();
   Keyboard.setResizeMode({ mode: "native" }).catch(() => {});
+  // Klasse op <html> zolang het toetsenbord open is: de zwevende onderbalk
+  // verdwijnt dan (zie .kb-open in index.css) i.p.v. mee omhoog te schuiven
+  // en over zoekresultaten te vallen.
+  Keyboard.addListener("keyboardWillShow", () => document.documentElement.classList.add("kb-open")).catch?.(() => {});
+  Keyboard.addListener("keyboardWillHide", () => document.documentElement.classList.remove("kb-open")).catch?.(() => {});
 }
 
 export function hideNativeSplash() {

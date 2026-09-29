@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, u
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
+import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog } from "lucide-react";
 import L from "leaflet";
@@ -1147,9 +1148,8 @@ function SplashScreen({ onDone }) {
         <h1 className="splash-title">Mijn Thuisbar</h1>
         <div className="splash-sub">Welkom in de wereld van de cocktail</div>
       </div>
-      {/* De intro duurt bewust een paar seconden voor het merkgevoel, maar
-          niemand hoeft 'm elke keer helemaal uit te zitten. */}
-      <div className="splash-skip-hint">Tik om te slaan</div>
+      {/* Tikken slaat de intro nog steeds over, maar zonder "Tik om te
+          slaan"-hint (op verzoek): mensen tikken vanzelf door. */}
     </div>
   );
 }
@@ -1600,7 +1600,7 @@ function GuestBrowseShell({
         )}
       </div>
 
-      <div className="glass-light" style={{
+      <div className="glass-light bottom-dock" style={{
         position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
         border: "none", borderTop: "1px solid rgba(184,137,58,0.7)", boxShadow: "0 -6px 18px rgba(43,38,32,0.10)",
       }}>
@@ -1623,6 +1623,37 @@ function GuestBrowseShell({
       </div>
     </div>
   );
+}
+
+// Deellinks (menu, smaaktest, vrienduitnodiging, wachtwoord-reset) moeten
+// naar de openbare webversie wijzen. In de iOS-app is window.location.origin
+// "capacitor://localhost" — een link waar een ontvanger niets mee kan. Daar
+// gebruiken we dus VITE_PUBLIC_WEB_URL (bv. https://mijnthuisbar.netlify.app);
+// op het web gewoon het eigen adres.
+const PUBLIC_WEB_URL = (import.meta.env.VITE_PUBLIC_WEB_URL || "").replace(/\/+$/, "");
+function publicAppUrl(query = "") {
+  const base = isNativeShell ? PUBLIC_WEB_URL : `${window.location.origin}${window.location.pathname}`.replace(/\/+$/, "");
+  if (!base) return null;
+  return `${base}${query ? `/?${query}` : ""}`;
+}
+
+// Eén deelfunctie voor de hele app: in de native app het echte iOS-deelmenu
+// (@capacitor/share — navigator.share is in WKWebView niet betrouwbaar), op
+// het web navigator.share met klembord als terugval.
+// Geeft "shared" | "copied" | "cancelled" | "failed" | "no-url" terug.
+async function shareLink({ title, text, url }) {
+  if (!url) return "no-url";
+  if (isNativeShell) {
+    try { await Share.share({ title, text, url, dialogTitle: title }); return "shared"; }
+    catch (e) { return /cancel/i.test(e?.message || "") ? "cancelled" : "failed"; }
+  }
+  try {
+    if (navigator.share) { await navigator.share({ title, text, url }); return "shared"; }
+    await navigator.clipboard.writeText(url); return "copied";
+  } catch (e) {
+    if (e?.name === "AbortError") return "cancelled";
+    try { await navigator.clipboard.writeText(url); return "copied"; } catch { return "failed"; }
+  }
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -1812,7 +1843,7 @@ function AuthScreen() {
         if (err) throw err;
         if (!data.session) setNotice("Bijna klaar! Check je e-mail om je account te bevestigen, en log daarna in.");
       } else if (mode === "forgot") {
-        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: publicAppUrl() || window.location.origin });
         if (err) throw err;
         setNotice("Check je e-mail voor een link om een nieuw wachtwoord in te stellen.");
       } else {
@@ -1990,16 +2021,36 @@ function useKeyboardBehavior() {
     const isTextInput = (el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")
       && !["checkbox", "radio", "range", "button", "submit", "file"].includes(el.type);
 
+    // Toetsenbord open → klasse op <html>, zodat de zwevende onderbalk
+    // verdwijnt i.p.v. bovenop het toetsenbord (en over zoekresultaten) te
+    // gaan liggen. Native via de Keyboard-plugin (zie native.js); op het web
+    // benaderd via focus op een tekstveld.
+    const setKbOpen = (open) => document.documentElement.classList.toggle("kb-open", open);
+    let blurTimer = null;
+
     const onFocusIn = (e) => {
       const el = e.target;
       if (!isTextInput(el)) return;
+      clearTimeout(blurTimer);
+      if (!isNativeShell) setKbOpen(true);
+      // Zoekvelden met een suggestielijst (data-kb-scope) gaan bovenaan in
+      // beeld staan, zodat de lijst eronder de ruimte boven het toetsenbord
+      // krijgt; gewone velden alleen als ze anders achter het toetsenbord
+      // zouden verdwijnen.
+      const picker = el.closest("[data-kb-scope]");
       setTimeout(() => {
+        if (document.activeElement !== el) return;
+        if (picker) { el.scrollIntoView({ block: "start", behavior: "smooth" }); return; }
         const rect = el.getBoundingClientRect();
         const viewportH = window.visualViewport?.height || window.innerHeight;
         if (rect.bottom > viewportH - 90 || rect.top < 0) {
           el.scrollIntoView({ block: "center", behavior: "smooth" });
         }
-      }, 300);
+      }, 320);
+    };
+    const onFocusOut = (e) => {
+      if (isNativeShell || !isTextInput(e.target)) return;
+      blurTimer = setTimeout(() => { if (!isTextInput(document.activeElement)) setKbOpen(false); }, 120);
     };
 
     let touchStartY = null;
@@ -2008,15 +2059,22 @@ function useKeyboardBehavior() {
       const active = document.activeElement;
       if (!isTextInput(active) || touchStartY == null) return;
       if (active === e.target || active.contains?.(e.target)) return;
+      // Scrollen dóór de suggestielijst van dit zoekveld mag het toetsenbord
+      // niet sluiten — dat liet alles verspringen en je kon niets kiezen.
+      const scope = active.closest?.("[data-kb-scope]");
+      if (scope && scope.contains(e.target)) return;
       const dy = Math.abs((e.touches[0]?.clientY ?? touchStartY) - touchStartY);
       if (dy > 12) { active.blur(); touchStartY = null; }
     };
 
     document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
     document.addEventListener("touchstart", onTouchStart, { capture: true, passive: true });
     document.addEventListener("touchmove", onTouchMove, { capture: true, passive: true });
     return () => {
       document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+      clearTimeout(blurTimer);
       document.removeEventListener("touchstart", onTouchStart, { capture: true });
       document.removeEventListener("touchmove", onTouchMove, { capture: true });
     };
@@ -2458,7 +2516,7 @@ export default function ThuisbarApp() {
         </div>
       )}
 
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: tab === "home" ? "28px 20px calc(env(safe-area-inset-bottom) + 92px)" : "calc(env(safe-area-inset-top) + 6px) 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: tab === "home" ? "28px 20px calc(env(safe-area-inset-bottom) + 150px)" : "calc(env(safe-area-inset-top) + 6px) 20px calc(env(safe-area-inset-bottom) + 150px)" }}>
         <TabPanel id="home" active={tab === "home"} visited={visitedTabs.has("home")} panelRef={panelRefs}>
           <HomeTab session={session} profile={profile} greeting={greeting} featuredRecipe={featuredRecipe}
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
@@ -3478,7 +3536,7 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
     // laag is onzichtbaar en alleen voor de veilige-marges-padding
     // (pointerEvents:none, zodat de ruimte ernaast/eronder gewoon aantikbaar
     // blijft), de échte balk erbinnen heeft de marge, afronding en schaduw.
-    <div style={{
+    <div className="bottom-dock" style={{
       position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
       padding: "0 14px calc(env(safe-area-inset-bottom) + 14px)", pointerEvents: "none",
     }}>
@@ -4558,10 +4616,42 @@ function StatusTag({ missingCount }) {
 // Eigen dropdown i.p.v. <input list>/<datalist>: iOS Safari toont de native
 // datalist-suggesties namelijk helemaal niet (bekende platformbeperking), dus
 // zonder dit kon je op iPhone wel typen maar nooit een keuzelijst zien.
+// Hoogte van een suggestielijst zodat die precies in de ruimte tussen het
+// zoekveld en het toetsenbord past (i.p.v. een vaste 240px die achter het
+// toetsenbord of de onderbalk verdween). Rekent opnieuw als het toetsenbord
+// verschijnt of de pagina meeschuift.
+function useDropdownMaxHeight(wrapRef, open, fallback = 260) {
+  const [maxH, setMaxH] = useState(fallback);
+  useEffect(() => {
+    if (!open) return;
+    const vv = window.visualViewport;
+    const calc = () => {
+      const el = wrapRef.current;
+      if (!el) return;
+      const bottom = el.getBoundingClientRect().top + (el.firstElementChild?.offsetHeight || 40);
+      const viewH = vv ? vv.height + vv.offsetTop : window.innerHeight;
+      setMaxH(Math.max(150, Math.min(360, Math.floor(viewH - bottom - 14))));
+    };
+    calc();
+    const timers = [150, 400, 700].map(t => setTimeout(calc, t));
+    vv?.addEventListener("resize", calc);
+    vv?.addEventListener("scroll", calc);
+    window.addEventListener("scroll", calc, { passive: true });
+    return () => {
+      timers.forEach(clearTimeout);
+      vv?.removeEventListener("resize", calc);
+      vv?.removeEventListener("scroll", calc);
+      window.removeEventListener("scroll", calc);
+    };
+  }, [open, wrapRef]);
+  return maxH;
+}
+
 function RecipePicker({ recipes, value, onChange, listId, style }) {
   const [draft, setDraft] = useState(null);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 240);
   const sorted = useMemo(() => [...recipes].sort((a, b) => a.name.localeCompare(b.name)), [recipes]);
   const current = recipes.find(r => r.id === value);
   const text = draft !== null ? draft : (current?.name || "");
@@ -4588,7 +4678,7 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
   };
 
   return (
-    <div ref={wrapRef} style={{ position: "relative", ...style }}>
+    <div ref={wrapRef} data-kb-scope style={{ position: "relative", ...style }}>
       <input
         value={text}
         onChange={e => { setDraft(e.target.value); setOpen(true); }}
@@ -4599,7 +4689,7 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
       {open && filtered.length > 0 && (
         <div style={{
           position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: CREAM,
-          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: 240, overflowY: "auto",
+          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: dropdownMaxH, overflowY: "auto", overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {filtered.map(r => (
@@ -4619,6 +4709,7 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
 function IngredientAutocomplete({ value, onChange, options, style, placeholder = "Ingrediënt" }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 200);
 
   const filtered = useMemo(() => {
     const q = (value || "").trim().toLowerCase();
@@ -4635,14 +4726,14 @@ function IngredientAutocomplete({ value, onChange, options, style, placeholder =
   }, [open]);
 
   return (
-    <div ref={wrapRef} style={{ position: "relative", ...style }}>
+    <div ref={wrapRef} data-kb-scope style={{ position: "relative", ...style }}>
       <input value={value} onChange={e => { onChange(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
         placeholder={placeholder} enterKeyHint="search" autoCapitalize="words" autoCorrect="off"
         style={{ ...fieldStyle(), padding: "8px 9px", fontSize: 13.5, width: "100%" }} />
       {open && value.trim() && filtered.length > 0 && (
         <div style={{
           position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: CREAM,
-          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: 200, overflowY: "auto",
+          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: dropdownMaxH, overflowY: "auto", overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {filtered.map(n => (
@@ -6725,11 +6816,22 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
     if (actionsWidth === 0) return;
     drag.current.tracking = true;
     drag.current.startX = e.touches[0].clientX;
+    drag.current.startY = e.touches[0].clientY;
+    drag.current.locked = false;
     drag.current.baseX = open ? -actionsWidth : 0;
   };
   const onTouchMove = (e) => {
     if (!drag.current.tracking) return;
     const dx = e.touches[0].clientX - drag.current.startX;
+    const dy = e.touches[0].clientY - (drag.current.startY ?? e.touches[0].clientY);
+    // Richting vastleggen: verticaal = gewoon scrollen, horizontaal = vegen
+    // (en dan niet ook de terugveeg-gestiek van het scherm eromheen starten).
+    if (!drag.current.locked) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) > Math.abs(dx)) { drag.current.tracking = false; return; }
+      drag.current.locked = true;
+    }
+    e.stopPropagation();
     const next = Math.max(-actionsWidth, Math.min(0, drag.current.baseX + dx));
     setX(next, false);
   };
@@ -6799,17 +6901,24 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
   const deleteParty = () => {
     onSound("remove");
     onDeleteParty(confirmDeletePartyId);
+    if (confirmDeletePartyId === selectedPartyId) setSelectedPartyId(null);
     setConfirmDeletePartyId(null);
   };
 
   if (selectedParty) {
     return (
+      <>
       <PartyDetailScreen key={selectedParty.id} session={session} party={selectedParty}
         onUpdateParty={patch => onUpdateParty(selectedParty.id, patch)}
-        onBack={() => setSelectedPartyId(null)}
+        onBack={() => setSelectedPartyId(null)} onDelete={() => setConfirmDeletePartyId(selectedParty.id)}
         recipes={recipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
         onAddToShoppingList={onAddToShoppingList} voorraadAantal={voorraadAantal} onSound={onSound} onOpenRecipe={onOpenRecipe}
         active={active} />
+      {confirmDeletePartyId && (
+        <ConfirmDialog title="Feest verwijderen?" message="Het menu, de inkooplijst en de voorbereiding van dit feest gaan verloren."
+          confirmLabel="Verwijder" onCancel={() => setConfirmDeletePartyId(null)} onConfirm={deleteParty} />
+      )}
+      </>
     );
   }
 
@@ -7001,7 +7110,7 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
   ), document.body);
 }
 
-function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active }) {
+function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active }) {
   const [activeTab, setActiveTab] = useState("menu");
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [shareState, setShareState] = useState(null);
@@ -7105,16 +7214,9 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
   const shareSurvey = async () => {
     if (!survey) return;
     onSound("share");
-    const url = `${window.location.origin}${window.location.pathname}?smaaktest=${survey.id}`;
-    const text = "Vul even je cocktailvoorkeuren in voor het feest!";
-    try {
-      if (navigator.share) { await navigator.share({ title: "Mijn Thuisbar: smaaktest", text, url }); setSurveyShareState("shared"); }
-      else { await navigator.clipboard.writeText(url); setSurveyShareState("copied"); }
-    } catch (e) {
-      if (e.name !== "AbortError") {
-        try { await navigator.clipboard.writeText(url); setSurveyShareState("copied"); } catch { setSurveyShareState("failed"); }
-      }
-    }
+    const result = await shareLink({ title: "Mijn Thuisbar: smaaktest", text: "Vul even je cocktailvoorkeuren in voor het feest!", url: publicAppUrl(`smaaktest=${survey.id}`) });
+    if (result === "cancelled") return;
+    setSurveyShareState(result === "no-url" ? "failed" : result);
     setTimeout(() => setSurveyShareState(null), 2500);
   };
 
@@ -7187,21 +7289,9 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
 
   const shareMenu = async (ids) => {
     onSound("share");
-    const url = `${window.location.origin}${window.location.pathname}?menu=${ids.join(",")}`;
-    const text = "Bekijk het cocktailmenu voor vanavond!";
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Mijn Thuisbar: menu", text, url });
-        setShareState("shared");
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareState("copied");
-      }
-    } catch (e) {
-      if (e.name !== "AbortError") {
-        try { await navigator.clipboard.writeText(url); setShareState("copied"); } catch { setShareState("failed"); }
-      }
-    }
+    const result = await shareLink({ title: "Mijn Thuisbar: menu", text: "Bekijk het cocktailmenu voor vanavond!", url: publicAppUrl(`menu=${ids.join(",")}`) });
+    if (result === "cancelled") return;
+    setShareState(result === "no-url" ? "failed" : result);
     setTimeout(() => setShareState(null), 2500);
   };
 
@@ -7876,6 +7966,18 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
       </>
       )}
 
+      {/* Altijd zichtbaar (niet alleen via naar-links-vegen in de lijst, wat
+          niemand vanzelf ontdekt). */}
+      {onDelete && (
+        <button onClick={onDelete} style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 28,
+          padding: "12px", borderRadius: RADIUS, border: `1px solid rgba(122,46,42,0.35)`, background: "none",
+          color: BURGUNDY, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer",
+        }}>
+          <Trash2 size={15} /> Feest verwijderen
+        </button>
+      )}
+
       {sheetIndex !== null && chosenRecipes[sheetIndex] && (() => {
         const r = chosenRecipes[sheetIndex];
         const required = r.ingredients.filter(ing => !ing.optional);
@@ -8183,6 +8285,7 @@ function fieldStyle() {
 function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredients, recent }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 260);
   const sorted = useMemo(() => [...recipes].sort((a, b) => a.name.localeCompare(b.name)), [recipes]);
 
   const filtered = useMemo(() => {
@@ -8206,13 +8309,16 @@ function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredi
   };
 
   return (
-    <div ref={wrapRef} style={{ position: "relative" }}>
+    <div ref={wrapRef} data-kb-scope style={{ position: "relative" }}>
       <input value={value} onChange={e => { onChange(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
         placeholder="Zoek een cocktail…" enterKeyHint="next" autoCapitalize="words" style={flatFieldStyle} />
       {open && filtered.length > 0 && (
+        // In de flow i.p.v. absoluut zwevend: in het check-in-venster viel een
+        // zwevende lijst onder de Inchecken-knop weg. Nu duwt de lijst de rest
+        // omlaag en schuift het zoekveld bovenaan (zie useKeyboardBehavior).
         <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: CREAM,
-          borderRadius: 14, maxHeight: 260, overflowY: "auto",
+          position: "relative", marginTop: 6, background: CREAM,
+          borderRadius: 14, maxHeight: dropdownMaxH, overflowY: "auto", overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {filtered.map(r => (
@@ -9918,16 +10024,9 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
   const [openFriendId, setOpenFriendId] = useState(null);
 
   const shareInvite = async () => {
-    const url = `${window.location.origin}${window.location.pathname}?invite=${myId}`;
-    const text = "Voeg me toe als vriend in Mijn Thuisbar, dan zien we elkaars check-ins!";
-    try {
-      if (navigator.share) { await navigator.share({ title: "Mijn Thuisbar", text, url }); setShareState("shared"); }
-      else { await navigator.clipboard.writeText(url); setShareState("copied"); }
-    } catch (e) {
-      if (e.name !== "AbortError") {
-        try { await navigator.clipboard.writeText(url); setShareState("copied"); } catch { setShareState("failed"); }
-      }
-    }
+    const result = await shareLink({ title: "Mijn Thuisbar", text: "Voeg me toe als vriend in Mijn Thuisbar, dan zien we elkaars check-ins!", url: publicAppUrl(`invite=${myId}`) });
+    if (result === "cancelled") return;
+    setShareState(result === "no-url" ? "failed" : result);
     setTimeout(() => setShareState(null), 2500);
   };
 
