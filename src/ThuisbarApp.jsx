@@ -2022,10 +2022,12 @@ function useKeyboardBehavior() {
     // benaderd via focus op een tekstveld.
     const setKbOpen = (open) => document.documentElement.classList.toggle("kb-open", open);
     let blurTimer = null;
+    let lastFocusAt = 0;
 
     const onFocusIn = (e) => {
       const el = e.target;
       if (!isTextInput(el)) return;
+      lastFocusAt = Date.now();
       clearTimeout(blurTimer);
       if (!isNativeShell) setKbOpen(true);
       // Zoekvelden met een suggestielijst (data-kb-scope) gaan bovenaan in
@@ -2033,6 +2035,12 @@ function useKeyboardBehavior() {
       // krijgt; gewone velden alleen als ze anders achter het toetsenbord
       // zouden verdwijnen.
       const picker = el.closest("[data-kb-scope]");
+      // Meerregelige velden (notitie) altijd midden in beeld zetten, twee keer:
+      // het iOS-toetsenbord schuift in stappen omhoog.
+      if (el.tagName === "TEXTAREA") {
+        [320, 650].forEach(t => setTimeout(() => { if (document.activeElement === el) el.scrollIntoView({ block: "center", behavior: "smooth" }); }, t));
+        return;
+      }
       setTimeout(() => {
         if (document.activeElement !== el) return;
         if (picker) { el.scrollIntoView({ block: "start", behavior: "smooth" }); return; }
@@ -2057,6 +2065,10 @@ function useKeyboardBehavior() {
     const onClickCapture = (e) => {
       const active = document.activeElement;
       if (!isTextInput(active)) return;
+      // De tik waarmee je het veld net opende telt niet: door de focus kan de
+      // layout verschuiven (balk verdwijnt, veld schuift), waardoor de klik
+      // van diezelfde tik net naast het veld landt en het meteen weer sloot.
+      if (Date.now() - lastFocusAt < 600) return;
       const t = e.target;
       if (isTextInput(t) || t.closest?.("input, textarea, select, label")) return;
       const scope = active.closest?.("[data-kb-scope]");
@@ -2587,7 +2599,7 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
           <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
-            onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma}
+            onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress}
             onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} />
         </TabPanel>
 
@@ -8277,9 +8289,15 @@ function SmaakbalansTab({ recipes, isOwned, allIngredients, menu, setMenu, onUse
 // "3.0" voor een heel getal, "3.25"/"3.5"/"3.75" voor een kwart-ster —
 // overal waar een beoordeling getoond wordt, i.p.v. het vaste "{rating}.0"
 // dat alleen bij hele sterren klopte.
+// Beoordelingen en gemiddelden overal hetzelfde: hele getallen zonder
+// decimaal ("4"), anders één decimaal met komma ("3,8" — ook 2.25 → "2,3").
 function formatRating(value) {
-  if (Number.isInteger(value)) return `${value}.0`;
-  return value.toFixed(2).replace(/0$/, "");
+  const v = Number(value) || 0;
+  if (Number.isInteger(v)) return String(v);
+  return v.toFixed(1).replace(".", ",");
+}
+function formatDecimal1(value) {
+  return (Number(value) || 0).toFixed(1).replace(".", ",");
 }
 
 // Puur de visuele sterrenrij (met eventuele kwart-vulling) + het getal —
@@ -8295,12 +8313,15 @@ function AutoGrowTextField({ value, onChange, placeholder }) {
     if (!ref.current) return;
     ref.current.style.height = "auto";
     ref.current.style.height = `${ref.current.scrollHeight}px`;
+    // Groeit het veld tijdens het typen, dan blijft de onderkant (waar je
+    // typt) zichtbaar boven het toetsenbord.
+    if (document.activeElement === ref.current) ref.current.scrollIntoView({ block: "nearest" });
   }, [value]);
   return (
     <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={1} style={{
       width: "100%", border: "none", outline: "none", resize: "none", background: PAPER, borderRadius: 12,
       padding: "13px 14px", fontSize: 15, fontFamily: systemFont, color: INK, boxSizing: "border-box",
-      lineHeight: 1.4, overflow: "hidden", display: "block",
+      lineHeight: 1.4, overflow: "hidden", display: "block", scrollMarginTop: 70, scrollMarginBottom: 24,
     }} />
   );
 }
@@ -8751,7 +8772,16 @@ function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqu
       "smaakvast": maxFamilyCount >= 5,
       "vaste-klant": logboek.length >= 50,
     }[a.id];
-    return { ...a, unlocked };
+    // Voortgang richting de badge, voor het balkje + "3 van 7 dagen".
+    const progress = {
+      "eerste-slok": { value: Math.min(1, logboek.length), goal: 1, unit: "check-in" },
+      "streak7": { value: Math.min(7, streak), goal: 7, unit: "dagen" },
+      "proever": { value: Math.min(10, uniqueCount), goal: 10, unit: "cocktails" },
+      "eigen-recept": { value: usedCustomRecipe ? 1 : 0, goal: 1, unit: "eigen recept" },
+      "smaakvast": { value: Math.min(5, maxFamilyCount), goal: 5, unit: "keer" },
+      "vaste-klant": { value: Math.min(50, logboek.length), goal: 50, unit: "check-ins" },
+    }[a.id];
+    return { ...a, unlocked, progress };
   });
 
   const spiritCounts = new Map();
@@ -9190,7 +9220,120 @@ function MapFullscreenSheet({ locations, coords, onClose }) {
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma}) {
+// Profielfoto met een gouden voortgangsring (XP naar het volgende niveau).
+function AvatarProgressRing({ name, photo, size = 66, progress = 0 }) {
+  const ring = size + 12, r = ring / 2 - 2.5, c = 2 * Math.PI * r;
+  return (
+    <div style={{ position: "relative", width: ring, height: ring, flexShrink: 0 }}>
+      <svg width={ring} height={ring} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
+        <circle cx={ring / 2} cy={ring / 2} r={r} fill="none" stroke={BORDER} strokeWidth={3} />
+        <circle cx={ring / 2} cy={ring / 2} r={r} fill="none" stroke={BRASS} strokeWidth={3} strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={c * (1 - Math.max(0, Math.min(1, progress)))} style={{ transition: "stroke-dashoffset 1s cubic-bezier(.22,.9,.3,1)" }} />
+      </svg>
+      <div style={{ position: "absolute", inset: 6 }}><Avatar name={name} photo={photo} size={size} /></div>
+    </div>
+  );
+}
+
+// Webdiagram van het smaakprofiel (5 assen), in goud op de groene kaart.
+const RADAR_AXES = [["fruitig", "Fruitig"], ["zuur", "Zuur"], ["zoet", "Zoet"], ["sterk", "Sterk"], ["bitter", "Bitter"]];
+function TasteRadar({ taste, size = 230 }) {
+  const byKey = Object.fromEntries(taste.map(t => [t.key, t.pct / 100]));
+  const cx = size / 2, cy = size / 2 + 4, R = size * 0.33;
+  const pt = (i, f) => { const ang = (-90 + i * 72) * Math.PI / 180; return [cx + Math.cos(ang) * R * f, cy + Math.sin(ang) * R * f]; };
+  const poly = (f) => RADAR_AXES.map((_, i) => pt(i, f).join(",")).join(" ");
+  const values = RADAR_AXES.map(([k], i) => pt(i, Math.max(0.08, byKey[k] || 0)));
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} width="100%" style={{ maxWidth: size, display: "block", margin: "0 auto" }} role="img" aria-label="Smaakprofiel">
+      {[0.34, 0.67, 1].map(f => <polygon key={f} points={poly(f)} fill="none" stroke="rgba(221,184,119,0.28)" strokeWidth={1} />)}
+      {RADAR_AXES.map((_, i) => { const [x, y] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(221,184,119,0.22)" strokeWidth={1} />; })}
+      <polygon points={values.map(v => v.join(",")).join(" ")} fill="rgba(221,184,119,0.32)" stroke="#DDB877" strokeWidth={2} strokeLinejoin="round" />
+      {values.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={3.2} fill="#DDB877" />)}
+      {RADAR_AXES.map(([, label], i) => {
+        const [x, y] = pt(i, 1.24);
+        return <text key={label} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="#FBF6EA" fontSize={12} fontWeight={600} fontFamily="Inter, -apple-system, sans-serif">{label}</text>;
+      })}
+    </svg>
+  );
+}
+
+// Details van één check-in (tik op een tegel in het fotoraster), met
+// verwijderen. Eigen lettertype expliciet: rendert via een portal.
+function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, onClose, onRemove }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const img = entry.photo || (recipe && (localItemImageUrl("cocktail", recipe.id) || recipe.image)) || null;
+  const tags = (entry.tasteTags || []).filter(k => CHECKIN_TASTE_META[k]);
+  const ingredientsLine = recipe ? recipe.ingredients.map(ing => ingredientLabel(ing)).join(" · ") : null;
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in" style={{
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
+        background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
+        display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: sans,
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 20px 12px", flexShrink: 0, touchAction: "none" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 24, lineHeight: 1.15 }}>{entry.name}</div>
+            {recipe && <div style={{ fontSize: 13, color: MUTED, marginTop: 3 }}>{[recipe.family, recipe.glass].filter(Boolean).join(" · ")}</div>}
+          </div>
+          <button onClick={close} aria-label="Sluiten" className="tap-target-44" onTouchStart={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0 }}><X size={15} /></button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 20px" }}>
+          <div style={{ borderRadius: 16, overflow: "hidden", aspectRatio: "4 / 3", background: PAPER_DEEP, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {img ? <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
+              : recipe ? <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={140} radius={16} />
+              : <Martini size={40} color={BRASS} strokeWidth={1.3} />}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 2 }}>
+              {[1, 2, 3, 4, 5].map(n => {
+                const f = Math.min(1, Math.max(0, entry.rating - (n - 1)));
+                return (
+                  <span key={n} style={{ position: "relative", width: 18, height: 18 }}>
+                    <Star size={18} color="#C9BC9C" strokeWidth={1.4} style={{ display: "block" }} />
+                    {f > 0 && <span style={{ position: "absolute", inset: 0, width: `${f * 100}%`, overflow: "hidden" }}><Star size={18} fill={BRASS} color={BRASS} strokeWidth={1.4} style={{ display: "block" }} /></span>}
+                  </span>
+                );
+              })}
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 15 }}>{formatRating(entry.rating)}</span>
+          </div>
+          {tags.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              {tags.map(k => <span key={k} style={{ fontSize: 12.5, fontWeight: 600, color: INK, background: PAPER_DEEP, borderRadius: 100, padding: "5px 11px" }}>{CHECKIN_TASTE_META[k].label}</span>)}
+            </div>
+          )}
+          <div style={{ background: PAPER_DEEP, borderRadius: 14, overflow: "hidden" }}>
+            {[
+              entry.notes ? { label: "Notitie", text: entry.notes } : null,
+              { label: "Wanneer en waar", text: `${formatCheckinDate(entry.date)}${entry.location ? ` · ${entry.location}` : ""}` },
+              ingredientsLine ? { label: "Ingrediënten", text: ingredientsLine } : null,
+            ].filter(Boolean).map((row, i) => (
+              <div key={row.label} style={{ margin: "0 14px", padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: MUTED }}>{row.label}</div>
+                <div style={{ fontSize: 14.5, lineHeight: 1.5, marginTop: 2, whiteSpace: "pre-wrap" }}>{row.text}</div>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => setConfirmDelete(true)} style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 18, height: 48, borderRadius: 14,
+            border: "none", background: PAPER_DEEP, color: BURGUNDY, fontFamily: sans, fontSize: 15, fontWeight: 600, cursor: "pointer",
+          }}><Trash2 size={16} /> Check-in verwijderen</button>
+        </div>
+      </div>
+      {confirmDelete && (
+        <ConfirmDialog title="Check-in verwijderen?" message={`${entry.name} verdwijnt uit je logboek.`} confirmLabel="Verwijder"
+          onCancel={() => setConfirmDelete(false)} onConfirm={() => { setConfirmDelete(false); onRemove(entry.id); close(); }} />
+      )}
+    </div>
+  ), document.body);
+}
+
+function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -9289,11 +9432,19 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const heroPhotoSrc = photo || (matchedRecipe ? (localItemImageUrl("cocktail", matchedRecipe.id) || matchedRecipe.image) : null);
 
   const addEntry = () => {
-    const name = nameInput.trim();
+    let name = nameInput.trim();
     if (!name || rating === 0) return;
+    // Vangnet: half getypte naam ("Sex On") die bij precies één recept past
+    // → dat recept gebruiken, i.p.v. een losse, afgekapte naam op te slaan.
+    let recipeForEntry = matchedRecipe;
+    if (!recipeForEntry) {
+      const q = name.toLowerCase();
+      const starts = recipes.filter(r => r.name.toLowerCase().startsWith(q));
+      if (starts.length === 1) { recipeForEntry = starts[0]; name = starts[0].name; }
+    }
     const checkinNumber = logboek.length + 1;
     onAddEntry({
-      recipeId: matchedRecipe ? matchedRecipe.id : null,
+      recipeId: recipeForEntry ? recipeForEntry.id : null,
       name, rating, notes: notes.trim(), photo, location: location.trim() || "Thuis",
       locationLat: locationCoords?.lat ?? null, locationLon: locationCoords?.lon ?? null,
       tasteTags: tasteTags,
@@ -9334,12 +9485,13 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   );
 
   const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
-  const heroEntry = logboek[0] || null;
-  const heroMatched = heroEntry ? findMatch(heroEntry) : null;
-  const heroTint = heroMatched ? recipeTint(heroMatched, allIngredients) : [PAPER_DEEP, BORDER];
-  const heroImage = heroEntry ? (heroEntry.photo || (heroMatched && (localItemImageUrl("cocktail", heroMatched.id) || heroMatched.image)) || null) : null;
-  const recentGrid = useMemo(() => logboek.slice(0, 6).map(entry => ({ entry, matched: findMatch(entry) })), [logboek, recipes]);
-  const topTasteKeys = useMemo(() => new Set([...insights.taste].sort((a, b) => b.pct - a.pct).slice(0, 2).map(t => t.key)), [insights.taste]);
+  // Profiel in drie tabbladen (Check-ins · Smaak · Prestaties); bewust niet
+  // onthouden over sessies heen — altijd beginnen bij Check-ins.
+  const [profileTab, setProfileTab] = useState("checkins");
+  const [openEntryId, setOpenEntryId] = useState(null);
+  const openEntry = logboek.find(e => e.id === openEntryId) || null;
+  const monthKey = new Date().toISOString().slice(0, 7);
+  const thisMonthCount = logboek.filter(e => (e.date || "").slice(0, 7) === monthKey).length;
 
   // Speelt een fanfare af zodra een check-in een level-up of nieuwe prestatie
   // ontgrendelt — alleen tijdens het "Proost"-venster na een echte check-in,
@@ -9362,36 +9514,23 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
   return (
     <div>
-      <LargeTitleHeader title="Profiel" active={active} sticky={false} />
-      {/* De titel zelf is niet meer sticky (op verzoek, zelfde als Ontdekken).
-          Topbalk (vrienden/instellingen) blijft wel sticky, maar dan meteen
-          bovenaan (STICKY_TOP i.p.v. STICKY_SUBHEADER_TOP) want er zit nu
-          geen sticky titelbalk meer boven die anders die ruimte al innam.
-          Achtergrond expliciet naar PAPER's eigen RGB i.p.v. .glass-light's
-          net-iets-andere tint, anders valt de balk in rust op als een band
-          met een afwijkende kleur (zelfde fix als bij Ontdekken). */}
-      <div className="glass-light" style={{
-        position: "sticky", top: STICKY_TOP, zIndex: 6,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        height: 44, boxSizing: "border-box", marginBottom: 8, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)",
-      }}>
-        <button onClick={onGoVrienden} className="press-scale tap-target-44" aria-label="Vrienden" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
-          <Users size={17} strokeWidth={1.8} />
-        </button>
-        <button onClick={onGoInstellingen} className="press-scale tap-target-44" aria-label="Instellingen" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
-          <Settings size={17} strokeWidth={1.8} />
-        </button>
+      {/* Kop: titel met Vrienden/Instellingen rechts op dezelfde regel */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "6px 0 16px" }}>
+        <h1 style={{ fontFamily: systemFont, fontWeight: 800, fontSize: 34, color: INK, margin: 0, letterSpacing: -0.4 }}>Profiel</h1>
+        <div style={{ display: "flex", gap: 10 }}>
+          {[{ onClick: onGoVrienden, label: "Vrienden", Icon: Users }, { onClick: onGoInstellingen, label: "Instellingen", Icon: Settings }].map(({ onClick, label, Icon }) => (
+            <button key={label} onClick={onClick} className="press-scale" aria-label={label} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: BOTTLE, cursor: "pointer" }}>
+              <Icon size={18} strokeWidth={1.8} />
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Compacte profielstrip: identiteit + kerncijfers in één oogopslag, geen boxed dashboard-paneel meer. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+      {/* Identiteit: foto met XP-ring, naam (tik = wijzigen), niveau */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <input ref={photoInputRef} type="file" accept="image/*" onChange={handleProfilePhotoFile} style={{ display: "none" }} />
-        <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" style={{ position: "relative", border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0, borderRadius: "50%" }}>
-          <Avatar name={profile?.name || "Jij"} photo={profile?.avatar_url} size={88} />
-          <span style={{ position: "absolute", bottom: -3, right: -3, display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", background: BOTTLE, border: `2px solid ${CREAM}`, color: CREAM }}>
-            <Camera size={18} strokeWidth={2} />
-          </span>
+        <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" aria-label="Profielfoto wijzigen" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
+          <AvatarProgressRing name={profile?.name || "Jij"} photo={profile?.avatar_url} progress={insights.level.progress} />
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           {editingName ? (
@@ -9399,312 +9538,296 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               <input value={draftName} onChange={e => setDraftName(e.target.value)} autoFocus
                 autoCapitalize="words" enterKeyHint="done"
                 onKeyDown={e => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditingName(false); }}
-                style={{ ...fieldStyle(), flex: 1, padding: "7px 10px", fontSize: 14.5 }} />
-              <button onClick={saveName} className="press-scale" style={{ background: BOTTLE, color: CREAM, border: "none", borderRadius: RADIUS, padding: "7px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
-                Opslaan
-              </button>
+                style={{ ...fieldStyle(), flex: 1, minWidth: 0, padding: "7px 10px", fontSize: 16 }} />
+              <button onClick={saveName} className="press-scale" style={{ background: BOTTLE, color: CREAM, border: "none", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>Opslaan</button>
             </div>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: INK }}>{profile?.name || "Jouw logboek"}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.4, color: "#8F6A21", background: "rgba(184,134,46,0.14)", border: "1px solid rgba(184,134,46,0.35)", borderRadius: 100, padding: "5px 10px", flexShrink: 0 }}>NIV. {insights.level.level}</span>
-              <button onClick={startEditName} className="press-scale tap-target-44" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", border: `1px solid ${BORDER}`, background: "none", color: MUTED, cursor: "pointer", flexShrink: 0 }}>
-                <Pencil size={11} />
-              </button>
-            </div>
+            <button onClick={startEditName} aria-label="Naam wijzigen" style={{ display: "block", maxWidth: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
+            </button>
           )}
-          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 2 }}>
-            <span style={{ fontSize: 17, fontWeight: 500, color: BRASS }}>{insights.level.title}</span>
+          <div style={{ fontSize: 14, fontWeight: 600, color: BRASS, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            Niveau {insights.level.level} · {insights.level.title}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 3 }}>
+            <span style={{ fontSize: 12, color: MUTED }}>{insights.level.to ? `${insights.level.to - insights.level.xp} XP tot niveau ${insights.level.level + 1}` : "Hoogste niveau bereikt"}</span>
             {courseDiploma && <CourseDiploma compact />}
           </div>
         </div>
       </div>
 
-      {courseDiploma && <CourseDiploma date={courseDiploma.date} scorePct={courseDiploma.scorePct} />}
-
-      {stats.total > 0 && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", padding: "0 2px", marginBottom: 14 }}>
-            <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={stats.total} /></div>
-              <div style={{ fontSize: 11, color: "#5C5548", marginTop: 2 }}>check-ins</div>
-            </div>
-            <div style={{ width: 1, height: 28, background: BORDER }} />
-            <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={stats.uniques} /></div>
-              <div style={{ fontSize: 11, color: "#5C5548", marginTop: 2 }}>unieke cocktails</div>
-            </div>
-            <div style={{ width: 1, height: 28, background: BORDER }} />
-            <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
-                <Star size={12} fill={BRASS} color={BRASS} />
-                <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}>{stats.avg.toFixed(1)}</span>
-              </div>
-              <div style={{ fontSize: 11, color: "#5C5548", marginTop: 2 }}>gem. beoordeling</div>
-            </div>
+      {/* Kerncijfers */}
+      <div style={{ display: "flex", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 0", marginBottom: 16 }}>
+        {[
+          { value: <AnimatedNumber value={stats.total} />, label: "check-ins" },
+          { value: <AnimatedNumber value={stats.uniques} />, label: "uniek" },
+          { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill={BRASS} color={BRASS} /></span>, label: "gemiddeld" },
+        ].map((c, i) => (
+          <div key={c.label} style={{ flex: 1, textAlign: "center", borderLeft: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: INK }}>{c.value}</div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{c.label}</div>
           </div>
+        ))}
+      </div>
 
-          <div style={{ marginBottom: 26 }}>
-            <div style={{ height: 3, borderRadius: 2, background: BORDER, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${insights.level.progress * 100}%`, background: `linear-gradient(90deg, ${BRASS}, #8F6A21)`, borderRadius: 2, transition: "width 1s cubic-bezier(.22,.9,.3,1)" }} />
+      {/* Tabbladen */}
+      <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12, marginBottom: 18 }}>
+        {[["checkins", "Check-ins"], ["smaak", "Smaak"], ["prestaties", "Prestaties"]].map(([id, label]) => (
+          <button key={id} role="tab" aria-selected={profileTab === id} onClick={() => setProfileTab(id)} style={{
+            flex: 1, height: 34, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 600,
+            background: profileTab === id ? CREAM : "transparent", color: profileTab === id ? INK : MUTED,
+            boxShadow: profileTab === id ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* ---------- Tab: Check-ins ---------- */}
+      {profileTab === "checkins" && (
+        logboek.length === 0 ? (
+          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "26px 20px", textAlign: "center" }}>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 4 }}>Nog geen check-ins</div>
+            <p style={{ margin: 0, fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>Tik op de + onderin om je eerste cocktail in te checken.</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ fontSize: 14, color: INK }}><strong>{thisMonthCount}</strong> deze maand</span>
+              {insights.streak >= 2 && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "#8F6A21", background: "rgba(184,134,46,0.14)", borderRadius: 100, padding: "4px 10px" }}>
+                  <Flame size={13} /> {insights.streak} dagen op rij
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 5, textAlign: "right" }}>{insights.level.to ? `${insights.level.xp} / ${insights.level.to} XP tot niveau ${insights.level.level + 1}` : `${insights.level.xp} XP · max niveau`}</div>
-          </div>
-        </>
-      )}
-
-      {/* Fotografische hero: laatste check-in als groot, karaktervol moment i.p.v. een kleine cirkel. */}
-      {heroEntry ? (
-        <div className="card-press" style={{ position: "relative", borderRadius: 20, overflow: "hidden", height: 360, marginBottom: 20, boxShadow: SHADOW_HERO, cursor: "pointer" }} onClick={() => scrollToEntry(heroEntry.id)}>
-          {heroImage ? (
-            <img src={heroImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
-          ) : (
-            <div style={{ position: "absolute", inset: 0, background: BOTTLE_DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {heroMatched && <GlassArt glass={heroMatched.glass} colors={heroTint} garnishes={inferGarnishes(heroMatched, allIngredients)} rim={inferRim(heroMatched, allIngredients)} foam={inferFoam(heroMatched, allIngredients)} iceStyle={inferIceStyle(heroMatched)} size={150} />}
-            </div>
-          )}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0.05) 0%, rgba(19,38,34,0.18) 45%, rgba(15,26,23,0.94) 100%)" }} />
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "20px 20px 22px" }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "#D8AE5E", marginBottom: 7 }}>Laatste check-in</div>
-            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 28, color: CREAM, lineHeight: 1.1, marginBottom: 9 }}>{heroEntry.name}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", gap: 2 }}>
-                {[1, 2, 3, 4, 5].map(n => <Star key={n} size={12} fill={n <= heroEntry.rating ? "#D8AE5E" : "none"} color={n <= heroEntry.rating ? "#D8AE5E" : "rgba(251,246,234,0.4)"} />)}
-              </div>
-              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(251,246,234,0.5)" }} />
-              <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "rgba(251,246,234,0.82)", fontWeight: 500 }}>
-                <MapPin size={10} color="rgba(251,246,234,0.82)" /> {heroEntry.location}
-              </span>
-              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(251,246,234,0.5)" }} />
-              <span style={{ fontSize: 12, color: "rgba(251,246,234,0.82)", fontWeight: 500 }}>{heroEntry.date}</span>
-            </div>
-            {heroEntry.notes && <p style={{ margin: "10px 0 0", fontFamily: systemFont, fontSize: 13.5, color: "rgba(251,246,234,0.88)", lineHeight: 1.5, maxWidth: 300 }}>&ldquo;{heroEntry.notes}&rdquo;</p>}
-          </div>
-        </div>
-      ) : (
-        <div style={{ borderRadius: 20, border: `1px dashed ${BORDER}`, padding: "30px 20px", textAlign: "center", marginBottom: 20 }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 4 }}>Nog geen check-ins</div>
-          <p style={{ margin: 0, fontSize: 13, color: MUTED }}>Log je eerste cocktail hieronder — dit wordt jouw eigen barlogboek.</p>
-        </div>
-      )}
-
-      {/* Snel inchecken: opent het formulier als popup i.p.v. ernaartoe te scrollen. */}
-      <button onClick={() => { onSound("pop"); setShowCheckinSheet(true); }} className="press-scale" style={{
-        display: "flex", alignItems: "center", gap: 11, width: "100%", boxSizing: "border-box", padding: "13px 16px",
-        borderRadius: 100, background: CREAM, border: `1.5px solid ${BORDER}`, boxShadow: "0 3px 10px -4px rgba(43,38,32,0.12)",
-        cursor: "pointer", marginBottom: 30,
-      }}>
-        <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(184,134,46,0.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Plus size={13} color={BRASS} strokeWidth={2.4} />
-        </span>
-        <span style={{ fontFamily: systemFont, fontSize: 14.5, color: MUTED, flex: 1, textAlign: "left" }}>Cocktail inchecken</span>
-        <ChevronRight size={14} color="#ABA18F" />
-      </button>
-
-      {insights.hasTaste && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel>Jouw smaak</SectionLabel>
-          {insights.personality && (
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK, lineHeight: 1.3, marginBottom: 8 }}>{insights.personality.title}</div>
-          )}
-          {insights.personality && <p style={{ margin: "0 0 18px", fontSize: 13.5, color: "#5C5548", lineHeight: 1.55 }}>{insights.personality.text}</p>}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 18, height: 52, padding: "0 2px" }}>
-            {insights.taste.map(t => (
-              <div key={t.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                <div style={{
-                  width: 7, height: Math.max(6, (t.pct / 100) * 46), borderRadius: "4px 4px 1px 1px",
-                  background: topTasteKeys.has(t.key) ? `linear-gradient(180deg, #D8AE5E, ${BRASS})` : BORDER,
-                }} />
-                <span style={{ fontSize: 11, fontWeight: topTasteKeys.has(t.key) ? 700 : 500, color: topTasteKeys.has(t.key) ? INK : MUTED }}>{t.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {recentGrid.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
-            <SectionLabel>Recente check-ins</SectionLabel>
-            <span style={{ fontSize: 11.5, color: MUTED }}>{stats.total} check-ins</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3 }}>
-            {recentGrid.map(({ entry, matched }, i) => {
-              const img = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
-              const tint = matched ? recipeTint(matched, allIngredients) : [PAPER_DEEP, BORDER];
-              const corner = i === 0 ? "10px 0 0 0" : i === 2 ? "0 10px 0 0" : i === recentGrid.length - 3 ? "0 0 0 10px" : i === recentGrid.length - 1 ? "0 0 10px 0" : "0";
-              return (
-                <button key={entry.id} onClick={() => scrollToEntry(entry.id)} style={{
-                  position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", padding: 0, cursor: "pointer", borderRadius: corner,
-                  background: img ? "none" : BOTTLE_DARK,
-                }}>
-                  {img ? (
-                    <img src={img} alt={entry.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER, display: "block" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Martini size={26} color="rgba(251,246,234,0.85)" strokeWidth={1.3} />
-                    </div>
-                  )}
-                  <div className="glass-chip-dark" style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, borderRadius: 100, padding: "2px 7px" }}>
-                    <Star size={9} fill="#D8AE5E" color="#D8AE5E" />
-                    <span style={{ fontSize: 10, color: CREAM, fontWeight: 600 }}>{formatRating(entry.rating)}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {(() => {
-        const activeAch = insights.achievements.find(a => a.id === activeAchievementId) || insights.achievements.find(a => a.unlocked) || insights.achievements[0];
-        return (
-          <div style={{ marginBottom: 24 }}>
-            <SectionLabel>Prestaties</SectionLabel>
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
-              {insights.achievements.map(a => {
-                const AchIcon = a.icon;
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginLeft: -20, marginRight: -20 }}>
+              {logboek.map(entry => {
+                const matched = findMatch(entry);
+                const own = entry.photo;
+                const recipeImg = matched && (localItemImageUrl("cocktail", matched.id) || matched.image);
                 return (
-                <button key={a.id} onClick={() => setActiveAchievementId(a.id)} style={{
-                  border: "none", background: "none", padding: 0, margin: 0, cursor: "pointer", width: 72, flexShrink: 0,
-                  color: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 7,
-                }}>
-                  <div style={{
-                    position: "relative", width: 58, height: 58, borderRadius: "50%",
-                    background: a.unlocked ? BOTTLE_DARK : PAPER_DEEP,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: a.unlocked ? SHADOW_CARD : "none",
-                    border: a.unlocked ? `2px solid ${BRASS}` : `1.5px dashed ${BORDER}`,
+                  <button key={entry.id} onClick={() => setOpenEntryId(entry.id)} aria-label={`${entry.name}, ${formatRating(entry.rating)} sterren`} style={{
+                    position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", padding: 0, cursor: "pointer", background: PAPER_DEEP,
                   }}>
-                    <AchIcon size={24} strokeWidth={1.8} color={a.unlocked ? BRASS : MUTED} />
-                    {!a.unlocked && (
-                      <div style={{ position: "absolute", bottom: -2, right: -2, width: 19, height: 19, borderRadius: "50%", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Lock size={9} color={MUTED} strokeWidth={2.6} />
+                    {own || recipeImg ? (
+                      <img src={own || recipeImg} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: own ? "none" : RECIPE_PHOTO_FILTER }} />
+                    ) : matched ? (
+                      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <RecipeCircle recipe={matched} allIngredients={allIngredients} size={96} radius={12} />
+                      </div>
+                    ) : (
+                      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: 8, boxSizing: "border-box" }}>
+                        <Martini size={28} color={BRASS} strokeWidth={1.4} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: INK, textAlign: "center", lineHeight: 1.2 }}>{entry.name}</span>
                       </div>
                     )}
-                  </div>
-                  <span style={{ fontSize: 11.5, textAlign: "center", lineHeight: 1.25, color: a.unlocked ? "#4A4438" : "#7D7461", fontWeight: 600 }}>{a.label}</span>
-                </button>
+                    <div className="glass-chip-dark" style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, borderRadius: 100, padding: "2px 7px" }}>
+                      <span style={{ fontSize: 12, color: CREAM, fontWeight: 700 }}>{formatRating(entry.rating)}</span>
+                      <Star size={10} fill="#D8AE5E" color="#D8AE5E" />
+                    </div>
+                  </button>
                 );
               })}
             </div>
-            <div style={{ marginTop: 12, padding: "11px 13px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 10, display: "flex", alignItems: "center", gap: 10 }}>
-              {(() => { const ActiveIcon = activeAch.icon; return <ActiveIcon size={19} strokeWidth={1.8} color={activeAch.unlocked ? BRASS : MUTED} />; })()}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: INK }}>{activeAch.label}{!activeAch.unlocked && " (nog niet ontgrendeld)"}</div>
-                <div style={{ fontSize: 12, color: "#5C5548", marginTop: 1 }}>{activeAch.text}</div>
+          </>
+        )
+      )}
+
+      {/* ---------- Tab: Smaak ---------- */}
+      {profileTab === "smaak" && (() => {
+        const titleCase = (t) => t ? t.charAt(0) + t.slice(1).toLowerCase() : "";
+        const persona = insights.personality;
+        const personaTitle = persona ? titleCase(persona.title) : "Jouw smaak";
+        const canShare = isNativeShell || (typeof navigator !== "undefined" && !!navigator.share);
+        const shareTaste = async () => {
+          const text = `Mijn smaakprofiel in Mijn Thuisbar: ${personaTitle}. ${persona?.text || ""}`.trim();
+          try {
+            if (isNativeShell) await Share.share({ title: "Mijn smaakprofiel", text, dialogTitle: "Deel je smaakprofiel" });
+            else await navigator.share({ title: "Mijn smaakprofiel", text });
+          } catch { /* geannuleerd */ }
+        };
+        const needed = Math.max(0, 3 - logboek.length);
+        const favRecipe = insights.favoriteCocktail ? recipes.find(r => r.name.toLowerCase() === insights.favoriteCocktail.name.toLowerCase()) : null;
+        const famName = insights.favoriteFamilyEntry?.[0];
+        const famRecipe = famName ? (logboek.map(findMatch).filter(r => r && r.family === famName)[0] || recipes.find(r => r.family === famName)) : null;
+        const favCards = [
+          insights.favoriteCocktail && { label: "Favoriete cocktail", title: insights.favoriteCocktail.name, recipe: favRecipe, serifTitle: true },
+          famName && { label: "Favoriete stijl", title: famName, recipe: famRecipe },
+        ].filter(Boolean);
+        const monthsWithData = insights.months.filter(m => m.count > 0).length;
+        const spiritMeta = (label) => allIngredients.find(i => i.name === label && i.cat === "Sterke drank");
+        return (
+          <>
+            <div style={{ position: "relative", background: BOTTLE_DARK, color: "#FBF6EA", borderRadius: 18, padding: "18px 18px 16px", boxShadow: SHADOW_HERO, borderBottom: `3px solid ${BRASS}`, marginBottom: 22 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, color: "#DDB877" }}>Jouw smaakprofiel</span>
+                {canShare && persona && (
+                  <button onClick={shareTaste} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 30, padding: "0 12px", borderRadius: 100, border: "1px solid rgba(251,246,234,0.3)", background: "rgba(251,246,234,0.08)", color: "#FBF6EA", fontFamily: sans, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                    <Share2 size={13} /> Deel
+                  </button>
+                )}
               </div>
+              <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26, lineHeight: 1.15 }}>{personaTitle}</div>
+              {persona && <p style={{ margin: "6px 0 0", fontSize: 13.5, lineHeight: 1.5, color: "rgba(251,246,234,0.85)" }}>{persona.text}</p>}
+              {needed > 0 || !insights.hasTaste ? (
+                <div style={{ marginTop: 14, padding: "14px 12px", borderRadius: 12, background: "rgba(251,246,234,0.08)", fontSize: 14, textAlign: "center", color: "#FBF6EA" }}>
+                  {needed > 0 ? `Nog ${needed} check-in${needed === 1 ? "" : "s"} en we kennen je smaak` : "Check wat vaker in, dan leren we je smaak kennen"}
+                </div>
+              ) : (
+                <div style={{ marginTop: 6 }}><TasteRadar taste={insights.taste} /></div>
+              )}
             </div>
-          </div>
+
+            {favCards.length > 0 && (
+              <div style={{ marginBottom: 22 }}>
+                <SectionLabel>Favorieten</SectionLabel>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+                  {favCards.map(c => (
+                    <div key={c.label} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+                      <div style={{ height: 96, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                        {c.recipe && (localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image)
+                          ? <img src={localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
+                          : c.recipe ? <RecipeCircle recipe={c.recipe} allIngredients={allIngredients} size={70} radius={12} /> : <Martini size={28} color={BRASS} strokeWidth={1.4} />}
+                      </div>
+                      <div style={{ padding: "10px 12px 12px" }}>
+                        <div style={{ fontSize: 12, color: MUTED }}>{c.label}</div>
+                        <div style={{ fontFamily: c.serifTitle ? serif : systemFont, fontWeight: 700, fontSize: 16, color: INK, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {insights.spirits.length > 0 && (
+              <div style={{ marginBottom: 22 }}>
+                <SectionLabel>Meest gebruikte drank</SectionLabel>
+                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+                  {insights.spirits.map((sp, i) => {
+                    const meta = spiritMeta(sp.label);
+                    return (
+                      <div key={sp.label} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 9, overflow: "hidden", background: PAPER_DEEP, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {meta ? <ItemImage id={meta.id} type="drank" size={34} radius={9} /> : <Wine size={16} color={MUTED} />}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                          <span style={{ width: 86, flexShrink: 0, fontSize: 14, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sp.label}</span>
+                          <div style={{ flex: 1, height: 6, borderRadius: 3, background: PAPER_DEEP, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${sp.pct}%`, background: BRASS, borderRadius: 3 }} />
+                          </div>
+                          <span style={{ width: 38, textAlign: "right", fontSize: 13, fontWeight: 700, color: INK }}>{sp.pct}%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {monthsWithData >= 2 && (
+              <div style={{ marginBottom: 22 }}>
+                <SectionLabel>Check-ins per maand</SectionLabel>
+                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "16px 16px 12px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80 }}>
+                    {insights.months.map((m, i) => (
+                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 6 }}>
+                        <div style={{ width: "100%", maxWidth: 18, borderRadius: 4, background: m.count ? BRASS : PAPER_DEEP, height: `${Math.max(6, (m.count / insights.monthMax) * 100)}%` }} />
+                        <span style={{ fontSize: 12, color: MUTED }}>{m.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         );
       })()}
 
-      {insights.locations.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel>Jouw cocktailkaart</SectionLabel>
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", boxShadow: SHADOW_CARD }}>
-            <CocktailMap locations={insights.locations} />
-          </div>
-        </div>
-      )}
-
-      <div style={{ marginBottom: 24 }}>
-        <SectionLabel>Statistieken</SectionLabel>
-        <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px 6px" }}>
-            {[
-              { value: stats.total, label: "Cocktails geproefd" },
-              { value: stats.uniques, label: "Unieke cocktails" },
-              { value: stats.avg.toFixed(1), label: "Gem. beoordeling" },
-              { value: insights.customUsedCount, label: "Eigen recepten" },
-              { value: insights.streak, label: "Langste streak (dagen)" },
-            ].map((s, i) => (
-              <div key={i} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: BOTTLE }}>{s.value}</div>
-                <div style={{ fontSize: 11.5, color: "#5C5548", marginTop: 3, lineHeight: 1.3, fontWeight: 500 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ margin: "18px 0 4px", paddingTop: 16, borderTop: `1px dashed ${BORDER}` }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3, color: "#4A4438", marginBottom: 12 }}>Check-ins per maand</div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 72 }}>
-              {insights.months.map((m, i) => (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 7 }}>
-                  <div style={{ width: "100%", maxWidth: 15, borderRadius: "3px 3px 1px 1px", background: `linear-gradient(180deg, ${BRASS}, #8F6A21)`, height: `${Math.max(4, (m.count / insights.monthMax) * 100)}%`, opacity: i === insights.months.length - 1 ? 1 : 0.75, transition: "height 1s cubic-bezier(.22,.9,.3,1)" }} />
-                  <span style={{ fontSize: 11, color: "#5C5548", fontWeight: 600 }}>{m.label}</span>
-                </div>
-              ))}
+      {/* ---------- Tab: Prestaties ---------- */}
+      {profileTab === "prestaties" && (() => {
+        const achieved = insights.achievements.filter(a => a.unlocked).length;
+        const activeAch = insights.achievements.find(a => a.id === activeAchievementId) || null;
+        const lessonsDone = COURSE_LESSONS.filter(l => courseProgress?.[l.id]?.completed).length;
+        const mapLocations = insights.locations.filter(l => l.name.trim().toLowerCase() !== "thuis");
+        return (
+          <>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <SectionLabel>Badges</SectionLabel>
+              <span style={{ fontSize: 13, color: MUTED }}>{achieved} van {insights.achievements.length} behaald</span>
             </div>
-          </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: activeAch ? 10 : 22 }}>
+              {insights.achievements.map(a => {
+                const AchIcon = a.icon;
+                const pr = a.progress || { value: 0, goal: 1, unit: "" };
+                const selected = activeAchievementId === a.id;
+                return (
+                  <button key={a.id} onClick={() => setActiveAchievementId(selected ? null : a.id)} aria-pressed={selected} style={{
+                    background: CREAM, border: `1px solid ${selected ? BRASS : BORDER}`, borderRadius: 16, padding: "14px 8px 12px", cursor: "pointer",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 7, fontFamily: sans, minWidth: 0,
+                  }}>
+                    <div style={{
+                      width: 50, height: 50, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                      background: a.unlocked ? BOTTLE_DARK : PAPER_DEEP, border: a.unlocked ? `2px solid ${BRASS}` : "none",
+                    }}>
+                      <AchIcon size={21} strokeWidth={1.8} color={a.unlocked ? "#DDB877" : MUTED} />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: INK, textAlign: "center", lineHeight: 1.2 }}>{a.label}</span>
+                    {a.unlocked ? (
+                      <span style={{ fontSize: 12, fontWeight: 600, color: SAGE }}>Behaald</span>
+                    ) : (
+                      <>
+                        <div style={{ width: "80%", height: 4, borderRadius: 2, background: PAPER_DEEP, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${(pr.value / pr.goal) * 100}%`, background: BRASS }} />
+                        </div>
+                        <span style={{ fontSize: 12, color: MUTED, textAlign: "center" }}>{pr.value} van {pr.goal}{pr.unit ? ` ${pr.unit}` : ""}</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {activeAch && (
+              <div className="accordion-reveal" style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 14px", marginBottom: 22 }}>
+                {(() => { const I = activeAch.icon; return <I size={20} strokeWidth={1.8} color={activeAch.unlocked ? BRASS : MUTED} />; })()}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: INK }}>{activeAch.label}{activeAch.unlocked ? "" : " · nog niet behaald"}</div>
+                  <div style={{ fontSize: 13, color: MUTED, marginTop: 1 }}>{activeAch.text}</div>
+                </div>
+              </div>
+            )}
 
-          {insights.spirits.length > 0 && (
-            <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px dashed ${BORDER}` }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3, color: "#4A4438", marginBottom: 12 }}>Meest gebruikte drank</div>
-              {insights.spirits.map((sp, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12.5, color: INK, width: 90, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 500 }}>{sp.label}</span>
-                  <div style={{ flex: 1, height: 8, borderRadius: 4, background: BORDER, overflow: "hidden" }}>
-                    <div style={{ height: "100%", borderRadius: 4, background: BRASS, width: `${sp.pct}%` }} />
+            {courseDiploma ? (
+              <CourseDiploma date={courseDiploma.date} scorePct={courseDiploma.scorePct} />
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "14px", marginBottom: 12 }}>
+                <span style={{ width: 40, height: 40, borderRadius: 12, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><GraduationCap size={19} color={BOTTLE} strokeWidth={1.8} /></span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>Cocktailcursus</div>
+                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{lessonsDone} van {COURSE_LESSONS.length} lessen · diploma na de eindtoets</div>
+                  <div style={{ height: 4, borderRadius: 2, background: PAPER_DEEP, overflow: "hidden", marginTop: 8 }}>
+                    <div style={{ height: "100%", width: `${(lessonsDone / COURSE_LESSONS.length) * 100}%`, background: BRASS }} />
                   </div>
-                  <span style={{ fontSize: 12, color: "#5C5548", fontWeight: 700, width: 30, textAlign: "right", flexShrink: 0 }}>{sp.pct}%</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+              </div>
+            )}
 
-      {(insights.favoriteCocktail || insights.favoriteFamilyEntry) && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel>Jouw favorieten</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 11 }}>
-            {insights.favoriteCocktail && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid #7A2E2A`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Heart size={13} color="#7A2E2A" fill="#7A2E2A" /> Favoriete cocktail</div>
-                <div style={{ marginTop: 4, fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteCocktail.name}</div>
-              </div>
-            )}
-            {insights.favoriteHomemade && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${SAGE}`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Home size={13} color={SAGE} /> Favoriet eigen recept</div>
-                <div style={{ marginTop: 4, fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteHomemade.name}</div>
-              </div>
-            )}
-            {insights.favoriteFamilyEntry && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${BRASS}`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Martini size={13} color={BRASS} /> Favoriete stijl</div>
-                <div style={{ marginTop: 4, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteFamilyEntry[0]}</div>
-              </div>
-            )}
-            {insights.favoriteSpiritEntry && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${MUTED}`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Wine size={13} color={MUTED} /> Favoriete drank</div>
-                <div style={{ marginTop: 4, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteSpiritEntry[0]}</div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {insights.recommended.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <SectionLabel>Aanbevolen voor jou</SectionLabel>
-          <div style={{ fontSize: 12.5, color: "#5C5548", margin: "-6px 0 13px" }}>Gebaseerd op je smaakprofiel en je voorraad</div>
-          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-            {insights.recommended.map(({ recipe, matchPct }) => (
-              <button key={recipe.id} onClick={() => { onSound("pop"); onOpenRecipe(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>{matchPct}%</div>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-                  <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
+            {insights.locations.length >= 2 && mapLocations.length > 0 ? (
+              <div style={{ marginBottom: 12 }}>
+                <SectionLabel>Jouw cocktailkaart</SectionLabel>
+                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+                  <CocktailMap locations={mapLocations} />
                 </div>
-                <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
-                <div style={{ fontSize: 11, color: "#5C5548", marginTop: 4, fontWeight: 500 }}>{recipe.family}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "14px", marginBottom: 12 }}>
+                <span style={{ width: 40, height: 40, borderRadius: 12, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><MapPin size={19} color={BOTTLE} strokeWidth={1.8} /></span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>Jouw cocktailkaart</div>
+                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1, lineHeight: 1.4 }}>Check in op een tweede plek en je kaart verschijnt hier.</div>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {showCheckinSheet && createPortal((
         <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
@@ -9823,7 +9946,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               </div>
             </div>
 
-            <div style={{ padding: "14px 20px calc(env(safe-area-inset-bottom) + 14px)", background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
+            <div className="checkin-footer" style={{ padding: "14px 20px calc(env(safe-area-inset-bottom) + 14px)", background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
               {(() => {
                 const canSubmit = nameInput.trim().length > 0 && rating > 0;
                 return (
@@ -9854,95 +9977,9 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
         </div>
       ), document.body)}
 
-      {logboek.length === 0 ? (
-        <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "20px 0" }}>Nog geen check-ins.</p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {logboek.map(entry => {
-            const matched = entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
-            const tint = matched ? recipeTint(matched, allIngredients) : null;
-            const circle = matched ? <RecipeCircle recipe={matched} allIngredients={allIngredients} size={54} /> : (
-              <div style={{ width: 54, height: 54, borderRadius: "50%", background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <NotebookPen size={21} color={MUTED} />
-              </div>
-            );
-            let ingredientsLine = null;
-            if (matched) {
-              const names = matched.ingredients.map(ing => ingredientLabel(ing));
-              ingredientsLine = names.length > 5 ? `${names.slice(0, 5).join(" · ")} + ${names.length - 5} meer` : names.join(" · ");
-            }
-            const ratingBadge = (
-              <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "5px 10px" }}>
-                <Star size={12} fill={BRASS} color={BRASS} />
-                <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 13, color: BOTTLE }}>{formatRating(entry.rating)}</span>
-              </div>
-            );
-            return (
-              <div key={entry.id} ref={el => cardRefs.current[entry.id] = el} style={{ position: "relative", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 18, boxShadow: SHADOW_CARD, scrollMarginTop: 20 }}>
-                {tint && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, borderRadius: "18px 0 0 18px", background: BRASS }} />}
-                {entry.photo && (
-                  <div style={{ position: "relative", width: "100%", height: 172 }}>
-                    <img src={entry.photo} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: "18px 18px 0 0" }} />
-                    <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 4, background: "rgba(20,16,10,0.55)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", borderRadius: 100, padding: "5px 11px", border: "1px solid rgba(255,255,255,0.25)" }}>
-                      <Star size={12} fill={BRASS} color={BRASS} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: CREAM }}>{formatRating(entry.rating)}</span>
-                    </div>
-                    <div style={{ position: "absolute", left: 18, bottom: -22, width: 64, height: 64, borderRadius: "50%", background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 3px 10px rgba(20,16,10,0.35)" }}>
-                      {circle}
-                    </div>
-                  </div>
-                )}
-                <div style={{ padding: "16px 18px 16px", paddingLeft: tint ? 22 : 18, paddingTop: entry.photo ? 32 : 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                    <div style={{ display: "flex", gap: 14, minWidth: 0, alignItems: "center" }}>
-                      {!entry.photo && (
-                        <div style={{ position: "relative", width: 54, height: 54, flexShrink: 0 }}>
-                          {tint && <div style={{ position: "absolute", inset: -7, borderRadius: "50%", background: `radial-gradient(circle, ${tint[0]}66, transparent 72%)`, zIndex: 0 }} />}
-                          <div style={{ position: "relative", zIndex: 1 }}>{circle}</div>
-                        </div>
-                      )}
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 17.5 }}>{entry.name}</div>
-                        {matched && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{matched.family} · {matched.glass}</div>}
-                      </div>
-                    </div>
-                    {!entry.photo && ratingBadge}
-                  </div>
-
-                  {entry.tasteTags && entry.tasteTags.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 }}>
-                      {entry.tasteTags.filter(k => CHECKIN_TASTE_META[k]).map(k => (
-                        <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "#8F6A21", background: "rgba(184,134,46,0.12)", border: "1px solid rgba(184,134,46,0.3)", borderRadius: 100, padding: "3px 9px" }}>
-                          {CHECKIN_TASTE_META[k].label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {ingredientsLine && (
-                    <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5, margin: "12px 0 0", paddingTop: 10, borderTop: `1px dotted ${BORDER}` }}>
-                      {ingredientsLine}
-                    </div>
-                  )}
-
-                  {entry.notes && (
-                    <p style={{ fontFamily: systemFont, fontSize: 13.5, color: INK, margin: "10px 0 0", paddingLeft: 10, borderLeft: `2px solid ${BRASS}`, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-                      “{entry.notes}”
-                    </p>
-                  )}
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 10, borderTop: `1px dashed ${BORDER}` }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#5C5548", fontWeight: 500 }}>
-                      {entry.location && <MapPin size={11} color="#5C5548" />}
-                      {entry.date}{entry.location ? ` · ${entry.location}` : ""}
-                    </span>
-                    <button onClick={() => removeEntry(entry.id)} className="press-scale" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: "50%" }}><Trash2 size={14} color={MUTED} /></button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {openEntry && (
+        <CheckinDetailSheet entry={openEntry} recipe={findMatch(openEntry)} allIngredients={allIngredients} ingredientLabel={ingredientLabel}
+          onClose={() => setOpenEntryId(null)} onRemove={removeEntry} />
       )}
     </div>
   );
@@ -10064,7 +10101,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                     {[
                       { value: stats.total, label: "Cocktails geproefd" },
                       { value: stats.uniques, label: "Unieke cocktails" },
-                      { value: stats.avg.toFixed(1), label: "Gem. beoordeling" },
+                      { value: formatDecimal1(stats.avg), label: "Gem. beoordeling" },
                       { value: insights.customUsedCount, label: "Eigen recepten" },
                       { value: insights.streak, label: "Langste streak (dagen)" },
                     ].map((s, i) => (

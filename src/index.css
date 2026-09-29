@@ -700,3 +700,10 @@ html.kb-open .bottom-dock {
   max-height: 92vh;
   max-height: 92dvh;
 }
+
+/* Check-in: zolang het toetsenbord open is verdwijnt de Inchecken-balk
+   onderin, zodat het veld waarin je typt de ruimte boven het toetsenbord
+   krijgt. Toetsenbord dicht → balk terug. */
+html.kb-open .checkin-footer {
+  display: none;
+}
