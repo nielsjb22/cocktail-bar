@@ -3536,16 +3536,20 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
     // laag is onzichtbaar en alleen voor de veilige-marges-padding
     // (pointerEvents:none, zodat de ruimte ernaast/eronder gewoon aantikbaar
     // blijft), de échte balk erbinnen heeft de marge, afronding en schaduw.
+    // 6px lucht boven de home-indicator (was 14px): lager en dichter bij
+    // iOS' eigen zwevende tabbalk, maar nog steeds buiten de veegzone van
+    // het home-streepje.
     <div className="bottom-dock" style={{
       position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
-      padding: "0 14px calc(env(safe-area-inset-bottom) + 14px)", pointerEvents: "none",
+      padding: "0 14px calc(env(safe-area-inset-bottom) + 6px)", pointerEvents: "none",
     }}>
       <div className="glass-light" style={{
         maxWidth: 960 - 28, margin: "0 auto", display: "flex", alignItems: "flex-end", pointerEvents: "auto",
         borderRadius: 28, padding: "9px 6px",
       }}>
         {left.map(renderBtn)}
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", marginTop: -26 }}>
+        {/* +-knop steekt 18px uit (was 26px): valt minder over de inhoud. */}
+        <div style={{ flex: 1, display: "flex", justifyContent: "center", marginTop: -18 }}>
           <button onClick={onCheckin} aria-label="Inchecken" className="press-scale" style={{
             width: 54, height: 54, borderRadius: "50%", background: BRASS, border: `4px solid ${PAPER}`,
             boxShadow: "0 6px 16px -4px rgba(184,134,46,0.6), 0 0 0 8px rgba(184,134,46,0.14)",
