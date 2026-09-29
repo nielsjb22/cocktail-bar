@@ -4,7 +4,7 @@ import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog } from "lucide-react";
+import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "./supabaseClient";
@@ -19,12 +19,6 @@ import catBittersImg from "./assets/categories/bitters.jpeg";
 import catMixersImg from "./assets/categories/mixers.jpeg";
 import catZuivelRoomImg from "./assets/categories/zuivel-room.jpeg";
 import catVersImg from "./assets/categories/vers.jpeg";
-import spiritGinImg from "./assets/spirits/gin.jpeg";
-import spiritWodkaImg from "./assets/spirits/wodka.jpeg";
-import spiritWitteRumImg from "./assets/spirits/witte-rum.jpeg";
-import spiritCognacBrandyImg from "./assets/spirits/cognac-brandy.jpeg";
-import spiritRyeWhiskyImg from "./assets/spirits/rye-whisky.jpeg";
-import spiritBourbonImg from "./assets/spirits/bourbon.jpeg";
 import imageCatalog from "./data/images.json";
 
 // Centrale foto-catalogus (zie CLAUDE.md "## Afbeeldingen"): één entry per
@@ -3729,30 +3723,6 @@ function CategoryArt({ cat }) {
   );
 }
 
-// Sfeerfoto's per basisdrank voor de "Op basisdrank"-rondjes (Maken-tab):
-// elke drank krijgt zijn eigen foto in plaats van steeds dezelfde
-// Sterke-drank-plankfoto, met dezelfde behandeling als CategoryArt zodat
-// het visueel bij elkaar blijft horen.
-const SPIRIT_PHOTOS = {
-  "Gin": spiritGinImg,
-  "Wodka": spiritWodkaImg,
-  "Witte rum": spiritWitteRumImg,
-  "Cognac / brandy": spiritCognacBrandyImg,
-  "Rye whisky": spiritRyeWhiskyImg,
-  "Bourbon": spiritBourbonImg,
-};
-
-function SpiritArt({ label }) {
-  const art = CATEGORY_ART["Sterke drank"];
-  const photo = SPIRIT_PHOTOS[label] || CATEGORY_PHOTOS["Sterke drank"];
-  return (
-    <>
-      <img src={photo} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
-      <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${art.from}5c, ${art.to}85 75%)`, mixBlendMode: "multiply" }} />
-    </>
-  );
-}
-
 // Elke fles een eigen "productfoto" zou 140+ losse illustraties vergen; in
 // plaats daarvan krijgt elk ingrediënt een silhouet passend bij zijn soort
 // (fles, wijnfles, bitters-dasher, siroopflesje, kan, citrus, kruid, glas),
@@ -4787,13 +4757,13 @@ function ItemImage({ id, type, photoUrl, size = 50, radius = "50%", tint, filter
   );
 }
 
-function RecipeCircle({ recipe, allIngredients, size = 50 }) {
+function RecipeCircle({ recipe, allIngredients, size = 50, radius = "50%" }) {
   const tint = recipeTint(recipe, allIngredients);
   const garnishes = inferGarnishes(recipe, allIngredients);
   return (
-    <ItemImage id={recipe.id} type="cocktail" photoUrl={recipe.image} size={size} tint={tint} filter={RECIPE_PHOTO_FILTER} fallback={
+    <ItemImage id={recipe.id} type="cocktail" photoUrl={recipe.image} size={size} radius={radius} tint={tint} filter={RECIPE_PHOTO_FILTER} fallback={
       <div style={{
-        width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+        width: size, height: size, borderRadius: radius, overflow: "hidden", flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: BOTTLE_DARK,
       }}>
@@ -4912,65 +4882,6 @@ function isOwnedRef(ing, missing) {
   return !missing.includes(ing);
 }
 
-function BrowseSheet({ label, entries, allIngredients, onSelect, onClose }) {
-  useBodyScrollLock();
-  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") close(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  // In een portal naar document.body gerenderd: anders valt deze sheet binnen
-  // de stacking context van de geanimeerde tab-inhoud (.tab-fade) en duikt
-  // de onderbalk er, ondanks een lagere z-index, gewoon overheen.
-  return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-      <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "85vh",
-        background: PAPER, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
-        display: "flex", flexDirection: "column", overflow: "hidden",
-      }}>
-        <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{label}</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{entries.length} recepten</div>
-          </div>
-          <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
-            display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
-            borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK,
-          }}><X size={16} /></button>
-        </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "6px 20px" }}>
-          {entries.map(({ recipe, missing }, i) => (
-            <button key={recipe.id} onClick={() => onSelect(recipe.id)} style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 12, background: "none", border: "none",
-              cursor: "pointer", padding: "12px 0", textAlign: "left", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`,
-            }}>
-              <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={38} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK }}>{recipe.name}</div>
-                <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>{recipe.family} · {recipe.glass}</div>
-              </div>
-              <StatusTag missingCount={missing.length} />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  ), document.body);
-}
-
-// UX-herindeling (v2): Maken en Recept waren twee losse tabs die feitelijk
-// naar dezelfde cocktail-database keken (beide eindigden in hetzelfde
-// detailscherm). Ontdekken voegt ze samen tot één herkenbaar geheel met een
-// filter, i.p.v. de gebruiker te laten raden welke van de twee de "juiste"
-// ingang is. Geen van beide tabs is intern aangepast — dit is puur een
-// dunne wrapper die ze toont/verbergt, om het risico op regressies klein te
-// houden terwijl de navigatiestructuur wél klopt met het voorstel.
-// Klein, altijd leesbaar match-label onder de naam van een aanbevelingskaart.
 function MatchPill({ pct, label }) {
   return (
     <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
@@ -4995,6 +4906,14 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
     setMode("alles");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openRecipeId]);
+  // "Wat ik kan maken" opent als eigen scherm met terugknop (zoals een recept):
+  // bij wisselen van modus weer bovenaan beginnen.
+  const openMode = (next) => { setMode(next); window.scrollTo(0, 0); };
+  // Nog eens op de actieve Ontdekken-tab tikken = terug naar het overzicht.
+  useEffect(() => { if (rootTapTick) setMode("alles"); }, [rootTapTick]);
+  // Titel, schakelaar en Aanbevolen horen alleen bij het overzicht, niet bij
+  // een geopend recept en niet bij het eigen scherm "Wat ik kan maken".
+  const showChrome = !recipeOpen && mode !== "kan";
   const handleRecipeOpenChange = (open) => {
     setRecipeOpen(open);
     if (!open && returnModeRef.current) { setMode(returnModeRef.current); returnModeRef.current = null; }
@@ -5005,7 +4924,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   const sortedRecommended = recommended ? [...recommended].sort((a, b) => b.matchPct - a.matchPct) : recommended;
   return (
     <div>
-      {!recipeOpen && <LargeTitleHeader title="Ontdekken" active={active} sticky={false} />}
+      {showChrome && <LargeTitleHeader title="Ontdekken" active={active} sticky={false} />}
       {/* De titel zelf is niet meer sticky (op verzoek) — deze toggle-balk
           blijft wel sticky, maar dan meteen bovenaan (STICKY_TOP i.p.v.
           STICKY_SUBHEADER_TOP) want er zit nu geen sticky titelbalk meer
@@ -5017,17 +4936,17 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           samenvalt met de pagina, en alleen tijdens scrollen (over de
           Aanbevolen-kaarten) echt als glas oplicht. */}
       <div className="glass-light" style={{
-        display: recipeOpen ? "none" : "flex",
+        display: showChrome ? "flex" : "none",
         position: "sticky", top: STICKY_TOP, zIndex: 7,
         alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)",
       }}>
-        <button onClick={() => setMode("alles")} style={{
+        <button onClick={() => openMode("alles")} style={{
           flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "alles" ? BOTTLE : BORDER}`,
           background: mode === "alles" ? BOTTLE : CREAM, color: mode === "alles" ? CREAM : INK,
           fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
         }}>Alle recepten</button>
-        <button onClick={() => setMode("kan")} style={{
+        <button onClick={() => openMode("kan")} style={{
           flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "kan" ? BOTTLE : BORDER}`,
           background: mode === "kan" ? BOTTLE : CREAM, color: mode === "kan" ? CREAM : INK,
           fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
@@ -5039,7 +4958,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           alleen een kale lijst — precies zoals in het UX-voorstel. */}
       {/* Alleen op de "Alle recepten"-overzichtspagina: niet in "Wat ik kan
           maken" (op verzoek, rustiger) en niet boven een geopend recept. */}
-      {mode === "alles" && !recipeOpen && recommended && recommended.length > 0 && (
+      {showChrome && recommended && recommended.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <SectionLabel>Aanbevolen voor jou</SectionLabel>
           <div style={{ fontSize: 12.5, color: MUTED, margin: "-6px 0 13px" }}>Gebaseerd op je smaakprofiel en je voorraad</div>
@@ -5066,7 +4985,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
       )}
 
       <div style={{ display: mode === "kan" ? "" : "none" }}>
-        <MakenTab {...makenProps} />
+        <MakenTab {...makenProps} onBack={() => openMode("alles")} />
       </div>
       <div style={{ display: mode === "alles" ? "" : "none" }}>
         <VerhaalTab {...verhaalProps} openRecipeId={openRecipeId} onOpenRecipeHandled={onOpenRecipeHandled}
@@ -5076,7 +4995,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   );
 }
 
-function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen }) {
+function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen, onBack }) {
   const [view, setView] = useState("ontdekken");
   const [openId, setOpenId] = useState(null);
   const [query, setQuery] = useState("");
@@ -5086,14 +5005,16 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
   const [justAddedId, setJustAddedId] = useState(null);
   const [justAddedFeestId, setJustAddedFeestId] = useState(null);
   const [sheetRecipeId, setSheetRecipeId] = useState(null);
-  const [browseGroup, setBrowseGroup] = useState(null);
-  const [uitgelichtExpanded, setUitgelichtExpanded] = useState(false);
+  // Alles wat deze sessie al op de boodschappenlijst is gezet (recepten én
+  // koopadviezen): het vinkje blijft dan staan i.p.v. terug te springen.
+  const [addedIds, setAddedIds] = useState(() => new Set());
   const [bijnaExpanded, setBijnaExpanded] = useState(false);
 
   const addMissing = (recipeId, refs) => {
     onAddToShoppingList(refs);
     onSound("tick");
     setJustAddedId(recipeId);
+    setAddedIds(prev => new Set(prev).add(recipeId));
   };
   const addFeest = (recipeId) => {
     onAddToFeest(recipeId);
@@ -5130,27 +5051,6 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
   const makeableAll = useMemo(() => allScored.filter(s => s.missing.length === 0), [allScored]);
   const bijnaAll = useMemo(() => allScored.filter(s => s.missing.length === 1), [allScored]);
 
-  const bySpirit = useMemo(() => {
-    const map = new Map();
-    allScored.forEach(entry => {
-      const s = getBaseSpirit(entry.recipe, allIngredients);
-      if (!s) return;
-      if (!map.has(s)) map.set(s, []);
-      map.get(s).push(entry);
-    });
-    return [...map.entries()].map(([label, entries]) => ({ label, entries })).sort((a, b) => b.entries.length - a.entries.length).slice(0, 6);
-  }, [allScored, allIngredients]);
-
-  const byFamily = useMemo(() => {
-    const map = new Map();
-    allScored.forEach(entry => {
-      if (!entry.recipe.family) return;
-      if (!map.has(entry.recipe.family)) map.set(entry.recipe.family, []);
-      map.get(entry.recipe.family).push(entry);
-    });
-    return [...map.entries()].map(([label, entries]) => ({ label, entries })).sort((a, b) => b.entries.length - a.entries.length).slice(0, 6);
-  }, [allScored]);
-
   // Koopadvies: welk ontbrekend ingrediënt ontgrendelt de meeste "mist 1"-recepten
   const koopadviesAll = useMemo(() => {
     const unlockMap = new Map();
@@ -5160,14 +5060,14 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
       if (missing.length === 1) {
         const ing = missing[0];
         const key = ingredientKey(ing);
-        if (!unlockMap.has(key)) unlockMap.set(key, { key, label: ingredientLabel(ing), recipeNames: [] });
+        if (!unlockMap.has(key)) unlockMap.set(key, { key, ref: ing, label: ingredientLabel(ing), recipeNames: [] });
         unlockMap.get(key).recipeNames.push(r.name);
       }
     });
     return [...unlockMap.values()].filter(v => v.recipeNames.length >= 2).sort((a, b) => b.recipeNames.length - a.recipeNames.length);
   }, [recipes, isOwned, ingredientLabel]);
   const [koopadviesExpanded, setKoopadviesExpanded] = useState(false);
-  const koopadvies = koopadviesExpanded ? koopadviesAll : koopadviesAll.slice(0, 4);
+  const koopadvies = koopadviesExpanded ? koopadviesAll : koopadviesAll.slice(0, 3);
 
   const [shuffling, setShuffling] = useState(false);
   const verrasMe = () => {
@@ -5183,169 +5083,157 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
 
   const selectStyle = { padding: "8px 10px", borderRadius: 3, border: `1px solid ${BORDER}`, fontSize: 13, fontFamily: sans, background: CREAM, color: INK };
 
-  const UITGELICHT_CAP = 6;
+  // Horizontale rij: een handvol kaarten om door te swipen, de rest via "Alles bekijken".
+  const NU_CAP = 12;
   const BIJNA_CAP = 4;
-  const uitgelichtShown = uitgelichtExpanded ? makeableAll : makeableAll.slice(0, UITGELICHT_CAP);
   const bijnaShown = bijnaExpanded ? bijnaAll : bijnaAll.slice(0, BIJNA_CAP);
 
   const sheetEntry = sheetRecipeId ? scoredById.get(sheetRecipeId) : null;
 
+  const HERO_GREEN = "#1F3D36", HERO_CREAM = "#FBF6EA", HERO_GOLD = "#DDB877";
+  const linkBtn = { background: "none", border: "none", padding: "6px 0", cursor: "pointer", color: BRASS, fontFamily: sans, fontSize: 14, fontWeight: 600 };
+  const roundBtn = (done) => ({
+    width: 40, height: 40, flexShrink: 0, borderRadius: "50%", cursor: done ? "default" : "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    border: `1px solid ${done ? SAGE : BORDER}`, background: done ? SAGE : PAPER, color: done ? CREAM : BOTTLE,
+  });
+  const openList = () => { setView("alle"); window.scrollTo(0, 0); };
+  const backToOverview = () => {
+    setView("ontdekken"); setQuery(""); setFamilyFilter(""); setGlassFilter(""); setSpiritFilter(""); setOpenId(null);
+    window.scrollTo(0, 0);
+  };
+
+  // Eigen scherm met iOS-navigatiebalk (zoals een geopend recept): "‹ Ontdekken"
+  // terug naar Ontdekken; in de volledige lijst "‹ Overzicht" terug hierheen.
   return (
-    <div>
-      {/* Rustiger opgezet (op verzoek): geen grote kopfoto en geen tweede
-          "Ontdekken / Alle recepten"-schakelaar meer — Ontdekken heeft zelf al
-          een titel en schakelaar erboven. Zoeken (of "alle recepten met
-          filters" onderaan) opent de volledige lijst; een terug-link brengt je
-          weer naar dit overzicht. */}
-      <div style={{ position: "relative", marginBottom: view === "alle" ? 12 : 22 }}>
+    <SecondaryTabScreen
+      label={view === "alle" ? "Overzicht" : "Ontdekken"}
+      title={view === "alle" ? "Alle recepten" : "Wat kan ik maken"}
+      onBack={view === "alle" ? backToOverview : onBack}>
+
+      {view === "ontdekken" && (
+        <div style={{
+          background: HERO_GREEN, color: HERO_CREAM, borderRadius: 18, padding: "20px 20px 18px", marginBottom: 18,
+          boxShadow: SHADOW_HERO, borderBottom: `3px solid ${BRASS}`,
+        }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: HERO_GOLD, marginBottom: 12 }}>Jouw bar vandaag</div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 22, marginBottom: 16 }}>
+            <div>
+              <div style={{ fontFamily: serif, fontSize: 46, fontWeight: 700, lineHeight: 1 }}>{makeableAll.length}</div>
+              <div style={{ fontSize: 13.5, opacity: 0.85, marginTop: 4 }}>nu te maken</div>
+            </div>
+            <div style={{ width: 1, height: 46, background: "rgba(251,246,234,0.2)" }} />
+            <div>
+              <div style={{ fontFamily: serif, fontSize: 32, fontWeight: 700, lineHeight: 1, color: HERO_GOLD }}>{bijnaAll.length}</div>
+              <div style={{ fontSize: 13.5, opacity: 0.85, marginTop: 4 }}>mist 1 ingrediënt</div>
+            </div>
+          </div>
+          <button onClick={verrasMe} disabled={shuffling || makeableAll.length === 0} className="press-scale" style={{
+            width: "100%", height: 46, borderRadius: 12, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+            background: BRASS, color: "#1B1409", fontFamily: sans, fontSize: 15, fontWeight: 700,
+            cursor: shuffling || makeableAll.length === 0 ? "default" : "pointer", opacity: makeableAll.length === 0 ? 0.5 : 1,
+          }}>
+            <Shuffle size={18} className={shuffling ? "spin-icon" : undefined} /> Verras me
+          </button>
+        </div>
+      )}
+
+      <div style={{ position: "relative", marginBottom: 22 }}>
         <Search size={15} color={MUTED} style={{ position: "absolute", left: 12, top: 12 }} />
         <input value={query} onChange={e => { setQuery(e.target.value); if (e.target.value.trim() && view !== "alle") setView("alle"); }} placeholder="Zoek op naam of familie…"
           enterKeyHint="search" autoCapitalize="words"
-          style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: RADIUS, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans }} />
+          style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans }} />
       </div>
-      {view === "alle" && (
-        <button onClick={() => { setView("ontdekken"); setQuery(""); setFamilyFilter(""); setGlassFilter(""); setSpiritFilter(""); setOpenId(null); }} style={{
-          display: "flex", alignItems: "center", gap: 3, background: "none", border: "none", padding: "4px 0", marginBottom: 16,
-          color: BRASS, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
-        }}>
-          <ChevronLeft size={16} strokeWidth={2.4} /> Terug naar wat je kunt maken
-        </button>
-      )}
 
       {view === "ontdekken" && (
         <div>
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
-              <SectionLabel>{`Kun je nu maken${makeableAll.length > 0 ? ` (${makeableAll.length})` : ""}`}</SectionLabel>
-              {makeableAll.length > 0 && (
-                <button onClick={verrasMe} disabled={shuffling} className="press-scale" style={{
-                  display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${BORDER}`, borderRadius: 100,
-                  padding: "5px 11px", color: BOTTLE, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: shuffling ? "default" : "pointer", flexShrink: 0,
-                }}>
-                  <Shuffle size={13} className={shuffling ? "spin-icon" : undefined} /> Verras me
-                </button>
-              )}
+          <div style={{ marginBottom: 26 }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <SectionLabel>Nu te maken</SectionLabel>
+              <button onClick={openList} style={linkBtn}>Alles bekijken</button>
             </div>
-            {makeableAll.length === 0 && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "16px 16px", fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>
-                Nog geen cocktail compleet. Vink onder <strong style={{ color: INK }}>Bar → Voorraad</strong> aan wat je in huis hebt, dan verschijnt hier wat je kunt maken.
+            {makeableAll.length === 0 ? (
+              <div style={{ background: CREAM, border: `1px dashed ${BORDER}`, borderRadius: 14, padding: "16px", fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>
+                Nog geen cocktail compleet. Vul je voorraad aan onder <strong style={{ color: INK }}>Bar</strong>, of kijk hieronder wat je bijna kunt maken.
               </div>
-            )}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: 12 }}>
-
-              {uitgelichtShown.map(({ recipe }) => (
-                <button key={recipe.id} onClick={() => setSheetRecipeId(recipe.id)} style={{
-                  background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD,
-                  padding: "12px 10px 10px", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", cursor: "pointer",
-                }}>
-                  <span style={{
-                    position: "absolute", top: 8, right: 8, width: 20, height: 20, borderRadius: "50%", background: SAGE,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}><Check size={11} strokeWidth={3} color={CREAM} /></span>
-                  <div style={{ marginBottom: 8 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} /></div>
-                  <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13.5, color: INK, textAlign: "center", lineHeight: 1.25 }}>{recipe.name}</div>
-                  <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>{recipe.family}</div>
-                </button>
-              ))}
-            </div>
-            {makeableAll.length > UITGELICHT_CAP && (
-              <button onClick={() => setUitgelichtExpanded(v => !v)} style={{
-                width: "100%", marginTop: 10, padding: "9px", borderRadius: RADIUS, border: `1px dashed ${BRASS}`,
-                background: "none", color: BRASS, fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-              }}>{uitgelichtExpanded ? "Toon minder" : `Toon ${makeableAll.length - UITGELICHT_CAP} meer`}</button>
+            ) : (
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", marginLeft: -20, marginRight: -20, padding: "0 20px 6px", scrollPaddingLeft: 20, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+                {makeableAll.slice(0, NU_CAP).map(({ recipe }) => (
+                  <button key={recipe.id} onClick={() => setSheetRecipeId(recipe.id)} className="press-scale" style={{
+                    width: 140, flexShrink: 0, scrollSnapAlign: "start", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontFamily: sans,
+                  }}>
+                    <div style={{ borderRadius: 14, overflow: "hidden", boxShadow: SHADOW_CARD, marginBottom: 8 }}>
+                      <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={140} radius={14} />
+                    </div>
+                    <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15.5, color: INK, lineHeight: 1.25 }}>{recipe.name}</div>
+                    <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{recipe.family}</div>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
           {bijnaAll.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-                <SectionLabel>Bijna compleet</SectionLabel>
-                <span style={{ fontSize: 12, color: MUTED }}>mist 1 ingrediënt</span>
+            <div style={{ marginBottom: 26 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                <SectionLabel>Nog één fles nodig</SectionLabel>
+                {bijnaAll.length > BIJNA_CAP && (
+                  <button onClick={() => setBijnaExpanded(v => !v)} style={linkBtn}>{bijnaExpanded ? "Toon minder" : `Alle ${bijnaAll.length}`}</button>
+                )}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: 12 }}>
-                {bijnaShown.map(({ recipe, missing }) => (
-                  <button key={recipe.id} onClick={() => setSheetRecipeId(recipe.id)} style={{
-                    background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD,
-                    padding: "12px 10px 10px", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", cursor: "pointer",
-                  }}>
-                    <span style={{
-                      position: "absolute", top: 8, right: 8, width: 20, height: 20, borderRadius: "50%", background: BRASS,
-                      color: CREAM, fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>1</span>
-                    <div style={{ marginBottom: 8 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} /></div>
-                    <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13.5, color: INK, textAlign: "center", lineHeight: 1.25 }}>{recipe.name}</div>
-                    <div style={{ fontSize: 10.5, color: BURGUNDY, marginTop: 2, fontWeight: 600 }}>mist: {ingredientLabel(missing[0])}</div>
-                  </button>
-                ))}
-              </div>
-              {bijnaAll.length > BIJNA_CAP && (
-                <button onClick={() => setBijnaExpanded(v => !v)} style={{
-                  width: "100%", marginTop: 10, padding: "9px", borderRadius: RADIUS, border: `1px dashed ${BRASS}`,
-                  background: "none", color: BRASS, fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-                }}>{bijnaExpanded ? "Toon minder" : `Toon ${bijnaAll.length - BIJNA_CAP} meer`}</button>
-              )}
-            </div>
-          )}
-
-          {(bySpirit.length > 0 || byFamily.length > 0) && (
-            <div style={{ marginBottom: 4 }}>
-              <SectionLabel>Bladeren</SectionLabel>
-              {[["Op basisdrank", bySpirit], ["Op stijl", byFamily]].filter(([, groups]) => groups.length > 0).map(([title, groups]) => (
-                <div key={title} style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, color: MUTED, fontWeight: 600, marginBottom: 7 }}>{title}</div>
-                  <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, scrollbarWidth: "none" }}>
-                    {groups.map(({ label, entries }) => (
-                      <button key={label} onClick={() => setBrowseGroup({ label, entries })} className="press-scale" style={{
-                        flexShrink: 0, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "7px 13px",
-                        fontFamily: sans, fontSize: 13, fontWeight: 700, color: INK, cursor: "pointer", whiteSpace: "nowrap",
+              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>
+                {bijnaShown.map(({ recipe, missing }, i) => {
+                  const done = addedIds.has(recipe.id);
+                  return (
+                    <div key={recipe.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderTop: i === 0 ? "none" : `1px solid ${PAPER_DEEP}` }}>
+                      <button onClick={() => setSheetRecipeId(recipe.id)} style={{
+                        flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontFamily: sans,
                       }}>
-                        {label} <span style={{ color: MUTED, fontWeight: 500 }}>{entries.length}</span>
+                        <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={50} radius={12} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 15.5, fontWeight: 600, color: INK }}>{recipe.name}</div>
+                          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Mist: <span style={{ color: BURGUNDY, fontWeight: 600 }}>{ingredientLabel(missing[0])}</span></div>
+                        </div>
                       </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                      <button aria-label={done ? `${ingredientLabel(missing[0])} staat op je boodschappenlijst` : `${ingredientLabel(missing[0])} op boodschappenlijst`} className="tap-target-44"
+                        onClick={() => !done && addMissing(recipe.id, [{ ref: missing[0], recipeNames: [recipe.name] }])} style={roundBtn(done)}>
+                        {done ? <Check size={17} strokeWidth={3} /> : <Plus size={18} />}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {koopadviesAll.length > 0 && (
-            <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16, marginTop: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-                <Lightbulb size={15} color={BRASS} />
-                <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Koopadvies</span>
+            <div style={{ background: PAPER_DEEP, borderRadius: 16, padding: "16px 16px 8px", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Slim inkopen</span>
+                {koopadviesAll.length > 3 && (
+                  <button onClick={() => setKoopadviesExpanded(v => !v)} style={{ ...linkBtn, fontSize: 13 }}>{koopadviesExpanded ? "Toon minder" : `Alle ${koopadviesAll.length}`}</button>
+                )}
               </div>
-              <div key={koopadviesExpanded ? "expanded" : "collapsed"} className="accordion-reveal">
-                {koopadvies.map(item => (
-                  <div key={item.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderTop: `1px dotted ${BORDER}` }}>
-                    <div style={{ fontSize: 13.5, color: INK }}>
-                      Koop <strong>{item.label}</strong> en ontgrendel <strong>{item.recipeNames.length} cocktails</strong>
-                      <span style={{ color: MUTED }}>
-                        : {koopadviesExpanded ? item.recipeNames.join(", ") : item.recipeNames.slice(0, 3).join(", ")}
-                        {!koopadviesExpanded && item.recipeNames.length > 3 ? ", …" : ""}
-                      </span>
+              {koopadvies.map((item, i) => {
+                const done = addedIds.has(`koop:${item.key}`);
+                return (
+                  <div key={item.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: INK }}>Koop {item.label}</div>
+                      <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>
+                        Dan kun je er {item.recipeNames.length} cocktails bij maken: {item.recipeNames.slice(0, 3).join(", ")}{item.recipeNames.length > 3 ? ", …" : ""}
+                      </div>
                     </div>
+                    <button aria-label={done ? `${item.label} staat op je boodschappenlijst` : `${item.label} op boodschappenlijst`} className="tap-target-44"
+                      onClick={() => !done && addMissing(`koop:${item.key}`, [{ ref: item.ref, recipeNames: item.recipeNames }])}
+                      style={{ ...roundBtn(done), background: done ? SAGE : BOTTLE, border: "none", color: "#FBF6EA" }}>
+                      {done ? <Check size={17} strokeWidth={3} /> : <ShoppingCart size={17} />}
+                    </button>
                   </div>
-                ))}
-              </div>
-              {koopadviesAll.length > 4 && (
-                <button onClick={() => setKoopadviesExpanded(v => !v)} style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5, width: "100%",
-                  background: "none", border: "none", borderTop: `1px dotted ${BORDER}`, color: BRASS,
-                  fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "9px 0 0", marginTop: 3,
-                }}>
-                  {koopadviesExpanded
-                    ? <>Toon minder <ChevronUp size={13} /></>
-                    : <>Bekijk alle {koopadviesAll.length} koopadviezen <ChevronDown size={13} /></>}
-                </button>
-              )}
+                );
+              })}
             </div>
           )}
-          <button onClick={() => setView("alle")} style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 4, width: "100%", marginTop: 20,
-            background: "none", border: "none", padding: "10px 0", color: BRASS, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
-          }}>
-            Zoeken met filters (familie, glas, drank) <ChevronRight size={15} strokeWidth={2.4} />
-          </button>
         </div>
       )}
 
@@ -5449,11 +5337,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
           onClose={() => setSheetRecipeId(null)} onSound={onSound}
           onOpenFullRecipe={onOpenRecipe} onAddToFeest={onAddToFeest} feestChosen={feestChosen} />
       )}
-      {browseGroup && (
-        <BrowseSheet label={browseGroup.label} entries={browseGroup.entries} allIngredients={allIngredients}
-          onSelect={(id) => { setBrowseGroup(null); setSheetRecipeId(id); }} onClose={() => setBrowseGroup(null)} />
-      )}
-    </div>
+    </SecondaryTabScreen>
   );
 }
 
