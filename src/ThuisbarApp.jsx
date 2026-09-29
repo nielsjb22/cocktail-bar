@@ -2248,10 +2248,25 @@ export default function ThuisbarApp() {
   useEffect(() => {
     if (!session) { setProfile(null); return; }
     let cancelled = false;
-    supabase.from("profiles").select("id, name, avatar_url").eq("id", session.user.id).single()
+    supabase.from("profiles").select("*").eq("id", session.user.id).single()
       .then(({ data }) => { if (!cancelled) setProfile(data || null); });
     return () => { cancelled = true; };
   }, [session]);
+
+  // Cursus uitgespeeld → eenmalig op je profiel zetten, zodat vrienden het
+  // diploma ook zien. Faalt stil als de kolommen (migratie) nog ontbreken;
+  // je eigen profiel toont het diploma dan toch, op basis van lokale voortgang.
+  const courseMastery = useMemo(() => computeCourseMastery(courseProgress), [courseProgress]);
+  useEffect(() => {
+    if (!session || !profile || !courseMastery || profile.course_completed_at) return;
+    supabase.from("profiles")
+      .update({ course_completed_at: new Date().toISOString(), course_exam_score: courseMastery.scorePct })
+      .eq("id", session.user.id).select().single()
+      .then(({ data, error }) => { if (!error && data) setProfile(data); });
+  }, [session, profile, courseMastery]);
+  const courseDiploma = profile?.course_completed_at
+    ? { date: profile.course_completed_at, scorePct: profile.course_exam_score ?? courseMastery?.scorePct }
+    : (courseMastery ? { date: null, scorePct: courseMastery.scorePct } : null);
 
   const reloadLogboek = async () => {
     if (!session) return;
@@ -2552,7 +2567,7 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
           <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
-            onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto}
+            onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma}
             onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} />
         </TabPanel>
 
@@ -3087,7 +3102,7 @@ function useFriendsFeed(session, active) {
         const rows = data || [];
         const friendIds = [...new Set(rows.map(f => (f.requester_id === myId ? f.addressee_id : f.requester_id)))];
         if (friendIds.length === 0) { setFeed([]); setFriendProfiles({}); return; }
-        const { data: profs } = await supabase.from("profiles").select("id, name, avatar_url").in("id", friendIds);
+        const { data: profs } = await supabase.from("profiles").select("*").in("id", friendIds);
         if (cancelled) return;
         const map = {};
         (profs || []).forEach(p => { map[p.id] = p; });
@@ -6272,6 +6287,16 @@ function CursusTab({ progress, setProgress, onSound }) {
   const allLessonsDone = completedCount === totalLessons;
   const examProgress = progress.eindtoets;
   const courseInsights = useMemo(() => computeCourseInsights(progress), [progress]);
+  const unlockedParts = useMemo(() => computeUnlockedParts(progress), [progress]);
+  const isLessonOpen = (l) => !!l && (unlockedParts.has(l.part) || !!progress[l.id]?.completed);
+  // Moment van uitspelen (alle lessen + eindtoets gehaald): één keer vieren.
+  const mastery = computeCourseMastery(progress);
+  const prevMasteredRef = useRef(!!mastery);
+  const [showDiplomaCelebration, setShowDiplomaCelebration] = useState(false);
+  useEffect(() => {
+    if (mastery && !prevMasteredRef.current) { setShowDiplomaCelebration(true); setTimeout(() => onSound("levelup"), 300); }
+    prevMasteredRef.current = !!mastery;
+  }, [!!mastery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Zelfde fanfare-op-echte-mijlpaal-truc als bij Check-in: alleen geluid als
   // het niveau of een badge daadwerkelijk verandert door het net afronden van
@@ -6301,23 +6326,33 @@ function CursusTab({ progress, setProgress, onSound }) {
     setTimeout(() => setJustCompleted(false), 3000);
   };
 
+  const diplomaCelebration = showDiplomaCelebration && (
+    <ConfirmDialog title="🎓 Gefeliciteerd, je bent gediplomeerd!"
+      message={`Je hebt alle ${totalLessons} lessen en de eindtoets gehaald. Je diploma "Gediplomeerd thuisbartender" staat nu op je profiel, en je vrienden zien het ook.`}
+      confirmLabel="Proost!" confirmColor={BOTTLE} cancelLabel="Sluiten"
+      onCancel={() => setShowDiplomaCelebration(false)} onConfirm={() => setShowDiplomaCelebration(false)} />
+  );
+
   if (examOpen) {
-    return (
+    return (<>
+      {diplomaCelebration}
       <FinalExamView progress={examProgress} onBack={() => setExamOpen(false)}
         onComplete={(score, total) => complete("eindtoets", score, total)} />
-    );
+    </>);
   }
 
   if (lesson) {
     const lessonIndex = COURSE_LESSONS.findIndex(l => l.id === lesson.id);
-    const nextLesson = COURSE_LESSONS[lessonIndex + 1] || null;
+    // "Volgende les" alleen als die al open is (volgend deel pas na afronden).
+    const nextCandidate = COURSE_LESSONS[lessonIndex + 1] || null;
+    const nextLesson = isLessonOpen(nextCandidate) ? nextCandidate : null;
     return (
       <LessonView key={lesson.id} lesson={lesson} progress={progress[lesson.id]}
         onBack={() => setSelectedId(null)}
         onComplete={(score, total) => complete(lesson.id, score, total)}
         nextLesson={nextLesson}
-        onGoToLesson={setSelectedId}
-        onGoToExam={() => { setSelectedId(null); setExamOpen(true); }} />
+        onGoToLesson={(id) => { if (isLessonOpen(COURSE_LESSONS.find(l => l.id === id))) setSelectedId(id); }}
+        onGoToExam={() => { if (!allLessonsDone) return; setSelectedId(null); setExamOpen(true); }} />
     );
   }
 
@@ -6396,18 +6431,27 @@ function CursusTab({ progress, setProgress, onSound }) {
         </div>
       </div>
 
-      {COURSE_PARTS.map(part => {
+      {COURSE_PARTS.map((part, partIndex) => {
         const lessons = COURSE_LESSONS.filter(l => l.part === part.id);
+        const partOpen = unlockedParts.has(part.id);
+        const prevPart = COURSE_PARTS[partIndex - 1];
         return (
           <div key={part.id} style={{ marginBottom: 26 }}>
             <SectionLabel>{part.subtitle} &middot; {part.title}</SectionLabel>
+            {!partOpen && prevPart && (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: MUTED, margin: "-4px 0 10px" }}>
+                <Lock size={13} /> Rond eerst {prevPart.subtitle} ({prevPart.title}) af
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {lessons.map(l => {
               const p = progress[l.id];
+              const open = isLessonOpen(l);
               return (
-                <button key={l.id} onClick={() => setSelectedId(l.id)} style={{
+                <button key={l.id} onClick={() => open && setSelectedId(l.id)} disabled={!open} aria-label={open ? undefined : `${l.title} (vergrendeld)`} style={{
                   width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left",
-                  background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, cursor: "pointer", padding: "12px 14px", boxSizing: "border-box",
+                  background: open ? CREAM : PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: open ? SHADOW_CARD : "none",
+                  cursor: open ? "pointer" : "default", padding: "12px 14px", boxSizing: "border-box", opacity: open ? 1 : 0.6,
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                     <LessonArt lesson={l} />
@@ -6415,14 +6459,14 @@ function CursusTab({ progress, setProgress, onSound }) {
                       width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                       background: p?.completed ? SAGE : "transparent", border: `1.5px solid ${p?.completed ? SAGE : BORDER}`,
                     }}>
-                      {p?.completed ? <Check size={14} color="#FBF6EA" strokeWidth={3} /> : <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, fontFamily: systemFont }}>{l.number}</span>}
+                      {p?.completed ? <Check size={14} color="#FBF6EA" strokeWidth={3} /> : !open ? <Lock size={13} color={MUTED} strokeWidth={2.4} /> : <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, fontFamily: systemFont }}>{l.number}</span>}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontFamily: systemFont, fontWeight: 700, color: INK, fontSize: 15.5 }}>{l.title}</div>
                       {p && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>Beste score: {p.bestScore}/{p.total}</div>}
                     </div>
                   </div>
-                  <ChevronDown size={16} color={MUTED} style={{ transform: "rotate(-90deg)", flexShrink: 0 }} />
+                  {open ? <ChevronDown size={16} color={MUTED} style={{ transform: "rotate(-90deg)", flexShrink: 0 }} /> : <Lock size={15} color={MUTED} style={{ flexShrink: 0 }} />}
                 </button>
               );
             })}
@@ -6442,13 +6486,14 @@ function CursusTab({ progress, setProgress, onSound }) {
           </div>
           <h3 style={{ fontFamily: systemFont, fontSize: 21, fontWeight: 700, color: CREAM, margin: "0 0 8px" }}>Eindtoets: Van Basis tot Pro</h3>
           <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.9)", margin: "0 0 16px", lineHeight: 1.5, maxWidth: 480 }}>
-            30 vragen door elkaar over alle zes delen. {examProgress?.completed ? `Beste score: ${examProgress.bestScore}/${examProgress.total}.` : "Mag altijd, ook als je nog niet alle lessen hebt afgerond."}
+            30 vragen door elkaar over alle zes delen. {examProgress?.completed ? `Beste score: ${examProgress.bestScore}/${examProgress.total}.` : allLessonsDone ? "Haal minstens 70% en je krijgt je diploma op je profiel." : "Gaat open zodra je alle zes delen hebt afgerond."}
           </p>
-          <button onClick={() => setExamOpen(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: CREAM, color: BOTTLE, border: "none", borderRadius: RADIUS, padding: "10px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
-            <GraduationCap size={15} /> {examProgress?.completed ? "Opnieuw proberen" : "Start de eindtoets"}
+          <button onClick={() => allLessonsDone && setExamOpen(true)} disabled={!allLessonsDone} style={{ opacity: allLessonsDone ? 1 : 0.55, cursor: allLessonsDone ? "pointer" : "default", display: "flex", alignItems: "center", gap: 6, background: CREAM, color: BOTTLE, border: "none", borderRadius: RADIUS, padding: "10px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+            {allLessonsDone ? <GraduationCap size={15} /> : <Lock size={14} />} {examProgress?.completed ? "Opnieuw proberen" : "Start de eindtoets"}
           </button>
         </div>
       </div>
+      {diplomaCelebration}
     </div>
   );
 }
@@ -8445,6 +8490,59 @@ const COURSE_BADGE_DEFS = [
   { id: "eindtoets-gehaald", emoji: "🎓", label: "Geslaagd", text: "De eindtoets gehaald met minstens 70%." },
   { id: "perfecte-score", emoji: "💯", label: "Perfecte Score", text: "De eindtoets met een perfecte score afgerond." },
 ];
+// Deel N gaat pas open als alle lessen van de delen ervóór af zijn. Een les
+// die je al eerder afrondde blijft altijd te openen (oude voortgang).
+function computeUnlockedParts(progress) {
+  const unlocked = new Set();
+  for (const part of COURSE_PARTS) {
+    unlocked.add(part.id);
+    const done = COURSE_LESSONS.filter(l => l.part === part.id).every(l => progress[l.id]?.completed);
+    if (!done) break;
+  }
+  return unlocked;
+}
+// "Uitgespeeld" = alle lessen af én de eindtoets gehaald (≥ 70%).
+function computeCourseMastery(progress) {
+  const allLessons = COURSE_LESSONS.every(l => progress?.[l.id]?.completed);
+  const exam = progress?.eindtoets;
+  const passed = !!(exam?.completed && exam.bestScore / exam.total >= 0.7);
+  return allLessons && passed ? { scorePct: Math.round((exam.bestScore / exam.total) * 100) } : null;
+}
+
+// Beloning voor het uitspelen van de cursus: een diploma op je profiel, dat
+// je vrienden ook zien (profiles.course_completed_at). compact = het kleine
+// label naast je naam; anders de volledige diploma-kaart.
+function CourseDiploma({ date, scorePct, compact, isOwn = true }) {
+  if (compact) {
+    return (
+      <span style={{
+        display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: "#8F6A21",
+        background: "rgba(184,134,46,0.14)", border: "1px solid rgba(184,134,46,0.35)", borderRadius: 100, padding: "2px 8px", whiteSpace: "nowrap",
+      }}>🎓 Gediplomeerd</span>
+    );
+  }
+  const when = date ? new Date(date).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) : null;
+  return (
+    <div style={{
+      position: "relative", overflow: "hidden", borderRadius: 16, padding: "16px 18px", marginBottom: 18,
+      background: `radial-gradient(ellipse 140% 120% at 20% 0%, #2A4B42, ${BOTTLE_DARK} 75%)`, color: CREAM,
+      border: `1.5px solid ${BRASS}`, boxShadow: SHADOW_CARD,
+    }}>
+      <GraduationCap size={120} color={BRASS} strokeWidth={1} style={{ position: "absolute", right: -18, top: -16, opacity: 0.12 }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", border: "1.5px solid rgba(221,184,119,0.7)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>🎓</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: "#DDB877" }}>Diploma</div>
+          <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 18, lineHeight: 1.2, marginTop: 2 }}>Gediplomeerd thuisbartender</div>
+          <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 4, lineHeight: 1.4 }}>
+            {isOwn ? "Je hebt" : "Heeft"} de cursus "Van Basis tot Pro" uitgespeeld{scorePct ? ` · eindtoets ${scorePct}%` : ""}{when ? ` · ${when}` : ""}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function computeCourseInsights(progress) {
   const completedLessons = COURSE_LESSONS.filter(l => progress[l.id]?.completed);
   const examProgress = progress.eindtoets;
@@ -8979,7 +9077,7 @@ function MapFullscreenSheet({ locations, coords, onClose }) {
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active }) {
+function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -9202,9 +9300,14 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               </button>
             </div>
           )}
-          <div style={{ fontSize: 17, fontWeight: 500, color: BRASS, marginTop: 2 }}>{insights.level.title}</div>
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 2 }}>
+            <span style={{ fontSize: 17, fontWeight: 500, color: BRASS }}>{insights.level.title}</span>
+            {courseDiploma && <CourseDiploma compact />}
+          </div>
         </div>
       </div>
+
+      {courseDiploma && <CourseDiploma date={courseDiploma.date} scorePct={courseDiploma.scorePct} />}
 
       {stats.total > 0 && (
         <>
@@ -9800,7 +9903,10 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
         <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
           <Avatar name={name} photo={friendProfile?.avatar_url} size={44} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK }}>{name}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK }}>{name}</span>
+              {friendProfile?.course_completed_at && <CourseDiploma compact />}
+            </div>
             {insights && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{insights.level.title} · niveau {insights.level.level}</div>}
           </div>
           <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
@@ -9826,6 +9932,9 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "18px 20px" }}>
+          {friendProfile?.course_completed_at && (
+            <CourseDiploma date={friendProfile.course_completed_at} scorePct={friendProfile.course_exam_score} isOwn={false} />
+          )}
           {!logboek ? (
             <p style={{ color: MUTED, fontSize: 13.5, textAlign: "center", padding: "40px 0" }}>Bezig met laden…</p>
           ) : logboek.length === 0 ? (
@@ -9992,7 +10101,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
     setFriendships(rows);
     const otherIds = [...new Set(rows.map(f => (f.requester_id === myId ? f.addressee_id : f.requester_id)))];
     if (otherIds.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("id, name, avatar_url").in("id", otherIds);
+      const { data: profs } = await supabase.from("profiles").select("*").in("id", otherIds);
       const map = {};
       (profs || []).forEach(p => { map[p.id] = p; });
       setProfilesById(map);
@@ -10134,7 +10243,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
               <div style={{ ...rowStyle, background: CREAM, borderBottom: i < accepted.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                 <button onClick={() => setOpenFriendId(otherId)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
                   <Avatar name={profilesById[otherId]?.name} photo={profilesById[otherId]?.avatar_url} size={32} />
-                  <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: INK }}>{profilesById[otherId]?.name || "…"}</span>
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: INK }}>{profilesById[otherId]?.name || "…"}{profilesById[otherId]?.course_completed_at ? " 🎓" : ""}</span>
                 </button>
                 <button onClick={() => removeFriendship(f.id)} disabled={busyId === f.id} className="press-scale tap-target-44" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", flexShrink: 0 }}>
                   <Trash2 size={15} color={MUTED} />
