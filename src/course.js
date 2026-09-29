@@ -22,7 +22,6 @@ export const COURSE_LESSONS = [
     part: "fundamenten",
     number: 1,
     title: "De geschiedenis van de cocktail",
-    image: "https://images.unsplash.com/photo-1779372178719-9476cc86a53d?auto=format&fit=crop&w=1200&q=80",
     intro: "Elke cocktail die je ooit zult maken staat in een lijn die terugloopt tot scheepsartsen, apothekers en barmannen die problemen oplosten, niet tot mensen die simpelweg lekkere drankjes wilden bedenken.",
     blocks: [
       { type: "h3", text: "Vóór de cocktail: punch en medicinale mengsels" },
@@ -54,7 +53,6 @@ export const COURSE_LESSONS = [
     part: "fundamenten",
     number: 2,
     title: "De bar-uitrusting: jouw gereedschapskist",
-    image: "https://images.unsplash.com/photo-1611266353853-d370b67187ed?auto=format&fit=crop&w=1200&q=80",
     intro: "Je hebt geen dure barwagen nodig om goed te beginnen, maar met de verkeerde tools kost elke stap onnodig veel moeite. Dit is de uitrusting die er echt toe doet.",
     blocks: [
       { type: "h3", text: "De shaker: drie families, één doel" },
@@ -84,7 +82,6 @@ export const COURSE_LESSONS = [
     part: "fundamenten",
     number: 3,
     title: "Glaswerk: de juiste vorm voor het juiste doel",
-    image: "https://images.unsplash.com/photo-1514651029128-173d2e6ea851?auto=format&fit=crop&w=1200&q=80",
     intro: "Een glas is geen decoratie: de vorm bepaalt hoe snel een drank opwarmt, hoe aroma je neus bereikt, en hoeveel ijs er logisch in past.",
     blocks: [
       { type: "h3", text: "De coupe en Nick & Nora" },
@@ -117,7 +114,6 @@ export const COURSE_LESSONS = [
     part: "fundamenten",
     number: 4,
     title: "IJs: de onderschatte hoofdingrediënt",
-    image: "https://images.unsplash.com/photo-1612924693632-b55d751457c6?auto=format&fit=crop&w=1200&q=80",
     intro: "Beginnende thuisbartenders behandelen ijs als bijzaak. Professionals behandelen het als een ingrediënt met een eigen receptuur.",
     blocks: [
       { type: "h3", text: "Waarom verdunning geen fout is" },
@@ -146,7 +142,6 @@ export const COURSE_LESSONS = [
     part: "ingredienten",
     number: 5,
     title: "Gedistilleerde dranken: de basis van elke cocktail",
-    image: "https://images.unsplash.com/photo-1779080415834-c13f4c682dc8?auto=format&fit=crop&w=1200&q=80",
     intro: "Vrijwel elke cocktail heeft een basisspirit. Ken je de hoofdcategorieën, dan kun je bij elk nieuw recept meteen inschatten wat je gaat proeven.",
     blocks: [
       { type: "h3", text: "Hoe distilleren werkt" },
@@ -182,7 +177,6 @@ export const COURSE_LESSONS = [
     part: "ingredienten",
     number: 6,
     title: "Versterkte wijnen, likeuren en bitters",
-    image: "https://images.unsplash.com/photo-1525268323446-0505b6fe7778?auto=format&fit=crop&w=1200&q=80",
     intro: "Als sterkedrank de ruggengraat van een cocktail is, zijn deze drie categorieën het zenuwstelsel: ze sturen de smaak subtiel bij en voegen complexiteit toe.",
     blocks: [
       { type: "h3", text: "Vermout: de meest onderschatte fles in huis" },
@@ -210,7 +204,6 @@ export const COURSE_LESSONS = [
     part: "ingredienten",
     number: 7,
     title: "Vers: citrus, siropen en zuivel",
-    image: "https://images.unsplash.com/photo-1546548970-71785318a17b?auto=format&fit=crop&w=1200&q=80",
     intro: "Dit zijn de ingrediënten die je zelf het meest controleert, en waar de meeste winst te behalen valt tussen een matige en een uitstekende cocktail.",
     blocks: [
       { type: "h3", text: "Citrus: altijd vers, altijd op tijd geperst" },
@@ -238,7 +231,6 @@ export const COURSE_LESSONS = [
     part: "ingredienten",
     number: 8,
     title: "Garnering: functie boven decoratie",
-    image: "https://images.unsplash.com/photo-1624654434984-cdb7d6b1b4b1?auto=format&fit=crop&w=1200&q=80",
     intro: "Een garnering die alleen maar mooi oogt maar niets aan smaak of aroma toevoegt, is een gemiste kans. De beste garneringen doen minstens één functioneel ding.",
     blocks: [
       { type: "h3", text: "De citrustwist: aroma, geen smaak" },
@@ -267,7 +259,6 @@ export const COURSE_LESSONS = [
     part: "techniek",
     number: 9,
     title: "De zes basistechnieken",
-    image: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=1200&q=80",
     intro: "Elke cocktail ter wereld wordt gemaakt met een combinatie van een handvol basistechnieken. Beheers deze zes, en je kunt in principe elk recept uitvoeren.",
     blocks: [
       { type: "h3", text: "Shaken en dry shake" },
@@ -305,7 +296,6 @@ export const COURSE_LESSONS = [
     part: "techniek",
     number: 10,
     title: "De wetenschap van verdunning en temperatuur",
-    image: "https://images.unsplash.com/photo-1588867702719-969c8ac733d6?auto=format&fit=crop&w=1200&q=80",
     intro: "Waarom smaakt dezelfde cocktail soms anders, ook al gebruik je exact dezelfde ingrediënten? Het antwoord zit bijna altijd in verdunning en temperatuur.",
     blocks: [
       { type: "h3", text: "De drie variabelen die je controleert" },
@@ -333,7 +323,6 @@ export const COURSE_LESSONS = [
     part: "techniek",
     number: 11,
     title: "De sour-formule: zoet, zuur en sterk in balans",
-    image: "https://images.unsplash.com/photo-1638884890569-b9af6dd7bbd8?auto=format&fit=crop&w=1200&q=80",
     intro: "Vrijwel elke \"sour\"-stijl cocktail volgt exact dezelfde onderliggende wiskunde. Begrijp deze formule, en je kunt oneindig veel varianten zelf bedenken.",
     blocks: [
       { type: "h3", text: "De klassieke verhouding" },
@@ -365,7 +354,6 @@ export const COURSE_LESSONS = [
     part: "techniek",
     number: 12,
     title: "Dubbel zeven, laagjes en andere finesse",
-    image: "https://images.unsplash.com/photo-1779635593603-08d49c2bf83e?auto=format&fit=crop&w=1200&q=80",
     intro: "Dit zijn de technieken die het verschil maken tussen \"correct volgens recept\" en \"professioneel afgewerkt\".",
     blocks: [
       { type: "h3", text: "Dubbel zeven en de drijflaag" },
@@ -394,7 +382,6 @@ export const COURSE_LESSONS = [
     part: "smaak",
     number: 13,
     title: "De negen cocktailfamilies",
-    image: "https://images.unsplash.com/photo-1560179304-6fc1d8749b23?auto=format&fit=crop&w=1200&q=80",
     intro: "In plaats van honderden losse recepten te onthouden, leer je negen families herkennen. Elke cocktail past vrijwel altijd in (of combineert elementen van) een van deze categorieën.",
     blocks: [
       { type: "h3", text: "De negen families" },
@@ -418,7 +405,6 @@ export const COURSE_LESSONS = [
     part: "smaak",
     number: 14,
     title: "Smaakcombinatie: hoe klassiekers zijn opgebouwd",
-    image: "https://images.unsplash.com/photo-1671713682264-ecf27750b276?auto=format&fit=crop&w=1200&q=80",
     intro: "Waarom werkt gin met citrus, campari met sinaasappel, mezcal met ananas? Dit hoofdstuk legt de onderliggende principes bloot.",
     blocks: [
       { type: "h3", text: "Complementair versus contrasterend" },
@@ -445,7 +431,6 @@ export const COURSE_LESSONS = [
     part: "smaak",
     number: 15,
     title: "Zelf een cocktail ontwerpen: de bouwstenen-methode",
-    image: "https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?auto=format&fit=crop&w=1200&q=80",
     intro: "Dit is het moment waarop je van \"recepten volgen\" naar \"recepten bedenken\" gaat: een gestructureerde methode, geen willekeurig experimenteren.",
     blocks: [
       { type: "h3", text: "Stap 1 & 2: familie en basisspirit" },
@@ -473,7 +458,6 @@ export const COURSE_LESSONS = [
     part: "smaak",
     number: 16,
     title: "Een menu samenstellen als een pro",
-    image: "https://images.unsplash.com/photo-1772311698901-fe3fa07141be?auto=format&fit=crop&w=1200&q=80",
     intro: "Eén goede cocktail maken is één vaardigheid; een compleet, uitgebalanceerd menu voor gasten samenstellen is een andere.",
     blocks: [
       { type: "h3", text: "De smaakmatrix: vier hoeken plus één" },
@@ -501,7 +485,6 @@ export const COURSE_LESSONS = [
     part: "vak",
     number: 17,
     title: "Mise en place: voorbereiding is alles",
-    image: "https://images.unsplash.com/photo-1590080876351-941da357bde6?auto=format&fit=crop&w=1200&q=80",
     intro: "\"Mise en place\", Frans voor \"alles op zijn plek\", is een keukentraditie die professionele bars één op één hebben overgenomen.",
     blocks: [
       { type: "h3", text: "Wat hoort er bij bar-mise en place?" },
@@ -529,7 +512,6 @@ export const COURSE_LESSONS = [
     part: "vak",
     number: 18,
     title: "Batchen en grote groepen bedienen",
-    image: "https://images.unsplash.com/photo-1690983322317-c0437262f0cb?auto=format&fit=crop&w=1200&q=80",
     intro: "Zodra je voor meer dan een handvol gasten schenkt, verandert de opgave: je maakt niet langer één cocktail perfect, je maakt tientallen cocktails consistent.",
     blocks: [
       { type: "h3", text: "Wat batchen wél en niet oplost" },
@@ -557,7 +539,6 @@ export const COURSE_LESSONS = [
     part: "vak",
     number: 19,
     title: "Gastvrijheid: het onzichtbare ingrediënt",
-    image: "https://images.unsplash.com/photo-1574071318537-1c5c7f4b570d?auto=format&fit=crop&w=1200&q=80",
     intro: "De beste bartenders ter wereld worden niet alleen geroemd om technische vaardigheid, maar om hoe ze gasten laten voelen.",
     blocks: [
       { type: "h3", text: "Vragen stellen en het verhaal vertellen" },
@@ -584,7 +565,6 @@ export const COURSE_LESSONS = [
     part: "vak",
     number: 20,
     title: "Je eigen signature cocktail",
-    image: "https://images.unsplash.com/photo-1614285344553-fbb89a8e68ea?auto=format&fit=crop&w=1200&q=80",
     intro: "De laatste les is geen nieuwe theorie, maar een opdracht: alles wat je hebt geleerd samenbrengen in één cocktail die echt van jou is.",
     blocks: [
       { type: "h3", text: "Stap 1 & 2: verhaal en basisspirit" },
@@ -616,7 +596,6 @@ export const COURSE_LESSONS = [
     part: "geavanceerd",
     number: 21,
     title: "Infusies: zelf smaken maken",
-    image: "https://images.unsplash.com/photo-1591704951890-0862b2e98acb?auto=format&fit=crop&w=1200&q=80",
     intro: "Een infusie is de simpelste manier om een smaak te maken die je nergens kant-en-klaar kunt kopen: je laat een sterkedrank gewoon zijn werk doen als oplosmiddel.",
     blocks: [
       { type: "h3", text: "Waarom zelf infuseren" },
@@ -650,7 +629,6 @@ export const COURSE_LESSONS = [
     part: "geavanceerd",
     number: 22,
     title: "Fat-washing: vet als smaakdrager",
-    image: "https://images.unsplash.com/photo-1615887023544-3a566f29d822?auto=format&fit=crop&w=1200&q=80",
     intro: "Fat-washing gebruikt een truc uit de scheikunde om een spirit te laten smaken naar iets dat normaal nooit in een fles zit: boter, spek, olijfolie of kokosvet.",
     blocks: [
       { type: "h3", text: "Het principe" },
@@ -678,7 +656,6 @@ export const COURSE_LESSONS = [
     part: "geavanceerd",
     number: 23,
     title: "Clarificatie: van troebel naar kristalhelder",
-    image: "https://images.unsplash.com/photo-1706925737212-869d063752c2?auto=format&fit=crop&w=1200&q=80",
     intro: "Clarificatie maakt een troebele, vruchtige cocktail glashelder als water, zonder de smaak te verliezen: puur theater voor het oog, met een verrassend zacht mondgevoel als bonus.",
     blocks: [
       { type: "h3", text: "Waarom clarificeren" },
@@ -710,7 +687,6 @@ export const COURSE_LESSONS = [
     part: "geavanceerd",
     number: 24,
     title: "Carbonatie, rook en presentatie",
-    image: "https://images.unsplash.com/photo-1621873495914-1c921811e37b?auto=format&fit=crop&w=1200&q=80",
     intro: "De laatste 10% van een cocktail, de bubbels, de rook, het eerste beeld en de eerste geur, is precies het deel dat een drank onvergetelijk maakt in plaats van alleen goed.",
     blocks: [
       { type: "h3", text: "Carbonatie thuis" },

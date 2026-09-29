@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info } from "lucide-react";
+import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "./supabaseClient";
@@ -6133,30 +6133,69 @@ function QuizBlock({ quiz, onFinish }) {
   );
 }
 
+// Eigen illustratie per les in de app-stijl (goud op donkergroen, zelfde
+// beeldtaal als het app-icoon) i.p.v. externe Unsplash-foto's: volledig
+// lokaal, werkt offline en geen licentievragen. Eén icoon per lesonderwerp.
+const LESSON_ICONS = {
+  geschiedenis: Landmark, uitrusting: Wrench, glaswerk: Wine, ijs: Snowflake,
+  gedistilleerd: FlaskRound, "likeuren-bitters": Droplets, vers: Citrus, garnering: Cherry,
+  basistechnieken: Martini, "verdunning-temperatuur": Thermometer, "sour-formule": Scale, finesse: Layers,
+  families: Shapes, smaakcombinatie: Puzzle, ontwerpen: PenTool, menu: ClipboardList,
+  "mise-en-place": ListChecks, "batchen-groepen": Users, gastvrijheid: HeartHandshake, signature: Award,
+  infusies: Leaf, "fat-washing": Droplet, clarificatie: Sparkles, "carbonatie-rook": CloudFog,
+};
+const LESSON_ART_BG = `radial-gradient(ellipse 140% 120% at 25% 10%, #2A4B42, ${BOTTLE_DARK} 75%)`;
+
+function LessonArt({ lesson, variant = "thumb" }) {
+  const Icon = LESSON_ICONS[lesson.id] || GraduationCap;
+  if (variant === "thumb") {
+    return (
+      <div aria-hidden style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, background: LESSON_ART_BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon size={20} color="#DDB877" strokeWidth={1.8} />
+      </div>
+    );
+  }
+  return (
+    <div aria-hidden style={{ position: "absolute", inset: 0, background: LESSON_ART_BG, overflow: "hidden" }}>
+      {/* Groot, vaag icoon rechts als achtergrondtextuur. */}
+      <Icon size={190} color="#B8862E" strokeWidth={1} style={{ position: "absolute", right: -30, top: -18, opacity: 0.13 }} />
+      <div style={{ position: "absolute", left: 18, top: 18, width: 64, height: 64, borderRadius: "50%", border: "1.5px solid rgba(184,134,46,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon size={30} color="#DDB877" strokeWidth={1.7} />
+      </div>
+    </div>
+  );
+}
+
 function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLesson, onGoToExam }) {
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizDone, setQuizDone] = useState(false);
 
+  // Binnen Bar → Cursus neemt de les de bovenste navigatiebalk over
+  // ("‹ Cursus · Les 3") i.p.v. een tweede terugknop eronder; in gastmodus
+  // (geen balk) blijft de losse terugknop staan.
+  const setNavOverride = useContext(NavOverrideContext);
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+  useEffect(() => {
+    if (!setNavOverride) return;
+    setNavOverride({ label: "Cursus", title: `Les ${lesson.number}`, onBack: () => onBackRef.current() });
+    return () => setNavOverride(null);
+  }, [setNavOverride, lesson.number]);
+
   return (
     <EdgeSwipeBackArea onBack={onBack}>
-      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontFamily: sans }}>
-        <ChevronDown size={14} style={{ transform: "rotate(90deg)" }} /> Terug naar overzicht
-      </button>
-
-      {lesson.image && (
-        <div style={{ position: "relative", height: 168, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 20, boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}` }}>
-          <img src={lesson.image} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-          <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.75), rgba(19,38,34,0.05) 60%)` }} />
-          <div style={{ position: "absolute", left: 16, bottom: 12, fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#D9CBAE" }}>
-            Les {lesson.number} &middot; {COURSE_PARTS.find(p => p.id === lesson.part)?.title}
-          </div>
-        </div>
+      {!setNavOverride && (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontFamily: sans }}>
+          <ChevronDown size={14} style={{ transform: "rotate(90deg)" }} /> Terug naar overzicht
+        </button>
       )}
-      {!lesson.image && (
-        <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: BRASS, marginBottom: 6 }}>
+
+      <div style={{ position: "relative", height: 150, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 20, boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}` }}>
+        <LessonArt lesson={lesson} variant="hero" />
+        <div style={{ position: "absolute", left: 18, bottom: 14, fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#D9CBAE" }}>
           Les {lesson.number} &middot; {COURSE_PARTS.find(p => p.id === lesson.part)?.title}
         </div>
-      )}
+      </div>
       <h2 style={{ fontFamily: systemFont, fontSize: 27, fontWeight: 700, color: INK, margin: "0 0 14px" }}>{lesson.title}</h2>
       <p style={{ fontStyle: "italic", color: MUTED, fontSize: 14, borderLeft: `3px solid ${BRASS}`, paddingLeft: 14, margin: "0 0 22px", lineHeight: 1.55 }}>{lesson.intro}</p>
 
@@ -6379,7 +6418,7 @@ function CursusTab({ progress, setProgress, onSound }) {
                   background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, cursor: "pointer", padding: "12px 14px", boxSizing: "border-box",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                    {l.image && <img src={l.image} alt="" loading="lazy" style={{ width: 42, height: 42, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />}
+                    <LessonArt lesson={l} />
                     <div style={{
                       width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                       background: p?.completed ? SAGE : "transparent", border: `1.5px solid ${p?.completed ? SAGE : BORDER}`,
