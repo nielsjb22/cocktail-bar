@@ -2372,6 +2372,14 @@ export default function ThuisbarApp() {
     removeFromShoppingList(item.key);
   };
 
+  // De native splash (launchAutoHide: false) ging voorheen alleen weg via de
+  // in-app SplashScreen, en die draait enkel voor ingelogde gebruikers — bij
+  // een verse installatie (leeftijdspoort, gastmodus, inlogscherm) bleef het
+  // Capacitor-logo dus eeuwig staan. Nu verbergen we 'm zodra er een echt
+  // scherm klaarstaat, ongeacht welk.
+  const firstScreenReady = ageVerified === false || (ageVerified === true && (guestMenuIds || surveyId || session !== undefined));
+  useEffect(() => { if (firstScreenReady) hideNativeSplash(); }, [firstScreenReady]);
+
   if (ageVerified === undefined) return <div style={{ minHeight: "100%", background: BOTTLE_DARK }} />;
   if (!ageVerified) return <AgeGateScreen onConfirm={confirmAge} />;
   if (guestMenuIds) return <GuestMenuView recipeIds={guestMenuIds} />;
