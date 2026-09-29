@@ -4,7 +4,7 @@ import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog } from "lucide-react";
+import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "./supabaseClient";
@@ -1580,7 +1580,7 @@ function GuestBrowseShell({
             makenProps={{
               recipes, isOwned, ingredientLabel, allIngredients,
               onAddToShoppingList, onSound, onOpenRecipe: setPendingRecipeId, onAddToFeest, feestChosen,
-              shoppingKeys, onRemoveFromShoppingList,
+              shoppingKeys, onRemoveFromShoppingList, favoriteRecipeIds, onToggleFavorite,
             }}
             verhaalProps={{
               recipes, ingredientLabel, allIngredients, isOwned,
@@ -2386,8 +2386,9 @@ export default function ThuisbarApp() {
   // Smaakbalans, maar één-voor-één met eigen feedback.
   const addRecipeToFeest = async (id) => {
     const target = await resolveTargetParty();
-    if (!target || target.cocktail_ids.includes(id)) return;
-    parties.updateParty(target.id, { cocktail_ids: [...target.cocktail_ids, id] });
+    const current = target?.cocktail_ids || [];
+    if (!target || current.includes(id)) return;
+    parties.updateParty(target.id, { cocktail_ids: [...current, id] });
   };
   // Alle cocktails van het eerstvolgende (of nieuw aangemaakte) feest, voor
   // de "in feestplanner"-disabled-state op recept-kaarten elders in de app.
@@ -2549,6 +2550,7 @@ export default function ThuisbarApp() {
               onAddToShoppingList: addToShoppingList, onSound: chime,
               onOpenRecipe: openRecipeDetail, onAddToFeest: addRecipeToFeest, feestChosen,
               shoppingKeys, onRemoveFromShoppingList: removeFromShoppingList,
+              favoriteRecipeIds, onToggleFavorite: toggleFavoriteRecipe, onOpenCheckin: openCheckin,
             }}
             verhaalProps={{
               recipes: allRecipes, ingredientLabel, allIngredients, isOwned,
@@ -4803,14 +4805,40 @@ function RecipeCircle({ recipe, allIngredients, size = 50, radius = "50%" }) {
   );
 }
 
+// Snelle feiten voor de recept-pop-up (zoals de infobalk in de App Store).
+// Alleen wat betrouwbaar af te leiden is; anders valt de kolom weg.
+const TECHNIQUE_LABELS = { shaken: "Geschud", stirred: "Geroerd", build: "Gebouwd", blend: "Geblend", swizzle: "Swizzle" };
+function recipeQuickFacts(recipe) {
+  const facts = [];
+  const glass = (recipe.glass || "").split("(")[0].trim();
+  if (glass) facts.push({ icon: GlassWater, value: glass, label: "Glas" });
+  const tech = inferTechniques(recipe.method).find(t => TECHNIQUE_LABELS[t]);
+  if (tech) facts.push({ icon: Hand, value: TECHNIQUE_LABELS[tech], label: "Techniek" });
+  facts.push({ icon: ListOrdered, value: String(recipe.ingredients.length), label: "Ingrediënten" });
+  const role = getMenuRole(recipe);
+  const strength = role === "sterk" ? "Sterk"
+    : role === "alcoholvrij" ? "Alcoholvrij"
+    : recipe.family === "Highballs" ? "Licht"
+    : ["Sours", "Fizz / Flip"].includes(recipe.family) ? "Middel" : null;
+  if (strength) facts.push({ icon: Droplet, value: strength, label: "Sterkte" });
+  return facts;
+}
+
+// Recept-pop-up (o.a. vanuit Wat kan ik maken, Feestplanner-suggesties):
+// iOS-achtige opbouw — kop met foto + status, feitenrij, ingrediënten en
+// bereiding als nette lijstkaarten, vaste knoppenbalk onderaan.
+// Wordt via een portal buiten de app-root gerenderd, dus het lettertype
+// staat hier expliciet (anders erft hij de browser-standaard serif).
 function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMissing, justAdded, onClose,
-  onOpenFullRecipe, onAddToFeest, feestChosen, onSound }) {
+  onOpenFullRecipe, onAddToFeest, feestChosen, onSound, favoriteRecipeIds, onToggleFavorite, onOpenCheckin, shoppingKeys }) {
   useBodyScrollLock();
   const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
   const [justAddedFeest, setJustAddedFeest] = useState(false);
+  const [addedKeys, setAddedKeys] = useState(() => new Set());
   const inFeest = feestChosen?.includes(recipe.id);
+  const isFav = favoriteRecipeIds?.includes(recipe.id);
   const handleAddFeest = () => {
-    if (inFeest) return;
+    if (inFeest || justAddedFeest) return;
     onAddToFeest(recipe.id);
     onSound?.("chime");
     setJustAddedFeest(true);
@@ -4821,86 +4849,147 @@ function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMi
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // In een portal naar document.body gerenderd: anders valt deze sheet binnen
-  // de stacking context van de geanimeerde tab-inhoud (.tab-fade) en duikt
-  // de onderbalk er, ondanks een lagere z-index, gewoon overheen.
+  const missingSet = new Set(missing);
+  const facts = recipeQuickFacts(recipe);
+  const onList = (ing) => addedKeys.has(ingredientKey(ing)) || !!shoppingKeys?.has(ingredientKey(ing)) || (justAdded && missingSet.has(ing));
+  const addOne = (ing) => {
+    if (onList(ing)) return;
+    onAddMissing(recipe.id, [{ ref: ing, recipeNames: [recipe.name] }]);
+    setAddedKeys(prev => new Set(prev).add(ingredientKey(ing)));
+  };
+
+  const hairline = `1px solid ${BORDER}`;
+  const card = { background: PAPER_DEEP, borderRadius: 14, overflow: "hidden" };
+  const smallRound = { display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0 };
+  const bigRound = (color, active) => ({
+    width: 52, height: 52, borderRadius: "50%", flexShrink: 0, border: "none", cursor: "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center", background: active ? SAGE : PAPER_DEEP, color: active ? CREAM : color,
+  });
+  const statusPill = missing.length === 0
+    ? { bg: "rgba(92,122,86,0.16)", color: SAGE, text: <><Check size={12} strokeWidth={3} /> Alles in huis</> }
+    : { bg: "rgba(122,46,42,0.12)", color: BURGUNDY, text: missing.length === 1 ? `Mist 1 · ${ingredientLabel(missing[0])}` : `Mist ${missing.length}` };
+
   return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
       <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
       <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "85vh",
-        background: PAPER, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
-        display: "flex", flexDirection: "column", overflow: "hidden",
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
+        background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
+        display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: sans,
       }}>
         <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
-          <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={42} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 18, color: INK }}>{recipe.name}</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{recipe.family} · {recipe.glass}</div>
+
+        {/* Kop: foto, naam, familie · glas, statuslabel; rechtsboven favoriet + sluiten */}
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "6px 20px 16px", flexShrink: 0, touchAction: "none" }}>
+          <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 6px 16px rgba(43,38,32,0.18)", flexShrink: 0 }}>
+            <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={76} radius={16} />
           </div>
-          <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
-            display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
-            borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0,
-          }}><X size={16} /></button>
+          <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26, lineHeight: 1.1, color: INK }}>{recipe.name}</div>
+            <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>{[recipe.family, recipe.glass].filter(Boolean).join(" · ")}</div>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, padding: "4px 10px", borderRadius: 100,
+              background: statusPill.bg, color: statusPill.color, fontSize: 12, fontWeight: 700, maxWidth: "100%",
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+            }}>{statusPill.text}</span>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }} onTouchStart={e => e.stopPropagation()}>
+            {onToggleFavorite && (
+              <button onClick={() => { onSound?.("pop"); onToggleFavorite(recipe.id); }} className="tap-target-44"
+                aria-label={isFav ? "Verwijder uit favorieten" : "Bewaar als favoriet"} aria-pressed={!!isFav} style={{ ...smallRound, color: isFav ? BURGUNDY : INK }}>
+                <Heart size={15} fill={isFav ? "currentColor" : "none"} />
+              </button>
+            )}
+            <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={smallRound}><X size={15} /></button>
+          </div>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "16px 20px" }}>
-          <ul style={{ margin: "0 0 12px", paddingLeft: 0, listStyle: "none", fontSize: 14.5 }}>
-            {recipe.ingredients.map((ing, i) => (
-              <li key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", color: isOwnedRef(ing, missing) ? INK : BURGUNDY, fontWeight: isOwnedRef(ing, missing) ? 400 : 600, borderTop: i === 0 ? "none" : `1px dotted ${BORDER}` }}>
-                <span>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
-                <span style={{ fontWeight: 700 }}>{ing.amount} {unitLabel(ing.unit, ing.amount)}</span>
-              </li>
-            ))}
-          </ul>
-          <p style={{ fontSize: 13.5, color: MUTED, margin: "0 0 8px", lineHeight: 1.5 }}>{recipe.method}</p>
-          {recipe.garnish && (
-            <p style={{ fontSize: 13, color: BRASS, margin: 0, lineHeight: 1.5 }}><strong>Afwerking:</strong> {recipe.garnish}</p>
-          )}
-        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 18px" }}>
+          {/* Snelle feiten */}
+          <div style={{ display: "flex", borderTop: hairline, borderBottom: hairline, padding: "12px 0", marginBottom: 18 }}>
+            {facts.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <div key={f.label} style={{ flex: 1, minWidth: 0, textAlign: "center", borderLeft: i === 0 ? "none" : hairline, padding: "0 4px" }}>
+                  <Icon size={17} color={BOTTLE} strokeWidth={1.7} style={{ display: "block", margin: "0 auto 6px" }} />
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.value}</div>
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{f.label}</div>
+                </div>
+              );
+            })}
+          </div>
 
-        <div style={{ padding: "12px 20px 16px", borderTop: `1px solid ${BORDER}`, flexShrink: 0, display: "flex", flexDirection: "column", gap: 9 }}>
-          {(onOpenFullRecipe || onAddToFeest) && (
-            <div style={{ display: "flex", gap: 8 }}>
-              {onOpenFullRecipe && (
-                <button onClick={() => { close(); setTimeout(() => onOpenFullRecipe(recipe.id), 180); }} style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "none",
-                  border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: 3, padding: "9px 10px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-                }}>
-                  <BookOpen size={14} /> Volledig recept
-                </button>
-              )}
-              {onAddToFeest && (
-                justAddedFeest ? (
-                  <span className="success-pop" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700 }}>
-                    <Check size={14} strokeWidth={3} /> Toegevoegd
+          {/* Ingrediënten */}
+          <div style={{ ...card, marginBottom: 14 }}>
+            {recipe.ingredients.map((ing, i) => {
+              const lacks = missingSet.has(ing);
+              const added = lacks && onList(ing);
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 12px 0 14px", minHeight: 50 }}>
+                  <span aria-hidden style={{
+                    width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                    background: lacks ? "transparent" : SAGE, border: lacks ? `1.5px solid ${BURGUNDY}` : "none",
+                  }}>{!lacks && <Check size={13} strokeWidth={3} color={CREAM} />}</span>
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, alignSelf: "stretch", borderTop: i === 0 ? "none" : hairline }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: lacks ? BURGUNDY : INK, fontWeight: lacks ? 600 : 400 }}>
+                      {ingredientLabel(ing)}{ing.optional ? <span style={{ color: MUTED, fontWeight: 400 }}> (optioneel)</span> : null}
+                    </span>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: lacks ? BURGUNDY : INK, whiteSpace: "nowrap" }}>{ing.amount} {unitLabel(ing.unit, ing.amount)}</span>
+                    {lacks && (
+                      <button onClick={() => addOne(ing)} className="tap-target-44" aria-label={added ? `${ingredientLabel(ing)} staat op je boodschappenlijst` : `${ingredientLabel(ing)} op boodschappenlijst`} style={{
+                        width: 30, height: 30, borderRadius: "50%", border: "none", flexShrink: 0, cursor: added ? "default" : "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", background: added ? SAGE : BOTTLE, color: CREAM,
+                      }}>{added ? <Check size={15} strokeWidth={3} /> : <Plus size={16} strokeWidth={2.4} />}</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bereiding + afwerking */}
+          <div style={card}>
+            {[
+              { icon: CupSoda, color: BOTTLE, title: "Bereiding", text: recipe.method },
+              recipe.garnish ? { icon: Citrus, color: BRASS, title: "Afwerking", text: recipe.garnish } : null,
+            ].filter(Boolean).map((row, i) => {
+              const Icon = row.icon;
+              return (
+                <div key={row.title} style={{ display: "flex", gap: 12, padding: "0 14px" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: PAPER, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 12 }}>
+                    <Icon size={15} color={row.color} strokeWidth={1.8} />
                   </span>
-                ) : (
-                  <button onClick={handleAddFeest} disabled={inFeest} style={{
-                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "none",
-                    border: `1px solid ${inFeest ? BORDER : BRASS}`, color: inFeest ? MUTED : BRASS, borderRadius: 3,
-                    padding: "9px 10px", fontSize: 12.5, fontWeight: 700, cursor: inFeest ? "default" : "pointer",
-                  }}>
-                    <PartyPopper size={14} /> {inFeest ? "In feestplanner" : "Feestplanner"}
-                  </button>
-                )
-              )}
-            </div>
-          )}
-          {missing.length === 0 ? (
-            <p style={{ textAlign: "center", fontSize: 13, color: SAGE, fontWeight: 700, margin: 0 }}>Je hebt alles in huis — cheers!</p>
-          ) : justAdded ? (
-            <span className="success-pop" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: SAGE, fontSize: 13, fontWeight: 700, padding: "7px 0" }}>
-              <Check size={14} strokeWidth={3} /> Toegevoegd: bekijk het Winkelmandje-tabblad
-            </span>
-          ) : (
-            <button onClick={() => onAddMissing(recipe.id, missing.map(m => ({ ref: m, recipeNames: [recipe.name] })))} style={{
-              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px",
-              borderRadius: RADIUS, border: "none", cursor: "pointer", background: BOTTLE, color: CREAM,
-              fontFamily: sans, fontSize: 14, fontWeight: 700, boxShadow: SHADOW_CTA,
+                  <div style={{ flex: 1, minWidth: 0, padding: "12px 0", borderTop: i === 0 ? "none" : hairline }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.1, textTransform: "uppercase", color: MUTED }}>{row.title}</div>
+                    <div style={{ fontSize: 14.5, lineHeight: 1.5, color: INK, marginTop: 3 }}>{row.text}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Knoppenbalk */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px calc(env(safe-area-inset-bottom) + 14px)", borderTop: hairline, background: PAPER, flexShrink: 0 }}>
+          {onOpenFullRecipe && (
+            <button onClick={() => { close(); setTimeout(() => onOpenFullRecipe(recipe.id), 180); }} className="press-scale" style={{
+              flex: 1, height: 52, borderRadius: 14, border: "none", cursor: "pointer", background: BOTTLE, color: CREAM,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: sans, fontSize: 15.5, fontWeight: 700,
             }}>
-              <ShoppingCart size={15} /> Voeg {missing.length} ontbrekende toe aan winkelmandje
+              <BookOpen size={17} /> Volledig recept
+            </button>
+          )}
+          {onAddToFeest && (
+            <button onClick={handleAddFeest} className={justAddedFeest ? "success-pop press-scale" : "press-scale"}
+              aria-label={inFeest || justAddedFeest ? "Staat in de feestplanner" : "Voeg toe aan feestplanner"} aria-pressed={!!(inFeest || justAddedFeest)}
+              style={bigRound(BRASS, inFeest || justAddedFeest)}>
+              {inFeest || justAddedFeest ? <Check size={20} strokeWidth={2.6} /> : <PartyPopper size={20} />}
+            </button>
+          )}
+          {onOpenCheckin && (
+            <button onClick={() => { close(); setTimeout(() => onOpenCheckin(recipe.name), 180); }} className="press-scale"
+              aria-label={`${recipe.name} inchecken`} style={bigRound(SAGE, false)}>
+              <Check size={21} strokeWidth={2.6} />
             </button>
           )}
         </div>
@@ -4908,6 +4997,7 @@ function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMi
     </div>
   ), document.body);
 }
+
 function isOwnedRef(ing, missing) {
   return !missing.includes(ing);
 }
@@ -5025,7 +5115,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   );
 }
 
-function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen, onBack, shoppingKeys, onRemoveFromShoppingList }) {
+function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen, onBack, shoppingKeys, onRemoveFromShoppingList, favoriteRecipeIds, onToggleFavorite, onOpenCheckin }) {
   const [view, setView] = useState("ontdekken");
   const [openId, setOpenId] = useState(null);
   const [query, setQuery] = useState("");
@@ -5378,7 +5468,8 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
         <RecipeSheet recipe={sheetEntry.recipe} missing={sheetEntry.missing} ingredientLabel={ingredientLabel}
           allIngredients={allIngredients} onAddMissing={addMissing} justAdded={justAddedId === sheetEntry.recipe.id}
           onClose={() => setSheetRecipeId(null)} onSound={onSound}
-          onOpenFullRecipe={onOpenRecipe} onAddToFeest={onAddToFeest} feestChosen={feestChosen} />
+          onOpenFullRecipe={onOpenRecipe} onAddToFeest={onAddToFeest} feestChosen={feestChosen}
+          favoriteRecipeIds={favoriteRecipeIds} onToggleFavorite={onToggleFavorite} onOpenCheckin={onOpenCheckin} shoppingKeys={shoppingKeys} />
       )}
     </SecondaryTabScreen>
   );
