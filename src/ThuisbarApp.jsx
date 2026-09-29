@@ -4012,6 +4012,13 @@ function SheetGrabber(dragHandlers) {
 // opzet: gemiste swipes voelen erger dan een iets grotere randzone.
 const EDGE_ZONE = 90;
 
+// Het veeggebied moet tot de échte schermrand lopen: alle schermen staan in
+// een container met 20px zijpadding, en een duimveeg begint juist in die
+// eerste 20px. Zonder deze "bleed" vielen die aanrakingen buiten het element
+// met de touch-handlers, en deed terugvegen op een iPhone dus helemaal niets
+// (alleen een veeg die toevallig pas na 20px begon werkte).
+const EDGE_SWIPE_BLEED = { marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20 };
+
 // In een gewone Safari-tab (niet "toegevoegd aan beginscherm") heeft iOS zélf
 // ook een rand-swipe-terug-gebaar, dat exact dezelfde linkerrand claimt als
 // dit gebaar — de twee vochten dan letterlijk om dezelfde vingerbeweging,
@@ -4197,7 +4204,7 @@ function SecondaryTabScreen({ label, title, onBack, children }) {
           <div ref={scrimRef} aria-hidden style={{ position: "absolute", inset: 0, background: "rgba(15,12,9,0.16)", opacity: 1 }} />
         </div>
       )}
-      <div ref={contentRef} {...handlers} style={{ touchAction: "pan-y", position: "relative", background: PAPER }}>
+      <div ref={contentRef} {...handlers} style={{ ...EDGE_SWIPE_BLEED, touchAction: "pan-y", position: "relative", background: PAPER }}>
         {/* Vaste navigatiebalk: terugknop links (vorige-schermnaam, net als
             echte iOS), gecentreerde titel van dít scherm — sticky zodat hij
             blijft staan terwijl de inhoud eronder scrollt, i.p.v. mee weg te
@@ -4244,7 +4251,7 @@ function SecondaryTabScreen({ label, title, onBack, children }) {
 function EdgeSwipeBackArea({ onBack, children }) {
   const { contentRef, handlers } = useEdgeSwipeBack(onBack);
   return (
-    <div ref={contentRef} {...handlers} style={{ touchAction: "pan-y" }}>
+    <div ref={contentRef} {...handlers} style={{ ...EDGE_SWIPE_BLEED, touchAction: "pan-y" }}>
       {children}
     </div>
   );
