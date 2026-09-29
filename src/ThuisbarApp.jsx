@@ -1570,6 +1570,7 @@ function GuestBrowseShell({
         </div>
       </div>
 
+      <StatusBarBackdrop showAfter={95} />
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(184,134,46,0.1)", border: `1px solid rgba(184,134,46,0.3)`, borderRadius: RADIUS, padding: "11px 14px", marginBottom: 20 }}>
           <Lock size={15} color={BRASS} style={{ flexShrink: 0 }} />
@@ -2406,6 +2407,7 @@ export default function ThuisbarApp() {
     <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
       {!isOnline && <OfflineBanner />}
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+      <StatusBarBackdrop showAfter={tab === "home" ? 95 : 0} />
       {/* Signage band: alleen op Home. Andere tabs krijgen een iOS-large-title
           i.p.v. dit groene blok — zie LargeTitleHeader binnen elke tab. */}
       {tab === "home" && (
@@ -3480,6 +3482,31 @@ function SectionLabel({ children }) {
 // Puur CSS "position: sticky" volstaat niet hier (in tegenstelling tot de
 // andere sticky balken in deze app): die zou constant zichtbaar zijn i.p.v.
 // pas verschijnen zodra de grote titel is weggescrolld.
+// Alle sticky balken staan op top: env(safe-area-inset-top), dus in de strook
+// daarboven (achter klok/notch) scrolde de inhoud onbedekt door — dat gaf een
+// lelijke "tussenruimte" boven elke sticky balk. Deze vaste strook dekt die
+// zone af met exact hetzelfde glas als de balken zelf, zodat balk + strook
+// één geheel vormen (zoals een echte iOS-navigatiebalk). `showAfter`: pas
+// zichtbaar na zoveel px scrollen — voor schermen die bovenaan een donkergroene
+// header hebben die zelf al tot achter de statusbalk doorloopt (Home, gast).
+function StatusBarBackdrop({ showAfter = 0 }) {
+  const [visible, setVisible] = useState(showAfter === 0);
+  useEffect(() => {
+    if (showAfter === 0) { setVisible(true); return; }
+    const onScroll = () => setVisible(window.scrollY > showAfter);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [showAfter]);
+  return (
+    <div aria-hidden className="glass-light" style={{
+      position: "fixed", top: 0, left: 0, right: 0, height: "env(safe-area-inset-top)", zIndex: 25,
+      border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)", pointerEvents: "none",
+      opacity: visible ? 1 : 0, transition: "opacity 0.15s ease",
+    }} />
+  );
+}
+
 function LargeTitleHeader({ title, active = true, sticky = true }) {
   const [collapsed, setCollapsed] = useState(false);
   const sentinelRef = useRef(null);
@@ -3502,7 +3529,7 @@ function LargeTitleHeader({ title, active = true, sticky = true }) {
           position: "sticky", top: STICKY_TOP, zIndex: 8,
           display: "flex", alignItems: "center", justifyContent: "center", height: 44,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-          border: "none", borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent", boxShadow: "none",
+          border: "none", borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent", boxShadow: "none", background: "rgba(243,236,221,0.92)",
           opacity: collapsed ? 1 : 0, pointerEvents: collapsed ? "auto" : "none",
           transition: "opacity 0.18s ease, border-color 0.18s ease",
           fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK,
@@ -4180,7 +4207,7 @@ function SecondaryTabScreen({ label, title, onBack, children }) {
           position: "sticky", top: STICKY_TOP, zIndex: 20,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
           display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
-          minHeight: 44, marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none",
+          minHeight: 44, marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none", background: "rgba(243,236,221,0.92)",
         }}>
           {/* Een tik hier is geen voltooide swipe: commitBack() verwacht de
               peek-preview-laag die alleen tijdens een echte sleep gerenderd
@@ -4819,7 +4846,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
       <div className="glass-light" style={{
         position: "sticky", top: STICKY_TOP, zIndex: 7,
         display: "flex", alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.72)",
+        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)",
       }}>
         <button onClick={() => setMode("alles")} style={{
           flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "alles" ? BOTTLE : BORDER}`,
@@ -8940,7 +8967,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
         position: "sticky", top: STICKY_TOP, zIndex: 6,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         height: 44, boxSizing: "border-box", marginBottom: 8, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.72)",
+        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)",
       }}>
         <button onClick={onGoVrienden} className="press-scale tap-target-44" aria-label="Vrienden" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
           <Users size={17} strokeWidth={1.8} />
