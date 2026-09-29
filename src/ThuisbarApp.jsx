@@ -7476,6 +7476,14 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
               <button onClick={() => setGuests(Math.min(100, guests + 1))} style={stepperBtn}>+</button>
               <span style={{ fontSize: 11.5, color: MUTED }}>gasten</span>
             </div>
+            {/* Drankjes per persoon stond alleen verstopt in het bewerkscherm
+                (tik op de datum); nu direct instelbaar, net als het aantal gasten. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }} onClick={e => e.stopPropagation()}>
+              <button onClick={() => setDrinksPerGuest(Math.max(1, drinksPerGuest - 1))} aria-label="Minder drankjes per persoon" style={stepperBtn}>−</button>
+              <div style={stepperValue}>{drinksPerGuest}</div>
+              <button onClick={() => setDrinksPerGuest(Math.min(10, drinksPerGuest + 1))} aria-label="Meer drankjes per persoon" style={stepperBtn}>+</button>
+              <span style={{ fontSize: 11.5, color: MUTED }}>drankjes p.p.</span>
+            </div>
           </div>
           <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
             <div style={{ textAlign: "center" }}>
