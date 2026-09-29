@@ -4670,7 +4670,9 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
     return () => { document.removeEventListener("mousedown", onOutside); document.removeEventListener("touchstart", onOutside); };
   }, [open]);
 
-  const select = (r) => { onChange(r.id); setDraft(null); setOpen(false); };
+  // Na het kiezen sluit het toetsenbord meteen (anders bleef het over het
+  // scherm staan terwijl je al klaar was met zoeken).
+  const select = (r) => { onChange(r.id); setDraft(null); setOpen(false); document.activeElement?.blur?.(); };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && filtered.length > 0) { select(filtered[0]); e.target.blur(); }
@@ -4737,7 +4739,7 @@ function IngredientAutocomplete({ value, onChange, options, style, placeholder =
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {filtered.map(n => (
-            <div key={n} onMouseDown={e => e.preventDefault()} onClick={() => { onChange(n); setOpen(false); }} className="list-row-tap"
+            <div key={n} onMouseDown={e => e.preventDefault()} onClick={() => { onChange(n); setOpen(false); document.activeElement?.blur?.(); }} className="list-row-tap"
               style={{ padding: "8px 10px", fontSize: 13.5, fontFamily: sans, color: INK, cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}>
               {n}
             </div>
@@ -8290,8 +8292,10 @@ function fieldStyle() {
 // niets getypt is, een rij "Laatst gemaakt" — puur zodat je bij een
 // check-in zo min mogelijk hoeft te typen voor een cocktail die je al
 // eerder maakte.
-function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredients, recent }) {
+function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredients, recent, onOpenChange }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => { onOpenChange?.(open); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => onOpenChange?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
   const wrapRef = useRef(null);
   const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 260);
   const sorted = useMemo(() => [...recipes].sort((a, b) => a.name.localeCompare(b.name)), [recipes]);
@@ -8310,7 +8314,7 @@ function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredi
     return () => { document.removeEventListener("mousedown", onOutside); document.removeEventListener("touchstart", onOutside); };
   }, [open]);
 
-  const pick = (r) => { onSelect(r); setOpen(false); };
+  const pick = (r) => { onSelect(r); setOpen(false); document.activeElement?.blur?.(); };
   const flatFieldStyle = {
     width: "100%", border: "none", outline: "none", background: PAPER, borderRadius: 12,
     padding: "13px 14px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box",
@@ -9156,6 +9160,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const cardRefs = useRef({});
   const scrollToEntry = (id) => cardRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "center" });
   const [showCheckinSheet, setShowCheckinSheet] = useState(false);
+  const [cocktailSearchOpen, setCocktailSearchOpen] = useState(false);
   const { panelRef: checkinPanelRef, closing: checkinClosing, close: closeCheckinSheet, dragHandlers: checkinDragHandlers } = useSheetDismiss(() => setShowCheckinSheet(false));
   // Extern verzoek om in te checken (centrale +-knop, of straks direct vanaf
   // een recept) — de sheet zelf blijft hier leven (portal't toch al naar
@@ -9570,8 +9575,11 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             <div style={{ background: PAPER_DEEP, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", flex: 1, minHeight: 0 }}>
               {/* Beeldvlak 4:3: eigen foto, anders de foto van het gekozen recept, anders een rustige placeholder. Tikken opent de camera/foto-kiezer. */}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
+              {/* Tijdens het zoeken naar een cocktail klapt de grote foto in, zodat
+                  zoekveld + resultaten de ruimte boven het toetsenbord krijgen. */}
               <button onClick={() => fileInputRef.current?.click()} disabled={photoBusy} style={{
-                position: "relative", display: "block", margin: "18px 20px 0", width: "calc(100% - 40px)",
+                display: cocktailSearchOpen ? "none" : "block",
+                position: "relative", margin: "18px 20px 0", width: "calc(100% - 40px)",
                 aspectRatio: "4 / 3", border: "none", borderRadius: 20, padding: 0,
                 cursor: photoBusy ? "default" : "pointer", overflow: "hidden",
                 background: heroPhotoSrc ? "none" : `radial-gradient(ellipse 420px 260px at 50% 20%, #2A4B42, ${BOTTLE_DARK} 75%)`,
@@ -9595,7 +9603,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               </button>
 
               <div style={{ padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 22 }}>
-                <RecipeSearchWithPhotos recipes={recipes} value={nameInput} onChange={setNameInput}
+                <RecipeSearchWithPhotos recipes={recipes} value={nameInput} onChange={setNameInput} onOpenChange={setCocktailSearchOpen}
                   onSelect={(r) => setNameInput(r.name)} allIngredients={allIngredients} recent={recentCocktails} />
 
                 <div>
