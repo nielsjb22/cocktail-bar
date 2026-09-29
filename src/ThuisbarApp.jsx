@@ -2048,6 +2048,22 @@ function useKeyboardBehavior() {
       blurTimer = setTimeout(() => { if (!isTextInput(document.activeElement)) setKbOpen(false); }, 120);
     };
 
+    // Tik je (met toetsenbord open) op iets anders dan een tekstveld — een
+    // ster, een label, "Meer toevoegen" — dan sluit het toetsenbord, zoals in
+    // native iOS-apps. Anders blijft de cursor in het veld staan en duikt het
+    // toetsenbord bij elke tik weer op. Tikken in de suggestielijst van het
+    // veld zelf (data-kb-scope) laat het toetsenbord open. Capture-fase op
+    // 'click': de knop zelf krijgt de tik gewoon nog.
+    const onClickCapture = (e) => {
+      const active = document.activeElement;
+      if (!isTextInput(active)) return;
+      const t = e.target;
+      if (isTextInput(t) || t.closest?.("input, textarea, select, label")) return;
+      const scope = active.closest?.("[data-kb-scope]");
+      if (scope && scope.contains(t)) return;
+      active.blur();
+    };
+
     let touchStartY = null;
     const onTouchStart = (e) => { touchStartY = e.touches[0]?.clientY ?? null; };
     const onTouchMove = (e) => {
@@ -2064,11 +2080,13 @@ function useKeyboardBehavior() {
 
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", onFocusOut);
+    document.addEventListener("click", onClickCapture, true);
     document.addEventListener("touchstart", onTouchStart, { capture: true, passive: true });
     document.addEventListener("touchmove", onTouchMove, { capture: true, passive: true });
     return () => {
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("click", onClickCapture, true);
       clearTimeout(blurTimer);
       document.removeEventListener("touchstart", onTouchStart, { capture: true });
       document.removeEventListener("touchmove", onTouchMove, { capture: true });
@@ -8929,6 +8947,7 @@ function PlaceAutocomplete({ value, onChange, placeholder }) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 240);
   const debounceRef = useRef(null);
   const requestIdRef = useRef(0);
 
@@ -8963,10 +8982,11 @@ function PlaceAutocomplete({ value, onChange, placeholder }) {
     onChange(place.label, place);
     setResults([]);
     setOpen(false);
+    document.activeElement?.blur?.();
   };
 
   return (
-    <div ref={wrapRef} style={{ position: "relative" }}>
+    <div ref={wrapRef} data-kb-scope style={{ position: "relative" }}>
       <Search size={16} color={MUTED} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
       <input value={query} onChange={e => handleType(e.target.value)} onFocus={() => (results.length > 0 || loading) && setOpen(true)}
         placeholder={placeholder} enterKeyHint="done" autoCapitalize="words" style={{
@@ -8975,8 +8995,10 @@ function PlaceAutocomplete({ value, onChange, placeholder }) {
         }} />
       {open && (loading || results.length > 0) && (
         <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: CREAM,
-          borderRadius: 14, maxHeight: 240, overflowY: "auto",
+          // In de flow i.p.v. zwevend: in het check-in-venster viel een zwevende
+          // lijst achter de Inchecken-knop onderaan.
+          position: "relative", marginTop: 6, background: CREAM,
+          borderRadius: 14, maxHeight: dropdownMaxH, overflowY: "auto", overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {loading && <div style={{ padding: "10px 12px", fontSize: 13.5, color: MUTED, fontFamily: systemFont }}>Plekken zoeken…</div>}
@@ -9687,8 +9709,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       {showCheckinSheet && createPortal((
         <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
           <div className="sheet-backdrop-in" onClick={closeCheckinSheet} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: checkinClosing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-          <div ref={checkinPanelRef} className="sheet-slide-in" style={{
-            position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "92vh",
+          <div ref={checkinPanelRef} className="sheet-slide-in sheet-max-92" style={{
+            position: "relative", maxWidth: 960, width: "100%", margin: "0 auto",
             background: PAPER_DEEP, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
             display: "flex", flexDirection: "column", overflow: "hidden",
           }}>
@@ -9768,7 +9790,10 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                 <AutoGrowTextField value={notes} onChange={setNotes} placeholder="Voeg een notitie toe…" />
 
                 <div>
-                  <button onClick={() => setMoreOpen(v => !v)} style={{ display: "flex", alignItems: "center", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont, fontSize: 15.5, fontWeight: 600, color: INK }}>
+                  <button onClick={(e) => {
+                    const btn = e.currentTarget;
+                    setMoreOpen(v => { if (!v) setTimeout(() => btn.scrollIntoView({ block: "start", behavior: "smooth" }), 60); return !v; });
+                  }} style={{ display: "flex", alignItems: "center", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont, fontSize: 15.5, fontWeight: 600, color: INK }}>
                     <span style={{ flex: 1, textAlign: "left" }}>Meer toevoegen</span>
                     {moreOpen ? <ChevronUp size={18} color={MUTED} /> : <ChevronDown size={18} color={MUTED} />}
                   </button>

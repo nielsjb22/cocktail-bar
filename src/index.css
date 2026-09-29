@@ -693,3 +693,10 @@ html.kb-open .bottom-dock {
 [data-kb-scope] input {
   scroll-margin-top: calc(env(safe-area-inset-top) + 64px);
 }
+
+/* Check-in-venster: max. 92% van het zichtbare scherm. dvh volgt de ruimte
+   boven het toetsenbord; vh is de terugval voor oudere iOS-versies. */
+.sheet-max-92 {
+  max-height: 92vh;
+  max-height: 92dvh;
+}
