@@ -724,3 +724,7 @@ html.kb-open .menu-assist-footer {
     background: rgba(23, 19, 14, 0.92) !important;
   }
 }
+
+/* Horizontale chip-rijen zonder zichtbare scrollbalk. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
