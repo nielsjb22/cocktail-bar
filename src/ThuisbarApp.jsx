@@ -4810,7 +4810,6 @@ function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMi
     onAddToFeest(recipe.id);
     onSound?.("chime");
     setJustAddedFeest(true);
-    setTimeout(() => setJustAddedFeest(false), 1800);
   };
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") close(); };
@@ -5091,13 +5090,11 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
     onAddToShoppingList(refs);
     onSound("tick");
     setJustAddedId(recipeId);
-    setTimeout(() => setJustAddedId(id => (id === recipeId ? null : id)), 1800);
   };
   const addFeest = (recipeId) => {
     onAddToFeest(recipeId);
     onSound("chime");
     setJustAddedFeestId(recipeId);
-    setTimeout(() => setJustAddedFeestId(id => (id === recipeId ? null : id)), 1800);
   };
 
   const families = useMemo(() => [...new Set(recipes.map(r => r.family).filter(Boolean))].sort(), [recipes]);
@@ -5640,10 +5637,12 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   // je weer precies daar neerzet i.p.v. halverwege of bovenaan.
   const listScrollRef = useRef(0);
   const [openTech, setOpenTech] = useState(null);
-  const [recipeView, setRecipeView] = useState("steps");
   const [servings, setServings] = useState(1);
-  const [justAddedShopping, setJustAddedShopping] = useState(false);
-  const [justAddedFeest, setJustAddedFeest] = useState(false);
+  // Welke recepten deze sessie al naar winkelmandje/feestplanner zijn
+  // gestuurd: de bevestiging blijft dan staan i.p.v. na 1,8 s terug te
+  // springen naar de knop (wat leek alsof het niet gelukt was).
+  const [addedShoppingIds, setAddedShoppingIds] = useState(() => new Set());
+  const [addedFeestIds, setAddedFeestIds] = useState(() => new Set());
   // Onthoudt welke recepten deze sessie al eens hun intro-animatie hebben
   // gehad — anders speelt de inschuif-animatie élke keer opnieuw af zodra je
   // hetzelfde recept nogmaals opent (bijv. via Winkelmandje of Feestplanner),
@@ -5668,7 +5667,6 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
     requestAnimationFrame(() => window.scrollTo(0, 0));
     setSelectedId(id);
     setOpenTech(null);
-    setRecipeView("steps");
     onViewRecipe(id);
   };
   const verrasMe = () => {
@@ -5710,15 +5708,13 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
     if (!recipe || missing.length === 0) return;
     onAddToShoppingList(missing.map(m => ({ ref: m, recipeNames: [recipe.name] })));
     onSound("tick");
-    setJustAddedShopping(true);
-    setTimeout(() => setJustAddedShopping(false), 1800);
+    setAddedShoppingIds(prev => new Set(prev).add(recipe.id));
   };
   const addToFeestplanner = () => {
     if (!recipe) return;
     onAddToFeest(recipe.id);
     onSound("chime");
-    setJustAddedFeest(true);
-    setTimeout(() => setJustAddedFeest(false), 1800);
+    setAddedFeestIds(prev => new Set(prev).add(recipe.id));
   };
 
   // Ontdekken: alleen relevant zolang er nog niets gekozen is, dus geen reden
@@ -6041,8 +6037,8 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                 <Plus size={14} /> Inchecken
               </button>
             )}
-            {missing.length > 0 && (
-              justAddedShopping ? (
+            {(missing.length > 0 || addedShoppingIds.has(recipe.id)) && (
+              addedShoppingIds.has(recipe.id) ? (
                 <span className="success-pop" style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, padding: "9px 2px" }}>
                   <Check size={14} strokeWidth={3} /> Toegevoegd aan winkelmandje
                 </span>
@@ -6052,9 +6048,9 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                 </button>
               )
             )}
-            {justAddedFeest ? (
-              <span className="success-pop" style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, padding: "9px 2px" }}>
-                <Check size={14} strokeWidth={3} /> Toegevoegd aan feestplanner
+            {(addedFeestIds.has(recipe.id) || feestChosen?.includes(recipe.id)) ? (
+              <span className={addedFeestIds.has(recipe.id) ? "success-pop" : undefined} style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, padding: "9px 2px" }}>
+                <Check size={14} strokeWidth={3} /> {addedFeestIds.has(recipe.id) ? "Toegevoegd aan feestplanner" : "In feestplanner"}
               </span>
             ) : (
               <button onClick={addToFeestplanner} disabled={feestChosen?.includes(recipe.id)} style={{
@@ -6068,20 +6064,9 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS + 3, marginBottom: 16 }}>
-            {[["steps", "Stap voor stap"], ["full", "Volledig recept"]].map(([key, label]) => (
-              <button key={key} onClick={() => setRecipeView(key)}
-                style={{
-                  flex: 1, border: "none", borderRadius: RADIUS, padding: "9px 10px", fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-                  background: recipeView === key ? CREAM : "none", color: recipeView === key ? BOTTLE : MUTED,
-                  boxShadow: recipeView === key ? SHADOW_CARD : "none",
-                }}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {recipeView === "steps" ? (
+          {/* Alleen "Stap voor stap" (op verzoek): de weergave "Volledig recept"
+              herhaalde dezelfde tekst in één blok en voegde niets toe. */}
+          <div style={{ fontFamily: systemFont, fontSize: 20, fontWeight: 700, color: INK, marginBottom: 14 }}>Stap voor stap</div>
             <div>
               {steps.map((step, i) => (
                 <div key={i} style={{ display: "flex", gap: 14, paddingBottom: i < steps.length - 1 || recipe.garnish ? 20 : 0 }}>
@@ -6115,14 +6100,6 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                 </div>
               )}
             </div>
-          ) : (
-            <div>
-              <p style={{ fontSize: 15, color: INK, lineHeight: 1.7, margin: 0 }}>{scaleStepText(recipe.method, servings)}</p>
-              {recipe.garnish && (
-                <p style={{ fontSize: 14, color: BRASS, lineHeight: 1.6, margin: "10px 0 0" }}><strong>Afwerking:</strong> {scaleStepText(recipe.garnish, servings)}</p>
-              )}
-            </div>
-          )}
           </div>
         </EdgeSwipeBackArea>
       )}
