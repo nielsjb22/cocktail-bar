@@ -7016,23 +7016,36 @@ function LessonBlock({ block }) {
   return null;
 }
 
+// Slagen = minstens 80% goed (4 van 5 per les, 24 van 30 bij de eindtoets).
+const QUIZ_PASS_RATIO = 0.8;
+function shuffledIndexes(n) {
+  const idx = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+  return idx;
+}
+
 function QuizBlock({ quiz, onFinish }) {
   const [answers, setAnswers] = useState({});
   const [checked, setChecked] = useState(false);
+  // Antwoordvolgorde per poging opnieuw gehusseld: de plek van het goede
+  // antwoord verraadt niets, ook niet bij een tweede poging.
+  const [attempt, setAttempt] = useState(0);
+  const orders = useMemo(() => quiz.map(q => shuffledIndexes(q.options.length)), [quiz, attempt]);
 
   const score = quiz.reduce((acc, q, i) => acc + (answers[i] === q.correct ? 1 : 0), 0);
   const allAnswered = quiz.every((_, i) => answers[i] !== undefined);
-  const passed = score / quiz.length >= 0.7;
+  const passed = score / quiz.length >= QUIZ_PASS_RATIO;
 
   const check = () => { setChecked(true); onFinish(score); };
-  const retry = () => { setAnswers({}); setChecked(false); };
+  const retry = () => { setAnswers({}); setChecked(false); setAttempt(n => n + 1); };
 
   return (
     <div style={{ marginTop: 8 }}>
       {quiz.map((q, i) => (
         <div key={i} style={{ marginBottom: 22 }}>
           <p style={{ fontWeight: 700, fontFamily: systemFont, fontSize: 15, color: INK, margin: "0 0 10px" }}>{i + 1}. {q.q}</p>
-          {q.options.map((opt, oi) => {
+          {orders[i].map(oi => {
+            const opt = q.options[oi];
             const isSelected = answers[i] === oi;
             const isCorrect = oi === q.correct;
             let border = BORDER, bg = "transparent";
@@ -7073,7 +7086,7 @@ function QuizBlock({ quiz, onFinish }) {
             background: passed ? "rgba(92,122,82,0.14)" : "rgba(122,46,42,0.08)", border: `1px solid ${passed ? SAGE : BURGUNDY}`,
           }}>
             <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: passed ? SAGE : BURGUNDY }}>{score}/{quiz.length}</span>
-            <span style={{ fontSize: 12.5, color: INK }}>{passed ? "Geslaagd, mooi gedaan!" : "Nog niet geslaagd, probeer het nog eens."}</span>
+            <span style={{ fontSize: 12.5, color: INK }}>{passed ? "Geslaagd, mooi gedaan!" : `Nog niet geslaagd: je hebt er ${Math.ceil(quiz.length * QUIZ_PASS_RATIO)} goed nodig. Lees de uitleg en probeer het opnieuw.`}</span>
           </div>
           <button onClick={retry} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${MUTED}`, color: MUTED, borderRadius: RADIUS, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
             <RotateCcw size={13} /> Opnieuw proberen
@@ -7165,7 +7178,7 @@ function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLe
           <GraduationCap size={16} /> Start de toets
         </button>
       ) : (
-        <QuizBlock quiz={lesson.quiz} onFinish={(score) => { onComplete(score, lesson.quiz.length); setQuizDone(true); }} />
+        <QuizBlock quiz={lesson.quiz} onFinish={(score) => { onComplete(score, lesson.quiz.length); setQuizDone(score / lesson.quiz.length >= QUIZ_PASS_RATIO); }} />
       )}
 
       {quizDone && (
@@ -7264,8 +7277,10 @@ function CursusTab({ progress, setProgress, onSound }) {
 
   const complete = (lessonId, score, total) => {
     const prev = progress[lessonId];
-    setProgress({ ...progress, [lessonId]: { completed: true, bestScore: Math.max(score, prev?.bestScore ?? 0), total } });
-    if (score / total >= 0.7) onSound("chime");
+    const passedNow = score / total >= QUIZ_PASS_RATIO;
+    // Voltooid = ooit geslaagd; een mislukte poging telt niet meer als "af".
+    setProgress({ ...progress, [lessonId]: { completed: !!prev?.completed || passedNow, bestScore: Math.max(score, prev?.bestScore ?? 0), total } });
+    if (passedNow) onSound("chime");
     setJustCompleted(true);
     setTimeout(() => setJustCompleted(false), 3000);
   };
@@ -7430,7 +7445,7 @@ function CursusTab({ progress, setProgress, onSound }) {
           </div>
           <h3 style={{ fontFamily: systemFont, fontSize: 21, fontWeight: 700, color: CREAM, margin: "0 0 8px" }}>Eindtoets: Van Basis tot Pro</h3>
           <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.9)", margin: "0 0 16px", lineHeight: 1.5, maxWidth: 480 }}>
-            30 vragen door elkaar over alle zes delen. {examProgress?.completed ? `Beste score: ${examProgress.bestScore}/${examProgress.total}.` : allLessonsDone ? "Haal minstens 70% en je krijgt je diploma op je profiel." : "Gaat open zodra je alle zes delen hebt afgerond."}
+            30 vragen door elkaar over alle zes delen. {examProgress?.completed ? `Beste score: ${examProgress.bestScore}/${examProgress.total}.` : allLessonsDone ? "Haal minstens 80% (24 van de 30) en je krijgt je diploma op je profiel." : "Gaat open zodra je alle zes delen hebt afgerond."}
           </p>
           <button onClick={() => allLessonsDone && setExamOpen(true)} disabled={!allLessonsDone} style={{ opacity: allLessonsDone ? 1 : 0.55, cursor: allLessonsDone ? "pointer" : "default", display: "flex", alignItems: "center", gap: 6, background: CREAM, color: BOTTLE, border: "none", borderRadius: RADIUS, padding: "10px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
             {allLessonsDone ? <GraduationCap size={15} /> : <Lock size={14} />} {examProgress?.completed ? "Opnieuw proberen" : "Start de eindtoets"}
@@ -9874,7 +9889,7 @@ const COURSE_BADGE_DEFS = [
   { id: "vak", emoji: "🍸", label: "Bartender Pro", text: "Alle lessen van Deel V (Het vak van bartender) voltooid.", partId: "vak" },
   { id: "geavanceerd", emoji: "🔬", label: "Meester-mixoloog", text: "Alle lessen van Deel VI (Geavanceerde technieken) voltooid.", partId: "geavanceerd" },
   { id: "halverwege", emoji: "📖", label: "Halverwege", text: "12 van de 24 lessen voltooid." },
-  { id: "eindtoets-gehaald", emoji: "🎓", label: "Geslaagd", text: "De eindtoets gehaald met minstens 70%." },
+  { id: "eindtoets-gehaald", emoji: "🎓", label: "Geslaagd", text: "De eindtoets gehaald met minstens 80%." },
   { id: "perfecte-score", emoji: "💯", label: "Perfecte Score", text: "De eindtoets met een perfecte score afgerond." },
 ];
 // Deel N gaat pas open als alle lessen van de delen ervóór af zijn. Een les
@@ -9888,11 +9903,11 @@ function computeUnlockedParts(progress) {
   }
   return unlocked;
 }
-// "Uitgespeeld" = alle lessen af én de eindtoets gehaald (≥ 70%).
+// "Uitgespeeld" = alle lessen af én de eindtoets gehaald (≥ 80%).
 function computeCourseMastery(progress) {
   const allLessons = COURSE_LESSONS.every(l => progress?.[l.id]?.completed);
   const exam = progress?.eindtoets;
-  const passed = !!(exam?.completed && exam.bestScore / exam.total >= 0.7);
+  const passed = !!(exam?.completed && exam.bestScore / exam.total >= QUIZ_PASS_RATIO);
   return allLessons && passed ? { scorePct: Math.round((exam.bestScore / exam.total) * 100) } : null;
 }
 
@@ -9933,7 +9948,7 @@ function CourseDiploma({ date, scorePct, compact, isOwn = true }) {
 function computeCourseInsights(progress) {
   const completedLessons = COURSE_LESSONS.filter(l => progress[l.id]?.completed);
   const examProgress = progress.eindtoets;
-  const examPassed = !!(examProgress?.completed && examProgress.bestScore / examProgress.total >= 0.7);
+  const examPassed = !!(examProgress?.completed && examProgress.bestScore / examProgress.total >= QUIZ_PASS_RATIO);
   const examPerfect = !!(examProgress?.completed && examProgress.bestScore === examProgress.total);
   const xp = completedLessons.length * 30 + (examPassed ? 150 : 0);
   const level = computeCourseLevel(xp);
