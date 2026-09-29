@@ -4,16 +4,12 @@
 // reken dit als richtprijs, niet als actuele winkelprijs.
 export const PRICES_UPDATED = "2026-09";
 
-// Directe links naar drankdozijn.nl, per ingrediënt id. Waar mogelijk een
-// categoriepagina met ?orderBy=price (altijd actueel, laat de goedkoopste
-// opties bovenaan zien, jij kiest zelf de fles) i.p.v. één vastgezet product,
-// dat kan namelijk uit het assortiment verdwijnen. Alleen voor een handvol
-// merk-specifieke dranken zonder eigen categorie (bijv. Fernet-Branca, Cynar)
-// is een directe /artikel- of /merk-link gebruikt. Alle links hieronder zijn
-// op 2026-09 stuk voor stuk gecontroleerd (HTTP 200), geen verzonnen URL's.
-// Alleen dranken die je bij een slijterij koopt staan hierin; verse
-// ingrediënten, zuivel en gewone supermarkt-frisdranken bewust niet.
-export const SHOP_LINKS = {
+// OUDE, NIET GECONTROLEERDE links naar drankdozijn.nl (categorie-, merk- of
+// losse productpagina's). De app gebruikt ze niet meer: in de
+// boodschappenlijst tonen we alleen flessen die in de Supabase-tabel
+// `producten` zijn goedgekeurd. Deze lijst dient alleen nog als zoekhulp
+// voor het productvoorstel (scripts/producten-voorstel.mjs).
+export const OLD_SHOP_LINKS = {
   // Sterke drank
   bourbon: "https://drankdozijn.nl/groep/whisky/bourbon-whiskey?orderBy=price",
   rye: "https://drankdozijn.nl/groep/whisky/rye-whisky?orderBy=price",
