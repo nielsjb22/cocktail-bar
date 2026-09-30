@@ -16,6 +16,8 @@ const catalogPath = path.join(root, "src/data/images.json");
 
 // shape + kleur per drank. liquid = kleur van de inhoud, glass = tint van de fles.
 const SPECS = {
+  vanilla_vodka: { shape: "spirit", liquid: "#F1E6C8", glass: "#E6E2D4", cap: "#8A6A3A" },
+  passion_fruit_juice: { shape: "carton", liquid: "#F2C23A", accent: "#6A2E5A" },
   vodka: { shape: "spirit", liquid: "#E8EEF0", glass: "#DCE6EA", cap: "#9AA7AD" },
   tequila_blanco: { shape: "spirit", liquid: "#F0EBD6", glass: "#E4E6DA", cap: "#6F5B3E" },
   pisco: { shape: "spirit", liquid: "#EEE6CE", glass: "#E2E2D6", cap: "#8A6A3A" },

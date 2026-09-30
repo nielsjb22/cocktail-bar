@@ -440,12 +440,12 @@ const ZOET_WEIGHTS = {
   cherry_brandy: 0.5, benedictine: 0.45, falernum: 0.7, allspice_liqueur: 0.45, passion_fruit_liqueur: 0.6,
   port: 0.35, irish_cream: 0.6, creme_de_noyaux: 0.7, banana_liqueur: 0.7, melon_liqueur: 0.7, cola: 0.5,
   coconut_cream: 0.8, pineapple_juice: 0.4, cranberry_juice: 0.25, orange_juice: 0.25, grapefruit_juice: 0.15,
-  peach_puree: 0.45, passion_fruit_puree: 0.35, lemonade: 0.45, ginger_beer: 0.25, ginger_ale: 0.25,
+  peach_puree: 0.45, passion_fruit_puree: 0.35, passion_fruit_juice: 0.35, lemonade: 0.45, ginger_beer: 0.25, ginger_ale: 0.25,
   grapefruit_soda: 0.35, tonic: 0.15, prosecco: 0.1,
 };
 const ZUUR_WEIGHTS = {
   lemon_juice: 1, lime_juice: 1, grapefruit_juice: 0.5, cranberry_juice: 0.25, orange_juice: 0.15,
-  pineapple_juice: 0.2, olive_brine: 0.3, passion_fruit_puree: 0.3, passion_fruit_liqueur: 0.15,
+  pineapple_juice: 0.2, olive_brine: 0.3, passion_fruit_puree: 0.3, passion_fruit_juice: 0.3, passion_fruit_liqueur: 0.15,
   grapefruit_soda: 0.2, tomato_juice: 0.2,
 };
 const BITTER_WEIGHTS = {
@@ -501,7 +501,7 @@ function splitMethodIntoSteps(method) {
 const INGREDIENT_KEYWORDS = {
   bourbon: ["bourbon"], rye: ["rye"], scotch: ["scotch"], irish_whiskey: ["irish whiskey", "whiskey"],
   white_rum: ["rum"], dark_rum: ["rum"], cachaca: ["cachaça", "cachaca"], gin: ["gin"],
-  tequila_blanco: ["tequila"], mezcal: ["mezcal"], vodka: ["wodka"], pisco: ["pisco"],
+  tequila_blanco: ["tequila"], mezcal: ["mezcal"], vodka: ["wodka"], vanilla_vodka: ["vanillewodka"], pisco: ["pisco"],
   cognac: ["cognac", "brandy"], calvados: ["calvados"],
   triple_sec: ["triple sec"], grand_marnier: ["grand marnier"], sweet_vermouth: ["zoete vermout", "vermout"],
   dry_vermouth: ["droge vermout", "vermout"], campari: ["campari"], aperol: ["aperol"],
@@ -515,7 +515,7 @@ const INGREDIENT_KEYWORDS = {
   advocaat: ["advocaat"], ginger_wine: ["gemberwijn"], drambuie: ["drambuie"],
   apricot_brandy: ["abrikozenlikeur", "apricot brandy"], cherry_brandy: ["kersenlikeur", "cherry brandy"],
   benedictine: ["bénédictine", "benedictine"], falernum: ["falernum"], allspice_liqueur: ["allspice", "piment-likeur"],
-  passion_fruit_liqueur: ["passievrucht-likeur"], port: ["portwijn"], sherry: ["sherry"],
+  passion_fruit_liqueur: ["passievruchtlikeur", "passievrucht-likeur"], port: ["portwijn"], sherry: ["sherry"],
   lillet_blanc: ["lillet"], absinthe: ["absint", "absinthe"],
   angostura: ["angostura"], peychauds: ["peychaud"], orange_bitters: ["orange bitters"],
   tonic: ["tonic"], cola: ["cola"], ginger_beer: ["gemberbier"], ginger_ale: ["ginger ale"],
@@ -524,7 +524,7 @@ const INGREDIENT_KEYWORDS = {
   coconut_cream: ["kokosroom", "kokos"], pineapple_juice: ["ananassap", "ananas"],
   cranberry_juice: ["cranberrysap", "cranberry"], orange_juice: ["sinaasappelsap"],
   grapefruit_juice: ["grapefruitsap"], tomato_juice: ["tomatensap"], peach_puree: ["perzikpuree"],
-  passion_fruit_puree: ["passievruchtpuree"], espresso: ["espresso"], hot_coffee: ["koffie"],
+  passion_fruit_puree: ["passievruchtpuree"], passion_fruit_juice: ["passievruchtsap"], espresso: ["espresso"], hot_coffee: ["koffie"],
   hot_water: ["heet water"], peach_schnapps: ["perzikschnapps"],
   heavy_cream: ["slagroom"], whipped_cream: ["slagroom"], egg_yolk: ["eidooier", "dooier"],
   lemon_juice: ["citroensap", "citroen"], lime_juice: ["limoensap", "limoen"],
@@ -6884,7 +6884,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               return (
                 <li key={i} className="ingredient-reveal" style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none", animationDelay: `${0.44 + Math.min(i, 8) * 0.05}s` }}>
                   <span>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
-                  <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{scaled} {unitLabel(ing.unit, scaled)}</span>
+                  <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{ing.top && servings === 1 ? "top op" : `${formatDutchNumber(scaled)} ${unitLabel(ing.unit, scaled)}`}</span>
                 </li>
               );
             })}

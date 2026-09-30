@@ -19,6 +19,7 @@ export const DRANK_SPECS = {
   gin: { omschrijving: "London Dry gin", eis: "London Dry gin met jeneverbes voorop, 37,5–47%. Geen gearomatiseerde/roze gin, geen sloe gin, geen jenever." },
   tequila_blanco: { omschrijving: "100% agave tequila, blanco", eis: "Tequila blanco (plata/silver) van 100% blauwe agave — staat zo op het etiket. Geen 'mixto' zonder 100% agave, geen gold/reposado." },
   mezcal: { omschrijving: "Mezcal uit Mexico", eis: "Mezcal (joven/espadín). Geen tequila, geen mezcal-likeur." },
+  vanilla_vodka: { omschrijving: "Wodka met vanillesmaak", eis: "Wodka op smaak gebracht met vanille (vanillewodka). Geen gewone wodka en geen vanillelikeur." },
   vodka: { omschrijving: "Neutrale wodka", eis: "Pure wodka zonder smaak, 37,5–40%. Geen gearomatiseerde varianten (citroen, vanille enz.)." },
   pisco: { omschrijving: "Peruaanse of Chileense druivenbrandewijn", eis: "Pisco (Peruaans 'quebranta' of acholado is klassiek voor Pisco Sour). Geen grappa." },
   cognac: { omschrijving: "Cognac of Franse brandy", eis: "Cognac VS/VSOP (of vergelijkbare Franse druivenbrandy). Geen brandy-likeur, geen vruchtenbrandewijn." },

@@ -3958,5 +3958,23 @@
     "maker": "",
     "licentie": "",
     "niveau": "illustratie"
+  },
+  {
+    "id": "vanilla_vodka",
+    "type": "drank",
+    "bestand": "vanilla_vodka.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "passion_fruit_juice",
+    "type": "drank",
+    "bestand": "passion_fruit_juice.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
   }
 ]
