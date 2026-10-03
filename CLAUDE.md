@@ -36,3 +36,11 @@ Bij CC BY / CC BY-SA altijd maker + licentie in images.json.
 - Zoeken/downloaden: `node scripts/fetch-image.mjs search --source <bron> --query "..."` om te zoeken, dan `node scripts/fetch-image.mjs save --type <cocktail|drank> --id <id> --source <bron> --query "..." --index <n> --niveau <exact|passend|illustratie>` om te downloaden, naar WebP te converteren en images.json bij te werken.
 - Controle: `npm run check:images` (exit 0 alleen bij "MISSING: 0").
 - Fotoverantwoording (Profiel → Instellingen → Fotoverantwoording) leest images.json automatisch uit — niets handmatig bijhouden.
+
+## graphify
+
+Er is een graphify-skill (`.claude/skills/graphify/`) die een kennisgraaf van de code kan bouwen in graphify-out/.
+
+- Gebruik graphify alleen als ik erom vraag of als graphify-out/ bestaat.
+- Is het commando niet beschikbaar, ga dan gewoon door zonder.
+- Bestaat graphify-out/ wel: `graphify query "<vraag>"`, `graphify path "<A>" "<B>"` en `graphify explain "<begrip>"` geven gerichte context; na codewijzigingen houdt `graphify update .` de graaf actueel.

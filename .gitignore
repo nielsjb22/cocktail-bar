@@ -4,3 +4,4 @@ dist
 .env
 supabase/.temp
 thuisbar-netlify
+graphify-out/
