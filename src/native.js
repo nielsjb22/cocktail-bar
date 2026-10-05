@@ -41,7 +41,24 @@ export function initNativeShell() {
   Keyboard.setResizeMode({ mode: "native" }).catch(() => {});
 }
 
+// Het iOS-opstartscherm (LaunchScreen.storyboard: logo + "Mijn Thuisbar" +
+// introtekst) ís de intro van de app — er komt geen tweede intro in React
+// achteraan. Het blijft staan (launchAutoHide: false) tot het eerste echte
+// scherm klaar is, maar minstens SPLASH_MIN_MS zodat de tekst leesbaar is.
+const SPLASH_MIN_MS = 1800;
+const SPLASH_MAX_MS = 6000;
+const launchedAt = Date.now();
+let splashHidden = false;
+
 export function hideNativeSplash() {
-  if (!isNative) return;
-  CapacitorSplashScreen.hide().catch(() => {});
+  if (!isNative || splashHidden) return;
+  splashHidden = true;
+  const wait = Math.max(0, SPLASH_MIN_MS - (Date.now() - launchedAt));
+  setTimeout(() => {
+    CapacitorSplashScreen.hide({ fadeOutDuration: 400 }).catch(() => {});
+  }, wait);
 }
+
+// Vangnet: blijft de app ergens hangen (bv. geen netwerk bij het ophalen van
+// de sessie), dan mag het opstartscherm er niet eeuwig voor blijven staan.
+if (isNative) setTimeout(hideNativeSplash, SPLASH_MAX_MS);

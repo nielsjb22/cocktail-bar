@@ -1119,7 +1119,6 @@ function SplashScreen({ onDone }) {
     document.body.style.overflow = "hidden";
     document.body.style.backgroundColor = "#0E1917";
     document.documentElement.style.backgroundColor = "#0E1917";
-    hideNativeSplash();
     return () => {
       document.body.style.overflow = prevOverflow;
       document.body.style.backgroundColor = prevBodyBg;
@@ -2121,7 +2120,9 @@ export default function ThuisbarApp() {
   useEffect(() => {
     if (!visitedTabs.has(tab)) setVisitedTabs(prev => new Set(prev).add(tab));
   }, [tab]);
-  const [showSplash, setShowSplash] = useState(true);
+  // In de iOS-app is het native opstartscherm de intro (zie hideNativeSplash);
+  // deze geanimeerde React-intro is alleen nog voor de web/PWA-versie.
+  const [showSplash, setShowSplash] = useState(!isNativeShell);
   const [voorraadArr, setVoorraad] = useStorage("thuisbar-voorraad", []);
   const [customIngredients, setCustomIngredients] = useStorage("thuisbar-custom-ingredients", []);
   const [customRecipes, setCustomRecipes] = useStorage("thuisbar-custom-recipes", []);
@@ -2371,6 +2372,13 @@ export default function ThuisbarApp() {
     if (item.id) setVoorraad(voorraadArr.includes(item.id) ? voorraadArr : [...voorraadArr, item.id]);
     removeFromShoppingList(item.key);
   };
+
+  // Native opstartscherm pas weghalen als er een echt scherm klaarstaat
+  // (leeftijdspoort, gastweergave of de app zelf), niet een lege laadkleur.
+  const firstScreenReady = ageVerified !== undefined && (!ageVerified || guestMenuIds || surveyId || session !== undefined);
+  useEffect(() => {
+    if (firstScreenReady) hideNativeSplash();
+  }, [firstScreenReady]);
 
   if (ageVerified === undefined) return <div style={{ minHeight: "100%", background: BOTTLE_DARK }} />;
   if (!ageVerified) return <AgeGateScreen onConfirm={confirmAge} />;
