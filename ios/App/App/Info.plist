@@ -66,5 +66,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Mijn Thuisbar gebruikt je camera om een foto te maken van je cocktail bij een check-in of voor je profielfoto.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Mijn Thuisbar opent je foto's zodat je een foto kunt kiezen voor een check-in of je profielfoto.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

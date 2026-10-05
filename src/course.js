@@ -5,7 +5,9 @@
 //
 // Elk lesson-object: { id, part, number, title, intro, blocks[], takeaways[], quiz[] }
 // blocks: { type: "p" } | { type: "h3", text } | { type: "box", kind, label, text } | { type: "table", headers, rows }
-// quiz: { q, options[4], correct (index), explain }
+// quiz: { q, options[4], correct (index), explain } — zie courseQuiz.js
+
+import { LESSON_QUIZZES, FINAL_EXAM_QUESTIONS } from "./courseQuiz.js";
 
 export const COURSE_PARTS = [
   { id: "fundamenten", title: "Fundamenten", subtitle: "Deel I" },
@@ -22,7 +24,6 @@ export const COURSE_LESSONS = [
     part: "fundamenten",
     number: 1,
     title: "De geschiedenis van de cocktail",
-    image: "https://images.unsplash.com/photo-1779372178719-9476cc86a53d?auto=format&fit=crop&w=1200&q=80",
     intro: "Elke cocktail die je ooit zult maken staat in een lijn die terugloopt tot scheepsartsen, apothekers en barmannen die problemen oplosten, niet tot mensen die simpelweg lekkere drankjes wilden bedenken.",
     blocks: [
       { type: "h3", text: "Vóór de cocktail: punch en medicinale mengsels" },
@@ -42,19 +43,12 @@ export const COURSE_LESSONS = [
       "Citrus en suiker waren ooit functionele oplossingen, geen smaakgrapjes, dat verklaart waarom balans nog steeds centraal staat.",
       "Cocktailgeschiedenis verloopt in golven van bloei en verval; de stijl die je nu leert is zelf een reactie op een eerdere periode van verval.",
     ],
-    quiz: [
-      { q: "Welke vier ingrediënten definieerden \"cocktail\" voor het eerst in 1806?", options: ["Rum, limoen, suiker, munt", "Sterkedrank, suiker, water, bitters", "Gin, vermout, bitters, sinaasappel", "Whiskey, citroen, ei, suiker"], correct: 1, explain: "De Amerikaanse krant The Balance and Columbian Repository definieerde cocktail in 1806 als sterkedrank, suiker, water en bitters: de kern van wat we nu een Old Fashioned noemen." },
-      { q: "Waarom werd citrus oorspronkelijk aan sterkedrank toegevoegd op schepen?", options: ["Om de kleur te verbeteren", "Om scheurbuik te helpen voorkomen en de smaak draaglijker te maken", "Omdat het goedkoper was dan water", "Om de sterkedrank langer houdbaar te maken"], correct: 1, explain: "Citrus loste twee problemen tegelijk op: het maakte ruwe sterkedrank drinkbaarder en hielp scheurbuik voorkomen dankzij de vitamine C." },
-      { q: "Wat was het onbedoelde wereldwijde effect van de Amerikaanse drooglegging (1920-1933)?", options: ["Cocktails verdwenen wereldwijd", "Amerikaanse barmannen verhuisden naar Europa en Cuba en verspreidden hun vak", "IJs werd voor het eerst uitgevonden", "Wodka verving whiskey als populairste basis"], correct: 1, explain: "Bars als Harry's New York Bar (Parijs) en El Floridita (Havana) groeiden in deze periode uit tot broedplaatsen van nieuwe klassiekers dankzij de Amerikaanse uittocht." },
-      { q: "Waar begon de moderne \"craft cocktail-revival\" rond eind jaren '90 / begin jaren 2000 zich op te richten?", options: ["Nieuwe, kunstmatige smaakstoffen", "Negentiende-eeuwse technieken en verse ingrediënten", "Uitsluitend tiki-cocktails", "Alcoholvrije dranken"], correct: 1, explain: "Bartenders in New York en Londen grepen bewust terug op historische technieken en vers werken. Dat is de reden dat vers citrussap en klassieke technieken nu weer de standaard zijn." },
-    ],
   },
   {
     id: "uitrusting",
     part: "fundamenten",
     number: 2,
     title: "De bar-uitrusting: jouw gereedschapskist",
-    image: "https://images.unsplash.com/photo-1611266353853-d370b67187ed?auto=format&fit=crop&w=1200&q=80",
     intro: "Je hebt geen dure barwagen nodig om goed te beginnen, maar met de verkeerde tools kost elke stap onnodig veel moeite. Dit is de uitrusting die er echt toe doet.",
     blocks: [
       { type: "h3", text: "De shaker: drie families, één doel" },
@@ -72,19 +66,12 @@ export const COURSE_LESSONS = [
       "Elk zeeftype heeft een eigen taak: hawthorne voor shaken, julep voor roeren, fijne zeef voor de laatste polish.",
       "Vier basisstukken dekken vrijwel alles; investeer pas verder als je merkt waar je zelf tegenaan loopt.",
     ],
-    quiz: [
-      { q: "Waarom kiezen professionals meestal een Boston shaker boven een cobbler shaker?", options: ["Hij is goedkoper", "Snelheid en een betere afdichting bij hard schudden", "Hij heeft een ingebouwde zeef", "Hij is decoratiever"], correct: 1, explain: "De cobbler shaker lekt sneller en zijn ingebouwde zeef verstopt makkelijk, dus is de Boston shaker de professionele standaard." },
-      { q: "Hoeveel kan vrijhandig schenken (zonder jigger) afwijken van de bedoelde receptuur?", options: ["Vrijwel nooit meer dan 2%", "Tot wel 20%", "Altijd exact hetzelfde", "Alleen bij sterke dranken, nooit bij mixers"], correct: 1, explain: "Zelfs ervaren bartenders wijken zonder jigger tot 20% af, bij balans-gevoelige cocktails is dat een groot verschil." },
-      { q: "Welke zeef gebruik je specifiek bij een stirred-down cocktail vanuit een mixing glass?", options: ["Hawthorne-zeef", "Julep-zeef", "Fijne theezeef", "Geen enkele, altijd direct uitgieten"], correct: 1, explain: "De julep-zeef hoort bij het roerglas en is preciezer voor stirred-down-cocktails dan de hawthorne-zeef." },
-      { q: "Wat is de functie van dubbel zeven met een fijne theezeef?", options: ["De cocktail extra koelen", "Kleine ijssplinters, vruchtvlees of muntstukjes tegenhouden voor een glasheldere cocktail", "De cocktail zoeter maken", "Tijd besparen tijdens het serveren"], correct: 1, explain: "Dubbel zeven vangt op wat de gewone hawthorne-zeef doorlaat, essentieel voor \"up\" geserveerde geshakete cocktails." },
-    ],
   },
   {
     id: "glaswerk",
     part: "fundamenten",
     number: 3,
     title: "Glaswerk: de juiste vorm voor het juiste doel",
-    image: "https://images.unsplash.com/photo-1514651029128-173d2e6ea851?auto=format&fit=crop&w=1200&q=80",
     intro: "Een glas is geen decoratie: de vorm bepaalt hoe snel een drank opwarmt, hoe aroma je neus bereikt, en hoeveel ijs er logisch in past.",
     blocks: [
       { type: "h3", text: "De coupe en Nick & Nora" },
@@ -105,19 +92,12 @@ export const COURSE_LESSONS = [
       "\"Up\" cocktails zijn al gekoeld vóór het inschenken; longdrinks hebben juist volume nodig om zelf koud te blijven.",
       "Een set van 4 (coupe, rocks, highball, wijnglas) dekt vrijwel elk recept.",
     ],
-    quiz: [
-      { q: "Waarom heeft een coupe een brede, ondiepe vorm?", options: ["Om makkelijker te wassen te zijn", "Om aroma snel vrij te laten komen bij een al-gekoelde cocktail", "Om meer ijs te kunnen bevatten", "Puur historische toevalligheid zonder functie"], correct: 1, explain: "De brede opening is functioneel: de cocktail is al gekoeld en verdund tijdens het schudden/roeren, dus de vorm is geoptimaliseerd voor aroma, niet voor extra koeling." },
-      { q: "Waarom is een rocks-glas dikwandig met een stevige bodem?", options: ["Voor een luxe uitstraling", "Om te kunnen muddelen zonder het glas te breken", "Om het gewicht te verhogen voor stabiliteit op tafel", "Om de drank langzamer te laten opwarmen"], correct: 1, explain: "De stevige bodem is functioneel: je kunt er met enige kracht in stampen (muddelen) zonder risico op breuk." },
-      { q: "Wat is de functie van een flute-glas bij champagnecocktails?", options: ["Het houdt de drank warmer", "Het behoudt de koolzuurbubbels langer dan een breed glas", "Het is makkelijker te stapelen", "Het voorkomt morsen tijdens het lopen"], correct: 1, explain: "De smalle vorm van een flute vertraagt het ontsnappen van koolzuur, waardoor de drank langer bruist." },
-      { q: "Welke twee glazen dekken samen met rocks en highball vrijwel elk basisrecept?", options: ["Bierpul en theeglas", "Coupe/Nick&Nora en wijnglas", "Shotglas en waterglas", "Sherryglas en cognacglas"], correct: 1, explain: "Een set van coupe, rocks, highball en wijnglas dekt de overgrote meerderheid van klassieke en moderne cocktails." },
-    ],
   },
   {
     id: "ijs",
     part: "fundamenten",
     number: 4,
     title: "IJs: de onderschatte hoofdingrediënt",
-    image: "https://images.unsplash.com/photo-1612924693632-b55d751457c6?auto=format&fit=crop&w=1200&q=80",
     intro: "Beginnende thuisbartenders behandelen ijs als bijzaak. Professionals behandelen het als een ingrediënt met een eigen receptuur.",
     blocks: [
       { type: "h3", text: "Waarom verdunning geen fout is" },
@@ -133,12 +113,6 @@ export const COURSE_LESSONS = [
       "Grof ijs = trage verdunning (Old Fashioned-stijl), fijn/crushed ijs = snelle verdunning (Mojito/tiki-stijl).",
       "Reken ruim: te weinig ijs tijdens een feest verpest elke volgende ronde.",
     ],
-    quiz: [
-      { q: "Hoeveel procent van het ijsvolume smelt gemiddeld mee tijdens shaken/roeren?", options: ["Vrijwel 0%", "20-30%", "50-60%", "Meer dan 80%"], correct: 1, explain: "Deze bewuste verdunning van 20-30% is essentieel om de smaken in balans te brengen. Het is geen fout maar onderdeel van het recept." },
-      { q: "Waarom smelt één groot ijsblok trager dan dezelfde hoeveelheid verdeeld over kleine blokjes?", options: ["Groot ijs is altijd kouder", "Minder oppervlak per volume-eenheid betekent een tragere smeltsnelheid", "Groot ijs bevat minder lucht", "Er is geen verschil, dit is een mythe"], correct: 1, explain: "De oppervlakte-tot-volume-verhouding is lager bij één groot blok, wat de smeltsnelheid vertraagt, ideaal voor Old Fashioned-achtige drankjes." },
-      { q: "Bij welk type cocktail is crushed ijs de juiste keuze?", options: ["Martini", "Manhattan", "Mojito", "Negroni"], correct: 2, explain: "Crushed ijs smelt snel en geeft een intense, verfrissende verdunning, precies wat een Mojito of Julep nodig heeft." },
-      { q: "Wat is de vuistregel voor ijs per geserveerde cocktail bij een feest?", options: ["50 gram", "150 gram", "500 gram", "1 kilo"], correct: 1, explain: "Ongeveer 150 gram per drankje dekt zowel het ijs tijdens bereiding als het serveer-ijs." },
-    ],
   },
 
   {
@@ -146,7 +120,6 @@ export const COURSE_LESSONS = [
     part: "ingredienten",
     number: 5,
     title: "Gedistilleerde dranken: de basis van elke cocktail",
-    image: "https://images.unsplash.com/photo-1779080415834-c13f4c682dc8?auto=format&fit=crop&w=1200&q=80",
     intro: "Vrijwel elke cocktail heeft een basisspirit. Ken je de hoofdcategorieën, dan kun je bij elk nieuw recept meteen inschatten wat je gaat proeven.",
     blocks: [
       { type: "h3", text: "Hoe distilleren werkt" },
@@ -170,19 +143,12 @@ export const COURSE_LESSONS = [
       "Tequila en mezcal zijn geen \"sterk/zwak\"-paar maar twee verschillende productiefilosofieën.",
       "Wodka's neutraliteit is functioneel: het is een drager voor andere smaken, geen smaakloos gebrek.",
     ],
-    quiz: [
-      { q: "Wat is het wettelijke minimumpercentage maïs voor bourbon?", options: ["21%", "51%", "75%", "100%"], correct: 1, explain: "Bourbon moet voor minstens 51% uit maïs bestaan en rijpen in nieuwe, verkoolde eikenvaten." },
-      { q: "Wat is het belangrijkste verschil in productieproces tussen tequila en mezcal?", options: ["Tequila is altijd sterker", "Mezcal wordt traditioneel geroosterd in ondergrondse ovens, tequila industrieel gestoomd", "Mezcal mag alleen uit blauwe agave", "Er is geen verschil, het zijn synoniemen"], correct: 1, explain: "Dat roostingsproces geeft mezcal zijn karakteristieke rokerige smaak, een fundamenteel andere aanpak dan tequila." },
-      { q: "Waarom wordt wodka bewust zo neutraal mogelijk gedistilleerd?", options: ["Omdat het een fout in het proces is die niet te vermijden is", "Zodat het als drager voor andere smaken kan dienen zonder een eigen stempel te drukken", "Omdat neutrale wodka goedkoper is om te maken", "Om het percentage alcohol te verlagen"], correct: 1, explain: "Neutraliteit is het hele punt: wodka-cocktails laten andere ingrediënten het werk doen." },
-      { q: "Welke gebeurtenis zorgde ervoor dat whiskey cognac grotendeels verving als Amerikaanse cocktailbasis?", options: ["De Amerikaanse drooglegging", "De druifluis phylloxera die Europese wijngaarden decimeerde", "De Tweede Wereldoorlog", "De uitvinding van de cocktailshaker"], correct: 1, explain: "Phylloxera decimeerde eind negentiende eeuw de Europese wijngaarden en daarmee de cognacproductie, wat whiskey de kans gaf de dominante rol over te nemen." },
-    ],
   },
   {
     id: "likeuren-bitters",
     part: "ingredienten",
     number: 6,
     title: "Versterkte wijnen, likeuren en bitters",
-    image: "https://images.unsplash.com/photo-1525268323446-0505b6fe7778?auto=format&fit=crop&w=1200&q=80",
     intro: "Als sterkedrank de ruggengraat van een cocktail is, zijn deze drie categorieën het zenuwstelsel: ze sturen de smaak subtiel bij en voegen complexiteit toe.",
     blocks: [
       { type: "h3", text: "Vermout: de meest onderschatte fles in huis" },
@@ -198,19 +164,12 @@ export const COURSE_LESSONS = [
       "Amari en bitters spelen dezelfde rol als zout in koken: ze scherpen andere smaken aan in plaats van zelf te overheersen.",
       "Kleine hoeveelheden (dashes, een paar ml likeur) hebben vaak een onevenredig grote invloed op het eindresultaat.",
     ],
-    quiz: [
-      { q: "Waarom moet vermout na opening gekoeld worden bewaard?", options: ["Omdat het anders verkleurt", "Omdat het wijn is en oxideert net als andere wijn", "Om de alcohol te behouden", "Dat hoeft niet, vermout is onbeperkt houdbaar"], correct: 1, explain: "Vermout is versterkte wijn: het oxideert en verliest binnen enkele weken merkbaar aan frisheid, ook gekoeld." },
-      { q: "Wat is het belangrijkste verschil tussen Campari en Aperol?", options: ["Campari is zoeter dan Aperol", "Campari is bitterder en dieper rood, Aperol lichter en zoeter", "Ze zijn identiek, alleen de fles verschilt", "Aperol bevat geen alcohol"], correct: 1, explain: "Beide zijn amari, maar Campari heeft een uitgesprokener bitterheid en diepere kleur dan de lichtere, zoetere Aperol." },
-      { q: "In welke mate worden bitters typisch gedoseerd?", options: ["In hele maatglazen (60+ ml)", "In dashes, een paar druppels", "Nooit minder dan 100 ml per cocktail", "Alleen als hoofdingrediënt"], correct: 1, explain: "Bitters zijn zeer geconcentreerd en worden in kleine dashes gebruikt, vergelijkbaar met zout in de keuken." },
-      { q: "Wat is bijzonder aan het recept van groene en gele Chartreuse?", options: ["Het is volledig synthetisch", "Het wordt al sinds de zeventiende eeuw door kartuizer monniken gemaakt volgens een geheim recept", "Het bevat geen kruiden", "Het recept is openbaar gepubliceerd"], correct: 1, explain: "Het meer dan honderd kruiden tellende recept is eeuwenoud en tot op vandaag slechts bij twee monniken tegelijk bekend." },
-    ],
   },
   {
     id: "vers",
     part: "ingredienten",
     number: 7,
     title: "Vers: citrus, siropen en zuivel",
-    image: "https://images.unsplash.com/photo-1546548970-71785318a17b?auto=format&fit=crop&w=1200&q=80",
     intro: "Dit zijn de ingrediënten die je zelf het meest controleert, en waar de meeste winst te behalen valt tussen een matige en een uitstekende cocktail.",
     blocks: [
       { type: "h3", text: "Citrus: altijd vers, altijd op tijd geperst" },
@@ -226,19 +185,12 @@ export const COURSE_LESSONS = [
       "Suikersiroop lost op waar kristalsuiker dat niet doet: een simpel, essentieel technisch detail.",
       "Eiwit is een textuur-ingrediënt: de dry shake is niet optioneel als je het gewenste schuimeffect wilt.",
     ],
-    quiz: [
-      { q: "Waarom is versgeperst citrussap beter dan sap uit een fles?", options: ["Het is altijd goedkoper", "Het bevat vluchtige aromatische oliën en oxideert nog niet", "Fles-sap bevat geen zuur", "Er is geen verschil"], correct: 1, explain: "Vers sap heeft aromatische oliën die binnen uren vervliegen; commercieel sap mist deze en oxideert bovendien anders." },
-      { q: "Waarom gebruik je suikersiroop in plaats van kristalsuiker in een geshakete cocktail?", options: ["Suikersiroop is goedkoper", "Kristalsuiker lost niet goed op in koude vloeistof, siroop wel", "Kristalsuiker is ongezonder", "Er is geen functioneel verschil"], correct: 1, explain: "Kristalsuiker laat knerpende korrels achter in een koude cocktail; voorgemaakte siroop lost direct en volledig op." },
-      { q: "Wat is het doel van een \"dry shake\" bij een eiwitcocktail?", options: ["De cocktail extra verdunnen", "Het eiwit emulgeren en lucht inkloppen vóór het ijs erbij komt", "De cocktail sneller koelen", "Bacteriën doden"], correct: 1, explain: "Zonder dry shake krijg je een dunnere, minder indrukwekkende schuimlaag omdat het eiwit niet goed is geëmulgeerd." },
-      { q: "Hoe lang van tevoren kun je citrussap het beste persen voor optimale kwaliteit?", options: ["Een week van tevoren", "Een paar dagen van tevoren", "Dezelfde dag, idealiter binnen een paar uur", "Het maakt niets uit"], correct: 2, explain: "Citrussap verliest binnen 24 uur al merkbaar aan frisheid. Pers het zo dicht mogelijk bij het serveermoment." },
-    ],
   },
   {
     id: "garnering",
     part: "ingredienten",
     number: 8,
     title: "Garnering: functie boven decoratie",
-    image: "https://images.unsplash.com/photo-1624654434984-cdb7d6b1b4b1?auto=format&fit=crop&w=1200&q=80",
     intro: "Een garnering die alleen maar mooi oogt maar niets aan smaak of aroma toevoegt, is een gemiste kans. De beste garneringen doen minstens één functioneel ding.",
     blocks: [
       { type: "h3", text: "De citrustwist: aroma, geen smaak" },
@@ -254,12 +206,6 @@ export const COURSE_LESSONS = [
       "Een citrustwist verandert de geur, en dus de beleving, van een cocktail zonder de vloeistof zelf aan te passen.",
       "Klap munt, plet het niet: beschadigde blaadjes oxideren en worden bitter.",
     ],
-    quiz: [
-      { q: "Wat is het functionele effect van een citrustwist boven een cocktail?", options: ["Het maakt de cocktail zoeter", "Het verspreidt aromatische oliën die de geurbeleving van elke slok beïnvloeden", "Het kleurt de drank", "Het heeft geen functie, puur decoratie"], correct: 1, explain: "De uitgeknepen oliën liggen als een aromawolk op het drankoppervlak: dat is de eerste geur die je ruikt bij elke slok." },
-      { q: "Waarom klap je munt tussen je handen in plaats van het te pletten?", options: ["Klappen is sneller", "Pletten beschadigt de blaadjes, waardoor ze oxideren en bitter worden", "Het maakt geen verschil", "Klappen maakt de munt zoeter"], correct: 1, explain: "Een korte klap activeert de aromatische oliën zonder de blaadjes te beschadigen; pletten veroorzaakt juist een bittere smaak." },
-      { q: "Welke functie heeft een olijf in een Dirty Martini?", options: ["Puur decoratief", "Een zoute, hartige contrasterende noot toevoegen", "De cocktail verdunnen", "De alcohol maskeren"], correct: 1, explain: "De olijf (en het pekelvocht in de Dirty-variant) voegt bewust een zoute tegenhanger toe aan de rest van de cocktail." },
-      { q: "Wat is het primaire doel van overdreven garnering in tiki-cocktails?", options: ["Functionele smaakverbetering", "Sfeer en theatrale beleving, in lijn met de tiki-traditie", "Kostenbesparing", "Het verbergen van slechte ingrediënten"], correct: 1, explain: "Tiki is van oorsprong gericht op het creëren van een complete, exotische beleving; de garnering hoort daarbij, los van smaakfunctie." },
-    ],
   },
 
   {
@@ -267,7 +213,6 @@ export const COURSE_LESSONS = [
     part: "techniek",
     number: 9,
     title: "De zes basistechnieken",
-    image: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=1200&q=80",
     intro: "Elke cocktail ter wereld wordt gemaakt met een combinatie van een handvol basistechnieken. Beheers deze zes, en je kunt in principe elk recept uitvoeren.",
     blocks: [
       { type: "h3", text: "Shaken en dry shake" },
@@ -293,19 +238,12 @@ export const COURSE_LESSONS = [
       "Kort en hard schudden geeft betere resultaten dan lang en zacht.",
       "Elke techniek bestaat om een specifiek probleem op te lossen. Ken je het probleem, dan onthoud je de techniek vanzelf.",
     ],
-    quiz: [
-      { q: "Wanneer kies je stirren in plaats van shaken?", options: ["Bij cocktails met vers sap", "Bij cocktails met uitsluitend heldere, alcoholische ingrediënten", "Altijd bij longdrinks", "Alleen bij dessertcocktails"], correct: 1, explain: "Stirren voorkomt dat lucht wordt ingeklopt, wat een heldere cocktail als Martini of Manhattan troebel zou maken." },
-      { q: "Waarom schud je kort en hard in plaats van lang en zacht?", options: ["Om energie te besparen", "Om ijssplinters en snelle verdunning te krijgen zonder onnodig extra water toe te voegen", "Omdat lang schudden de shaker beschadigt", "Er is geen verschil in resultaat"], correct: 1, explain: "Lang en zacht schudden voegt vooral overbodige verwatering toe zonder extra koelingsvoordeel." },
-      { q: "Wat is het doel van muddelen?", options: ["De cocktail koud maken", "Aroma en sap uit kruiden of fruit vrijmaken vóór de rest van de bereiding", "Koolzuur toevoegen", "De cocktail troebel maken"], correct: 1, explain: "Muddelen kneust het ingrediënt om de aromatische oliën en sappen vrij te maken." },
-      { q: "Bij welk type cocktail past swizzelen het best?", options: ["Een Martini", "Een crushed-ice-cocktail zoals de Chartreuse Swizzle", "Een longdrink met alleen ijsblokjes", "Een warme cocktail"], correct: 1, explain: "Swizzelen is specifiek ontwikkeld voor crushed-ice-drankjes en geeft een zeer koude, licht verdunde afwerking." },
-    ],
   },
   {
     id: "verdunning-temperatuur",
     part: "techniek",
     number: 10,
     title: "De wetenschap van verdunning en temperatuur",
-    image: "https://images.unsplash.com/photo-1588867702719-969c8ac733d6?auto=format&fit=crop&w=1200&q=80",
     intro: "Waarom smaakt dezelfde cocktail soms anders, ook al gebruik je exact dezelfde ingrediënten? Het antwoord zit bijna altijd in verdunning en temperatuur.",
     blocks: [
       { type: "h3", text: "De drie variabelen die je controleert" },
@@ -321,19 +259,12 @@ export const COURSE_LESSONS = [
       "Vertrouw op tijd, niet op hoe koud de buitenkant van je shaker aanvoelt.",
       "Voorkoelen van het glas is een kleine moeite met een merkbaar effect op de drinktemperatuur.",
     ],
-    quiz: [
-      { q: "Waarom is \"tot het koud aanvoelt\" geen betrouwbare maatstaf tijdens het shaken?", options: ["Shakers worden nooit koud", "Het shakerglas voelt door geleiding al koud aan vóór de vloeistof de juiste verdunning heeft bereikt", "Temperatuur heeft geen effect op smaak", "Dit is juist wel de beste methode"], correct: 1, explain: "Geleiding maakt de buitenkant snel koud, ruim voordat de inhoud zelf de juiste temperatuur/verdunning bereikt. Vertrouw daarom op tijd." },
-      { q: "Wat gebeurt er als je veel langer blijft schudden dan nodig?", options: ["De cocktail wordt evenredig steeds kouder", "Je voegt vooral overbodig extra water toe zonder nog merkbaar kouder te worden", "Niets, tijd heeft geen effect", "De cocktail wordt warmer"], correct: 1, explain: "Na een bepaald punt heeft het ijs zijn koelcapaciteit al afgegeven; extra tijd voegt dan vooral verdunning toe." },
-      { q: "Waarom voorkoel je een glas voor een \"up\" geserveerde cocktail?", options: ["Puur esthetisch, geen functioneel effect", "Om te voorkomen dat de cocktail meteen koeling verliest aan een glas op kamertemperatuur", "Om het glas steriel te maken", "Om condens op het glas te voorkomen"], correct: 1, explain: "Een warm glas onttrekt direct koeling aan de cocktail; voorkoelen voorkomt dat verlies." },
-      { q: "Wat is een betrouwbare manier om te checken of een cocktail voldoende verdund is?", options: ["De kleur bekijken", "Een klein slokje proeven direct uit de shaker vóór het zeven", "Wachten tot het glas beslaat", "De tijd op de klok checken zonder te proeven"], correct: 1, explain: "Proeven vóór het zeven geeft direct feedback. Met oefening leer je precies aanvoelen wanneer een drank \"af\" is." },
-    ],
   },
   {
     id: "sour-formule",
     part: "techniek",
     number: 11,
     title: "De sour-formule: zoet, zuur en sterk in balans",
-    image: "https://images.unsplash.com/photo-1638884890569-b9af6dd7bbd8?auto=format&fit=crop&w=1200&q=80",
     intro: "Vrijwel elke \"sour\"-stijl cocktail volgt exact dezelfde onderliggende wiskunde. Begrijp deze formule, en je kunt oneindig veel varianten zelf bedenken.",
     blocks: [
       { type: "h3", text: "De klassieke verhouding" },
@@ -353,19 +284,12 @@ export const COURSE_LESSONS = [
       "Zuur en zoet neutraliseren elkaars extremen; samen creëren ze balans die los niet werkt.",
       "Proef en stel bij: de formule is een startpunt, geen absolute wet.",
     ],
-    quiz: [
-      { q: "Wat is de basisverhouding van de sour-formule?", options: ["1 deel sterk : 1 deel zuur : 1 deel zoet", "2 delen sterk : 3/4 deel zuur : 3/4 deel zoet", "3 delen sterk : 1/4 deel zuur : 1/4 deel zoet", "Gelijke delen van alle vier hoofdingrediënten"], correct: 1, explain: "Deze 2:3/4:3/4-verhouding is het uitgangspunt voor vrijwel elke sour-cocktail, van Whiskey Sour tot Margarita." },
-      { q: "Waarom werkt de combinatie van zuur en zoet in een sour?", options: ["Ze hebben geen effect op elkaar", "Ze neutraliseren elkaars extremen en creëren samen balans", "Zuur maakt de cocktail sterker", "Zoet maskeert alleen slechte sterkedrank"], correct: 1, explain: "Los is puur citrussap te scherp en puur suikersiroop te plakkerig; samen in de juiste verhouding ontstaat balans." },
-      { q: "Waarom heb je in een Margarita mogelijk minder aparte suikersiroop nodig?", options: ["Tequila is van nature zoet", "Triple sec is zelf al zoet en telt deels mee als het \"zoet\"-element", "Limoensap is minder zuur dan citroensap", "Dat klopt niet, je hebt altijd evenveel siroop nodig"], correct: 1, explain: "Een zoete likeur zoals triple sec draagt al bij aan het zoet-element, waardoor minder aparte siroop nodig is." },
-      { q: "Wat blijft, in volume, het grootste onderdeel van een sour?", options: ["Het zure element", "Het zoete element", "De sterkedrank", "Het ijs"], correct: 2, explain: "Een sour is een cocktail mét een duidelijke drank-basis: de sterkedrank blijft qua volume de grootste component." },
-    ],
   },
   {
     id: "finesse",
     part: "techniek",
     number: 12,
     title: "Dubbel zeven, laagjes en andere finesse",
-    image: "https://images.unsplash.com/photo-1779635593603-08d49c2bf83e?auto=format&fit=crop&w=1200&q=80",
     intro: "Dit zijn de technieken die het verschil maken tussen \"correct volgens recept\" en \"professioneel afgewerkt\".",
     blocks: [
       { type: "h3", text: "Dubbel zeven en de drijflaag" },
@@ -381,12 +305,6 @@ export const COURSE_LESSONS = [
       "Gelaagde effecten draaien om dichtheidsverschil en een langzame, gecontroleerde giettechniek.",
       "De citrus-expressie is een kleine handeling met een onevenredig grote invloed op de eerste indruk.",
     ],
-    quiz: [
-      { q: "Wanneer is dubbel zeven vooral belangrijk?", options: ["Bij longdrinks over ijs", "Bij \"up\" geserveerde geshakete cocktails zonder ijs in het glas", "Alleen bij warme cocktails", "Nooit, het is een overbodige stap"], correct: 1, explain: "Zonder ijs in het glas vallen kleine splinters of vruchtvlees direct op; dubbel zeven voorkomt dat." },
-      { q: "In welke volgorde bouw je een laagjes-shooter op?", options: ["Willekeurige volgorde, dichtheid maakt niet uit", "Van lichtste naar zwaarste likeur, van onder naar boven", "Van zwaarste naar lichtste likeur, van onder naar boven", "Alle likeuren tegelijk mengen"], correct: 2, explain: "De zwaarste (meestal suikerrijkste) likeur gaat onderin, met steeds lichtere likeuren erboven, dankzij dichtheidsverschil." },
-      { q: "Wat is het effect van een citrus-expressie boven een cocktail?", options: ["Het verandert de kleur van de drank", "Het verspreidt aromatische oliën die de eerste geurindruk bepalen", "Het maakt de cocktail zoeter", "Het heeft geen waarneembaar effect"], correct: 1, explain: "De uitgespoten oliën beïnvloeden direct wat je ruikt zodra je het glas opheft: een kleine stap met grote impact." },
-      { q: "Waarover giet je bij een drijflaag-techniek de vloeistof, om controle te houden?", options: ["Een rietje", "De bolle achterkant van een bar spoon", "Een trechter", "Direct uit de fles zonder hulpmiddel"], correct: 1, explain: "Gieten over de achterkant van een lepel breekt de val van de vloeistof, waardoor het rustig op het oppervlak kan blijven drijven." },
-    ],
   },
 
   {
@@ -394,7 +312,6 @@ export const COURSE_LESSONS = [
     part: "smaak",
     number: 13,
     title: "De negen cocktailfamilies",
-    image: "https://images.unsplash.com/photo-1560179304-6fc1d8749b23?auto=format&fit=crop&w=1200&q=80",
     intro: "In plaats van honderden losse recepten te onthouden, leer je negen families herkennen. Elke cocktail past vrijwel altijd in (of combineert elementen van) een van deze categorieën.",
     blocks: [
       { type: "h3", text: "De negen families" },
@@ -406,19 +323,12 @@ export const COURSE_LESSONS = [
       "Elke familie heeft een eigen technische logica (shaken vs. roeren, wel/geen citrus, wel/geen koolzuur).",
       "Een nieuwe cocktail leren gaat sneller zodra je 'm eerst indeelt in een familie.",
     ],
-    quiz: [
-      { q: "Tot welke familie behoort een Negroni?", options: ["Sours", "Spirit-forward / Old Fashioned-stijl", "Fizz & flip", "Tiki & tropisch"], correct: 1, explain: "De Negroni is sterk-voorwaarts, geroerd met bitter en vermout: de kern van de spirit-forward-familie." },
-      { q: "Wat is het kenmerkende verschil tussen stirred-down/Martini-familie en sours?", options: ["Stirred-down bevat altijd meer suiker", "Stirred-down-cocktails bevatten geen citrus en worden geroerd, sours wel citrus en worden geshaked", "Er is geen verschil", "Sours worden altijd warm geserveerd"], correct: 1, explain: "De afwezigheid van citrus (en dus geen noodzaak tot shaken) is het kernonderscheid tussen deze twee families." },
-      { q: "Welk \"probleem\" losten highballs historisch op?", options: ["Het gebrek aan ijs", "Drank strekken en verfrissend houden met veel mixer", "Het gebrek aan glaswerk", "Het bewaren van sterkedrank"], correct: 1, explain: "Highballs voegen bewust veel mixer toe om een longdrink te maken die verfrissend blijft in plaats van geconcentreerd sterk." },
-      { q: "Waarom is het nuttig om een nieuwe cocktail eerst in een familie in te delen?", options: ["Het is puur een administratieve exercitie zonder praktisch nut", "Je weet dan al ongeveer welke techniek en structuur te verwachten", "Families bepalen de prijs van een cocktail", "Het is alleen relevant voor menu-ontwerp"], correct: 1, explain: "Ken je de familie, dan ken je meteen de bijbehorende techniek en smaakstructuur, dat versnelt het leren van nieuwe recepten enorm." },
-    ],
   },
   {
     id: "smaakcombinatie",
     part: "smaak",
     number: 14,
     title: "Smaakcombinatie: hoe klassiekers zijn opgebouwd",
-    image: "https://images.unsplash.com/photo-1671713682264-ecf27750b276?auto=format&fit=crop&w=1200&q=80",
     intro: "Waarom werkt gin met citrus, campari met sinaasappel, mezcal met ananas? Dit hoofdstuk legt de onderliggende principes bloot.",
     blocks: [
       { type: "h3", text: "Complementair versus contrasterend" },
@@ -433,19 +343,12 @@ export const COURSE_LESSONS = [
       "Sommige ingrediënten (zoals bitters) werken als aromatische brug tussen smaken die anders niet vanzelfsprekend samengaan.",
       "Textuur is een even belangrijke smaakdimensie als zoet/zuur/bitter, en wordt vaak over het hoofd gezien.",
     ],
-    quiz: [
-      { q: "Wat is een voorbeeld van een contrasterende (niet complementaire) smaakcombinatie?", options: ["Citroen en citroenschil-likeur", "Munt en groene Chartreuse", "Campari (bitter) en sinaasappelsap (zoet)", "Vanille en karamel"], correct: 2, explain: "Bitter tegenover zoet is een klassiek contrast dat spanning creëert, in tegenstelling tot de complementaire voorbeelden die hetzelfde thema versterken." },
-      { q: "Wat is de functie van een \"aromatische brug\" zoals Angostura bitters?", options: ["Alleen kleur toevoegen", "Verbinding leggen tussen smaken die niet vanzelfsprekend samengaan", "De cocktail sterker maken", "Suiker vervangen"], correct: 1, explain: "Angostura's kruidnagel- en kaneelachtige noten passen bij zowel fruitige als houtige dranken en fungeren zo als verbindend element." },
-      { q: "Waarom is textuurcontrast net zo belangrijk als smaakcontrast?", options: ["Dat is het niet, alleen smaak telt", "Een cocktail die qua smaak én textuur maar één ding doet, voelt eendimensionaal aan", "Textuur heeft geen effect op de beleving", "Textuur is alleen relevant bij warme dranken"], correct: 1, explain: "Denk aan schuim, koolzuur of gladheid van room; subtiel textuurcontrast maakt een drank interessanter over meerdere slokken." },
-      { q: "Welk contrast typeert de Penicillin volgens de \"lees\"-methode uit deze les?", options: ["Alleen complementaire elementen, geen contrast", "Een rokerige whisky-drijflaag als contrast met een warme, zoete honing-gember-basis", "Uitsluitend zoetheid zonder tegenwicht", "Geen enkele citrus of zuur component"], correct: 1, explain: "De honing-gember-basis is complementair-warm, terwijl de rokerige whisky-drijflaag er een scherp contrast mee vormt." },
-    ],
   },
   {
     id: "ontwerpen",
     part: "smaak",
     number: 15,
     title: "Zelf een cocktail ontwerpen: de bouwstenen-methode",
-    image: "https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?auto=format&fit=crop&w=1200&q=80",
     intro: "Dit is het moment waarop je van \"recepten volgen\" naar \"recepten bedenken\" gaat: een gestructureerde methode, geen willekeurig experimenteren.",
     blocks: [
       { type: "h3", text: "Stap 1 & 2: familie en basisspirit" },
@@ -461,19 +364,12 @@ export const COURSE_LESSONS = [
       "Bouw eerst een simpele, werkende kernformule op voordat je finesse-lagen toevoegt.",
       "Pas telkens één variabele per keer aan tijdens het proeven, en noteer wat je verandert.",
     ],
-    quiz: [
-      { q: "Wat is de aanbevolen eerste stap bij het ontwerpen van een nieuwe cocktail?", options: ["Meteen vijf exotische ingrediënten combineren", "Een van de negen families kiezen als structureel startpunt", "Alleen op smaak afgaan zonder structuur", "Beginnen bij de garnering"], correct: 1, explain: "Een familie als skelet geeft je een werkende structuur (bijv. sterk-zuur-zoet) om binnen te experimenteren." },
-      { q: "Waarom is het een veelgemaakte beginnersfout om meteen met vijf ingrediënten te starten?", options: ["Het kost te veel geld", "Een cocktail met te veel losse elementen wordt bijna altijd onduidelijk van smaak", "Het is tegen de regels", "Vijf ingrediënten is altijd te sterk"], correct: 1, explain: "Bouw eerst een simpele, werkende kernformule op. Pas daarna voeg je finesse-lagen toe." },
-      { q: "Waarom pas je bij het bijstellen van een recept maar één variabele tegelijk aan?", options: ["Om tijd te besparen", "Anders weet je niet welke aanpassing het verschil maakte", "Omdat je maar één fles tegelijk mag gebruiken", "Dat is geen praktische regel, willekeurig aanpassen werkt net zo goed"], correct: 1, explain: "Verander je meerdere dingen tegelijk, dan kun je niet isoleren welke wijziging het gewenste (of ongewenste) effect had." },
-      { q: "In welke stapgrootte wordt aangeraden een recept bij te stellen tijdens het testen?", options: ["25 ml of meer per keer", "5 ml of minder per keer", "Alleen hele flessen tegelijk", "Stapgrootte maakt niet uit"], correct: 1, explain: "Kleine stappen voorkomen dat je van \"te weinig\" naar \"te veel\" schiet zonder het optimale punt te raken." },
-    ],
   },
   {
     id: "menu",
     part: "smaak",
     number: 16,
     title: "Een menu samenstellen als een pro",
-    image: "https://images.unsplash.com/photo-1772311698901-fe3fa07141be?auto=format&fit=crop&w=1200&q=80",
     intro: "Eén goede cocktail maken is één vaardigheid; een compleet, uitgebalanceerd menu voor gasten samenstellen is een andere.",
     blocks: [
       { type: "h3", text: "De smaakmatrix: vier hoeken plus één" },
@@ -488,12 +384,6 @@ export const COURSE_LESSONS = [
       "Batchbaarheid is een net zo belangrijke planningsfactor als smaak wanneer je zelf ook van het feest wilt genieten.",
       "Een fles van 700 ml levert ongeveer 15-16 cocktails: een simpele, bruikbare inkoopvuistregel.",
     ],
-    quiz: [
-      { q: "Welke smaakhoek hoort altijd volwaardig op een menu te staan, naast de vier hoofdhoeken?", options: ["Extra zoet", "Alcoholvrij", "Extra bitter", "Alleen champagne-cocktails"], correct: 1, explain: "Een volwaardige alcoholvrije optie hoort standaard op elk menu, zodat niet-drinkende gasten niet vergeten worden." },
-      { q: "Welk type cocktail is het meest geschikt om vooraf te batchen voor een feest?", options: ["Een cocktail met vers eiwit", "Een gestirde cocktail zonder vers sap, eiwit of zuivel", "Een fizz met koolzuur", "Een cocktail met slagroom"], correct: 1, explain: "Gestirde cocktails zonder bederfelijke verse elementen kunnen uren van tevoren gemengd en gekoeld bewaard worden." },
-      { q: "Ongeveer hoeveel cocktails levert een fles van 700 ml op bij 45 ml per drankje?", options: ["Ongeveer 5", "Ongeveer 15-16", "Ongeveer 30", "Ongeveer 50"], correct: 1, explain: "700 ml gedeeld door 45 ml per portie komt neer op ongeveer 15-16 cocktails, een bruikbare inkoopvuistregel." },
-      { q: "Waarom is het slim om cocktails te kiezen die ingrediënten delen?", options: ["Het maakt het menu saaier", "Het scheelt inkoopkosten en het aantal flessen dat je in huis moet hebben", "Het heeft geen enkel voordeel", "Het is verplicht volgens de smaakmatrix"], correct: 1, explain: "Gedeelde ingrediënten verlagen kosten en voorraadbehoefte zonder dat het menu zelf minder gevarieerd hoeft te voelen." },
-    ],
   },
 
   {
@@ -501,7 +391,6 @@ export const COURSE_LESSONS = [
     part: "vak",
     number: 17,
     title: "Mise en place: voorbereiding is alles",
-    image: "https://images.unsplash.com/photo-1590080876351-941da357bde6?auto=format&fit=crop&w=1200&q=80",
     intro: "\"Mise en place\", Frans voor \"alles op zijn plek\", is een keukentraditie die professionele bars één op één hebben overgenomen.",
     blocks: [
       { type: "h3", text: "Wat hoort er bij bar-mise en place?" },
@@ -517,19 +406,12 @@ export const COURSE_LESSONS = [
       "Ken je recepten uit je hoofd voor het menu dat je die avond serveert.",
       "Onderscheid wat vooraf kan (siropen, de meeste garnering) van wat pas op het laatste moment mag (citrussap, munt).",
     ],
-    quiz: [
-      { q: "Wat betekent \"mise en place\" in de context van bartending?", options: ["Een specifieke cocktailtechniek", "Alle voorbereiding op orde hebben vóór de eerste gast arriveert", "Het schoonmaken na afloop", "Een type glaswerk"], correct: 1, explain: "Het is een keukentraditie (letterlijk \"alles op zijn plek\") die professionele bars één op één hebben overgenomen." },
-      { q: "Welk ingrediënt hoort NIET tot de dingen die je een dag van tevoren kunt voorbereiden?", options: ["Suikersiroop", "De meeste garneringen", "Vers citrussap", "Kaneelstokjes voor garnering"], correct: 2, explain: "Citrussap (en delicate kruiden zoals munt) verliezen binnen uren aan kwaliteit; dat maak je zo dicht mogelijk bij het serveermoment." },
-      { q: "Hoe organiseer je een efficiënte bar-werkplek volgens deze les?", options: ["Willekeurige volgorde, het maakt niet uit", "Volgens de volgorde van bereiding: sterkedrank dichtbij, dan wijnen/likeuren, dan bitters, dan vers", "Alfabetisch op merknaam", "Alles in de koelkast, ongeacht type"], correct: 1, explain: "Deze volgorde volgt de bereidingsstappen en voorkomt onnodig heen-en-weer-lopen tijdens een drukke avond." },
-      { q: "Waarom is het aan te raden om je menu-recepten uit je hoofd te kennen vóór een feest?", options: ["Het is een wettelijke vereiste", "Bij meer dan een paar gasten is telkens een recept opzoeken onhoudbaar en stressvol", "Telefoons zijn niet toegestaan aan de bar", "Het heeft geen praktisch voordeel"], correct: 1, explain: "Recepten uit je hoofd kennen scheelt tijd en stress zodra je voor een grotere groep werkt." },
-    ],
   },
   {
     id: "batchen-groepen",
     part: "vak",
     number: 18,
     title: "Batchen en grote groepen bedienen",
-    image: "https://images.unsplash.com/photo-1690983322317-c0437262f0cb?auto=format&fit=crop&w=1200&q=80",
     intro: "Zodra je voor meer dan een handvol gasten schenkt, verandert de opgave: je maakt niet langer één cocktail perfect, je maakt tientallen cocktails consistent.",
     blocks: [
       { type: "h3", text: "Wat batchen wél en niet oplost" },
@@ -545,19 +427,12 @@ export const COURSE_LESSONS = [
       "Reken vooraf: 2 drankjes per gast het eerste uur, daarna 1 per uur, en 150 g ijs per drankje.",
       "Splits taken bij grotere groepen: één persoon die alles doet, is een gegarandeerde bottleneck.",
     ],
-    quiz: [
-      { q: "Welk type cocktail leent zich het minst voor batchen?", options: ["Een Negroni", "Een Manhattan", "Een cocktail met vers eiwit die net-geshakete textuur nodig heeft", "Een Old Fashioned"], correct: 2, explain: "Cocktails die afhankelijk zijn van vers geklopt eiwit of andere net-bereide textuur verliezen kwaliteit als je ze te vroeg batcht." },
-      { q: "Waarom voeg je extra water toe aan een batch, los van de normale receptuur?", options: ["Om de kosten te verlagen", "Om het verdunningseffect van ijs te simuleren, aangezien de batch zonder ijs wordt gemengd", "Om de batch langer houdbaar te maken", "Dat is niet nodig, water wordt nooit toegevoegd"], correct: 1, explain: "Normaal zorgt smeltend ijs voor 20-25% verdunning tijdens bereiding; in een batch zonder ijs simuleer je dat bewust met extra water." },
-      { q: "Wat is de vuistregel voor het drinktempo van gasten?", options: ["Altijd 1 drankje per gast voor de hele avond", "2 drankjes het eerste uur, daarna 1 per uur", "5 drankjes per uur het hele feest door", "Er is geen bruikbare vuistregel"], correct: 1, explain: "Deze vuistregel geeft een realistische inschatting van de totale hoeveelheid die je moet voorbereiden." },
-      { q: "Waarom is taakverdeling (schenken vs. serveren) nuttig bij grote groepen?", options: ["Het is wettelijk verplicht", "Eén persoon die alles doet is een gegarandeerde bottleneck", "Het maakt de cocktails sterker", "Het heeft geen effect op de wachttijd"], correct: 1, explain: "Zelfs bij een informeel feest voorkomt simpele taakverdeling een opstopping bij de bar." },
-    ],
   },
   {
     id: "gastvrijheid",
     part: "vak",
     number: 19,
     title: "Gastvrijheid: het onzichtbare ingrediënt",
-    image: "https://images.unsplash.com/photo-1574071318537-1c5c7f4b570d?auto=format&fit=crop&w=1200&q=80",
     intro: "De beste bartenders ter wereld worden niet alleen geroemd om technische vaardigheid, maar om hoe ze gasten laten voelen.",
     blocks: [
       { type: "h3", text: "Vragen stellen en het verhaal vertellen" },
@@ -572,19 +447,12 @@ export const COURSE_LESSONS = [
       "Een kort verhaal bij een cocktail verandert hoe gasten 'm waarderen: kennis delen is onderdeel van de ervaring.",
       "Gastvrijheid geldt ook richting jezelf: goede voorbereiding is wat jou in staat stelt om ook zelf van het feest te genieten.",
     ],
-    quiz: [
-      { q: "Waarom is het waardevol om naar voorkeuren te vragen vóór je een cocktail serveert?", options: ["Het kost te veel tijd en is niet de moeite waard", "Het voorkomt een verkeerd ingeschatte drank en laat een gast zich gezien voelen", "Gasten verwachten geen vragen", "Het is alleen relevant in professionele bars"], correct: 1, explain: "Een paar seconden vragen heeft een groot effect: de gast voelt zich gezien en krijgt een drank die echt bij hem/haar past." },
-      { q: "Waarom wordt een cocktail met een kort verhaal anders gewaardeerd?", options: ["Verhalen hebben geen invloed op waardering", "Context en kennis delen zijn zelf onderdeel van de gastvrijheidservaring", "Een verhaal maakt de cocktail letterlijk sterker", "Alleen dure cocktails verdienen een verhaal"], correct: 1, explain: "Exact dezelfde vloeistof met een kort, oprecht verhaal erbij wordt anders ervaren dan zonder die context." },
-      { q: "Wat is het advies met betrekking tot niet-drinkende gasten?", options: ["Ze krijgen automatisch alleen water", "Ze verdienen een even doordachte, volwaardige (alcoholvrije) optie als de rest", "Ze hoeven niet apart bediend te worden", "Dit is geen aandachtspunt voor gastvrijheid"], correct: 1, explain: "Een volwaardige alcoholvrije optie is net zo belangrijk voor goed gastheerschap als de cocktails voor de rest van het gezelschap." },
-      { q: "Waarom is voorbereiding (batchen, mise en place) ook een vorm van gastvrijheid naar jezelf?", options: ["Het heeft geen verband met gastvrijheid", "Het geeft je als gastheer ruimte om ook zelf van het feest te genieten in plaats van de hele avond te werken", "Voorbereiding is alleen relevant voor grote groepen", "Het bespaart alleen geld, geen tijd"], correct: 1, explain: "Hoe meer je vooraf voorbereidt, hoe meer ruimte je zelf overhoudt om samen met je gasten te genieten." },
-    ],
   },
   {
     id: "signature",
     part: "vak",
     number: 20,
     title: "Je eigen signature cocktail",
-    image: "https://images.unsplash.com/photo-1614285344553-fbb89a8e68ea?auto=format&fit=crop&w=1200&q=80",
     intro: "De laatste les is geen nieuwe theorie, maar een opdracht: alles wat je hebt geleerd samenbrengen in één cocktail die echt van jou is.",
     blocks: [
       { type: "h3", text: "Stap 1 & 2: verhaal en basisspirit" },
@@ -600,12 +468,6 @@ export const COURSE_LESSONS = [
       "Elke techniek en elk principe uit de vorige negentien lessen komt hier samen in één praktische opdracht.",
       "Van basis naar pro is geen eindpunt maar een herhaalbaar proces: proeven, bijstellen, vastleggen, en opnieuw beginnen.",
     ],
-    quiz: [
-      { q: "Waar begint het ontwerpen van een signature cocktail volgens deze les?", options: ["Bij een willekeurig ingrediënt uit de kast", "Bij een idee, herinnering of gevoel dat je wilt oproepen", "Bij de duurste fles die je bezit", "Bij het kopiëren van een bestaande klassieker"], correct: 1, explain: "Het verhaal of gevoel stuurt de latere ingrediëntkeuzes, niet andersom." },
-      { q: "Hoeveel testrondes wordt er gemiddeld aangeraden voor een signature cocktail?", options: ["Eén, het moet meteen goed zijn", "Vijf tot tien", "Minstens vijftig", "Testen is niet nodig als je de theorie kent"], correct: 1, explain: "Zelfs professionele bartenders bereiken zelden hun beste versie in de eerste of tweede poging." },
-      { q: "Wat wordt aangeraden bij het benoemen van je eigen creatie?", options: ["Altijd een bestaande klassieke naam hergebruiken", "Een naam en een kort, authentiek verhaal, ook als dat verhaal simpel is", "Nooit een naam geven, dat is onnodig", "Alleen een nummer, geen naam"], correct: 1, explain: "Authenticiteit is minstens zo aantrekkelijk als een eeuwenoude legende; het verhaal hoeft niet groots te zijn om waardevol te zijn." },
-      { q: "Wat is de kernboodschap van deze afsluitende les voor de hele cursus?", options: ["De cursus is nu compleet afgerond, er is niets meer te leren", "Van basis naar pro is een herhaalbaar proces van proeven, bijstellen en vastleggen, geen eindpunt", "Signature cocktails zijn optioneel en niet belangrijk", "Alleen professionals mogen eigen recepten bedenken"], correct: 1, explain: "De cursus eindigt bewust met een praktische opdracht in plaats van een afsluiting: het proces herhaalt zich bij elke volgende cocktail." },
-    ],
   },
 
   // Deel VI is een optionele, verdiepende module: technieken die je in high-end
@@ -616,7 +478,6 @@ export const COURSE_LESSONS = [
     part: "geavanceerd",
     number: 21,
     title: "Infusies: zelf smaken maken",
-    image: "https://images.unsplash.com/photo-1591704951890-0862b2e98acb?auto=format&fit=crop&w=1200&q=80",
     intro: "Een infusie is de simpelste manier om een smaak te maken die je nergens kant-en-klaar kunt kopen: je laat een sterkedrank gewoon zijn werk doen als oplosmiddel.",
     blocks: [
       { type: "h3", text: "Waarom zelf infuseren" },
@@ -638,19 +499,12 @@ export const COURSE_LESSONS = [
       "Puur-alcoholische, droge infusies zijn kamerstabiel; alles met vers of waterig materiaal hoort in de koelkast.",
       "Rauwe, laag-zuur ingrediënten (zoals knoflook) nooit bij kamertemperatuur in olie of laag-alcoholische mixen laten trekken.",
     ],
-    quiz: [
-      { q: "Waarom worden delicate ingrediënten zoals verse kruiden vaak al na een paar uur uit de infusie gehaald?", options: ["Ze lossen niet op in alcohol", "Ze worden na te lange trektijd bitter of vlak van smaak", "De alcohol verdampt te snel", "Verse kruiden mogen wettelijk niet langer trekken"], correct: 1, explain: "Delicate aroma's slaan om na te lange trektijd; hardere ingrediënten zoals specerijen kunnen juist dagen tot weken trekken." },
-      { q: "Welke infusie is het minst risicovol om bij kamertemperatuur te bewaren?", options: ["Een infusie met vers fruit", "Een infusie met verse kruiden", "Een puur-alcoholische infusie met droge specerijen", "Een infusie met rauwe knoflook in olie"], correct: 2, explain: "Droge, harde ingrediënten in een spirit boven ~20% ABV blijven kamerstabiel; alles wat vers of waterig is hoort in de koelkast." },
-      { q: "Waarom is rauwe knoflook in olie bij kamertemperatuur gevaarlijk?", options: ["Het smaakt niet lekker", "Het is een bekende voedingsbodem voor botulisme", "Olie lost geen aroma's op", "Het verkleurt de cocktail"], correct: 1, explain: "Laag-zuur, vers materiaal zonder zuurstof (zoals knoflook onder olie) is precies het milieu waarin botulisme-sporen kunnen groeien." },
-      { q: "Wat is het praktische voordeel van eerst een testfles van 100 ml te maken?", options: ["Het is verplicht bij elke infusie", "Je voorkomt dat je een hele fles verspilt aan een trektijd die per oogst net anders kan uitpakken", "Kleine flessen infuseren sneller door natuurkundige wetten", "Het heeft geen echt voordeel"], correct: 1, explain: "Infusietijden zijn geen exacte wetenschap: een kleine testbatch laat je de juiste tijd vinden zonder een volle fles te riskeren." },
-    ],
   },
   {
     id: "fat-washing",
     part: "geavanceerd",
     number: 22,
     title: "Fat-washing: vet als smaakdrager",
-    image: "https://images.unsplash.com/photo-1615887023544-3a566f29d822?auto=format&fit=crop&w=1200&q=80",
     intro: "Fat-washing gebruikt een truc uit de scheikunde om een spirit te laten smaken naar iets dat normaal nooit in een fles zit: boter, spek, olijfolie of kokosvet.",
     blocks: [
       { type: "h3", text: "Het principe" },
@@ -666,19 +520,12 @@ export const COURSE_LESSONS = [
       "Warm mengen, laten trekken, invriezen, afscheppen, zeven: die volgorde bepaalt het resultaat.",
       "Ook na zeven blijft een fat-washed spirit een vers product dat gekoeld en op tijd opgemaakt hoort te worden.",
     ],
-    quiz: [
-      { q: "Waarom werkt invriezen als scheidingsstap bij fat-washing?", options: ["Vriezen versterkt de smaak", "Vet wordt vast bij vriestemperaturen terwijl alcohol vloeibaar blijft, zo kun je ze scheiden", "Het doodt bacteriën in het vet", "Vriezen heeft geen functie, het is puur traditie"], correct: 1, explain: "Het smeltpunt-verschil tussen vet en alcohol is het hele principe achter deze techniek." },
-      { q: "Wat is de richtlijn voor hoeveel vet je per fles spirit gebruikt?", options: ["Zoveel mogelijk voor maximale smaak", "Ongeveer 50 ml per fles", "Minimaal de helft van het flesvolume", "Vet en spirit moeten 1:1 zijn"], correct: 1, explain: "Te veel vet maakt het lastiger om alles weer volledig te scheiden en geeft een onbalans in smaak." },
-      { q: "Waarom moet een fat-washed spirit gekoeld en tijdig opgemaakt worden, ook na zeven?", options: ["De alcohol verdampt anders", "Er blijven altijd microscopische vetsporen achter die sneller ranzig worden dan pure alcohol", "Het is wettelijk verplicht", "Gekoeld bewaren verandert de kleur op een gewenste manier"], correct: 1, explain: "Zelfs een fijne zeving verwijdert niet elk spoortje vet, en vet is minder houdbaar dan alcohol alleen." },
-      { q: "Welke combinatie hoort NIET bij de klassieke fat-washing voorbeelden uit deze les?", options: ["Bacon-bourbon", "Browned butter-rum", "Olijfolie-gin", "Chocolademelk-tequila"], correct: 3, explain: "Bacon-bourbon, browned butter-rum en olijfolie-gin zijn de genoemde klassiekers; de vierde optie is niet behandeld." },
-    ],
   },
   {
     id: "clarificatie",
     part: "geavanceerd",
     number: 23,
     title: "Clarificatie: van troebel naar kristalhelder",
-    image: "https://images.unsplash.com/photo-1706925737212-869d063752c2?auto=format&fit=crop&w=1200&q=80",
     intro: "Clarificatie maakt een troebele, vruchtige cocktail glashelder als water, zonder de smaak te verliezen: puur theater voor het oog, met een verrassend zacht mondgevoel als bonus.",
     blocks: [
       { type: "h3", text: "Waarom clarificeren" },
@@ -698,19 +545,12 @@ export const COURSE_LESSONS = [
       "Melk-clarificatie is de klassieke, langzamere methode; agar-clarificatie is moderner en blijft dichter bij de oorspronkelijke smaak.",
       "Een clarified cocktail is nog steeds een vers product en hoort net zo gekoeld en tijdig opgemaakt te worden als het origineel.",
     ],
-    quiz: [
-      { q: "Wat gebeurt er precies bij melk-clarificatie?", options: ["De melk voegt alleen een romige smaak toe", "Het zuur van de cocktail laat melkeiwitten schiften tot wrongel die troebele deeltjes met zich meetrekt bij het zeven", "De melk wordt kunstmatig gekleurd om helder te lijken", "Er gebeurt niets chemisch, het is puur mechanisch filteren"], correct: 1, explain: "De schifting is een zuur-eiwitreactie; de ontstane wrongel vangt de troebele deeltjes tijdens het zeven op." },
-      { q: "Wat is het voordeel van agar-clarificatie ten opzichte van melk-clarificatie?", options: ["Het is altijd sneller in totale tijd", "De smaak blijft dichter bij het origineel", "Het heeft geen invoertijd nodig", "Agar-agar is smaakvoller dan melk"], correct: 1, explain: "Agar-clarificatie voegt geen melkeiwitten toe die de smaak beïnvloeden, waardoor het resultaat dichter bij de oorspronkelijke cocktail blijft." },
-      { q: "Waarom wordt een clarified cocktail vaak als \"zachter\" ervaren dan het origineel?", options: ["Er wordt suiker aan toegevoegd tijdens het proces", "Het filteren verandert het mondgevoel, niet alleen het uiterlijk", "Clarificatie verlaagt automatisch het alcoholpercentage", "Dat is een misvatting, er verandert niets aan de smaak"], correct: 1, explain: "Naast optisch helder wordt de textuur merkbaar ronder, een bekend neveneffect van beide clarificatiemethodes." },
-      { q: "Wat moet je met een clarified cocktail doen na het zeven?", options: ["Hij is nu onbeperkt houdbaar buiten de koelkast", "Gekoeld bewaren en binnen een paar dagen gebruiken, net als vers sap", "Meteen opnieuw invriezen voor extra helderheid", "Hij moet binnen een uur op, langer is gevaarlijk"], correct: 1, explain: "Clarificatie verwijdert deeltjes, geen bacteriën: het blijft een vers product dat gekoelde, tijdige consumptie vraagt." },
-    ],
   },
   {
     id: "carbonatie-rook",
     part: "geavanceerd",
     number: 24,
     title: "Carbonatie, rook en presentatie",
-    image: "https://images.unsplash.com/photo-1621873495914-1c921811e37b?auto=format&fit=crop&w=1200&q=80",
     intro: "De laatste 10% van een cocktail, de bubbels, de rook, het eerste beeld en de eerste geur, is precies het deel dat een drank onvergetelijk maakt in plaats van alleen goed.",
     blocks: [
       { type: "h3", text: "Carbonatie thuis" },
@@ -726,57 +566,9 @@ export const COURSE_LESSONS = [
       "Roken is een aromatechniek voor de neus, seconden zijn genoeg; te lang roken overheerst alles.",
       "Geavanceerde technieken maken een al goede cocktail gedenkwaardig, ze redden geen slecht gebalanceerd recept.",
     ],
-    quiz: [
-      { q: "Waarom moet een cocktail goed gekoeld zijn vóór je hem carboneert in een sifon?", options: ["Temperatuur heeft geen invloed op carbonatie", "Koude vloeistof lost meer CO2 op en schuimt minder bij het openen", "Warme cocktails carboneren juist sneller", "Dit voorkomt dat de sifon lekt"], correct: 1, explain: "Hoe kouder de vloeistof, hoe meer koolzuur erin oplost voordat het als schuim ontsnapt bij het openen." },
-      { q: "Waarom rook je een cocktail meestal maar een paar seconden onder een cloche of glas?", options: ["Langer roken is niet mogelijk met een smoking gun", "Te lang roken overheerst de cocktail volledig en maakt andere ingrediënten onherkenbaar", "Rook heeft geen effect na een paar seconden", "Het apparaat oververhit anders"], correct: 1, explain: "Rook werkt als aromalaag via de neus; te veel ervan verdringt elk ander aroma in de cocktail." },
-      { q: "Wat is de kernwaarschuwing van deze les over geavanceerde technieken?", options: ["Ze zijn altijd beter dan de basistechnieken uit Les 9", "Ze maken een al goede cocktail gedenkwaardig, maar redden geen slecht gebalanceerd recept", "Ze zijn verplicht voor elke cocktail vanaf nu", "Presentatie is uiteindelijk onbelangrijk vergeleken met smaak"], correct: 1, explain: "Rook, carbonatie en clarificatie zijn een laag bovenop een goed recept, geen vervanging voor balans." },
-      { q: "Waarom begon deze cursus in Les 3 al met glaswerk, volgens deze afsluitende les?", options: ["Omdat glaswerk het makkelijkste onderwerp is om mee te beginnen", "Omdat presentatie een structureel onderdeel van de ervaring is, geen decoratie achteraf", "Omdat glaswerk duurder is dan andere uitrusting", "Er is geen speciale reden, het is willekeurige volgorde"], correct: 1, explain: "Het eerste contact met een cocktail is beeld en geur, niet smaak, en dat maakt presentatie functioneel in plaats van decoratief." },
-    ],
   },
 ];
 
-// De eindtoets combineert alle zes delen: 5 vragen per deel, anders geformuleerd dan de
-// losse lesvragen zodat het een echte "ken je de hele stof"-toets is, geen kopie.
-export const FINAL_EXAM = [
-  // Deel I: Fundamenten
-  { q: "Welke twee ingrediënten in de allereerste cocktail-definitie (1806) zijn later het minst vaak in klassiekers blijven staan als apart, herkenbaar onderdeel?", options: ["Sterkedrank en water", "Suiker en bitters", "Water en bitters, vaak vervangen door siroop en specifieke merkbitters", "Geen van beide, alle vier staan nog steeds letterlijk in elk recept"], correct: 2, explain: "Water is vervangen door verdunning via ijs, en 'bitters' is een aparte productcategorie geworden (Angostura, Peychaud's) in plaats van een generiek ingrediënt." },
-  { q: "Welk gereedschap voorkomt de grootste smaakafwijking als je het weglaat?", options: ["De channel knife", "De jigger", "De julep-zeef", "De muddler"], correct: 1, explain: "Vrijhandig schenken kan tot 20% afwijken van de bedoelde receptuur; de jigger is daarmee het meest impactvolle stukje gereedschap." },
-  { q: "Een cocktail wordt \"up\" geserveerd in een coupe. Wat betekent dat voor hoe hij is klaargemaakt?", options: ["Hij is nog niet gekoeld", "Hij is al gekoeld en verdund tijdens het schudden of roeren, en gaat zonder ijs het glas in", "Hij bevat per definitie koolzuur", "Hij is altijd een dessertcocktail"], correct: 1, explain: "\"Up\" cocktails ondergaan hun koeling en verdunning vóór het inschenken, vandaar dat het glas geen ijs meer nodig heeft." },
-  { q: "Waarom wordt voor een Old Fashioned vaak specifiek één groot ijsblok gebruikt in plaats van meerdere kleine?", options: ["Groot ijs is kouder dan klein ijs", "Minder oppervlak per volume betekent tragere smelting en dus langzamere verdunning", "Groot ijs smelt sneller, wat gewenst is", "Het heeft puur esthetische redenen, geen functie"], correct: 1, explain: "De tragere smeltsnelheid houdt de cocktail langer op het gewenste verdunningsniveau." },
-  { q: "Wat hebben glasvorm, ijsvorm en de jigger gemeen als onderwerp in Deel I?", options: ["Ze zijn allemaal puur decoratief", "Ze zijn stuk voor stuk functionele keuzes die het eindresultaat beïnvloeden, geen esthetische bijzaak", "Ze zijn alleen relevant voor professionele bars, niet thuis", "Ze hebben geen van drieën invloed op smaak of temperatuur"], correct: 1, explain: "Deel I benadrukt steeds hetzelfde principe: wat oppervlakkig decoratief lijkt (glas, ijs, exact meten) is in werkelijkheid functioneel." },
-
-  // Deel II: De ingrediënten
-  { q: "Wat bepaalt vooral tot welke smaakcategorie een gedistilleerde drank behoort?", options: ["Alleen het alcoholpercentage", "Basismateriaal en eventuele rijping", "De kleur van het etiket", "Uitsluitend het land van herkomst"], correct: 1, explain: "Basismateriaal (graan, agave, suikerriet, druiven) plus rijping bepalen samen categorie en smaakprofiel." },
-  { q: "Waarom kun je een geopende fles vermout niet behandelen als een fles sterkedrank?", options: ["Vermout heeft geen houdbaarheidsdatum nodig", "Vermout is versterkte wijn en oxideert na opening, ook gekoeld", "Vermout bevat geen alcohol", "Er is geen verschil in bewaring"], correct: 1, explain: "Vermout is wijn: het verliest binnen enkele weken na opening merkbaar aan frisheid, zelfs in de koelkast." },
-  { q: "Wat is de belangrijkste reden om citrussap vers te persen in plaats van uit een fles te gebruiken?", options: ["Vers sap is altijd goedkoper", "Vers sap bevat vluchtige aromatische oliën die binnen uren vervliegen en ontbreken in flessensap", "Flessensap bevat geen zuur", "Het maakt geen verschil voor de smaak"], correct: 1, explain: "Die aromatische oliën zijn precies wat het verschil maakt tussen een matige en een uitstekende sour." },
-  { q: "Wat is de functie van een dry shake bij een cocktail met eiwit?", options: ["De cocktail extra verdunnen vóór het echte schudden", "Het eiwit emulgeren tot een stevig schuim vóórdat het ijs wordt toegevoegd", "De cocktail sneller laten afkoelen", "Bacteriën in het eiwit doden"], correct: 1, explain: "Zonder deze stap emulgeert het eiwit onvoldoende en krijg je een dunnere schuimlaag." },
-  { q: "Een citrustwist boven een cocktail dient vooral om welke reden?", options: ["Extra zuur toevoegen aan de drank", "Aromatische oliën over het drankoppervlak te verspreiden voor de geurbeleving", "De kleur van de cocktail aan te passen", "De cocktail langer houdbaar te maken"], correct: 1, explain: "De twist beïnvloedt vooral wat je ruikt bij de eerste slok, niet de smaak van de vloeistof zelf." },
-
-  // Deel III: Techniek
-  { q: "Wanneer kies je stirren boven shaken?", options: ["Bij cocktails met vers fruitsap", "Bij cocktails die uitsluitend uit heldere, alcoholische ingrediënten bestaan", "Altijd bij longdrinks met veel mixer", "Nooit, shaken is altijd beter voor koeling"], correct: 1, explain: "Stirren voorkomt dat lucht wordt ingeklopt, wat een heldere cocktail als Martini of Manhattan troebel zou maken." },
-  { q: "Waarom is \"tot het glas koud aanvoelt\" geen betrouwbare maatstaf tijdens het schudden?", options: ["Shakers worden nooit echt koud", "De buitenkant van de shaker koelt door geleiding sneller af dan de inhoud de juiste verdunning bereikt", "Temperatuur is irrelevant voor cocktails", "Dat is juist wél de beste methode"], correct: 1, explain: "Vertrouw op tijd (10-15 sec hard schudden, 20-30 sec rustig roeren) in plaats van op het gevoel van de shaker." },
-  { q: "Wat is de klassieke sour-verhouding in verhoudingen sterk : zuur : zoet?", options: ["1 : 1 : 1", "2 : 3/4 : 3/4", "3 : 1/4 : 1/4", "1 : 2 : 2"], correct: 1, explain: "Deze 2:3/4:3/4-verhouding is het herbruikbare uitgangspunt voor vrijwel elke sour-cocktail." },
-  { q: "Wat is het doel van dubbel zeven?", options: ["De cocktail sterker maken", "Kleine ijssplinters, vruchtvlees of muntstukjes tegenhouden voor een glasheldere cocktail", "De cocktail langer houdbaar maken", "Twee smaken mengen die anders niet samengaan"], correct: 1, explain: "Dubbel zeven (met een fijne theezeef naast de gewone zeef) geeft het polijstende, glasheldere eindresultaat bij \"up\" geserveerde cocktails." },
-  { q: "Bij een drijflaag-effect (zoals bij een New York Sour) giet je de laatste laag over...", options: ["Direct uit de fles, zo hard mogelijk", "De bolle achterkant van een bar spoon, om de val van de vloeistof te breken", "Een zeef, om te filteren", "Crushed ijs, om te mengen"], correct: 1, explain: "Deze techniek breekt de valsnelheid zodat de vloeistof rustig op het oppervlak kan blijven drijven in plaats van te mengen." },
-
-  // Deel IV: Smaak & compositie
-  { q: "Wat is het verschil tussen een complementaire en een contrasterende smaakcombinatie?", options: ["Complementair versterkt eenzelfde thema, contrasterend creëert spanning tussen tegenpolen", "Er is geen verschil, het zijn synoniemen", "Complementair is altijd zoet, contrasterend altijd bitter", "Contrasterend werkt alleen bij alcoholvrije dranken"], correct: 0, explain: "Beide zijn legitieme ontwerpstrategieën: complementair (bijv. citroen + citroenlikeur) versus contrasterend (bijv. bitter + zoet)." },
-  { q: "Welke stap komt volgens de bouwstenen-methode het eerst bij het zelf ontwerpen van een cocktail?", options: ["Een garnering kiezen", "Een van de negen families kiezen als structureel startpunt", "Meteen vijf ingrediënten combineren", "De prijs berekenen"], correct: 1, explain: "Een familie als skelet (bijv. \"ik wil een sour maken\") geeft direct een werkende structuur om binnen te experimenteren." },
-  { q: "Welke smaakhoek hoort volgens de menu-theorie altijd volwaardig op elk menu te staan, naast de vier hoofdhoeken?", options: ["Extra bitter", "Alcoholvrij", "Extra zoet", "Uitsluitend champagne-cocktails"], correct: 1, explain: "Een volwaardige alcoholvrije optie zorgt dat niet-drinkende gasten niet vergeten worden." },
-  { q: "Welk type cocktail is het meest geschikt om voor een feest te batchen?", options: ["Een cocktail met vers eiwit", "Een gestirde cocktail zonder vers sap, eiwit of zuivel", "Een fizz met koolzuur", "Een cocktail met slagroom"], correct: 1, explain: "Gestirde cocktails zonder bederfelijke, verse elementen kunnen uren van tevoren gemengd en gekoeld bewaard worden." },
-  { q: "Waarom is een cocktail die alleen maar één smaakrichting op wijst (bijvoorbeeld puur zoet) minder overtuigend?", options: ["Omdat zoet per definitie een slechte smaak is", "Omdat hij al na een paar slokken \"plat\" aanvoelt zonder tegenwicht of textuurcontrast", "Omdat dat soort cocktails wettelijk niet is toegestaan", "Dat klopt niet, eendimensionale cocktails zijn altijd het best"], correct: 1, explain: "Contrast, in smaak én textuur, houdt een cocktail interessant over de hele drank heen." },
-
-  // Deel V: Het vak van bartender
-  { q: "Wat betekent \"mise en place\" toegepast op bartending?", options: ["Een specifieke shaketechniek", "Alle voorbereiding (ijs, citrus, garnering, glaswerk) op orde hebben vóór de eerste gast arriveert", "Het afwassen na afloop van het feest", "Een garneertechniek met citrusschil"], correct: 1, explain: "Deze keukendiscipline is één op één overgenomen door professionele bars, en door jou, als thuisbartender." },
-  { q: "Wat is de vuistregel voor hoeveel een gast drinkt tijdens een feest?", options: ["Constant 3 drankjes per uur de hele avond", "Ongeveer 2 drankjes het eerste uur, daarna gemiddeld 1 per uur", "Altijd precies 1 drankje totaal", "Er bestaat geen bruikbare vuistregel"], correct: 1, explain: "Deze vuistregel geeft een realistische inschatting van de totale hoeveelheid die je moet voorbereiden." },
-  { q: "Waarom is het waardevol om vóór het serveren naar de smaakvoorkeur van een gast te vragen?", options: ["Het kost te veel tijd en is niet de moeite waard", "Het voorkomt een verkeerd ingeschatte drank en laat de gast zich gezien voelen", "Gasten verwachten dat nooit", "Dat is alleen relevant in professionele bars"], correct: 1, explain: "Een paar seconden vragen heeft een onevenredig positief effect op de gastervaring." },
-  { q: "Wat is de eerste stap bij het ontwerpen van je eigen signature cocktail?", options: ["De duurste fles in huis pakken", "Een idee, herinnering of gevoel kiezen dat de cocktail moet oproepen", "Een bestaande klassieker letterlijk kopiëren", "Meteen een naam bedenken zonder verder na te denken over smaak"], correct: 1, explain: "Het gewenste gevoel of verhaal stuurt daarna pas de keuze van familie, basisspirit en ingrediënten." },
-  { q: "Wat is de rode draad die door Deel V (mise en place, batchen, gastvrijheid, signature cocktail) loopt?", options: ["Dat een bartender vooral technisch perfect moet zijn en verder niets", "Dat voorbereiding en aandacht voor de gast minstens zo belangrijk zijn als de drank zelf", "Dat je nooit vooraf iets mag klaarmaken", "Dat gastvrijheid losstaat van de kwaliteit van de cocktail"], correct: 1, explain: "Deel V laat zien dat \"pro worden\" net zoveel over voorbereiding en gastheerschap gaat als over techniek." },
-
-  // Deel VI: Geavanceerde technieken
-  { q: "Waarom hoort een infusie met vers fruit of verse kruiden in de koelkast, terwijl een infusie met droge specerijen kamerstabiel is?", options: ["Vers materiaal maakt de infusie giftig bij kamertemperatuur", "Vers, waterig materiaal bederft zoals elk vers product, droge specerijen in pure alcohol niet", "Er is geen verschil, dit is een fabeltje", "Droge specerijen bevatten van nature conserveermiddelen"], correct: 1, explain: "Zodra er vers, waterig materiaal in een infusie zit, gelden dezelfde bewaarregels als voor vers sap: gekoeld en snel op." },
-  { q: "Wat is het scheidingsprincipe achter fat-washing?", options: ["Vet en alcohol mengen nooit, dus ze scheiden zichzelf direct", "Vet wordt vast bij vriestemperaturen terwijl alcohol vloeibaar blijft", "Vet verdampt sneller dan alcohol", "Vet is zwaarder en zakt vanzelf naar de bodem bij kamertemperatuur"], correct: 1, explain: "Door het mengsel in te vriezen kun je de vaste vetlaag simpelweg afscheppen van de nog vloeibare, gearomatiseerde spirit." },
-  { q: "Wat doet het zuur van een cocktail bij melk-clarificatie precies?", options: ["Het maakt de cocktail sterker", "Het laat melkeiwitten schiften tot wrongel die troebele deeltjes met zich meetrekt bij het zeven", "Het verandert de kleur van de melk permanent", "Het voegt koolzuur toe aan het mengsel"], correct: 1, explain: "De schifting is een zuur-eiwitreactie; de wrongel die ontstaat vangt bij het zeven de troebele deeltjes op, wat een heldere vloeistof achterlaat." },
-  { q: "Waarom carboneer je een cocktail zo koud mogelijk in een soda-sifon?", options: ["Warmte is nodig om CO2 op te lossen, koud werkt averechts", "Koude vloeistof lost meer CO2 op en schuimt minder bij het openen", "Temperatuur heeft geen enkele invloed op carbonatie", "Dit voorkomt alleen dat de sifon beschadigt"], correct: 1, explain: "Hoe kouder de vloeistof, hoe meer koolzuur erin oplost voordat het als schuim ontsnapt bij het openen van de sifon." },
-  { q: "Wat is de kernboodschap over geavanceerde technieken zoals roken, carbonatie en clarificatie?", options: ["Ze zijn verplicht voor elke serieuze cocktail", "Ze maken een al goed gebalanceerde cocktail gedenkwaardig, maar redden geen slecht recept", "Ze vervangen de noodzaak van een goede basisreceptuur", "Presentatie is uiteindelijk niet belangrijk vergeleken met smaak"], correct: 1, explain: "Deel VI benadrukt steeds dat deze technieken een laag bovenop een goed recept zijn, geen vervanging voor balans en techniek uit de eerdere delen." },
-];
+// Toetsvragen staan in courseQuiz.js (5 per les + eindtoets van 30).
+COURSE_LESSONS.forEach(l => { l.quiz = LESSON_QUIZZES[l.id] || []; });
+export const FINAL_EXAM = FINAL_EXAM_QUESTIONS;

@@ -664,3 +664,67 @@ button:focus-visible {
   height: 44px;
   transform: translate(-50%, -50%);
 }
+
+/* iOS zoomt in op elk invoerveld met een lettergrootte onder 16px (en zoomt
+   daarna niet netjes terug) — dat liet de hele app verspringen zodra je in
+   een zoekveld tikte. Alleen op iOS (-webkit-touch-callout) forceren we
+   16px; op desktop blijft het ontwerp ongewijzigd. */
+@supports (-webkit-touch-callout: none) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Toetsenbord open: de zwevende onderbalk verdwijnt, anders schuift die mee
+   omhoog tot boven het toetsenbord en ligt hij over de zoekresultaten. */
+html.kb-open .bottom-dock {
+  opacity: 0;
+  pointer-events: none !important;
+  transform: translateY(24px);
+}
+.bottom-dock {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* Zoekveld met suggestielijst schuift bovenaan in beeld, maar niet ónder
+   een sticky navigatiebalk. */
+[data-kb-scope] input {
+  scroll-margin-top: calc(env(safe-area-inset-top) + 64px);
+}
+
+/* Check-in-venster: max. 92% van het zichtbare scherm. dvh volgt de ruimte
+   boven het toetsenbord; vh is de terugval voor oudere iOS-versies. */
+.sheet-max-92 {
+  max-height: calc(92vh - var(--kb-pad, 0px));
+  max-height: calc(92dvh - var(--kb-pad, 0px));
+}
+
+/* Check-in: zolang het toetsenbord open is verdwijnt de Inchecken-balk
+   onderin, zodat het veld waarin je typt de ruimte boven het toetsenbord
+   krijgt. Toetsenbord dicht → balk terug. */
+html.kb-open .checkin-footer {
+  display: none;
+}
+
+/* Menu-assistent: de Terug/Volgende-balk wijkt voor het toetsenbord
+   (zoekveld bij "Moet er iets per se in?"). */
+html.kb-open .menu-assist-footer {
+  display: none;
+}
+
+/* Navigatiebalk van push-schermen (‹ Bar | Titel): crème in licht, donker
+   in donkere modus — anders was de witte titel onleesbaar. */
+.secondary-navbar {
+  background: rgba(243, 236, 221, 0.92) !important;
+}
+@media (prefers-color-scheme: dark) {
+  .secondary-navbar {
+    background: rgba(23, 19, 14, 0.92) !important;
+  }
+}
+
+/* Horizontale chip-rijen zonder zichtbare scrollbalk. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

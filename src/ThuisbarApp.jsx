@@ -1,30 +1,18 @@
-import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
+import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, Lightbulb, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info } from "lucide-react";
+import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { supabase } from "./supabaseClient";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor } from "./native";
-import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS, SHOP_LINKS } from "./recipes.js";
+import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
-import voorraadHeaderImg from "./assets/voorraad-header.jpg";
-import makenHeaderImg from "./assets/maken-header.jpg";
 import feestHeaderImg from "./assets/feest-header.jpg";
-import catSterkeDrankImg from "./assets/categories/sterke-drank.jpeg";
-import catLikeurenImg from "./assets/categories/likeuren.jpeg";
-import catBittersImg from "./assets/categories/bitters.jpeg";
-import catMixersImg from "./assets/categories/mixers.jpeg";
-import catZuivelRoomImg from "./assets/categories/zuivel-room.jpeg";
-import catVersImg from "./assets/categories/vers.jpeg";
-import spiritGinImg from "./assets/spirits/gin.jpeg";
-import spiritWodkaImg from "./assets/spirits/wodka.jpeg";
-import spiritWitteRumImg from "./assets/spirits/witte-rum.jpeg";
-import spiritCognacBrandyImg from "./assets/spirits/cognac-brandy.jpeg";
-import spiritRyeWhiskyImg from "./assets/spirits/rye-whisky.jpeg";
-import spiritBourbonImg from "./assets/spirits/bourbon.jpeg";
 import imageCatalog from "./data/images.json";
 
 // Centrale foto-catalogus (zie CLAUDE.md "## Afbeeldingen"): één entry per
@@ -126,12 +114,12 @@ const STICKY_SUB2HEADER_TOP = "calc(env(safe-area-inset-top) + 88px)";
 // i.p.v. faden (zie de tab-effect in ThuisbarApp).
 const PUSH_SCREEN_TITLES = {
   voorraad: "Voorraad",
-  mandje: "Winkelmandje",
-  schaler: "Schaler",
-  balans: "Smaakbalans",
+  mandje: "Boodschappen",
+  schaler: "Batch-calculator",
+  balans: "Menu-assistent",
   cursus: "Cursus",
   feest: "Feestplanner",
-  eigen: "Eigen recepten",
+  eigen: "Nieuw recept",
   vrienden: "Vrienden",
   instellingen: "Instellingen",
   privacybeleid: "Privacybeleid",
@@ -288,8 +276,8 @@ const TAGS = [
   { id: "voorraad", label: "Voorraad", icon: Refrigerator },
   { id: "maken", label: "Wat kan ik maken", icon: Martini },
   { id: "mandje", label: "Winkelmandje", icon: ShoppingCart },
-  { id: "schaler", label: "Schaler", icon: Scale },
-  { id: "balans", label: "Smaakbalans", icon: Sparkles },
+  { id: "schaler", label: "Batch-calculator", icon: Scale },
+  { id: "balans", label: "Menu-assistent", icon: Sparkles },
   { id: "verhaal", label: "Recept", icon: BookOpen },
   { id: "cursus", label: "Cursus", icon: GraduationCap },
   { id: "feest", label: "Feestplanner", icon: PartyPopper },
@@ -452,12 +440,12 @@ const ZOET_WEIGHTS = {
   cherry_brandy: 0.5, benedictine: 0.45, falernum: 0.7, allspice_liqueur: 0.45, passion_fruit_liqueur: 0.6,
   port: 0.35, irish_cream: 0.6, creme_de_noyaux: 0.7, banana_liqueur: 0.7, melon_liqueur: 0.7, cola: 0.5,
   coconut_cream: 0.8, pineapple_juice: 0.4, cranberry_juice: 0.25, orange_juice: 0.25, grapefruit_juice: 0.15,
-  peach_puree: 0.45, passion_fruit_puree: 0.35, lemonade: 0.45, ginger_beer: 0.25, ginger_ale: 0.25,
+  peach_puree: 0.45, passion_fruit_puree: 0.35, passion_fruit_juice: 0.35, lemonade: 0.45, ginger_beer: 0.25, ginger_ale: 0.25,
   grapefruit_soda: 0.35, tonic: 0.15, prosecco: 0.1,
 };
 const ZUUR_WEIGHTS = {
   lemon_juice: 1, lime_juice: 1, grapefruit_juice: 0.5, cranberry_juice: 0.25, orange_juice: 0.15,
-  pineapple_juice: 0.2, olive_brine: 0.3, passion_fruit_puree: 0.3, passion_fruit_liqueur: 0.15,
+  pineapple_juice: 0.2, olive_brine: 0.3, passion_fruit_puree: 0.3, passion_fruit_juice: 0.3, passion_fruit_liqueur: 0.15,
   grapefruit_soda: 0.2, tomato_juice: 0.2,
 };
 const BITTER_WEIGHTS = {
@@ -513,7 +501,7 @@ function splitMethodIntoSteps(method) {
 const INGREDIENT_KEYWORDS = {
   bourbon: ["bourbon"], rye: ["rye"], scotch: ["scotch"], irish_whiskey: ["irish whiskey", "whiskey"],
   white_rum: ["rum"], dark_rum: ["rum"], cachaca: ["cachaça", "cachaca"], gin: ["gin"],
-  tequila_blanco: ["tequila"], mezcal: ["mezcal"], vodka: ["wodka"], pisco: ["pisco"],
+  tequila_blanco: ["tequila"], mezcal: ["mezcal"], vodka: ["wodka"], vanilla_vodka: ["vanillewodka"], pisco: ["pisco"],
   cognac: ["cognac", "brandy"], calvados: ["calvados"],
   triple_sec: ["triple sec"], grand_marnier: ["grand marnier"], sweet_vermouth: ["zoete vermout", "vermout"],
   dry_vermouth: ["droge vermout", "vermout"], campari: ["campari"], aperol: ["aperol"],
@@ -527,7 +515,7 @@ const INGREDIENT_KEYWORDS = {
   advocaat: ["advocaat"], ginger_wine: ["gemberwijn"], drambuie: ["drambuie"],
   apricot_brandy: ["abrikozenlikeur", "apricot brandy"], cherry_brandy: ["kersenlikeur", "cherry brandy"],
   benedictine: ["bénédictine", "benedictine"], falernum: ["falernum"], allspice_liqueur: ["allspice", "piment-likeur"],
-  passion_fruit_liqueur: ["passievrucht-likeur"], port: ["portwijn"], sherry: ["sherry"],
+  passion_fruit_liqueur: ["passievruchtlikeur", "passievrucht-likeur"], port: ["portwijn"], sherry: ["sherry"],
   lillet_blanc: ["lillet"], absinthe: ["absint", "absinthe"],
   angostura: ["angostura"], peychauds: ["peychaud"], orange_bitters: ["orange bitters"],
   tonic: ["tonic"], cola: ["cola"], ginger_beer: ["gemberbier"], ginger_ale: ["ginger ale"],
@@ -536,7 +524,7 @@ const INGREDIENT_KEYWORDS = {
   coconut_cream: ["kokosroom", "kokos"], pineapple_juice: ["ananassap", "ananas"],
   cranberry_juice: ["cranberrysap", "cranberry"], orange_juice: ["sinaasappelsap"],
   grapefruit_juice: ["grapefruitsap"], tomato_juice: ["tomatensap"], peach_puree: ["perzikpuree"],
-  passion_fruit_puree: ["passievruchtpuree"], espresso: ["espresso"], hot_coffee: ["koffie"],
+  passion_fruit_puree: ["passievruchtpuree"], passion_fruit_juice: ["passievruchtsap"], espresso: ["espresso"], hot_coffee: ["koffie"],
   hot_water: ["heet water"], peach_schnapps: ["perzikschnapps"],
   heavy_cream: ["slagroom"], whipped_cream: ["slagroom"], egg_yolk: ["eidooier", "dooier"],
   lemon_juice: ["citroensap", "citroen"], lime_juice: ["limoensap", "limoen"],
@@ -1147,9 +1135,8 @@ function SplashScreen({ onDone }) {
         <h1 className="splash-title">Mijn Thuisbar</h1>
         <div className="splash-sub">Welkom in de wereld van de cocktail</div>
       </div>
-      {/* De intro duurt bewust een paar seconden voor het merkgevoel, maar
-          niemand hoeft 'm elke keer helemaal uit te zitten. */}
-      <div className="splash-skip-hint">Tik om te slaan</div>
+      {/* Tikken slaat de intro nog steeds over, maar zonder "Tik om te
+          slaan"-hint (op verzoek): mensen tikken vanzelf door. */}
     </div>
   );
 }
@@ -1544,9 +1531,11 @@ function GuestBrowseShell({
   recipes, allIngredients, isOwned, ingredientLabel, onSound,
   onAddToShoppingList, onAddToFeest, feestChosen,
   recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite,
-  courseProgress, setCourseProgress, onGoLogin,
+  courseProgress, setCourseProgress, onGoLogin, shoppingKeys, onRemoveFromShoppingList,
 }) {
   const [tab, setTab] = useState("ontdekken");
+  // Zelfde gedrag als de ingelogde app: een andere tab openen begint bovenaan.
+  useLayoutEffect(() => { window.scrollTo(0, 0); }, [tab]);
   const [pendingRecipeId, setPendingRecipeId] = useState(null);
 
   return (
@@ -1569,6 +1558,7 @@ function GuestBrowseShell({
         </div>
       </div>
 
+      <StatusBarBackdrop showAfter={95} />
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(184,134,46,0.1)", border: `1px solid rgba(184,134,46,0.3)`, borderRadius: RADIUS, padding: "11px 14px", marginBottom: 20 }}>
           <Lock size={15} color={BRASS} style={{ flexShrink: 0 }} />
@@ -1583,6 +1573,7 @@ function GuestBrowseShell({
             makenProps={{
               recipes, isOwned, ingredientLabel, allIngredients,
               onAddToShoppingList, onSound, onOpenRecipe: setPendingRecipeId, onAddToFeest, feestChosen,
+              shoppingKeys, onRemoveFromShoppingList, favoriteRecipeIds, onToggleFavorite,
             }}
             verhaalProps={{
               recipes, ingredientLabel, allIngredients, isOwned,
@@ -1597,7 +1588,7 @@ function GuestBrowseShell({
         )}
       </div>
 
-      <div className="glass-light" style={{
+      <div className="glass-light bottom-dock" style={{
         position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
         border: "none", borderTop: "1px solid rgba(184,137,58,0.7)", boxShadow: "0 -6px 18px rgba(43,38,32,0.10)",
       }}>
@@ -1622,6 +1613,37 @@ function GuestBrowseShell({
   );
 }
 
+// Deellinks (menu, smaaktest, vrienduitnodiging, wachtwoord-reset) moeten
+// naar de openbare webversie wijzen. In de iOS-app is window.location.origin
+// "capacitor://localhost" — een link waar een ontvanger niets mee kan. Daar
+// gebruiken we dus VITE_PUBLIC_WEB_URL (bv. https://mijnthuisbar.netlify.app);
+// op het web gewoon het eigen adres.
+const PUBLIC_WEB_URL = (import.meta.env.VITE_PUBLIC_WEB_URL || "").replace(/\/+$/, "");
+function publicAppUrl(query = "") {
+  const base = isNativeShell ? PUBLIC_WEB_URL : `${window.location.origin}${window.location.pathname}`.replace(/\/+$/, "");
+  if (!base) return null;
+  return `${base}${query ? `/?${query}` : ""}`;
+}
+
+// Eén deelfunctie voor de hele app: in de native app het echte iOS-deelmenu
+// (@capacitor/share — navigator.share is in WKWebView niet betrouwbaar), op
+// het web navigator.share met klembord als terugval.
+// Geeft "shared" | "copied" | "cancelled" | "failed" | "no-url" terug.
+async function shareLink({ title, text, url }) {
+  if (!url) return "no-url";
+  if (isNativeShell) {
+    try { await Share.share({ title, text, url, dialogTitle: title }); return "shared"; }
+    catch (e) { return /cancel/i.test(e?.message || "") ? "cancelled" : "failed"; }
+  }
+  try {
+    if (navigator.share) { await navigator.share({ title, text, url }); return "shared"; }
+    await navigator.clipboard.writeText(url); return "copied";
+  } catch (e) {
+    if (e?.name === "AbortError") return "cancelled";
+    try { await navigator.clipboard.writeText(url); return "copied"; } catch { return "failed"; }
+  }
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -1632,8 +1654,14 @@ function urlBase64ToUint8Array(base64String) {
 // Web Push werkt op iPhone alleen als PWA vanaf het beginscherm (iOS 16.4+),
 // niet in een gewoon Safari-tabblad — de aanmeld-permissie zelf werkt overal
 // hetzelfde, maar zonder "Toevoegen aan beginscherm" komt er nooit een melding door.
+//
+// In de native iOS-app werkt Web Push niet (WKWebView heeft geen PushManager
+// voor apps) en hoort het ook niet: native meldingen komen later via
+// @capacitor/push-notifications (zie CLAUDE.md). Daar geldt dus
+// "niet ondersteund" — geen service worker, en de schakelaar in Instellingen
+// blijft verborgen zodat er geen knop staat die niets doet.
 function usePushNotifications(session) {
-  const [supported] = useState(() => typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window);
+  const [supported] = useState(() => !isNativeShell && typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   // Voorheen slikte enable() elke fout stil in (permissie geweigerd, een
@@ -1803,7 +1831,7 @@ function AuthScreen() {
         if (err) throw err;
         if (!data.session) setNotice("Bijna klaar! Check je e-mail om je account te bevestigen, en log daarna in.");
       } else if (mode === "forgot") {
-        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: publicAppUrl() || window.location.origin });
         if (err) throw err;
         setNotice("Check je e-mail voor een link om een nieuw wachtwoord in te stellen.");
       } else {
@@ -1970,6 +1998,26 @@ function useOnlineStatus() {
   return online;
 }
 
+// Zet een veld binnen een pop-up in beeld door alleen de scrollbare inhoud
+// van die pop-up te verschuiven (niet de pagina): het veld komt net boven de
+// onderrand van wat zichtbaar is, met wat lucht eronder.
+function revealInSheet(el) {
+  let box = el.parentElement;
+  while (box && box !== document.body) {
+    const oy = getComputedStyle(box).overflowY;
+    if ((oy === "auto" || oy === "scroll") && box.scrollHeight > box.clientHeight) break;
+    box = box.parentElement;
+  }
+  if (!box || box === document.body) return;
+  const boxRect = box.getBoundingClientRect();
+  const vv = window.visualViewport;
+  const visibleBottom = Math.min(boxRect.bottom, vv ? vv.offsetTop + vv.height : window.innerHeight);
+  const r = el.getBoundingClientRect();
+  const margin = 24;
+  if (r.bottom > visibleBottom - margin) box.scrollTop += r.bottom - (visibleBottom - margin);
+  else if (r.top < boxRect.top + margin) box.scrollTop -= (boxRect.top + margin) - r.top;
+}
+
 // Native toetsenbordgedrag voor alle tekstvelden in de app, op één plek:
 // (1) een veld dat straks door het toetsenbord bedekt zou worden scrollt
 // zichzelf in beeld, net als UIKit automatisch doet voor de actieve
@@ -1981,16 +2029,84 @@ function useKeyboardBehavior() {
     const isTextInput = (el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")
       && !["checkbox", "radio", "range", "button", "submit", "file"].includes(el.type);
 
+    // Toetsenbord open → klasse op <html>, zodat de zwevende onderbalk
+    // verdwijnt i.p.v. bovenop het toetsenbord (en over zoekresultaten) te
+    // gaan liggen. Native via de Keyboard-plugin (zie native.js); op het web
+    // benaderd via focus op een tekstveld.
+    const setKbOpen = (open) => document.documentElement.classList.toggle("kb-open", open);
+    let blurTimer = null;
+    let lastFocusAt = 0;
+
     const onFocusIn = (e) => {
       const el = e.target;
       if (!isTextInput(el)) return;
+      lastFocusAt = Date.now();
+      clearTimeout(blurTimer);
+      if (!isNativeShell) setKbOpen(true);
+      // Zoekvelden met een suggestielijst (data-kb-scope) gaan bovenaan in
+      // beeld staan, zodat de lijst eronder de ruimte boven het toetsenbord
+      // krijgt; gewone velden alleen als ze anders achter het toetsenbord
+      // zouden verdwijnen.
+      const picker = el.closest("[data-kb-scope]");
+      // Velden in een pop-up (check-in-notitie, locatie): alleen de
+      // scrollbare inhoud van de pop-up zelf verschuiven, nooit de pagina —
+      // scrollIntoView schoof op iOS ook de (vastgezette) pagina mee, wat
+      // het veld soms juist áchter het toetsenbord liet belanden. Een paar
+      // keer, want het toetsenbord komt in stappen omhoog.
+      if ((el.tagName === "TEXTAREA" || el.closest(".sheet-max-92")) && !picker) {
+        [80, 350, 700].forEach(t => setTimeout(() => { if (document.activeElement === el) revealInSheet(el); }, t));
+        return;
+      }
       setTimeout(() => {
+        if (document.activeElement !== el) return;
+        if (picker) { el.scrollIntoView({ block: "start", behavior: "smooth" }); return; }
         const rect = el.getBoundingClientRect();
         const viewportH = window.visualViewport?.height || window.innerHeight;
         if (rect.bottom > viewportH - 90 || rect.top < 0) {
           el.scrollIntoView({ block: "center", behavior: "smooth" });
         }
-      }, 300);
+      }, 320);
+    };
+    // Zodra het toetsenbord echt helemaal open is (native event) of de
+    // zichtbare hoogte verandert: het actieve veld nog één keer in beeld zetten.
+    const onKeyboardShown = () => {
+      const el = document.activeElement;
+      if (isTextInput(el) && (el.tagName === "TEXTAREA" || el.closest(".sheet-max-92")) && !el.closest("[data-kb-scope]")) revealInSheet(el);
+    };
+    window.addEventListener("app-keyboard-shown", onKeyboardShown);
+    // Web (Safari/PWA): hetzelfde --kb-pad als native, op basis van visualViewport.
+    const vv = window.visualViewport;
+    const onViewport = () => {
+      if (isNativeShell || !vv) return;
+      const covered = window.innerHeight - vv.height - vv.offsetTop;
+      document.documentElement.style.setProperty("--kb-pad", `${covered > 80 ? Math.round(covered) : 0}px`);
+      onKeyboardShown();
+    };
+    vv?.addEventListener("resize", onViewport);
+
+    const onFocusOut = (e) => {
+      if (isNativeShell || !isTextInput(e.target)) return;
+      blurTimer = setTimeout(() => { if (!isTextInput(document.activeElement)) setKbOpen(false); }, 120);
+    };
+
+    // Tik je (met toetsenbord open) op iets anders dan een tekstveld — een
+    // ster, een label, "Meer toevoegen" — dan sluit het toetsenbord, zoals in
+    // native iOS-apps. Anders blijft de cursor in het veld staan en duikt het
+    // toetsenbord bij elke tik weer op. Tikken in de suggestielijst van het
+    // veld zelf (data-kb-scope) laat het toetsenbord open. Capture-fase op
+    // 'click': de knop zelf krijgt de tik gewoon nog.
+    const onClickCapture = (e) => {
+      const active = document.activeElement;
+      if (!isTextInput(active)) return;
+      // De tik waarmee je het veld net opende telt niet: door de focus kan de
+      // layout verschuiven (balk verdwijnt, veld schuift), waardoor de klik
+      // van diezelfde tik net naast het veld landt en het meteen weer sloot.
+      if (Date.now() - lastFocusAt < 600) return;
+      const t = e.target;
+      if (isTextInput(t) || t.closest?.("input, textarea, select, label")) return;
+      const scope = active.closest?.("[data-kb-scope]");
+      if (scope && scope.contains(t)) return;
+      active.blur();
     };
 
     let touchStartY = null;
@@ -1999,15 +2115,26 @@ function useKeyboardBehavior() {
       const active = document.activeElement;
       if (!isTextInput(active) || touchStartY == null) return;
       if (active === e.target || active.contains?.(e.target)) return;
+      // Scrollen dóór de suggestielijst van dit zoekveld mag het toetsenbord
+      // niet sluiten — dat liet alles verspringen en je kon niets kiezen.
+      const scope = active.closest?.("[data-kb-scope]");
+      if (scope && scope.contains(e.target)) return;
       const dy = Math.abs((e.touches[0]?.clientY ?? touchStartY) - touchStartY);
       if (dy > 12) { active.blur(); touchStartY = null; }
     };
 
     document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    document.addEventListener("click", onClickCapture, true);
     document.addEventListener("touchstart", onTouchStart, { capture: true, passive: true });
     document.addEventListener("touchmove", onTouchMove, { capture: true, passive: true });
     return () => {
+      window.removeEventListener("app-keyboard-shown", onKeyboardShown);
+      vv?.removeEventListener("resize", onViewport);
       document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("click", onClickCapture, true);
+      clearTimeout(blurTimer);
       document.removeEventListener("touchstart", onTouchStart, { capture: true });
       document.removeEventListener("touchmove", onTouchMove, { capture: true });
     };
@@ -2068,12 +2195,22 @@ export default function ThuisbarApp() {
   // springt dat naar boven én ververst het de tijdlijn (via homeTapTick,
   // die HomeTab hieronder oppikt).
   const [homeTapTick, setHomeTapTick] = useState(0);
-  const navigateTo = (nextTab) => {
+  // Een scherm openen begint altijd bovenaan (net als een native app); alleen
+  // "terug" (restore: true — terugknop/terugvegen) zet je weer op de plek
+  // waar je was. Nogmaals op de actieve tab tikken scrollt soepel naar boven
+  // (Home ververst daarbij ook, Ontdekken sluit een open recept).
+  const [ontdekkenTapTick, setOntdekkenTapTick] = useState(0);
+  const navigateTo = (nextTab, { restore = false } = {}) => {
     if (nextTab === tab) {
       if (nextTab === "home") setHomeTapTick(t => t + 1);
+      else {
+        if (nextTab === "ontdekken") setOntdekkenTapTick(t => t + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
       return;
     }
     scrollPositions.current[tab] = window.scrollY;
+    if (!restore) scrollPositions.current[nextTab] = 0;
     setTab(nextTab);
   };
   useLayoutEffect(() => {
@@ -2127,7 +2264,6 @@ export default function ThuisbarApp() {
   const [customIngredients, setCustomIngredients] = useStorage("thuisbar-custom-ingredients", []);
   const [customRecipes, setCustomRecipes] = useStorage("thuisbar-custom-recipes", []);
   const [shoppingList, setShoppingList] = useStorage("thuisbar-shopping-list", []);
-  const [smaakMenu, setSmaakMenu] = useStorage("thuisbar-smaakbalans-menu", []);
   const [voorraadAantal, setVoorraadAantal] = useStorage("thuisbar-voorraad-aantal", {});
   const [courseProgress, setCourseProgress] = useStorage("thuisbar-cursus-voortgang", {});
   const [recentRecipeIds, setRecentRecipeIds] = useStorage("thuisbar-recent-recepten", []);
@@ -2153,17 +2289,17 @@ export default function ThuisbarApp() {
     [parties.parties]
   );
   // Springt na een cross-tab actie (bijv. "gebruik dit menu" vanuit
-  // Smaakbalans) direct naar het juiste feest-detailscherm — zelfde patroon
+  // Menu-assistent) direct naar het juiste feest-detailscherm — zelfde patroon
   // als pendingRecipeId hierboven. FeestplannerTab maakt 'm zelf weer leeg.
   const [openPartyId, setOpenPartyId] = useState(null);
   // Voor de "Feestplanner"-snelkoppelingen elders in de app (Maken,
-  // receptdetail, Smaakbalans): één cocktail toevoegen mikt altijd op het
+  // receptdetail, Menu-assistent): één cocktail toevoegen mikt altijd op het
   // eerstvolgende feest, of maakt (zonder te vragen) "Mijn feest" aan als er
   // nog helemaal geen feest bestaat — een keuzescherm tussen meerdere
   // feesten voegt hier meer gedoe toe dan het oplost.
-  const resolveTargetParty = async () => {
+  const resolveTargetParty = async ({ guests } = {}) => {
     if (upcomingParties[0]) return upcomingParties[0];
-    return parties.createParty({ name: "Mijn feest", guests: 8, drinks_per_guest: 2, cocktail_ids: [], bought_items: [], prep_done: [] });
+    return parties.createParty({ name: "Mijn feest", guests: guests || 8, drinks_per_guest: 2, cocktail_ids: [], bought_items: [], prep_done: [] });
   };
 
   useEffect(() => {
@@ -2178,10 +2314,25 @@ export default function ThuisbarApp() {
   useEffect(() => {
     if (!session) { setProfile(null); return; }
     let cancelled = false;
-    supabase.from("profiles").select("id, name, avatar_url").eq("id", session.user.id).single()
+    supabase.from("profiles").select("*").eq("id", session.user.id).single()
       .then(({ data }) => { if (!cancelled) setProfile(data || null); });
     return () => { cancelled = true; };
   }, [session]);
+
+  // Cursus uitgespeeld → eenmalig op je profiel zetten, zodat vrienden het
+  // diploma ook zien. Faalt stil als de kolommen (migratie) nog ontbreken;
+  // je eigen profiel toont het diploma dan toch, op basis van lokale voortgang.
+  const courseMastery = useMemo(() => computeCourseMastery(courseProgress), [courseProgress]);
+  useEffect(() => {
+    if (!session || !profile || !courseMastery || profile.course_completed_at) return;
+    supabase.from("profiles")
+      .update({ course_completed_at: new Date().toISOString(), course_exam_score: courseMastery.scorePct })
+      .eq("id", session.user.id).select().single()
+      .then(({ data, error }) => { if (!error && data) setProfile(data); });
+  }, [session, profile, courseMastery]);
+  const courseDiploma = profile?.course_completed_at
+    ? { date: profile.course_completed_at, scorePct: profile.course_exam_score ?? courseMastery?.scorePct }
+    : (courseMastery ? { date: null, scorePct: courseMastery.scorePct } : null);
 
   const reloadLogboek = async () => {
     if (!session) return;
@@ -2269,7 +2420,23 @@ export default function ThuisbarApp() {
   // meteen weer leeggemaakt door VerhaalTab zodra 'm verwerkt is, zodat
   // hetzelfde recept ook een tweede keer achter elkaar geopend kan worden.
   const [pendingRecipeId, setPendingRecipeId] = useState(null);
-  const openRecipeDetail = (id) => { navigateTo("ontdekken"); setPendingRecipeId(id); };
+  // Een recept geopend vanaf een ander scherm (Home, Feestplanner, Check-in…)
+  // opent als eigen, rustig receptscherm met een terugknop naar dát scherm —
+  // niet naar de Ontdekken-lijst waar het technisch in leeft.
+  const [recipeOrigin, setRecipeOrigin] = useState(null);
+  const openRecipeDetail = (id) => {
+    setRecipeOrigin(tab === "ontdekken" ? null : tab);
+    navigateTo("ontdekken");
+    setPendingRecipeId(id);
+  };
+  const returnFromRecipe = () => {
+    const origin = recipeOrigin;
+    setRecipeOrigin(null);
+    if (origin) navigateTo(origin, { restore: true });
+  };
+  const recipeBackLabel = recipeOrigin
+    ? (PUSH_SCREEN_TITLES[recipeOrigin] || DOCK_LABELS[recipeOrigin] || TAGS.find(t => t.id === recipeOrigin)?.label || "Terug")
+    : "Ontdekken";
 
   // Zelfde idee, maar dan voor inchecken: het formulier leeft als een sheet
   // ín LogboekTab (die portal't naar document.body, dus verschijnt sowieso al
@@ -2282,11 +2449,12 @@ export default function ThuisbarApp() {
 
   // Eén recept toevoegen aan de Feestplanner-keuze, vanuit Maken of een
   // recept-detail — dus niet via de bulk "gebruik dit menu"-actie van
-  // Smaakbalans, maar één-voor-één met eigen feedback.
+  // de oude Smaakbalans, maar één-voor-één met eigen feedback.
   const addRecipeToFeest = async (id) => {
     const target = await resolveTargetParty();
-    if (!target || target.cocktail_ids.includes(id)) return;
-    parties.updateParty(target.id, { cocktail_ids: [...target.cocktail_ids, id] });
+    const current = target?.cocktail_ids || [];
+    if (!target || current.includes(id)) return;
+    parties.updateParty(target.id, { cocktail_ids: [...current, id] });
   };
   // Alle cocktails van het eerstvolgende (of nieuw aangemaakte) feest, voor
   // de "in feestplanner"-disabled-state op recept-kaarten elders in de app.
@@ -2308,6 +2476,12 @@ export default function ThuisbarApp() {
     () => computeCheckinInsights(logboek, allRecipes, allIngredients, isOwned, checkinStats.uniques),
     [logboek, allRecipes, allIngredients, isOwned, checkinStats.uniques]
   );
+  // Lichte voorkeur in de Menu-assistent: het smaakprofiel uit je check-ins.
+  const menuTasteLikes = useMemo(() => {
+    const t = checkinInsights?.taste;
+    if (!t || !t.some(x => x.pct > 0) || logboek.length < 3) return null;
+    return Object.fromEntries(t.map(x => [x.key, x.pct]));
+  }, [checkinInsights, logboek.length]);
   const greeting = useMemo(() => getGreeting(), []);
   const timeWarmth = useMemo(() => getTimeWarmth(), []);
 
@@ -2329,6 +2503,21 @@ export default function ThuisbarApp() {
     setVoorraad(wasOwned ? voorraadArr.filter(x => x !== id) : [...voorraadArr, id]);
     if (!wasOwned) setVoorraadAantal({ ...voorraadAantal, [id]: 1 });
   };
+  // Hoe vol een fles is ("vol" | "half" | "bijna" | "op"), per ingrediënt.
+  const [voorraadNiveau, setVoorraadNiveau] = useStorage("thuisbar-voorraad-niveau", {});
+  const setNiveau = (id, level) => {
+    const next = { ...voorraadNiveau };
+    if (!level || level === "vol") delete next[id]; else next[id] = level;
+    setVoorraadNiveau(next);
+  };
+  // Snel vullen: een pakket in één keer toevoegen, en weer ongedaan maken.
+  const addPack = (ids) => {
+    setVoorraad([...voorraadArr, ...ids.filter(id => !voorraadArr.includes(id))]);
+    const aantal = { ...voorraadAantal };
+    ids.forEach(id => { aantal[id] = 1; });
+    setVoorraadAantal(aantal);
+  };
+  const undoPack = (ids) => setVoorraad(voorraadArr.filter(id => !ids.includes(id)));
   const adjustAantal = (id, delta) => {
     const next = Math.max(0, (voorraadAantal[id] ?? 1) + delta);
     setVoorraadAantal({ ...voorraadAantal, [id]: Math.round(next * 2) / 2 });
@@ -2341,14 +2530,25 @@ export default function ThuisbarApp() {
     setVoorraad([...voorraadArr, id]);
     setVoorraadAantal({ ...voorraadAantal, [id]: 1 });
   };
+  // Eigen recept bewaren: nieuwe ingrediënten worden eigen ingrediënten
+  // (niet in voorraad), daarna wordt het recept met hun id's opgeslagen.
+  const saveCustomRecipe = (newIngredients, build) => {
+    const idMap = {};
+    const added = newIngredients.map((n, i) => {
+      const existing = allIngredients.find(x => x.name.toLowerCase() === n.name.trim().toLowerCase());
+      if (existing) { idMap[n.key] = existing.id; return null; }
+      const id = `${slugify(n.name)}${i}`;
+      idMap[n.key] = id;
+      return { id, name: n.name.trim(), cat: n.cat || CUSTOM_CAT };
+    }).filter(Boolean);
+    if (added.length) setCustomIngredients([...customIngredients, ...added]);
+    const recipe = build(idMap);
+    setCustomRecipes(customRecipes.some(r => r.id === recipe.id) ? customRecipes.map(r => r.id === recipe.id ? recipe : r) : [...customRecipes, recipe]);
+    return recipe;
+  };
   const removeCustomIngredient = (id) => {
     setCustomIngredients(customIngredients.filter(i => i.id !== id));
     setVoorraad(voorraadArr.filter(x => x !== id));
-  };
-  const renameCustomIngredient = (id, newName) => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    setCustomIngredients(customIngredients.map(i => i.id === id ? { ...i, name: trimmed } : i));
   };
 
   // entries: [{ ref, recipeNames }]; recipeNames = voor welke cocktail(s) dit werd toegevoegd
@@ -2367,18 +2567,36 @@ export default function ThuisbarApp() {
     setShoppingList([...map.values()]);
   };
   const removeFromShoppingList = (key) => setShoppingList(shoppingList.filter(i => i.key !== key));
+  // Welke ingrediënten al op de boodschappenlijst staan — zo tonen knoppen
+  // elders (Wat kan ik maken) de échte staat, ook na verwijderen in het mandje.
+  const shoppingKeys = useMemo(() => new Set(shoppingList.map(i => i.key)), [shoppingList]);
+  // "Maak een batch" (recept-pop-up, volledig recept) → Batch-calculator met
+  // die cocktail gekozen. Via batchOpener zodat niet elke tussenlaag een
+  // extra prop hoeft door te geven; in gastmodus is er geen Bar → geen knop.
+  const [batchRequest, setBatchRequest] = useState(null);
+  batchOpener.current = session ? (id) => { setBatchRequest({ id, nonce: Date.now() }); navigateTo("schaler"); } : null;
   const clearShoppingList = () => setShoppingList([]);
   const buyShoppingItem = (item) => {
     if (item.id) setVoorraad(voorraadArr.includes(item.id) ? voorraadArr : [...voorraadArr, item.id]);
     removeFromShoppingList(item.key);
   };
+  // "Ongedaan maken" na afvinken: terug op de lijst, en uit de voorraad als
+  // het daar vóór het afvinken nog niet stond.
+  const undoBuyShoppingItem = (item, wasOwned) => {
+    if (item.id && !wasOwned) setVoorraad(voorraadArr.filter(id => id !== item.id));
+    setShoppingList(shoppingList.some(i => i.key === item.key) ? shoppingList : [...shoppingList, item]);
+  };
+  // Per drank de gekozen fles uit "Fles kiezen" (product-id uit `producten`).
+  const [chosenBottles, setChosenBottles] = useStorage("thuisbar-gekozen-flessen", {});
+  const producten = useProducten(visitedTabs.has("mandje"));
 
-  // Native opstartscherm pas weghalen als er een echt scherm klaarstaat
-  // (leeftijdspoort, gastweergave of de app zelf), niet een lege laadkleur.
-  const firstScreenReady = ageVerified !== undefined && (!ageVerified || guestMenuIds || surveyId || session !== undefined);
-  useEffect(() => {
-    if (firstScreenReady) hideNativeSplash();
-  }, [firstScreenReady]);
+  // De native splash (launchAutoHide: false) ging voorheen alleen weg via de
+  // in-app SplashScreen, en die draait enkel voor ingelogde gebruikers — bij
+  // een verse installatie (leeftijdspoort, gastmodus, inlogscherm) bleef het
+  // Capacitor-logo dus eeuwig staan. Nu verbergen we 'm zodra er een echt
+  // scherm klaarstaat, ongeacht welk.
+  const firstScreenReady = ageVerified === false || (ageVerified === true && (guestMenuIds || surveyId || session !== undefined));
+  useEffect(() => { if (firstScreenReady) hideNativeSplash(); }, [firstScreenReady]);
 
   if (ageVerified === undefined) return <div style={{ minHeight: "100%", background: BOTTLE_DARK }} />;
   if (!ageVerified) return <AgeGateScreen onConfirm={confirmAge} />;
@@ -2394,6 +2612,7 @@ export default function ThuisbarApp() {
       <GuestBrowseShell
         recipes={allRecipes} allIngredients={allIngredients} isOwned={isOwned} ingredientLabel={ingredientLabel} onSound={chime}
         onAddToShoppingList={addToShoppingList} onAddToFeest={addRecipeToFeest} feestChosen={feestChosen}
+        shoppingKeys={shoppingKeys} onRemoveFromShoppingList={removeFromShoppingList}
         recentRecipeIds={recentRecipeIds} onViewRecipe={addRecentRecipe} favoriteRecipeIds={favoriteRecipeIds} onToggleFavorite={toggleFavoriteRecipe}
         courseProgress={courseProgress} setCourseProgress={setCourseProgress}
         onGoLogin={() => setWantsLogin(true)}
@@ -2406,6 +2625,7 @@ export default function ThuisbarApp() {
     <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
       {!isOnline && <OfflineBanner />}
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+      <StatusBarBackdrop showAfter={tab === "home" ? 95 : 0} />
       {/* Signage band: alleen op Home. Andere tabs krijgen een iOS-large-title
           i.p.v. dit groene blok — zie LargeTitleHeader binnen elke tab. */}
       {tab === "home" && (
@@ -2423,7 +2643,7 @@ export default function ThuisbarApp() {
         </div>
       )}
 
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: tab === "home" ? "28px 20px calc(env(safe-area-inset-bottom) + 92px)" : "calc(env(safe-area-inset-top) + 6px) 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: tab === "home" ? "28px 20px calc(env(safe-area-inset-bottom) + 150px)" : "calc(env(safe-area-inset-top) + 6px) 20px calc(env(safe-area-inset-bottom) + 150px)" }}>
         <TabPanel id="home" active={tab === "home"} visited={visitedTabs.has("home")} panelRef={panelRefs}>
           <HomeTab session={session} profile={profile} greeting={greeting} featuredRecipe={featuredRecipe}
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
@@ -2433,6 +2653,7 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
+            recipeBackLabel={recipeBackLabel} onRecipeBack={recipeOrigin ? returnFromRecipe : null} rootTapTick={ontdekkenTapTick}
             openRecipeId={pendingRecipeId} onOpenRecipeHandled={() => setPendingRecipeId(null)}
             recommended={checkinInsights.recommended} favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             allIngredients={allIngredients} onOpenRecipe={openRecipeDetail} onSound={chime}
@@ -2440,6 +2661,8 @@ export default function ThuisbarApp() {
               recipes: allRecipes, isOwned, ingredientLabel, allIngredients,
               onAddToShoppingList: addToShoppingList, onSound: chime,
               onOpenRecipe: openRecipeDetail, onAddToFeest: addRecipeToFeest, feestChosen,
+              shoppingKeys, onRemoveFromShoppingList: removeFromShoppingList,
+              favoriteRecipeIds, onToggleFavorite: toggleFavoriteRecipe, onOpenCheckin: openCheckin,
             }}
             verhaalProps={{
               recipes: allRecipes, ingredientLabel, allIngredients, isOwned,
@@ -2451,42 +2674,47 @@ export default function ThuisbarApp() {
           />
         </TabPanel>
         <TabPanel id="bar" active={tab === "bar"} visited={visitedTabs.has("bar")} panelRef={panelRefs}>
-          <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} active={tab === "bar"}
+          <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} feestCount={feestChosen.length} active={tab === "bar"}
             voorraadCount={voorraad.size} customRecipesCount={customRecipes.length}
             feestSubtitle={upcomingParties[0] ? `${upcomingParties[0].name} · ${formatPartyWhen(upcomingParties[0]).toLowerCase()}` : "Plan een avond"}
             courseProgress={courseProgress} />
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
           <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
-            onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto}
+            onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress}
             onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} />
         </TabPanel>
 
         <TabPanel id="voorraad" active={tab === "voorraad"} visited={visitedTabs.has("voorraad")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.voorraad} onBack={() => navigateTo("bar")}>
-            <VoorraadTab allIngredients={allIngredients} customIngredients={customIngredients} voorraad={voorraad}
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.voorraad} onBack={() => navigateTo("bar", { restore: true })}>
+            <VoorraadTab allIngredients={allIngredients} recipes={allRecipes} isOwned={isOwned} voorraad={voorraad}
               voorraadAantal={voorraadAantal} onAdjustAantal={adjustAantal}
               onToggle={toggleIngredient} onAddCustom={addCustomIngredient} onRemoveCustom={removeCustomIngredient}
-              onRenameCustom={renameCustomIngredient} onSound={chime} />
+              niveaus={voorraadNiveau} onSetNiveau={setNiveau} onAddPack={addPack} onUndoPack={undoPack}
+              onAddToShoppingList={addToShoppingList} shoppingKeys={shoppingKeys} onOpenFullRecipe={openRecipeDetail} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="mandje" active={tab === "mandje"} visited={visitedTabs.has("mandje")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.mandje} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.mandje} onBack={() => navigateTo("bar", { restore: true })}>
             <WinkelmandjeTab shoppingList={shoppingList} recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
-              onRemove={removeFromShoppingList} onBuy={buyShoppingItem} onClear={clearShoppingList} onAdd={addToShoppingList} onSound={chime} />
+              onRemove={removeFromShoppingList} onBuy={buyShoppingItem} onUndoBuy={undoBuyShoppingItem} onClear={clearShoppingList} onAdd={addToShoppingList} onSound={chime}
+              producten={producten} chosenBottles={chosenBottles} onChooseBottle={(ingredientId, productId) => setChosenBottles({ ...chosenBottles, [ingredientId]: productId })} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="schaler" active={tab === "schaler"} visited={visitedTabs.has("schaler")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.schaler} onBack={() => navigateTo("bar")}>
-            <SchalerTab recipes={allRecipes} ingredientLabel={ingredientLabel} allIngredients={allIngredients} />
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.schaler} onBack={() => navigateTo("bar", { restore: true })}>
+            <BatchCalculatorTab recipes={allRecipes} ingredientLabel={ingredientLabel} allIngredients={allIngredients} isOwned={isOwned}
+              voorraadAantal={voorraadAantal} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
+              shoppingKeys={shoppingKeys} onAddToShoppingList={addToShoppingList} onSound={chime} request={batchRequest} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="balans" active={tab === "balans"} visited={visitedTabs.has("balans")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.balans} onBack={() => navigateTo("bar")}>
-            <SmaakbalansTab recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
-              menu={smaakMenu} setMenu={setSmaakMenu} onSound={chime}
-              onUseInFeestplanner={async (ids) => {
-                const target = await resolveTargetParty();
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.balans} onBack={() => navigateTo("bar", { restore: true })}>
+            <MenuAssistentTab recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients} ingredientLabel={ingredientLabel}
+              favoriteRecipeIds={favoriteRecipeIds} recentRecipeIds={recentRecipeIds} tasteLikes={menuTasteLikes}
+              onAddToShoppingList={addToShoppingList} onSound={chime}
+              onUseInFeestplanner={async (ids, guests) => {
+                const target = await resolveTargetParty({ guests });
                 if (!target) return;
                 parties.updateParty(target.id, { cocktail_ids: ids });
                 setOpenPartyId(target.id);
@@ -2495,12 +2723,12 @@ export default function ThuisbarApp() {
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="cursus" active={tab === "cursus"} visited={visitedTabs.has("cursus")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.cursus} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.cursus} onBack={() => navigateTo("bar", { restore: true })}>
             <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="feest" active={tab === "feest"} visited={visitedTabs.has("feest")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.feest} onBack={() => navigateTo("bar")}>
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.feest} onBack={() => navigateTo("bar", { restore: true })}>
             <FeestplannerTab session={session} recipes={allRecipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
               onAddToShoppingList={addToShoppingList} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail}
               parties={parties.parties} onCreateParty={parties.createParty} onUpdateParty={parties.updateParty} onDeleteParty={parties.deleteParty}
@@ -2509,32 +2737,35 @@ export default function ThuisbarApp() {
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="eigen" active={tab === "eigen"} visited={visitedTabs.has("eigen")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.eigen} onBack={() => navigateTo("bar")}>
-            <EigenRecepten customRecipes={customRecipes} setCustomRecipes={setCustomRecipes} allIngredients={allIngredients} onSound={chime} />
+          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.eigen} onBack={() => navigateTo("bar", { restore: true })}>
+            <EigenRecepten customRecipes={customRecipes} allIngredients={allIngredients} recipes={allRecipes} isOwned={isOwned}
+              recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds} shoppingKeys={shoppingKeys}
+              onSaveRecipe={saveCustomRecipe} onRemoveRecipe={(id) => { chime("remove"); setCustomRecipes(customRecipes.filter(r => r.id !== id)); }}
+              onAddToShoppingList={addToShoppingList} onOpenRecipe={openRecipeDetail} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="vrienden" active={tab === "vrienden"} visited={visitedTabs.has("vrienden")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.vrienden} onBack={() => navigateTo("profiel")}>
+          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.vrienden} onBack={() => navigateTo("profiel", { restore: true })}>
             <VriendenTab session={session} profile={profile} recipes={allRecipes} allIngredients={allIngredients} onSound={chime} active={tab === "vrienden"} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel")}>
+          <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel", { restore: true })}>
             <InstellingenTab soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={() => supabase.auth.signOut()} push={push} onNavigate={navigateTo} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="privacybeleid" active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.privacybeleid} onBack={() => navigateTo("instellingen")}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.privacybeleid} onBack={() => navigateTo("instellingen", { restore: true })}>
             <PrivacyPolicyScreen />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="account-verwijderen" active={tab === "account-verwijderen"} visited={visitedTabs.has("account-verwijderen")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES["account-verwijderen"]} onBack={() => navigateTo("instellingen")}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES["account-verwijderen"]} onBack={() => navigateTo("instellingen", { restore: true })}>
             <AccountDeleteScreen onDelete={deleteAccount} busy={deletingAccount} error={deleteAccountError} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="fotoverantwoording" active={tab === "fotoverantwoording"} visited={visitedTabs.has("fotoverantwoording")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.fotoverantwoording} onBack={() => navigateTo("instellingen")}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.fotoverantwoording} onBack={() => navigateTo("instellingen", { restore: true })}>
             <PhotoCreditsScreen />
           </SecondaryTabScreen>
         </TabPanel>
@@ -2739,7 +2970,7 @@ function AccountDeleteScreen({ onDelete, busy, error }) {
 // achter "Meer") in hun eigen tab, gescheiden van de sociale/ontdek-laag —
 // zodat die laatste niet verdrinkt tussen bijvoorbeeld de Cursus en de
 // Feestplanner. Zelfde lijst-stijl als Profiel, alleen andere items.
-function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesCount, feestSubtitle, courseProgress }) {
+function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesCount, feestSubtitle, courseProgress, feestCount = 0 }) {
   // Subtitels tonen echte staat i.p.v. altijd dezelfde statische tekst —
   // net als de rest van de app ("geen verzonnen smaakscheikunde"): een
   // lege voorraad/winkelmandje/eigen-recepten zegt dat het leeg is, en de
@@ -2749,12 +2980,12 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
   const courseSubtitle = completedLessons > 0 ? `${completedLessons}/${COURSE_LESSONS.length} lessen` : `${COURSE_PARTS.length} delen`;
 
   const items = [
-    { id: "mandje", label: "Winkelmandje", icon: ShoppingCart, subtitle: shoppingCount > 0 ? `${shoppingCount} item${shoppingCount === 1 ? "" : "s"}` : "Leeg" },
-    { id: "feest", label: "Feestplanner", icon: PartyPopper, subtitle: feestSubtitle },
+    { id: "mandje", label: "Winkelmandje", icon: ShoppingCart, subtitle: shoppingCount > 0 ? `${shoppingCount} item${shoppingCount === 1 ? "" : "s"}` : "Leeg", badge: shoppingCount },
+    { id: "feest", label: "Feestplanner", icon: PartyPopper, subtitle: feestSubtitle, badge: feestCount },
     { id: "cursus", label: "Cursus", icon: GraduationCap, subtitle: courseSubtitle },
     { id: "eigen", label: "Eigen recepten", icon: FlaskConical, subtitle: customRecipesCount > 0 ? `${customRecipesCount} eigen recept${customRecipesCount === 1 ? "" : "en"}` : "Maak je eerste" },
-    { id: "schaler", label: "Schaler", icon: Scale, subtitle: "Voor een groep" },
-    { id: "balans", label: "Smaakbalans", icon: Sparkles, subtitle: "Stel je cocktail bij" },
+    { id: "schaler", label: "Batch-calculator", icon: Scale, subtitle: "Cocktails voor een groep of vooraf in een fles" },
+    { id: "balans", label: "Menu-assistent", icon: ListChecks, subtitle: "Stel in 1 minuut een menu in balans samen" },
   ];
   return (
     <div>
@@ -2784,8 +3015,17 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
               background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS + 6, padding: "16px 14px",
               cursor: "pointer", fontFamily: sans, boxShadow: SHADOW_CARD, position: "relative",
             }}>
-              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+              <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
                 <Icon size={17} strokeWidth={1.8} />
+                {/* Klein tellerbolletje (zoals op de onderbalk): aantal items in
+                    het winkelmandje / cocktails op het menu van het volgende feest. */}
+                {t.badge > 0 && (
+                  <span aria-label={`${t.badge}`} style={{
+                    position: "absolute", top: -6, right: -8, minWidth: 18, height: 18, borderRadius: 9, padding: "0 5px", boxSizing: "border-box",
+                    background: BRASS, color: CREAM, fontSize: 10.5, fontWeight: 700, fontFamily: sans,
+                    display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${CREAM}`,
+                  }}>{t.badge > 99 ? "99+" : t.badge}</span>
+                )}
               </span>
               <span>
                 <div style={{ fontWeight: 700, fontSize: 14.5, color: INK }}>{t.label}</div>
@@ -2862,6 +3102,23 @@ function formatPartyWhen(party) {
   if (days === 0) return "Vandaag";
   if (days > 0) return `Over ${days} dag${days === 1 ? "" : "en"}`;
   return `${Math.abs(days)} dag${Math.abs(days) === 1 ? "" : "en"} geleden`;
+}
+
+// Goedgekeurde flessen (Supabase-tabel `producten`, RLS: alleen status
+// 'goedgekeurd' is leesbaar). Pas geladen zodra de boodschappenlijst open
+// gaat; lukt het niet (offline, migratie nog niet gedraaid), dan blijft de
+// lijst leeg en toont "Fles kiezen" gewoon dat er nog niets gecontroleerd is.
+function useProducten(enabled) {
+  const [producten, setProducten] = useState([]);
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    supabase.from("producten").select("*").eq("status", "goedgekeurd").then(({ data, error }) => {
+      if (!cancelled && !error && Array.isArray(data)) setProducten(data);
+    });
+    return () => { cancelled = true; };
+  }, [enabled]);
+  return producten;
 }
 
 function useParties(session) {
@@ -2984,7 +3241,7 @@ function useFriendsFeed(session, active) {
         const rows = data || [];
         const friendIds = [...new Set(rows.map(f => (f.requester_id === myId ? f.addressee_id : f.requester_id)))];
         if (friendIds.length === 0) { setFeed([]); setFriendProfiles({}); return; }
-        const { data: profs } = await supabase.from("profiles").select("id, name, avatar_url").in("id", friendIds);
+        const { data: profs } = await supabase.from("profiles").select("*").in("id", friendIds);
         if (cancelled) return;
         const map = {};
         (profs || []).forEach(p => { map[p.id] = p; });
@@ -3289,9 +3546,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                   {entry.notes && <p style={{ margin: "0 0 9px", fontSize: 12.5, color: INK, lineHeight: 1.5 }}>&ldquo;{entry.notes}&rdquo;</p>}
                   {entry.tasteTags.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 11 }}>
-                      {entry.tasteTags.map(k => TASTE_META[k] && (
+                      {entry.tasteTags.map(k => CHECKIN_TASTE_META[k] && (
                         <span key={k} style={{ fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 100, background: PAPER_DEEP, color: INK, border: `1px solid ${BORDER}` }}>
-                          {TASTE_META[k].emoji} {TASTE_META[k].label}
+                          {CHECKIN_TASTE_META[k].emoji} {CHECKIN_TASTE_META[k].label}
                         </span>
                       ))}
                     </div>
@@ -3445,16 +3702,20 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
     // laag is onzichtbaar en alleen voor de veilige-marges-padding
     // (pointerEvents:none, zodat de ruimte ernaast/eronder gewoon aantikbaar
     // blijft), de échte balk erbinnen heeft de marge, afronding en schaduw.
-    <div style={{
+    // 6px lucht boven de home-indicator (was 14px): lager en dichter bij
+    // iOS' eigen zwevende tabbalk, maar nog steeds buiten de veegzone van
+    // het home-streepje.
+    <div className="bottom-dock" style={{
       position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
-      padding: "0 14px calc(env(safe-area-inset-bottom) + 14px)", pointerEvents: "none",
+      padding: "0 14px calc(env(safe-area-inset-bottom) + 6px)", pointerEvents: "none",
     }}>
       <div className="glass-light" style={{
         maxWidth: 960 - 28, margin: "0 auto", display: "flex", alignItems: "flex-end", pointerEvents: "auto",
         borderRadius: 28, padding: "9px 6px",
       }}>
         {left.map(renderBtn)}
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", marginTop: -26 }}>
+        {/* +-knop steekt 18px uit (was 26px): valt minder over de inhoud. */}
+        <div style={{ flex: 1, display: "flex", justifyContent: "center", marginTop: -18 }}>
           <button onClick={onCheckin} aria-label="Inchecken" className="press-scale" style={{
             width: 54, height: 54, borderRadius: "50%", background: BRASS, border: `4px solid ${PAPER}`,
             boxShadow: "0 6px 16px -4px rgba(184,134,46,0.6), 0 0 0 8px rgba(184,134,46,0.14)",
@@ -3483,6 +3744,31 @@ function SectionLabel({ children }) {
 // Puur CSS "position: sticky" volstaat niet hier (in tegenstelling tot de
 // andere sticky balken in deze app): die zou constant zichtbaar zijn i.p.v.
 // pas verschijnen zodra de grote titel is weggescrolld.
+// Alle sticky balken staan op top: env(safe-area-inset-top), dus in de strook
+// daarboven (achter klok/notch) scrolde de inhoud onbedekt door — dat gaf een
+// lelijke "tussenruimte" boven elke sticky balk. Deze vaste strook dekt die
+// zone af met exact hetzelfde glas als de balken zelf, zodat balk + strook
+// één geheel vormen (zoals een echte iOS-navigatiebalk). `showAfter`: pas
+// zichtbaar na zoveel px scrollen — voor schermen die bovenaan een donkergroene
+// header hebben die zelf al tot achter de statusbalk doorloopt (Home, gast).
+function StatusBarBackdrop({ showAfter = 0 }) {
+  const [visible, setVisible] = useState(showAfter === 0);
+  useEffect(() => {
+    if (showAfter === 0) { setVisible(true); return; }
+    const onScroll = () => setVisible(window.scrollY > showAfter);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [showAfter]);
+  return (
+    <div aria-hidden className="glass-light" style={{
+      position: "fixed", top: 0, left: 0, right: 0, height: "env(safe-area-inset-top)", zIndex: 25,
+      border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)", pointerEvents: "none",
+      opacity: visible ? 1 : 0, transition: "opacity 0.15s ease",
+    }} />
+  );
+}
+
 function LargeTitleHeader({ title, active = true, sticky = true }) {
   const [collapsed, setCollapsed] = useState(false);
   const sentinelRef = useRef(null);
@@ -3505,7 +3791,7 @@ function LargeTitleHeader({ title, active = true, sticky = true }) {
           position: "sticky", top: STICKY_TOP, zIndex: 8,
           display: "flex", alignItems: "center", justifyContent: "center", height: 44,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-          border: "none", borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent", boxShadow: "none",
+          border: "none", borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent", boxShadow: "none", background: "rgba(243,236,221,0.92)",
           opacity: collapsed ? 1 : 0, pointerEvents: collapsed ? "auto" : "none",
           transition: "opacity 0.18s ease, border-color 0.18s ease",
           fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK,
@@ -3530,108 +3816,6 @@ const CATEGORY_ART = {
   "Zuivel & room": { from: "#FBF6EA", to: "#DCCFA8", shape: "jug" },
   "Vers": { from: "#9DBB87", to: "#3F5A34", shape: "citrus" },
 };
-
-// Sfeerfoto's voor de voorraad-categorieën. Elke foto krijgt dezelfde
-// sepia/contrast-behandeling als receptfoto's plus een category-getinte
-// multiply-wash (in de kleuren van CATEGORY_ART), zodat zes losse
-// stockfoto's toch als één samenhangende set ogen in plaats van een
-// willekeurige verzameling plaatjes.
-const CATEGORY_PHOTOS = {
-  "Sterke drank": catSterkeDrankImg,
-  "Likeuren & versterkte wijnen": catLikeurenImg,
-  "Bitters": catBittersImg,
-  "Mixers": catMixersImg,
-  "Zuivel & room": catZuivelRoomImg,
-  "Vers": catVersImg,
-};
-
-function CategoryArt({ cat }) {
-  const art = CATEGORY_ART[cat] || CATEGORY_ART["Vers"];
-  const photo = CATEGORY_PHOTOS[cat];
-  const gid = "cg_" + cat.replace(/[^a-z0-9]+/gi, "_");
-  if (photo) {
-    return (
-      <>
-        <img src={photo} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${art.from}5c, ${art.to}85 75%)`, mixBlendMode: "multiply" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(15,12,9,0.42) 0%, rgba(15,12,9,0) 48%)" }} />
-      </>
-    );
-  }
-  return (
-    <svg viewBox="0 0 160 96" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={art.from} />
-          <stop offset="1" stopColor={art.to} />
-        </linearGradient>
-      </defs>
-      <rect width="160" height="96" fill={`url(#${gid})`} />
-      {art.shape === "bottle" && (
-        <g opacity="0.92">
-          <rect x="72" y="14" width="12" height="12" rx="2" fill="rgba(0,0,0,0.3)" />
-          <path d="M70 26h20c7 4 10 10 10 18v30a5 5 0 0 1-5 5H65a5 5 0 0 1-5-5V44c0-8 3-14 10-18z" fill="rgba(43,38,32,0.28)" />
-          <rect x="60" y="58" width="30" height="16" rx="2.5" fill="rgba(251,247,236,0.85)" />
-          <rect x="66" y="30" width="4" height="34" rx="2" fill="#fff" opacity="0.22" transform="rotate(-6 68 47)" />
-        </g>
-      )}
-      {art.shape === "dasher" && (
-        <g opacity="0.92">
-          <rect x="76" y="18" width="8" height="10" rx="2" fill="rgba(0,0,0,0.35)" />
-          <path d="M74 28h12c4 8 5 14 5 20v22a4 4 0 0 1-4 4H73a4 4 0 0 1-4-4V48c0-6 1-12 5-20z" fill="rgba(43,38,32,0.32)" />
-          <rect x="66" y="56" width="28" height="14" rx="2.5" fill="rgba(251,247,236,0.85)" />
-        </g>
-      )}
-      {art.shape === "glass" && (
-        <g opacity="0.92">
-          <path d="M64 30h32l-4 40a4 4 0 0 1-4 4H72a4 4 0 0 1-4-4z" fill="rgba(43,38,32,0.22)" />
-          <circle cx="76" cy="42" r="2.6" fill="rgba(255,255,255,0.7)" />
-          <circle cx="84" cy="52" r="2" fill="rgba(255,255,255,0.6)" />
-          <circle cx="78" cy="60" r="1.6" fill="rgba(255,255,255,0.6)" />
-          <rect x="66" y="26" width="28" height="5" rx="2.5" fill="rgba(255,255,255,0.55)" />
-        </g>
-      )}
-      {art.shape === "jug" && (
-        <g opacity="0.92">
-          <path d="M62 34h24a6 6 0 0 1 6 6v22a6 6 0 0 1-6 6H62a6 6 0 0 1-6-6V40a6 6 0 0 1 6-6z" fill="rgba(43,38,32,0.16)" />
-          <path d="M92 40h6c3 0 5 2 5 5v6c0 3-2 5-5 5h-6" fill="none" stroke="rgba(43,38,32,0.16)" strokeWidth="4" />
-        </g>
-      )}
-      {art.shape === "citrus" && (
-        <g opacity="0.94">
-          <circle cx="70" cy="50" r="18" fill="rgba(43,38,32,0.18)" />
-          <circle cx="70" cy="50" r="18" fill="none" stroke="rgba(251,247,236,0.7)" strokeWidth="3" />
-          <path d="M70 36v28M60 40l20 20M60 60l20-20" stroke="rgba(251,247,236,0.55)" strokeWidth="1.4" />
-          <path d="M96 34c6 2 9 8 8 16-6-1-11-6-8-16z" fill="rgba(43,38,32,0.24)" />
-        </g>
-      )}
-    </svg>
-  );
-}
-
-// Sfeerfoto's per basisdrank voor de "Op basisdrank"-rondjes (Maken-tab):
-// elke drank krijgt zijn eigen foto in plaats van steeds dezelfde
-// Sterke-drank-plankfoto, met dezelfde behandeling als CategoryArt zodat
-// het visueel bij elkaar blijft horen.
-const SPIRIT_PHOTOS = {
-  "Gin": spiritGinImg,
-  "Wodka": spiritWodkaImg,
-  "Witte rum": spiritWitteRumImg,
-  "Cognac / brandy": spiritCognacBrandyImg,
-  "Rye whisky": spiritRyeWhiskyImg,
-  "Bourbon": spiritBourbonImg,
-};
-
-function SpiritArt({ label }) {
-  const art = CATEGORY_ART["Sterke drank"];
-  const photo = SPIRIT_PHOTOS[label] || CATEGORY_PHOTOS["Sterke drank"];
-  return (
-    <>
-      <img src={photo} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
-      <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${art.from}5c, ${art.to}85 75%)`, mixBlendMode: "multiply" }} />
-    </>
-  );
-}
 
 // Elke fles een eigen "productfoto" zou 140+ losse illustraties vergen; in
 // plaats daarvan krijgt elk ingrediënt een silhouet passend bij zijn soort
@@ -3735,114 +3919,332 @@ function ItemArt({ ing }) {
   );
 }
 
-function VoorraadTab({ allIngredients, customIngredients, voorraad, voorraadAantal, onAdjustAantal, onToggle, onAddCustom, onRemoveCustom, onRenameCustom, onSound }) {
-  const [drafts, setDrafts] = useState({});
-  const [editingId, setEditingId] = useState(null);
-  const [editDraft, setEditDraft] = useState("");
-  const [quickSearch, setQuickSearch] = useState("");
-  const [justChecked, setJustChecked] = useState(null);
-  const [justPoppedId, setJustPoppedId] = useState(null);
-  const [openCategory, setOpenCategory] = useState(null);
+// Snel vullen: pakketten met een logische basis per stijl. Na toevoegen
+// vink je uit wat je niet hebt (met "Ongedaan maken" voor het hele pakket).
+const VOORRAAD_PAKKETTEN = [
+  { key: "basis", label: "Basisbar", ids: ["gin", "vodka", "white_rum", "bourbon", "triple_sec", "lemon_juice", "lime_juice", "sugar_syrup"] },
+  { key: "tiki", label: "Tiki", ids: ["white_rum", "dark_rum", "lime_juice", "pineapple_juice", "orange_juice", "orgeat", "grenadine", "coconut_cream", "angostura"] },
+  { key: "italiaans", label: "Italiaans aperitief", ids: ["gin", "campari", "aperol", "sweet_vermouth", "prosecco", "soda_water"] },
+  { key: "klassiek", label: "Klassiekers", ids: ["bourbon", "rye", "gin", "cognac", "sweet_vermouth", "dry_vermouth", "angostura", "orange_bitters", "triple_sec", "lemon_juice", "sugar_syrup"] },
+];
+const FILL_LEVELS = [
+  { key: "vol", label: "Vol", fill: 1 },
+  { key: "half", label: "Half", fill: 0.5 },
+  { key: "bijna", label: "Bijna op", fill: 0.15 },
+  { key: "op", label: "Op", fill: 0 },
+];
+const CHIP_LABELS = { "Likeuren & versterkte wijnen": "Likeuren", "Zuivel & room": "Zuivel", [CUSTOM_CAT]: "Eigen" };
 
-  const toggleWithPop = (id) => {
-    if (!voorraad.has(id)) {
-      onSound("tick");
-      setJustPoppedId(id);
-      setTimeout(() => setJustPoppedId(cur => (cur === id ? null : cur)), 350);
-    }
-    onToggle(id);
-  };
-
-  const setDraft = (cat, val) => setDrafts({ ...drafts, [cat]: val });
-  const submit = (cat) => {
-    const val = (drafts[cat] || "").trim();
-    if (!val) return;
-    onAddCustom(val, cat);
-    onSound("pop");
-    setDraft(cat, "");
-  };
-
-  const startEdit = (ing) => { setEditingId(ing.id); setEditDraft(ing.name); };
-  const saveEdit = () => {
-    onRenameCustom(editingId, editDraft);
-    setEditingId(null);
-  };
-
-  const handleQuickSearch = (val) => {
-    setQuickSearch(val);
-    const match = allIngredients.find(i => i.name.toLowerCase() === val.trim().toLowerCase());
-    if (match) {
-      if (!voorraad.has(match.id)) toggleWithPop(match.id);
-      setQuickSearch("");
-      setJustChecked(match.name);
-      setTimeout(() => setJustChecked(id => (id === match.name ? null : id)), 2000);
-    }
-  };
-
+function FillBottleIcon({ fill, color }) {
+  const h = 18 * fill;
   return (
-    <div>
-      <div style={{
-        position: "relative", height: 176, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 22,
-        boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}`,
-      }}>
-        <img src={voorraadHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.88), rgba(19,38,34,0.2) 55%, rgba(19,38,34,0.4))` }} />
-        <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "16px 20px" }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 26, color: CREAM }}>Voorraad</div>
-          <div style={{ fontSize: 12, color: "#D9CBAE", letterSpacing: 0.4, marginTop: 3 }}>Jouw bar, in kaart gebracht</div>
-        </div>
-      </div>
+    <svg width="16" height="26" viewBox="0 0 16 26" aria-hidden>
+      <path d="M6 1h4v4c0 1 4 2 4 6v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V11c0-4 4-5 4-6z" fill="none" stroke={color} strokeWidth="1.6" />
+      {fill > 0 && <rect x="3" y={24 - h} width="10" height={h} rx="1" fill={color} opacity="0.85" />}
+    </svg>
+  );
+}
 
-      <div style={{ marginBottom: 26, padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD }}>
-        <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS, marginBottom: 8 }}>Snel aanvinken</div>
-        <IngredientAutocomplete value={quickSearch} onChange={handleQuickSearch} options={allIngredients.map(i => i.name)}
-          placeholder="Typ een ingrediënt, bijv. Pisco…" style={{ maxWidth: 360 }} />
-        {justChecked && (
-          <p className="success-pop" style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, margin: "8px 0 0" }}>
-            <Check size={14} strokeWidth={3} /> {justChecked} aangevinkt in voorraad
-          </p>
+function FlesSheet({ ing, owned, usedIn, makeableWith, level, aantal, onSetLevel, onAdjustAantal, onToggle, onAddToList, onList, onOpenRecipe, allIngredients, isCustom, onRemoveCustom, onClose }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const [confirmOp, setConfirmOp] = useState(false);
+  const [listAdded, setListAdded] = useState(false);
+  const low = level === "bijna" || level === "op";
+  const catLabel = ing.cat === CUSTOM_CAT ? "Eigen ingrediënt" : ing.cat;
+  const setLevel = (key) => { onSetLevel(key); if (key === "op") setConfirmOp(true); };
+
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in sheet-max-92" style={{
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
+        background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "6px 20px 14px", touchAction: "none" }}>
+          <div style={{ width: 60, height: 60, borderRadius: 14, overflow: "hidden", flexShrink: 0 }}><ItemArt ing={ing} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: serif, fontSize: 24, fontWeight: 700, lineHeight: 1.15 }}>{ing.name}</div>
+            <div style={{ fontSize: 13, color: MUTED, marginTop: 3 }}>{catLabel} · gebruikt in {usedIn} cocktail{usedIn === 1 ? "" : "s"}</div>
+          </div>
+          <button onClick={close} aria-label="Sluiten" onTouchStart={e => e.stopPropagation()} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
+          {owned ? (
+            <>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Hoe vol is de fles?</div>
+              <div role="radiogroup" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 14 }}>
+                {FILL_LEVELS.map(l => {
+                  const on = (level || "vol") === l.key;
+                  const color = on ? (l.key === "bijna" || l.key === "op" ? BURGUNDY : BOTTLE) : MUTED;
+                  return (
+                    <button key={l.key} role="radio" aria-checked={on} onClick={() => setLevel(l.key)} style={{
+                      flex: 1, minHeight: 62, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
+                      border: "none", borderRadius: 11, cursor: "pointer", fontFamily: sans, fontSize: 12.5, fontWeight: 700,
+                      background: on ? CREAM : "transparent", color, boxShadow: on ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
+                    }}>
+                      <FillBottleIcon fill={l.fill} color={color} />{l.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {low && (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, padding: "12px 14px", borderRadius: 14, background: "rgba(122,46,42,0.10)" }}>
+                  <div style={{ flex: 1, fontSize: 13.5, lineHeight: 1.45, color: INK }}>
+                    <strong style={{ color: BURGUNDY }}>{level === "op" ? "Op." : "Bijna op."}</strong> Zet hem op je boodschappenlijst, dan vergeet je hem niet.
+                  </div>
+                  {listAdded || onList ? (
+                    <span className={listAdded ? "success-pop" : undefined} style={{ display: "flex", alignItems: "center", gap: 4, color: SAGE, fontSize: 13, fontWeight: 700, flexShrink: 0 }}><Check size={14} strokeWidth={3} /> Op lijst</span>
+                  ) : (
+                    <button onClick={() => { onAddToList(); setListAdded(true); }} style={{ minHeight: 40, padding: "0 16px", borderRadius: 100, border: "none", background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Op lijst</button>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, padding: "10px 12px 10px 16px", borderRadius: 14, background: PAPER_DEEP }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>Aantal flessen</div>
+                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>Alleen als je er meer hebt</div>
+                </div>
+                <button aria-label="Eén fles minder" onClick={() => onAdjustAantal(-1)} disabled={aantal <= 1} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(184,134,46,0.2)", color: INK, fontSize: 20, cursor: aantal <= 1 ? "default" : "pointer", opacity: aantal <= 1 ? 0.45 : 1 }}>−</button>
+                <span style={{ minWidth: 26, textAlign: "center", fontSize: 18, fontWeight: 700 }}>{formatDutchNumber(aantal)}</span>
+                <button aria-label="Eén fles meer" onClick={() => onAdjustAantal(1)} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(184,134,46,0.2)", color: INK, fontSize: 20, cursor: "pointer" }}>+</button>
+              </div>
+            </>
+          ) : (
+            <button onClick={onToggle} className="press-scale" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14, border: "none", background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              <Plus size={17} /> In voorraad zetten
+            </button>
+          )}
+
+          {makeableWith.length > 0 && (
+            <>
+              <div style={{ fontSize: 15, fontWeight: 700, margin: "20px 0 10px" }}>{owned ? "Hiermee maak je nu" : "Hiermee maak je dan"}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                {makeableWith.slice(0, 6).map(r => (
+                  <button key={r.id} onClick={() => onOpenRecipe(r)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK }}>
+                    <div style={{ borderRadius: 12, overflow: "hidden", height: 92, display: "flex", alignItems: "center", justifyContent: "center" }}><RecipeCircle recipe={r} allIngredients={allIngredients} size={124} radius={0} /></div>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginTop: 6, lineHeight: 1.25 }}>{r.name}</div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {(owned || isCustom) && (
+          <div style={{ padding: "6px 20px calc(env(safe-area-inset-bottom) + 10px)", borderTop: `1px solid ${BORDER}`, display: "flex", flexDirection: "column" }}>
+            {owned && <button onClick={() => { onToggle(); close(); }} style={{ minHeight: 48, background: "none", border: "none", color: BURGUNDY, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Verwijder uit voorraad</button>}
+            {isCustom && <button onClick={() => { onRemoveCustom(); close(); }} style={{ minHeight: 44, background: "none", border: "none", color: MUTED, fontFamily: sans, fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Eigen ingrediënt helemaal verwijderen</button>}
+          </div>
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: 14, marginBottom: 8 }}>
-        {CATEGORY_ORDER.map(cat => {
-          const items = allIngredients.filter(i => i.cat === cat);
-          const ownedCount = items.filter(i => voorraad.has(i.id)).length;
+      {confirmOp && (
+        <ConfirmDialog title="Fles is op" message={`Wil je ${ing.name} ook uit je voorraad halen?`} cancelLabel="Laat staan" confirmLabel="Uit voorraad"
+          onCancel={() => setConfirmOp(false)} onConfirm={() => { setConfirmOp(false); onToggle(); close(); }} />
+      )}
+    </div>
+  ), document.body);
+}
+
+function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAantal, onAdjustAantal, onToggle, onAddCustom, onRemoveCustom,
+  niveaus = {}, onSetNiveau, onAddPack, onUndoPack, onAddToShoppingList, shoppingKeys, onOpenFullRecipe, onSound }) {
+  const [query, setQuery] = useState("");
+  const [cat, setCat] = useState("Alles");
+  const [openId, setOpenId] = useState(null);
+  const [sheetRecipe, setSheetRecipe] = useState(null);
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  const idOf = (ing) => findIngredientMeta(ing, allIngredients)?.id || ing.id;
+  // Per ingrediënt: in welke recepten het (verplicht) voorkomt.
+  const usage = useMemo(() => {
+    const map = new Map();
+    recipes.forEach(r => {
+      new Set(r.ingredients.filter(i => !i.optional).map(idOf)).forEach(id => {
+        if (!id) return;
+        if (!map.has(id)) map.set(id, []);
+        map.get(id).push(r);
+      });
+    });
+    return map;
+  }, [recipes, allIngredients]);
+  const missingByRecipe = useMemo(() => new Map(recipes.map(r => [r.id, r.ingredients.filter(i => !i.optional && !isOwned(i)).map(idOf)])), [recipes, isOwned, allIngredients]);
+  const makeableCount = [...missingByRecipe.values()].filter(m => m.length === 0).length;
+  // Hoeveel recepten compleet worden als dit ingrediënt erbij komt.
+  const gains = useMemo(() => {
+    const map = new Map();
+    missingByRecipe.forEach(m => { if (m.length === 1) map.set(m[0], (map.get(m[0]) || 0) + 1); });
+    return map;
+  }, [missingByRecipe]);
+
+  const cats = [...CATEGORY_ORDER, ...(allIngredients.some(i => i.cat === CUSTOM_CAT) ? [CUSTOM_CAT] : [])];
+  const q = query.trim().toLowerCase();
+  const visible = allIngredients.filter(i => (cat === "Alles" || i.cat === cat) && (!q || i.name.toLowerCase().includes(q)));
+  const owned = visible.filter(i => voorraad.has(i.id)).sort((a, b) => (usage.get(b.id)?.length || 0) - (usage.get(a.id)?.length || 0));
+  const notOwned = visible.filter(i => !voorraad.has(i.id))
+    .sort((a, b) => ((gains.get(b.id) || 0) - (gains.get(a.id) || 0)) || ((usage.get(b.id)?.length || 0) - (usage.get(a.id)?.length || 0)));
+  const exactMatch = q && allIngredients.some(i => i.name.toLowerCase() === q);
+  const bottleCount = allIngredients.filter(i => voorraad.has(i.id)).length;
+
+  const showToast = (t) => { clearTimeout(toastTimer.current); setToast(t); toastTimer.current = setTimeout(() => setToast(null), 5000); };
+  const toggle = (id) => {
+    if (!voorraad.has(id)) { onSound("tick"); onSetNiveau(id, null); } else onSound("remove");
+    onToggle(id);
+  };
+  const addPack = (pack) => {
+    const added = pack.ids.filter(id => !voorraad.has(id) && allIngredients.some(i => i.id === id));
+    if (added.length === 0) { showToast({ text: `${pack.label}: alles stond al in je voorraad` }); return; }
+    onSound("chime");
+    onAddPack(added);
+    showToast({ text: `${pack.label}: ${added.length} toegevoegd`, undo: added });
+  };
+  const addCustom = () => {
+    const name = query.trim();
+    if (!name) return;
+    onAddCustom(name, cat !== "Alles" ? cat : CUSTOM_CAT);
+    onSound("pop");
+    setQuery("");
+  };
+
+  const openIng = openId ? allIngredients.find(i => i.id === openId) : null;
+  const makeableWith = openIng ? (usage.get(openIng.id) || []).filter(r => {
+    const m = missingByRecipe.get(r.id) || [];
+    return m.length === 0 || (m.length === 1 && m[0] === openIng.id);
+  }) : [];
+
+  const renderRow = (ing, i, isIn) => {
+    const used = usage.get(ing.id)?.length || 0;
+    const gain = gains.get(ing.id) || 0;
+    const level = niveaus[ing.id];
+    const low = isIn && (level === "bijna" || level === "op");
+    return (
+      <div key={ing.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 6px 0 12px" }}>
+        <button onClick={() => setOpenId(ing.id)} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK, alignSelf: "stretch" }}>
+          <div style={{ width: 44, height: 44, borderRadius: 11, overflow: "hidden", flexShrink: 0 }}><ItemArt ing={ing} /></div>
+          <div style={{ flex: 1, minWidth: 0, padding: "11px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, alignSelf: "stretch", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div style={{ fontSize: 15.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ing.name}</div>
+            {isIn ? (
+              <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>
+                {low && <span style={{ color: BURGUNDY, fontWeight: 600 }}>{level === "op" ? "Op" : "Bijna op"} · </span>}
+                {!low && level === "half" && "Half vol · "}
+                {(() => { const t = used > 0 ? `gebruikt in ${used} cocktail${used === 1 ? "" : "s"}` : "nog in geen cocktail"; return low || level === "half" ? t : t[0].toUpperCase() + t.slice(1); })()}
+              </div>
+            ) : gain > 0 ? (
+              <span style={{ alignSelf: "flex-start", marginTop: 3, fontSize: 11.5, fontWeight: 700, color: "#8A6420", background: "rgba(184,134,46,0.18)", borderRadius: 100, padding: "2px 8px" }}>+{gain} cocktail{gain === 1 ? "" : "s"}</span>
+            ) : (
+              <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{used > 0 ? `Gebruikt in ${used} cocktail${used === 1 ? "" : "s"}` : "Nog in geen cocktail"}</div>
+            )}
+          </div>
+        </button>
+        <button onClick={() => toggle(ing.id)} aria-pressed={isIn} aria-label={isIn ? `${ing.name} uit voorraad halen` : `${ing.name} in voorraad zetten`}
+          style={{ width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}>
+          <span className={isIn ? "success-pop" : undefined} style={{ width: 28, height: 28, borderRadius: "50%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", background: isIn ? SAGE : "transparent", border: isIn ? "none" : `1.5px solid ${BORDER}` }}>
+            {isIn && <Check size={16} strokeWidth={3} color={CREAM} />}
+          </span>
+        </button>
+      </div>
+    );
+  };
+  const groupHead = (text, right) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "18px 4px 8px" }}>
+      <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: MUTED }}>{text}</span>
+      {right}
+    </div>
+  );
+  const listCard = (children) => <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>{children}</div>;
+
+  return (
+    <div style={{ fontFamily: sans }}>
+      <h1 style={{ fontFamily: serif, fontSize: 34, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.1 }}>Voorraad</h1>
+      <div style={{ fontSize: 14, color: MUTED, marginTop: 4 }}>
+        <strong style={{ color: INK }}>{bottleCount} {bottleCount === 1 ? "fles" : "flessen"}</strong> · hiermee maak je <strong style={{ color: INK }}>{makeableCount} cocktail{makeableCount === 1 ? "" : "s"}</strong>
+      </div>
+
+      <div data-kb-scope style={{ position: "sticky", top: "calc(env(safe-area-inset-top) + 45px)", zIndex: 8, margin: "12px -20px 0", padding: "8px 20px", background: PAPER }}>
+        <form onSubmit={e => { e.preventDefault(); if (q && !exactMatch && visible.length === 0) addCustom(); }} style={{ display: "flex", alignItems: "center", gap: 8, background: PAPER_DEEP, borderRadius: 12, padding: "0 10px 0 12px" }}>
+          <Search size={17} color={MUTED} />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Zoek of voeg toe…" aria-label="Zoek of voeg toe" enterKeyHint="search" autoCorrect="off"
+            style={{ flex: 1, minHeight: 44, border: "none", outline: "none", background: "transparent", fontFamily: sans, fontSize: 16, color: INK }} />
+          {query && <button type="button" onClick={() => setQuery("")} aria-label="Wis zoekopdracht" style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.08)", color: MUTED, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={14} /></button>}
+        </form>
+      </div>
+
+      <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", margin: "6px -20px 0", padding: "4px 20px 6px", WebkitOverflowScrolling: "touch" }}>
+        {["Alles", ...cats].map(c => {
+          const items = c === "Alles" ? allIngredients : allIngredients.filter(i => i.cat === c);
+          const inHuis = items.filter(i => voorraad.has(i.id)).length;
+          const on = cat === c;
           return (
-            <button key={cat} onClick={() => setOpenCategory(cat)} style={{
-              display: "flex", flexDirection: "column", textAlign: "left", cursor: "pointer",
-              background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14,
-              boxShadow: SHADOW_CARD, overflow: "hidden", padding: 0, fontFamily: sans,
+            <button key={c} onClick={() => setCat(c)} aria-pressed={on} style={{
+              flexShrink: 0, minHeight: 40, padding: "0 14px", borderRadius: 100, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700,
+              background: on ? BOTTLE : CREAM, color: on ? "#FBF6EA" : INK, border: `1px solid ${on ? BOTTLE : BORDER}`, whiteSpace: "nowrap",
             }}>
-              <div style={{ position: "relative", aspectRatio: "16 / 9" }}>
-                <CategoryArt cat={cat} />
-                <span className="glass-chip-dark" style={{
-                  position: "absolute", top: 8, right: 8, minWidth: 26, height: 22, padding: "0 7px",
-                  borderRadius: 11, fontSize: 11.5, fontWeight: 700,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>{ownedCount}/{items.length}</span>
-              </div>
-              <div style={{ padding: "10px 12px 12px" }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{cat}</div>
-              </div>
+              {CHIP_LABELS[c] || c} <span style={{ fontWeight: 600, opacity: 0.75, fontSize: 12.5 }}>{inHuis}/{items.length}</span>
             </button>
           );
         })}
       </div>
 
-      {openCategory && (
-        <CategorySheet
-          cat={openCategory}
-          items={allIngredients.filter(i => i.cat === openCategory)}
-          voorraad={voorraad} voorraadAantal={voorraadAantal}
-          onAdjustAantal={onAdjustAantal} onToggleWithPop={toggleWithPop} justPoppedId={justPoppedId}
-          editingId={editingId} editDraft={editDraft} setEditDraft={setEditDraft}
-          onStartEdit={startEdit} onSaveEdit={saveEdit} onCancelEdit={() => setEditingId(null)}
-          onRemoveCustom={onRemoveCustom}
-          draft={drafts[openCategory] || ""} onDraftChange={val => setDraft(openCategory, val)}
-          onSubmitDraft={() => submit(openCategory)}
-          onClose={() => setOpenCategory(null)}
-        />
+      {q && !exactMatch && (
+        <button onClick={addCustom} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 52, marginTop: 12, padding: "0 14px", borderRadius: 14, border: "none", background: CREAM, boxShadow: SHADOW_CARD, color: BOTTLE, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
+          <Plus size={18} /> ‘{query.trim()}’ toevoegen
+        </button>
+      )}
+
+      {owned.length > 0 && (<>{groupHead(`In huis · ${owned.length}`)}{listCard(owned.map((ing, i) => renderRow(ing, i, true)))}</>)}
+      {notOwned.length > 0 && (<>
+        {groupHead("Nog niet in huis", <span style={{ fontSize: 12, fontWeight: 700, color: BRASS }}>Meeste nieuwe cocktails ↓</span>)}
+        {listCard(notOwned.map((ing, i) => renderRow(ing, i, false)))}
+      </>)}
+      {visible.length === 0 && !q && <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "30px 0" }}>Nog niets in deze categorie.</p>}
+
+      {!q && (
+        <div style={{ marginTop: 22, padding: "16px", borderRadius: 16, background: "#1F3A33", color: "#F3ECDD", boxShadow: SHADOW_CARD }}>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>Snel vullen</div>
+          <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 3, color: "rgba(243,236,221,0.82)" }}>Voeg een pakket toe en vink daarna uit wat je niet hebt.</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+            {VOORRAAD_PAKKETTEN.map(p => (
+              <button key={p.key} onClick={() => addPack(p)} style={{ minHeight: 40, padding: "0 14px", borderRadius: 100, border: "none", background: "rgba(243,236,221,0.14)", color: "#F3ECDD", fontFamily: sans, fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>+ {p.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {toast && createPortal((
+        <div role="status" className="success-pop" style={{
+          position: "fixed", left: 16, right: 16, bottom: "calc(env(safe-area-inset-bottom) + 92px)", zIndex: 40, maxWidth: 520, margin: "0 auto",
+          display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 8px 16px", minHeight: 44, borderRadius: 14, background: "#1F2A26", color: "#F3ECDD",
+          boxShadow: "0 10px 26px rgba(0,0,0,0.3)", fontFamily: sans,
+        }}>
+          <Check size={16} color="#9CC28E" strokeWidth={3} />
+          <span style={{ flex: 1, fontSize: 14 }}>{toast.text}</span>
+          {toast.undo && <button onClick={() => { onUndoPack(toast.undo); onSound("pop"); setToast(null); }} style={{ minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: "rgba(243,236,221,0.12)", color: "#F1D9A6", fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Ongedaan maken</button>}
+        </div>
+      ), document.body)}
+
+      {openIng && (
+        <FlesSheet ing={openIng} owned={voorraad.has(openIng.id)} usedIn={usage.get(openIng.id)?.length || 0} makeableWith={makeableWith}
+          level={niveaus[openIng.id]} aantal={voorraadAantal[openIng.id] ?? 1} allIngredients={allIngredients}
+          onSetLevel={(l) => { onSound("tick"); onSetNiveau(openIng.id, l); }} onAdjustAantal={(d) => onAdjustAantal(openIng.id, d)}
+          onToggle={() => toggle(openIng.id)} isCustom={openIng.cat === CUSTOM_CAT} onRemoveCustom={() => onRemoveCustom(openIng.id)}
+          onList={shoppingKeys?.has(ingredientKey({ id: openIng.id }))}
+          onAddToList={() => { onSound("tick"); onAddToShoppingList([{ ref: { id: openIng.id }, recipeNames: [] }]); }}
+          onOpenRecipe={(r) => { setOpenId(null); setTimeout(() => setSheetRecipe(r), 200); }}
+          onClose={() => setOpenId(null)} />
+      )}
+      {sheetRecipe && (
+        <RecipeSheet recipe={sheetRecipe} missing={sheetRecipe.ingredients.filter(i => !i.optional && !isOwned(i))} ingredientLabel={(ref) => findIngredientMeta(ref, allIngredients)?.name || ref.name || ref.id}
+          allIngredients={allIngredients} onAddMissing={(_, entries) => onAddToShoppingList(entries)} shoppingKeys={shoppingKeys} onSound={onSound}
+          onOpenFullRecipe={onOpenFullRecipe} onClose={() => setSheetRecipe(null)} />
       )}
     </div>
   );
@@ -3987,6 +4389,13 @@ function SheetGrabber(dragHandlers) {
 // rand zelf even vast te houden vóór JS ze ziet. 90px is fors ruimer, met
 // opzet: gemiste swipes voelen erger dan een iets grotere randzone.
 const EDGE_ZONE = 90;
+
+// Het veeggebied moet tot de échte schermrand lopen: alle schermen staan in
+// een container met 20px zijpadding, en een duimveeg begint juist in die
+// eerste 20px. Zonder deze "bleed" vielen die aanrakingen buiten het element
+// met de touch-handlers, en deed terugvegen op een iPhone dus helemaal niets
+// (alleen een veeg die toevallig pas na 20px begon werkte).
+const EDGE_SWIPE_BLEED = { marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20 };
 
 // In een gewone Safari-tab (niet "toegevoegd aan beginscherm") heeft iOS zélf
 // ook een rand-swipe-terug-gebaar, dat exact dezelfde linkerrand claimt als
@@ -4150,7 +4559,16 @@ function useEdgeSwipeBack(onBack) {
 // rij-silhouetten — geen echte tweede instantie van MeerTab, puur decoratief)
 // vanaf links mee naar binnen, net als de "vorige scherm wordt zichtbaar"-
 // parallax van een echte iOS-navigatiestack, i.p.v. een vlak gedimd vlak.
-function SecondaryTabScreen({ label, title, onBack, children }) {
+// Laat een scherm dieper in een SecondaryTabScreen (bv. een geopend feest)
+// de ene navigatiebalk bovenaan overnemen — label, titel, terugactie en een
+// knop rechts — i.p.v. een tweede balk eronder te tekenen.
+const NavOverrideContext = createContext(null);
+
+function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOnBack, children }) {
+  const [navOverride, setNavOverride] = useState(null);
+  const label = navOverride?.label ?? baseLabel;
+  const title = navOverride?.title ?? baseTitle;
+  const onBack = navOverride?.onBack ?? baseOnBack;
   const { contentRef, peekRef, scrimRef, showPeek, commitBack, handlers } = useEdgeSwipeBack(onBack);
   return (
     <div style={{ position: "relative" }}>
@@ -4173,13 +4591,13 @@ function SecondaryTabScreen({ label, title, onBack, children }) {
           <div ref={scrimRef} aria-hidden style={{ position: "absolute", inset: 0, background: "rgba(15,12,9,0.16)", opacity: 1 }} />
         </div>
       )}
-      <div ref={contentRef} {...handlers} style={{ touchAction: "pan-y", position: "relative", background: PAPER }}>
+      <div ref={contentRef} {...handlers} style={{ ...EDGE_SWIPE_BLEED, touchAction: "pan-y", position: "relative", background: PAPER }}>
         {/* Vaste navigatiebalk: terugknop links (vorige-schermnaam, net als
             echte iOS), gecentreerde titel van dít scherm — sticky zodat hij
             blijft staan terwijl de inhoud eronder scrollt, i.p.v. mee weg te
             scrollen zoals voorheen. marginLeft/Right+paddingLeft/Right span
             de balk edge-to-edge ondanks de 20px zijpadding van de pagina. */}
-        <div className="glass-light" style={{
+        <div className="glass-light secondary-navbar" style={{
           position: "sticky", top: STICKY_TOP, zIndex: 20,
           marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
           display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
@@ -4201,13 +4619,16 @@ function SecondaryTabScreen({ label, title, onBack, children }) {
           {title && (
             <div style={{
               justifySelf: "center", fontFamily: systemFont, fontWeight: 600, fontSize: 17, color: INK, whiteSpace: "nowrap",
+              overflow: "hidden", textOverflow: "ellipsis", maxWidth: "46vw",
             }}>
               {title}
             </div>
           )}
-          <div aria-hidden />
+          {navOverride?.right ? <div style={{ justifySelf: "end" }}>{navOverride.right}</div> : <div aria-hidden />}
         </div>
-        {children}
+        <NavOverrideContext.Provider value={setNavOverride}>
+          {children}
+        </NavOverrideContext.Provider>
       </div>
     </div>
   );
@@ -4220,7 +4641,7 @@ function SecondaryTabScreen({ label, title, onBack, children }) {
 function EdgeSwipeBackArea({ onBack, children }) {
   const { contentRef, handlers } = useEdgeSwipeBack(onBack);
   return (
-    <div ref={contentRef} {...handlers} style={{ touchAction: "pan-y" }}>
+    <div ref={contentRef} {...handlers} style={{ ...EDGE_SWIPE_BLEED, touchAction: "pan-y" }}>
       {children}
     </div>
   );
@@ -4310,129 +4731,6 @@ function SwipeToDelete({ onDelete, borderRadius = 0, children }) {
   );
 }
 
-function CategorySheet({ cat, items, voorraad, voorraadAantal, onAdjustAantal, onToggleWithPop, justPoppedId,
-  editingId, editDraft, setEditDraft, onStartEdit, onSaveEdit, onCancelEdit, onRemoveCustom,
-  draft, onDraftChange, onSubmitDraft, onClose }) {
-
-  useBodyScrollLock();
-  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") close(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const ownedCount = items.filter(i => voorraad.has(i.id)).length;
-
-  // In een portal naar document.body gerenderd: anders valt deze sheet binnen
-  // de stacking context van de geanimeerde tab-inhoud (.tab-fade) en duikt
-  // de onderbalk er, ondanks een lagere z-index, gewoon overheen.
-  return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-      <div className="sheet-backdrop-in" onClick={close}
-        style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-      <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "85vh",
-        background: PAPER, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
-        display: "flex", flexDirection: "column", overflow: "hidden",
-      }}>
-        <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{cat}</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{ownedCount} van {items.length} in huis</div>
-          </div>
-          <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
-            display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
-            borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK,
-          }}><X size={16} /></button>
-        </div>
-
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "18px 20px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 12 }}>
-            {items.map(ing => {
-              const owned = voorraad.has(ing.id);
-              const isCustom = ing.id.startsWith("custom_");
-              const aantal = voorraadAantal[ing.id] ?? 1;
-              const isEditing = editingId === ing.id;
-
-              return (
-                <div key={ing.id} role={isEditing ? undefined : "button"} tabIndex={isEditing ? undefined : 0}
-                  onClick={() => { if (!isEditing) onToggleWithPop(ing.id); }}
-                  onKeyDown={e => { if (!isEditing && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onToggleWithPop(ing.id); } }}
-                  className="press-scale"
-                  style={{
-                    position: "relative", display: "flex", flexDirection: "column", alignItems: "center",
-                    background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 8px 12px",
-                    minHeight: 44, cursor: isEditing ? "default" : "pointer",
-                  }}>
-                  {!isEditing && (
-                    <div aria-hidden className={justPoppedId === ing.id ? "ring-pop" : undefined} style={{
-                      position: "absolute", top: 7, right: 7, width: 26, height: 26, borderRadius: "50%",
-                      border: `1.5px solid ${owned ? BOTTLE : BORDER}`, background: owned ? BOTTLE : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      {owned && <Check key={justPoppedId === ing.id ? "popping" : "static"} className={justPoppedId === ing.id ? "check-pop" : undefined} size={15} strokeWidth={3} color={CREAM} />}
-                    </div>
-                  )}
-
-                  <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", marginBottom: 8, opacity: owned ? 1 : 0.85 }}>
-                    <ItemArt ing={ing} />
-                  </div>
-
-                  {isEditing ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                      <input value={editDraft} onChange={e => setEditDraft(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") onSaveEdit(); if (e.key === "Escape") onCancelEdit(); }}
-                        autoFocus autoCapitalize="words" enterKeyHint="done"
-                        style={{ border: `1px solid ${BRASS}`, borderRadius: 3, background: CREAM, fontSize: 12, fontFamily: sans, color: INK, width: 74, padding: "2px 4px", outline: "none" }} />
-                      <button onClick={onSaveEdit} style={{ display: "flex", background: "none", border: "none", cursor: "pointer", color: SAGE, padding: 0 }}><Check size={13} strokeWidth={3} /></button>
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 12, fontWeight: 700, color: INK, textAlign: "center", lineHeight: 1.25 }}>{ing.name}</div>
-                  )}
-
-                  {owned && !isEditing && (
-                    <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, padding: "2px 6px", borderRadius: 3, background: PAPER_DEEP }}>
-                      <span onClick={() => onAdjustAantal(ing.id, -0.5)} className="press-scale" style={{ display: "flex", padding: "0 2px", fontWeight: 700, lineHeight: 1, cursor: "pointer", color: INK }}>−</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, minWidth: 14, textAlign: "center", color: INK }}>{formatAantal(aantal)}</span>
-                      <span onClick={() => onAdjustAantal(ing.id, 0.5)} className="press-scale" style={{ display: "flex", padding: "0 2px", fontWeight: 700, lineHeight: 1, cursor: "pointer", color: INK }}>+</span>
-                    </div>
-                  )}
-
-                  {isCustom && !isEditing && (
-                    <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 8, marginTop: 5 }}>
-                      <span onClick={() => onStartEdit(ing)} style={{ display: "flex", cursor: "pointer", opacity: 0.65 }}><Pencil size={11} color={MUTED} /></span>
-                      <span onClick={() => { onSound("remove"); onRemoveCustom(ing.id); }} style={{ display: "flex", cursor: "pointer", opacity: 0.65 }}><X size={12} color={MUTED} /></span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{ padding: "12px 20px", borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <input value={draft} onChange={e => onDraftChange(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") onSubmitDraft(); }}
-              placeholder={`Voeg toe aan ${cat.toLowerCase()}…`}
-              autoCapitalize="sentences" enterKeyHint="done"
-              style={{ flex: 1, padding: "8px 10px", borderRadius: 3, border: `1px dashed ${MUTED}`, fontSize: 13, boxSizing: "border-box", background: "transparent", fontFamily: sans, color: INK }} />
-            <button onClick={onSubmitDraft} style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${BRASS}`, color: BRASS, borderRadius: 3, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
-              <Plus size={13} /> Toevoegen
-            </button>
-          </div>
-          <button onClick={close} style={{
-            width: "100%", padding: "13px", borderRadius: RADIUS, border: "none", cursor: "pointer",
-            background: BOTTLE, color: CREAM, fontFamily: sans, fontSize: 15, fontWeight: 700, boxShadow: SHADOW_CTA,
-          }}>Gereed</button>
-        </div>
-      </div>
-    </div>
-  ), document.body);
-}
-
 // Laat een getal "oplopen" naar zijn nieuwe waarde (ease-out, ~500ms) i.p.v.
 // er in één keer naartoe te springen, voor het winkelmandje-totaal en de
 // cursus-voortgang. Reine CSS kan geen getallen animeren, dus dit is de ene
@@ -4481,10 +4779,42 @@ function StatusTag({ missingCount }) {
 // Eigen dropdown i.p.v. <input list>/<datalist>: iOS Safari toont de native
 // datalist-suggesties namelijk helemaal niet (bekende platformbeperking), dus
 // zonder dit kon je op iPhone wel typen maar nooit een keuzelijst zien.
+// Hoogte van een suggestielijst zodat die precies in de ruimte tussen het
+// zoekveld en het toetsenbord past (i.p.v. een vaste 240px die achter het
+// toetsenbord of de onderbalk verdween). Rekent opnieuw als het toetsenbord
+// verschijnt of de pagina meeschuift.
+function useDropdownMaxHeight(wrapRef, open, fallback = 260) {
+  const [maxH, setMaxH] = useState(fallback);
+  useEffect(() => {
+    if (!open) return;
+    const vv = window.visualViewport;
+    const calc = () => {
+      const el = wrapRef.current;
+      if (!el) return;
+      const bottom = el.getBoundingClientRect().top + (el.firstElementChild?.offsetHeight || 40);
+      const viewH = vv ? vv.height + vv.offsetTop : window.innerHeight;
+      setMaxH(Math.max(150, Math.min(360, Math.floor(viewH - bottom - 14))));
+    };
+    calc();
+    const timers = [150, 400, 700].map(t => setTimeout(calc, t));
+    vv?.addEventListener("resize", calc);
+    vv?.addEventListener("scroll", calc);
+    window.addEventListener("scroll", calc, { passive: true });
+    return () => {
+      timers.forEach(clearTimeout);
+      vv?.removeEventListener("resize", calc);
+      vv?.removeEventListener("scroll", calc);
+      window.removeEventListener("scroll", calc);
+    };
+  }, [open, wrapRef]);
+  return maxH;
+}
+
 function RecipePicker({ recipes, value, onChange, listId, style }) {
   const [draft, setDraft] = useState(null);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 240);
   const sorted = useMemo(() => [...recipes].sort((a, b) => a.name.localeCompare(b.name)), [recipes]);
   const current = recipes.find(r => r.id === value);
   const text = draft !== null ? draft : (current?.name || "");
@@ -4503,7 +4833,9 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
     return () => { document.removeEventListener("mousedown", onOutside); document.removeEventListener("touchstart", onOutside); };
   }, [open]);
 
-  const select = (r) => { onChange(r.id); setDraft(null); setOpen(false); };
+  // Na het kiezen sluit het toetsenbord meteen (anders bleef het over het
+  // scherm staan terwijl je al klaar was met zoeken).
+  const select = (r) => { onChange(r.id); setDraft(null); setOpen(false); document.activeElement?.blur?.(); };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && filtered.length > 0) { select(filtered[0]); e.target.blur(); }
@@ -4511,23 +4843,23 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
   };
 
   return (
-    <div ref={wrapRef} style={{ position: "relative", ...style }}>
+    <div ref={wrapRef} data-kb-scope style={{ position: "relative", ...style }}>
       <input
         value={text}
         onChange={e => { setDraft(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder="Zoek een cocktail…"
-        style={{ padding: "7px 9px", borderRadius: 3, border: `1px solid ${BORDER}`, fontSize: 14, fontFamily: serif, background: CREAM, color: INK, width: "100%", boxSizing: "border-box" }} />
+        style={{ padding: "0 14px", minHeight: 44, borderRadius: 12, border: `1px solid ${BORDER}`, fontSize: 15, fontFamily: sans, background: CREAM, color: INK, width: "100%", boxSizing: "border-box" }} />
       {open && filtered.length > 0 && (
         <div style={{
           position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: CREAM,
-          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: 240, overflowY: "auto",
+          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: dropdownMaxH, overflowY: "auto", overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {filtered.map(r => (
             <div key={r.id} onMouseDown={e => e.preventDefault()} onClick={() => select(r)} className="list-row-tap"
-              style={{ padding: "9px 11px", fontSize: 14, fontFamily: serif, color: INK, cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}>
+              style={{ padding: "11px 14px", fontSize: 14.5, fontFamily: sans, color: INK, cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}>
               {r.name}
             </div>
           ))}
@@ -4539,9 +4871,10 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
 
 // Zelfde reden als RecipePicker hierboven: vrij-tekst suggesties i.p.v. <datalist>
 // zodat de lijst ook op iPhone/iOS Safari echt zichtbaar is.
-function IngredientAutocomplete({ value, onChange, options, style, placeholder = "Ingrediënt" }) {
+function IngredientAutocomplete({ value, onChange, options, style, placeholder = "Ingrediënt", variant }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 200);
 
   const filtered = useMemo(() => {
     const q = (value || "").trim().toLowerCase();
@@ -4558,18 +4891,20 @@ function IngredientAutocomplete({ value, onChange, options, style, placeholder =
   }, [open]);
 
   return (
-    <div ref={wrapRef} style={{ position: "relative", ...style }}>
+    <div ref={wrapRef} data-kb-scope style={{ position: "relative", ...style }}>
       <input value={value} onChange={e => { onChange(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
         placeholder={placeholder} enterKeyHint="search" autoCapitalize="words" autoCorrect="off"
-        style={{ ...fieldStyle(), padding: "8px 9px", fontSize: 13.5, width: "100%" }} />
+        style={variant === "bare"
+          ? { width: "100%", minHeight: 44, border: "none", background: "transparent", outline: "none", fontFamily: sans, fontSize: 15, color: INK, padding: 0, boxSizing: "border-box" }
+          : { ...fieldStyle(), padding: "8px 9px", fontSize: 13.5, width: "100%" }} />
       {open && value.trim() && filtered.length > 0 && (
         <div style={{
           position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: CREAM,
-          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: 200, overflowY: "auto",
+          border: `1px solid ${BORDER}`, borderRadius: RADIUS, maxHeight: dropdownMaxH, overflowY: "auto", overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {filtered.map(n => (
-            <div key={n} onMouseDown={e => e.preventDefault()} onClick={() => { onChange(n); setOpen(false); }} className="list-row-tap"
+            <div key={n} onMouseDown={e => e.preventDefault()} onClick={() => { onChange(n); setOpen(false); document.activeElement?.blur?.(); }} className="list-row-tap"
               style={{ padding: "8px 10px", fontSize: 13.5, fontFamily: sans, color: INK, cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}>
               {n}
             </div>
@@ -4613,13 +4948,13 @@ function ItemImage({ id, type, photoUrl, size = 50, radius = "50%", tint, filter
   );
 }
 
-function RecipeCircle({ recipe, allIngredients, size = 50 }) {
+function RecipeCircle({ recipe, allIngredients, size = 50, radius = "50%" }) {
   const tint = recipeTint(recipe, allIngredients);
   const garnishes = inferGarnishes(recipe, allIngredients);
   return (
-    <ItemImage id={recipe.id} type="cocktail" photoUrl={recipe.image} size={size} tint={tint} filter={RECIPE_PHOTO_FILTER} fallback={
+    <ItemImage id={recipe.id} type="cocktail" photoUrl={recipe.image} size={size} radius={radius} tint={tint} filter={RECIPE_PHOTO_FILTER} fallback={
       <div style={{
-        width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+        width: size, height: size, borderRadius: radius, overflow: "hidden", flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: BOTTLE_DARK,
       }}>
@@ -4629,18 +4964,45 @@ function RecipeCircle({ recipe, allIngredients, size = 50 }) {
   );
 }
 
+// Snelle feiten voor de recept-pop-up (zoals de infobalk in de App Store).
+// Alleen wat betrouwbaar af te leiden is; anders valt de kolom weg.
+const TECHNIQUE_LABELS = { shaken: "Geschud", stirred: "Geroerd", build: "Gebouwd", blend: "Geblend", swizzle: "Swizzle" };
+function recipeQuickFacts(recipe) {
+  const facts = [];
+  const glass = (recipe.glass || "").split("(")[0].trim();
+  if (glass) facts.push({ icon: GlassWater, value: glass, label: "Glas" });
+  const tech = inferTechniques(recipe.method).find(t => TECHNIQUE_LABELS[t]);
+  if (tech) facts.push({ icon: Hand, value: TECHNIQUE_LABELS[tech], label: "Techniek" });
+  facts.push({ icon: ListOrdered, value: String(recipe.ingredients.length), label: "Ingrediënten" });
+  const role = getMenuRole(recipe);
+  const strength = role === "sterk" ? "Sterk"
+    : role === "alcoholvrij" ? "Alcoholvrij"
+    : recipe.family === "Highballs" ? "Licht"
+    : ["Sours", "Fizz / Flip"].includes(recipe.family) ? "Middel" : null;
+  if (strength) facts.push({ icon: Droplet, value: strength, label: "Sterkte" });
+  return facts;
+}
+
+// Recept-pop-up (o.a. vanuit Wat kan ik maken, Feestplanner-suggesties):
+// iOS-achtige opbouw — kop met foto + status, feitenrij, ingrediënten en
+// bereiding als nette lijstkaarten, vaste knoppenbalk onderaan.
+// Wordt via een portal buiten de app-root gerenderd, dus het lettertype
+// staat hier expliciet (anders erft hij de browser-standaard serif).
+const batchOpener = { current: null };
+
 function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMissing, justAdded, onClose,
-  onOpenFullRecipe, onAddToFeest, feestChosen, onSound }) {
+  onOpenFullRecipe, onAddToFeest, feestChosen, onSound, favoriteRecipeIds, onToggleFavorite, onOpenCheckin, shoppingKeys }) {
   useBodyScrollLock();
   const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
   const [justAddedFeest, setJustAddedFeest] = useState(false);
+  const [addedKeys, setAddedKeys] = useState(() => new Set());
   const inFeest = feestChosen?.includes(recipe.id);
+  const isFav = favoriteRecipeIds?.includes(recipe.id);
   const handleAddFeest = () => {
-    if (inFeest) return;
+    if (inFeest || justAddedFeest) return;
     onAddToFeest(recipe.id);
     onSound?.("chime");
     setJustAddedFeest(true);
-    setTimeout(() => setJustAddedFeest(false), 1800);
   };
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") close(); };
@@ -4648,86 +5010,163 @@ function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMi
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // In een portal naar document.body gerenderd: anders valt deze sheet binnen
-  // de stacking context van de geanimeerde tab-inhoud (.tab-fade) en duikt
-  // de onderbalk er, ondanks een lagere z-index, gewoon overheen.
+  const missingSet = new Set(missing);
+  const facts = recipeQuickFacts(recipe);
+  const onList = (ing) => addedKeys.has(ingredientKey(ing)) || !!shoppingKeys?.has(ingredientKey(ing)) || (justAdded && missingSet.has(ing));
+  const addOne = (ing) => {
+    if (onList(ing)) return;
+    onAddMissing(recipe.id, [{ ref: ing, recipeNames: [recipe.name] }]);
+    setAddedKeys(prev => new Set(prev).add(ingredientKey(ing)));
+  };
+
+  const hairline = `1px solid ${BORDER}`;
+  const card = { background: PAPER_DEEP, borderRadius: 14, overflow: "hidden" };
+  const smallRound = { display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0 };
+  const bigRound = (color, active) => ({
+    width: 52, height: 52, borderRadius: "50%", flexShrink: 0, border: "none", cursor: "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center", background: active ? SAGE : PAPER_DEEP, color: active ? CREAM : color,
+  });
+  const statusPill = missing.length === 0
+    ? { bg: "rgba(92,122,86,0.16)", color: SAGE, text: <><Check size={12} strokeWidth={3} /> Alles in huis</> }
+    : { bg: "rgba(122,46,42,0.12)", color: BURGUNDY, text: missing.length === 1 ? `Mist 1 · ${ingredientLabel(missing[0])}` : `Mist ${missing.length}` };
+
   return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
       <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
       <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "85vh",
-        background: PAPER, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
-        display: "flex", flexDirection: "column", overflow: "hidden",
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
+        background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
+        display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: sans,
       }}>
         <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
-          <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={42} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 18, color: INK }}>{recipe.name}</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{recipe.family} · {recipe.glass}</div>
+
+        {/* Kop: foto, naam, familie · glas, statuslabel; rechtsboven favoriet + sluiten */}
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "6px 20px 16px", flexShrink: 0, touchAction: "none" }}>
+          <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 6px 16px rgba(43,38,32,0.18)", flexShrink: 0 }}>
+            <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={76} radius={16} />
           </div>
-          <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
-            display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
-            borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0,
-          }}><X size={16} /></button>
+          <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26, lineHeight: 1.1, color: INK }}>{recipe.name}</div>
+            <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>{[recipe.family, recipe.glass].filter(Boolean).join(" · ")}</div>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, padding: "4px 10px", borderRadius: 100,
+              background: statusPill.bg, color: statusPill.color, fontSize: 12, fontWeight: 700, maxWidth: "100%",
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+            }}>{statusPill.text}</span>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }} onTouchStart={e => e.stopPropagation()}>
+            {onToggleFavorite && (
+              <button onClick={() => { onSound?.("pop"); onToggleFavorite(recipe.id); }} className="tap-target-44"
+                aria-label={isFav ? "Verwijder uit favorieten" : "Bewaar als favoriet"} aria-pressed={!!isFav} style={{ ...smallRound, color: isFav ? BURGUNDY : INK }}>
+                <Heart size={15} fill={isFav ? "currentColor" : "none"} />
+              </button>
+            )}
+            <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={smallRound}><X size={15} /></button>
+          </div>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "16px 20px" }}>
-          <ul style={{ margin: "0 0 12px", paddingLeft: 0, listStyle: "none", fontSize: 14.5 }}>
-            {recipe.ingredients.map((ing, i) => (
-              <li key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", color: isOwnedRef(ing, missing) ? INK : BURGUNDY, fontWeight: isOwnedRef(ing, missing) ? 400 : 600, borderTop: i === 0 ? "none" : `1px dotted ${BORDER}` }}>
-                <span>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
-                <span style={{ fontWeight: 700 }}>{ing.amount} {unitLabel(ing.unit, ing.amount)}</span>
-              </li>
-            ))}
-          </ul>
-          <p style={{ fontSize: 13.5, color: MUTED, margin: "0 0 8px", lineHeight: 1.5 }}>{recipe.method}</p>
-          {recipe.garnish && (
-            <p style={{ fontSize: 13, color: BRASS, margin: 0, lineHeight: 1.5 }}><strong>Afwerking:</strong> {recipe.garnish}</p>
-          )}
-        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 18px" }}>
+          {/* Snelle feiten */}
+          <div style={{ display: "flex", borderTop: hairline, borderBottom: hairline, padding: "12px 0", marginBottom: 18 }}>
+            {facts.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <div key={f.label} style={{ flex: 1, minWidth: 0, textAlign: "center", borderLeft: i === 0 ? "none" : hairline, padding: "0 4px" }}>
+                  <Icon size={17} color={BOTTLE} strokeWidth={1.7} style={{ display: "block", margin: "0 auto 6px" }} />
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.value}</div>
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{f.label}</div>
+                </div>
+              );
+            })}
+          </div>
 
-        <div style={{ padding: "12px 20px 16px", borderTop: `1px solid ${BORDER}`, flexShrink: 0, display: "flex", flexDirection: "column", gap: 9 }}>
-          {(onOpenFullRecipe || onAddToFeest) && (
-            <div style={{ display: "flex", gap: 8 }}>
-              {onOpenFullRecipe && (
-                <button onClick={() => { close(); setTimeout(() => onOpenFullRecipe(recipe.id), 180); }} style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "none",
-                  border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: 3, padding: "9px 10px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-                }}>
-                  <BookOpen size={14} /> Volledig recept
-                </button>
-              )}
-              {onAddToFeest && (
-                justAddedFeest ? (
-                  <span className="success-pop" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700 }}>
-                    <Check size={14} strokeWidth={3} /> Toegevoegd
+          {/* Ingrediënten */}
+          <div style={{ ...card, marginBottom: 14 }}>
+            {recipe.ingredients.map((ing, i) => {
+              const lacks = missingSet.has(ing);
+              const added = lacks && onList(ing);
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 12px 0 14px", minHeight: 50 }}>
+                  <span aria-hidden style={{
+                    width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                    background: lacks ? "transparent" : SAGE, border: lacks ? `1.5px solid ${BURGUNDY}` : "none",
+                  }}>{!lacks && <Check size={13} strokeWidth={3} color={CREAM} />}</span>
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, alignSelf: "stretch", borderTop: i === 0 ? "none" : hairline }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: lacks ? BURGUNDY : INK, fontWeight: lacks ? 600 : 400 }}>
+                      {ingredientLabel(ing)}{ing.optional ? <span style={{ color: MUTED, fontWeight: 400 }}> (optioneel)</span> : null}
+                    </span>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: lacks ? BURGUNDY : INK, whiteSpace: "nowrap" }}>{ing.top ? "top op" : `${formatDutchNumber(ing.amount)} ${unitLabel(ing.unit, ing.amount)}`}</span>
+                    {lacks && (
+                      <button onClick={() => addOne(ing)} className="tap-target-44" aria-label={added ? `${ingredientLabel(ing)} staat op je boodschappenlijst` : `${ingredientLabel(ing)} op boodschappenlijst`} style={{
+                        width: 30, height: 30, borderRadius: "50%", border: "none", flexShrink: 0, cursor: added ? "default" : "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", background: added ? SAGE : BOTTLE, color: CREAM,
+                      }}>{added ? <Check size={15} strokeWidth={3} /> : <Plus size={16} strokeWidth={2.4} />}</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bereiding + afwerking */}
+          <div style={card}>
+            {[
+              { icon: CupSoda, color: BOTTLE, title: "Bereiding", text: recipe.method },
+              recipe.garnish ? { icon: Citrus, color: BRASS, title: "Afwerking", text: recipe.garnish } : null,
+            ].filter(Boolean).map((row, i) => {
+              const Icon = row.icon;
+              return (
+                <div key={row.title} style={{ display: "flex", gap: 12, padding: "0 14px" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: PAPER, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 12 }}>
+                    <Icon size={15} color={row.color} strokeWidth={1.8} />
                   </span>
-                ) : (
-                  <button onClick={handleAddFeest} disabled={inFeest} style={{
-                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "none",
-                    border: `1px solid ${inFeest ? BORDER : BRASS}`, color: inFeest ? MUTED : BRASS, borderRadius: 3,
-                    padding: "9px 10px", fontSize: 12.5, fontWeight: 700, cursor: inFeest ? "default" : "pointer",
-                  }}>
-                    <PartyPopper size={14} /> {inFeest ? "In feestplanner" : "Feestplanner"}
-                  </button>
-                )
-              )}
-            </div>
-          )}
-          {missing.length === 0 ? (
-            <p style={{ textAlign: "center", fontSize: 13, color: SAGE, fontWeight: 700, margin: 0 }}>Je hebt alles in huis — cheers!</p>
-          ) : justAdded ? (
-            <span className="success-pop" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: SAGE, fontSize: 13, fontWeight: 700, padding: "7px 0" }}>
-              <Check size={14} strokeWidth={3} /> Toegevoegd: bekijk het Winkelmandje-tabblad
-            </span>
-          ) : (
-            <button onClick={() => onAddMissing(recipe.id, missing.map(m => ({ ref: m, recipeNames: [recipe.name] })))} style={{
-              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px",
-              borderRadius: RADIUS, border: "none", cursor: "pointer", background: BOTTLE, color: CREAM,
-              fontFamily: sans, fontSize: 14, fontWeight: 700, boxShadow: SHADOW_CTA,
+                  <div style={{ flex: 1, minWidth: 0, padding: "12px 0", borderTop: i === 0 ? "none" : hairline }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.1, textTransform: "uppercase", color: MUTED }}>{row.title}</div>
+                    <div style={{ fontSize: 14.5, lineHeight: 1.5, color: INK, marginTop: 3 }}>{row.text}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {batchOpener.current && (
+            <button onClick={() => { const open = batchOpener.current; close(); setTimeout(() => open(recipe.id), 180); }} className="press-scale" style={{
+              ...card, display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 56, padding: "0 14px", border: "none",
+              cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
             }}>
-              <ShoppingCart size={15} /> Voeg {missing.length} ontbrekende toe aan winkelmandje
+              <span style={{ width: 30, height: 30, borderRadius: 9, background: PAPER, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Scale size={15} color={BRASS} strokeWidth={1.8} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 15, fontWeight: 700 }}>Maak een batch</span>
+                <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>Voor een groep, in een kan of vooraf in een fles</span>
+              </span>
+              <ChevronRight size={18} color={MUTED} />
+            </button>
+          )}
+        </div>
+
+        {/* Knoppenbalk */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px calc(env(safe-area-inset-bottom) + 14px)", borderTop: hairline, background: PAPER, flexShrink: 0 }}>
+          {onOpenFullRecipe && (
+            <button onClick={() => { close(); setTimeout(() => onOpenFullRecipe(recipe.id), 180); }} className="press-scale" style={{
+              flex: 1, height: 52, borderRadius: 14, border: "none", cursor: "pointer", background: BOTTLE, color: CREAM,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: sans, fontSize: 15.5, fontWeight: 700,
+            }}>
+              <BookOpen size={17} /> Volledig recept
+            </button>
+          )}
+          {onAddToFeest && (
+            <button onClick={handleAddFeest} className={justAddedFeest ? "success-pop press-scale" : "press-scale"}
+              aria-label={inFeest || justAddedFeest ? "Staat in de feestplanner" : "Voeg toe aan feestplanner"} aria-pressed={!!(inFeest || justAddedFeest)}
+              style={bigRound(BRASS, inFeest || justAddedFeest)}>
+              {inFeest || justAddedFeest ? <Check size={20} strokeWidth={2.6} /> : <PartyPopper size={20} />}
+            </button>
+          )}
+          {onOpenCheckin && (
+            <button onClick={() => { close(); setTimeout(() => onOpenCheckin(recipe.name), 180); }} className="press-scale"
+              aria-label={`${recipe.name} inchecken`} style={bigRound(SAGE, false)}>
+              <Check size={21} strokeWidth={2.6} />
             </button>
           )}
         </div>
@@ -4735,80 +5174,54 @@ function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMi
     </div>
   ), document.body);
 }
+
 function isOwnedRef(ing, missing) {
   return !missing.includes(ing);
 }
 
-function BrowseSheet({ label, entries, allIngredients, onSelect, onClose }) {
-  useBodyScrollLock();
-  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") close(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  // In een portal naar document.body gerenderd: anders valt deze sheet binnen
-  // de stacking context van de geanimeerde tab-inhoud (.tab-fade) en duikt
-  // de onderbalk er, ondanks een lagere z-index, gewoon overheen.
-  return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-      <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "85vh",
-        background: PAPER, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
-        display: "flex", flexDirection: "column", overflow: "hidden",
-      }}>
-        <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{label}</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{entries.length} recepten</div>
-          </div>
-          <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
-            display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
-            borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK,
-          }}><X size={16} /></button>
-        </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "6px 20px" }}>
-          {entries.map(({ recipe, missing }, i) => (
-            <button key={recipe.id} onClick={() => onSelect(recipe.id)} style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 12, background: "none", border: "none",
-              cursor: "pointer", padding: "12px 0", textAlign: "left", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`,
-            }}>
-              <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={38} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK }}>{recipe.name}</div>
-                <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>{recipe.family} · {recipe.glass}</div>
-              </div>
-              <StatusTag missingCount={missing.length} />
-            </button>
-          ))}
-        </div>
-      </div>
+function MatchPill({ pct, label }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
+      <span className="glass-chip-dark" style={{ borderRadius: 100, padding: "2px 8px", fontSize: 10.5, fontWeight: 700, whiteSpace: "nowrap" }}>{pct}%{label ? ` ${label}` : ""}</span>
     </div>
-  ), document.body);
+  );
 }
 
-// UX-herindeling (v2): Maken en Recept waren twee losse tabs die feitelijk
-// naar dezelfde cocktail-database keken (beide eindigden in hetzelfde
-// detailscherm). Ontdekken voegt ze samen tot één herkenbaar geheel met een
-// filter, i.p.v. de gebruiker te laten raden welke van de twee de "juiste"
-// ingang is. Geen van beide tabs is intern aangepast — dit is puur een
-// dunne wrapper die ze toont/verbergt, om het risico op regressies klein te
-// houden terwijl de navigatiestructuur wél klopt met het voorstel.
-function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHandled, recommended, favoriteFamily, allIngredients, onOpenRecipe, onSound, active }) {
+function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHandled, recommended, favoriteFamily, allIngredients, onOpenRecipe, onSound, active,
+  recipeBackLabel = "Ontdekken", onRecipeBack = null, rootTapTick = 0 }) {
   const [mode, setMode] = useState("alles");
-  // Een aanbevolen cocktail van elders in de app (Home, Check-in) moet altijd
-  // in de "Alles"-weergave (Recept) opengaan, ongeacht welke modus actief was.
-  useEffect(() => { if (openRecipeId) setMode("alles"); }, [openRecipeId]);
+  // Staat er een recept open, dan is dit scherm puur dat recept: geen grote
+  // titel, geen Alle/Maken-schakelaar en geen "Aanbevolen voor jou" erboven.
+  const [recipeOpen, setRecipeOpen] = useState(false);
+  // Een recept van elders (Home, Maken, Check-in) opent altijd in de
+  // "Alles"-weergave (daar leeft het receptscherm); kwam je uit "Wat ik kan
+  // maken", dan keer je bij terug ook weer daarheen terug.
+  const returnModeRef = useRef(null);
+  useEffect(() => {
+    if (!openRecipeId) return;
+    returnModeRef.current = mode === "kan" ? "kan" : null;
+    setMode("alles");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRecipeId]);
+  // "Wat ik kan maken" opent als eigen scherm met terugknop (zoals een recept):
+  // bij wisselen van modus weer bovenaan beginnen.
+  const openMode = (next) => { setMode(next); window.scrollTo(0, 0); };
+  // Nog eens op de actieve Ontdekken-tab tikken = terug naar het overzicht.
+  useEffect(() => { if (rootTapTick) setMode("alles"); }, [rootTapTick]);
+  // Titel, schakelaar en Aanbevolen horen alleen bij het overzicht, niet bij
+  // een geopend recept en niet bij het eigen scherm "Wat ik kan maken".
+  const showChrome = !recipeOpen && mode !== "kan";
+  const handleRecipeOpenChange = (open) => {
+    setRecipeOpen(open);
+    if (!open && returnModeRef.current) { setMode(returnModeRef.current); returnModeRef.current = null; }
+  };
   // Hoogste match eerst, zodat "meest aanbevolen" ook echt links staat i.p.v.
   // de score-volgorde uit computeCheckinInsights (die weegt ook smaakprofiel
   // mee, waardoor het zichtbare percentage niet altijd aflopend stond).
   const sortedRecommended = recommended ? [...recommended].sort((a, b) => b.matchPct - a.matchPct) : recommended;
   return (
     <div>
-      <LargeTitleHeader title="Ontdekken" active={active} sticky={false} />
+      {showChrome && <LargeTitleHeader title="Ontdekken" active={active} sticky={false} />}
       {/* De titel zelf is niet meer sticky (op verzoek) — deze toggle-balk
           blijft wel sticky, maar dan meteen bovenaan (STICKY_TOP i.p.v.
           STICKY_SUBHEADER_TOP) want er zit nu geen sticky titelbalk meer
@@ -4820,16 +5233,17 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           samenvalt met de pagina, en alleen tijdens scrollen (over de
           Aanbevolen-kaarten) echt als glas oplicht. */}
       <div className="glass-light" style={{
+        display: showChrome ? "flex" : "none",
         position: "sticky", top: STICKY_TOP, zIndex: 7,
-        display: "flex", alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.72)",
+        alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)",
       }}>
-        <button onClick={() => setMode("alles")} style={{
+        <button onClick={() => openMode("alles")} style={{
           flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "alles" ? BOTTLE : BORDER}`,
           background: mode === "alles" ? BOTTLE : CREAM, color: mode === "alles" ? CREAM : INK,
           fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
         }}>Alle recepten</button>
-        <button onClick={() => setMode("kan")} style={{
+        <button onClick={() => openMode("kan")} style={{
           flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "kan" ? BOTTLE : BORDER}`,
           background: mode === "kan" ? BOTTLE : CREAM, color: mode === "kan" ? CREAM : INK,
           fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
@@ -4839,21 +5253,21 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
       {/* Zelfde aanbevelingslogica als Check-in ("Jouw favoriete stijl"),
           hier vooraan getoond zodat ontdekken ook persoonlijk aanvoelt i.p.v.
           alleen een kale lijst — precies zoals in het UX-voorstel. */}
-      {recommended && recommended.length > 0 && (
+      {/* Alleen op de "Alle recepten"-overzichtspagina: niet in "Wat ik kan
+          maken" (op verzoek, rustiger) en niet boven een geopend recept. */}
+      {showChrome && recommended && recommended.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <SectionLabel>Aanbevolen voor jou</SectionLabel>
           <div style={{ fontSize: 12.5, color: MUTED, margin: "-6px 0 13px" }}>Gebaseerd op je smaakprofiel en je voorraad</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
             {sortedRecommended.map(({ recipe, matchPct }) => (
               <button key={recipe.id} onClick={() => { onSound?.("pop"); onOpenRecipe?.(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                {matchPct > 0 && (
-                  <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>{matchPct}%</div>
-                )}
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                   <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
                 </div>
                 <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
                 <div style={{ fontSize: 11, color: MUTED, marginTop: 4, fontWeight: 500 }}>{recipe.family}</div>
+                {matchPct > 0 && <MatchPill pct={matchPct} label="match" />}
                 {/* 0% match betekent hier geen enkel ingrediënt in huis (niet
                     "geen data") — dan is "0%" een ontmoedigend getal i.p.v.
                     een bruikbaar signaal, dus tonen we de oplossing i.p.v.
@@ -4868,16 +5282,17 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
       )}
 
       <div style={{ display: mode === "kan" ? "" : "none" }}>
-        <MakenTab {...makenProps} />
+        <MakenTab {...makenProps} onBack={() => openMode("alles")} />
       </div>
       <div style={{ display: mode === "alles" ? "" : "none" }}>
-        <VerhaalTab {...verhaalProps} openRecipeId={openRecipeId} onOpenRecipeHandled={onOpenRecipeHandled} />
+        <VerhaalTab {...verhaalProps} openRecipeId={openRecipeId} onOpenRecipeHandled={onOpenRecipeHandled}
+          backLabel={recipeBackLabel} onBackToOrigin={onRecipeBack} onRecipeOpenChange={handleRecipeOpenChange} rootTapTick={rootTapTick} />
       </div>
     </div>
   );
 }
 
-function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen }) {
+function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen, onBack, shoppingKeys, onRemoveFromShoppingList, favoriteRecipeIds, onToggleFavorite, onOpenCheckin }) {
   const [view, setView] = useState("ontdekken");
   const [openId, setOpenId] = useState(null);
   const [query, setQuery] = useState("");
@@ -4887,21 +5302,21 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
   const [justAddedId, setJustAddedId] = useState(null);
   const [justAddedFeestId, setJustAddedFeestId] = useState(null);
   const [sheetRecipeId, setSheetRecipeId] = useState(null);
-  const [browseGroup, setBrowseGroup] = useState(null);
-  const [uitgelichtExpanded, setUitgelichtExpanded] = useState(false);
+  // Alles wat deze sessie al op de boodschappenlijst is gezet (recepten én
+  // koopadviezen): het vinkje blijft dan staan i.p.v. terug te springen.
+  const [addedIds, setAddedIds] = useState(() => new Set());
   const [bijnaExpanded, setBijnaExpanded] = useState(false);
 
   const addMissing = (recipeId, refs) => {
     onAddToShoppingList(refs);
     onSound("tick");
     setJustAddedId(recipeId);
-    setTimeout(() => setJustAddedId(id => (id === recipeId ? null : id)), 1800);
+    setAddedIds(prev => new Set(prev).add(recipeId));
   };
   const addFeest = (recipeId) => {
     onAddToFeest(recipeId);
     onSound("chime");
     setJustAddedFeestId(recipeId);
-    setTimeout(() => setJustAddedFeestId(id => (id === recipeId ? null : id)), 1800);
   };
 
   const families = useMemo(() => [...new Set(recipes.map(r => r.family).filter(Boolean))].sort(), [recipes]);
@@ -4933,27 +5348,6 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
   const makeableAll = useMemo(() => allScored.filter(s => s.missing.length === 0), [allScored]);
   const bijnaAll = useMemo(() => allScored.filter(s => s.missing.length === 1), [allScored]);
 
-  const bySpirit = useMemo(() => {
-    const map = new Map();
-    allScored.forEach(entry => {
-      const s = getBaseSpirit(entry.recipe, allIngredients);
-      if (!s) return;
-      if (!map.has(s)) map.set(s, []);
-      map.get(s).push(entry);
-    });
-    return [...map.entries()].map(([label, entries]) => ({ label, entries })).sort((a, b) => b.entries.length - a.entries.length).slice(0, 6);
-  }, [allScored, allIngredients]);
-
-  const byFamily = useMemo(() => {
-    const map = new Map();
-    allScored.forEach(entry => {
-      if (!entry.recipe.family) return;
-      if (!map.has(entry.recipe.family)) map.set(entry.recipe.family, []);
-      map.get(entry.recipe.family).push(entry);
-    });
-    return [...map.entries()].map(([label, entries]) => ({ label, entries })).sort((a, b) => b.entries.length - a.entries.length).slice(0, 6);
-  }, [allScored]);
-
   // Koopadvies: welk ontbrekend ingrediënt ontgrendelt de meeste "mist 1"-recepten
   const koopadviesAll = useMemo(() => {
     const unlockMap = new Map();
@@ -4963,14 +5357,14 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
       if (missing.length === 1) {
         const ing = missing[0];
         const key = ingredientKey(ing);
-        if (!unlockMap.has(key)) unlockMap.set(key, { key, label: ingredientLabel(ing), recipeNames: [] });
+        if (!unlockMap.has(key)) unlockMap.set(key, { key, ref: ing, label: ingredientLabel(ing), recipeNames: [] });
         unlockMap.get(key).recipeNames.push(r.name);
       }
     });
     return [...unlockMap.values()].filter(v => v.recipeNames.length >= 2).sort((a, b) => b.recipeNames.length - a.recipeNames.length);
   }, [recipes, isOwned, ingredientLabel]);
   const [koopadviesExpanded, setKoopadviesExpanded] = useState(false);
-  const koopadvies = koopadviesExpanded ? koopadviesAll : koopadviesAll.slice(0, 4);
+  const koopadvies = koopadviesExpanded ? koopadviesAll : koopadviesAll.slice(0, 3);
 
   const [shuffling, setShuffling] = useState(false);
   const verrasMe = () => {
@@ -4986,186 +5380,168 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
 
   const selectStyle = { padding: "8px 10px", borderRadius: 3, border: `1px solid ${BORDER}`, fontSize: 13, fontFamily: sans, background: CREAM, color: INK };
 
-  const UITGELICHT_CAP = 6;
+  // Horizontale rij: een handvol kaarten om door te swipen, de rest via "Alles bekijken".
+  const NU_CAP = 12;
   const BIJNA_CAP = 4;
-  const uitgelichtShown = uitgelichtExpanded ? makeableAll : makeableAll.slice(0, UITGELICHT_CAP);
   const bijnaShown = bijnaExpanded ? bijnaAll : bijnaAll.slice(0, BIJNA_CAP);
 
   const sheetEntry = sheetRecipeId ? scoredById.get(sheetRecipeId) : null;
 
-  return (
-    <div>
-      <div style={{
-        position: "relative", height: 176, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 22,
-        boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}`,
-      }}>
-        <img src={makenHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.88), rgba(19,38,34,0.2) 55%, rgba(19,38,34,0.4))` }} />
-        <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "16px 20px" }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 26, color: CREAM }}>Wat kan ik maken</div>
-          <div style={{ fontSize: 12, color: "#D9CBAE", letterSpacing: 0.4, marginTop: 3 }}>Van je voorraad naar je glas</div>
-        </div>
-      </div>
+  const HERO_GREEN = "#1F3D36", HERO_CREAM = "#FBF6EA", HERO_GOLD = "#DDB877";
+  const linkBtn = { background: "none", border: "none", padding: "6px 0", cursor: "pointer", color: BRASS, fontFamily: sans, fontSize: 14, fontWeight: 600 };
+  // Staat dit ingrediënt al op de boodschappenlijst? Leest de echte lijst
+  // (niet alleen wat hier is aangetikt), zodat het vinkje klopt, ook na
+  // verwijderen in het winkelmandje. Tikken op een vinkje haalt het eraf.
+  const onList = (ref) => shoppingKeys ? shoppingKeys.has(ingredientKey(ref)) : false;
+  const toggleOnList = (id, ref, recipeNames) => {
+    if (onList(ref)) {
+      onRemoveFromShoppingList?.(ingredientKey(ref));
+      onSound("remove");
+      setAddedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    } else {
+      addMissing(id, [{ ref, recipeNames }]);
+    }
+  };
+  const roundBtn = (done) => ({
+    width: 40, height: 40, flexShrink: 0, borderRadius: "50%", cursor: "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    border: `1px solid ${done ? SAGE : BORDER}`, background: done ? SAGE : PAPER, color: done ? CREAM : BOTTLE,
+  });
+  const openList = () => { setView("alle"); window.scrollTo(0, 0); };
+  const backToOverview = () => {
+    setView("ontdekken"); setQuery(""); setFamilyFilter(""); setGlassFilter(""); setSpiritFilter(""); setOpenId(null);
+    window.scrollTo(0, 0);
+  };
 
-      <div style={{ position: "relative", marginBottom: 14 }}>
+  // Eigen scherm met iOS-navigatiebalk (zoals een geopend recept): "‹ Ontdekken"
+  // terug naar Ontdekken; in de volledige lijst "‹ Overzicht" terug hierheen.
+  return (
+    <SecondaryTabScreen
+      label={view === "alle" ? "Overzicht" : "Ontdekken"}
+      title={view === "alle" ? "Alle recepten" : "Wat kan ik maken"}
+      onBack={view === "alle" ? backToOverview : onBack}>
+
+      {view === "ontdekken" && (
+        <div style={{
+          background: HERO_GREEN, color: HERO_CREAM, borderRadius: 18, padding: "20px 20px 18px", marginBottom: 18,
+          boxShadow: SHADOW_HERO, borderBottom: `3px solid ${BRASS}`,
+        }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: HERO_GOLD, marginBottom: 12 }}>Jouw bar vandaag</div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 22, marginBottom: 16 }}>
+            <div>
+              <div style={{ fontFamily: serif, fontSize: 46, fontWeight: 700, lineHeight: 1 }}>{makeableAll.length}</div>
+              <div style={{ fontSize: 13.5, opacity: 0.85, marginTop: 4 }}>nu te maken</div>
+            </div>
+            <div style={{ width: 1, height: 46, background: "rgba(251,246,234,0.2)" }} />
+            <div>
+              <div style={{ fontFamily: serif, fontSize: 32, fontWeight: 700, lineHeight: 1, color: HERO_GOLD }}>{bijnaAll.length}</div>
+              <div style={{ fontSize: 13.5, opacity: 0.85, marginTop: 4 }}>mist 1 ingrediënt</div>
+            </div>
+          </div>
+          <button onClick={verrasMe} disabled={shuffling || makeableAll.length === 0} className="press-scale" style={{
+            width: "100%", height: 46, borderRadius: 12, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+            background: BRASS, color: "#1B1409", fontFamily: sans, fontSize: 15, fontWeight: 700,
+            cursor: shuffling || makeableAll.length === 0 ? "default" : "pointer", opacity: makeableAll.length === 0 ? 0.5 : 1,
+          }}>
+            <Shuffle size={18} className={shuffling ? "spin-icon" : undefined} /> Verras me
+          </button>
+        </div>
+      )}
+
+      <div style={{ position: "relative", marginBottom: 22 }}>
         <Search size={15} color={MUTED} style={{ position: "absolute", left: 12, top: 12 }} />
         <input value={query} onChange={e => { setQuery(e.target.value); if (e.target.value.trim() && view !== "alle") setView("alle"); }} placeholder="Zoek op naam of familie…"
           enterKeyHint="search" autoCapitalize="words"
-          style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 3, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans }} />
-      </div>
-
-      <div style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS + 3, marginBottom: 22 }}>
-        {[["ontdekken", "Ontdekken"], ["alle", "Alle recepten"]].map(([id, label]) => (
-          <button key={id} onClick={() => setView(id)} style={{
-            flex: 1, padding: "9px 4px", borderRadius: RADIUS, border: "none", cursor: "pointer",
-            background: view === id ? CREAM : "none", color: view === id ? BOTTLE : MUTED,
-            fontFamily: sans, fontSize: 13, fontWeight: 700, boxShadow: view === id ? SHADOW_CARD : "none",
-          }}>{label}</button>
-        ))}
+          style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans }} />
       </div>
 
       {view === "ontdekken" && (
         <div>
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-              <SectionLabel>Uitgelicht</SectionLabel>
-              <span style={{ fontSize: 12, color: MUTED }}>{makeableAll.length} kun je nu maken</span>
+          <div style={{ marginBottom: 26 }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <SectionLabel>Nu te maken</SectionLabel>
+              <button onClick={openList} style={linkBtn}>Alles bekijken</button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: 12 }}>
-              <button onClick={verrasMe} disabled={shuffling} style={{
-                gridColumn: "span 2", display: "flex", alignItems: "center", gap: 12, minHeight: 74, padding: "14px 16px",
-                borderRadius: 14, border: "none", cursor: shuffling ? "default" : "pointer", textAlign: "left",
-                background: BOTTLE_DARK, color: CREAM, boxShadow: SHADOW_CARD,
-              }}>
-                <Shuffle size={22} className={shuffling ? "spin-icon" : undefined} />
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 800 }}>Verras me</div>
-                  <div style={{ fontSize: 11.5, opacity: 0.82, marginTop: 1 }}>Kies willekeurig uit wat je kan maken</div>
-                </div>
-              </button>
-
-              {uitgelichtShown.map(({ recipe }) => (
-                <button key={recipe.id} onClick={() => setSheetRecipeId(recipe.id)} style={{
-                  background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD,
-                  padding: "12px 10px 10px", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", cursor: "pointer",
-                }}>
-                  <span style={{
-                    position: "absolute", top: 8, right: 8, width: 20, height: 20, borderRadius: "50%", background: SAGE,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}><Check size={11} strokeWidth={3} color={CREAM} /></span>
-                  <div style={{ marginBottom: 8 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} /></div>
-                  <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13.5, color: INK, textAlign: "center", lineHeight: 1.25 }}>{recipe.name}</div>
-                  <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>{recipe.family}</div>
-                </button>
-              ))}
-            </div>
-            {makeableAll.length > UITGELICHT_CAP && (
-              <button onClick={() => setUitgelichtExpanded(v => !v)} style={{
-                width: "100%", marginTop: 10, padding: "9px", borderRadius: RADIUS, border: `1px dashed ${BRASS}`,
-                background: "none", color: BRASS, fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-              }}>{uitgelichtExpanded ? "Toon minder" : `Toon ${makeableAll.length - UITGELICHT_CAP} meer`}</button>
+            {makeableAll.length === 0 ? (
+              <div style={{ background: CREAM, border: `1px dashed ${BORDER}`, borderRadius: 14, padding: "16px", fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>
+                Nog geen cocktail compleet. Vul je voorraad aan onder <strong style={{ color: INK }}>Bar</strong>, of kijk hieronder wat je bijna kunt maken.
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", marginLeft: -20, marginRight: -20, padding: "0 20px 6px", scrollPaddingLeft: 20, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+                {makeableAll.slice(0, NU_CAP).map(({ recipe }) => (
+                  <button key={recipe.id} onClick={() => setSheetRecipeId(recipe.id)} className="press-scale" style={{
+                    width: 140, flexShrink: 0, scrollSnapAlign: "start", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontFamily: sans,
+                  }}>
+                    <div style={{ borderRadius: 14, overflow: "hidden", boxShadow: SHADOW_CARD, marginBottom: 8 }}>
+                      <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={140} radius={14} />
+                    </div>
+                    <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15.5, color: INK, lineHeight: 1.25 }}>{recipe.name}</div>
+                    <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{recipe.family}</div>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
           {bijnaAll.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-                <SectionLabel>Bijna compleet</SectionLabel>
-                <span style={{ fontSize: 12, color: MUTED }}>mist 1 ingrediënt</span>
+            <div style={{ marginBottom: 26 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                <SectionLabel>Nog één fles nodig</SectionLabel>
+                {bijnaAll.length > BIJNA_CAP && (
+                  <button onClick={() => setBijnaExpanded(v => !v)} style={linkBtn}>{bijnaExpanded ? "Toon minder" : `Alle ${bijnaAll.length}`}</button>
+                )}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: 12 }}>
-                {bijnaShown.map(({ recipe, missing }) => (
-                  <button key={recipe.id} onClick={() => setSheetRecipeId(recipe.id)} style={{
-                    background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD,
-                    padding: "12px 10px 10px", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", cursor: "pointer",
-                  }}>
-                    <span style={{
-                      position: "absolute", top: 8, right: 8, width: 20, height: 20, borderRadius: "50%", background: BRASS,
-                      color: CREAM, fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>1</span>
-                    <div style={{ marginBottom: 8 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} /></div>
-                    <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13.5, color: INK, textAlign: "center", lineHeight: 1.25 }}>{recipe.name}</div>
-                    <div style={{ fontSize: 10.5, color: BURGUNDY, marginTop: 2, fontWeight: 600 }}>mist: {ingredientLabel(missing[0])}</div>
-                  </button>
-                ))}
-              </div>
-              {bijnaAll.length > BIJNA_CAP && (
-                <button onClick={() => setBijnaExpanded(v => !v)} style={{
-                  width: "100%", marginTop: 10, padding: "9px", borderRadius: RADIUS, border: `1px dashed ${BRASS}`,
-                  background: "none", color: BRASS, fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-                }}>{bijnaExpanded ? "Toon minder" : `Toon ${bijnaAll.length - BIJNA_CAP} meer`}</button>
-              )}
-            </div>
-          )}
-
-          {bySpirit.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <SectionLabel>Op basisdrank</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
-                {bySpirit.map(({ label, entries }) => (
-                  <button key={label} onClick={() => setBrowseGroup({ label, entries })} style={{
-                    background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD,
-                    padding: "10px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer",
-                  }}>
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", overflow: "hidden", position: "relative" }}><SpiritArt label={label} /></div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: INK, textAlign: "center" }}>{label}</div>
-                    <div style={{ fontSize: 10, color: MUTED }}>{entries.length} recepten</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {byFamily.length > 0 && (
-            <div style={{ marginBottom: 4 }}>
-              <SectionLabel>Op stijl</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
-                {byFamily.map(({ label, entries }) => (
-                  <button key={label} onClick={() => setBrowseGroup({ label, entries })} style={{
-                    background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD,
-                    padding: "10px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer",
-                  }}>
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <GlassArt glass={entries[0].recipe.glass} mono size={22} />
+              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>
+                {bijnaShown.map(({ recipe, missing }, i) => {
+                  const done = onList(missing[0]);
+                  return (
+                    <div key={recipe.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderTop: i === 0 ? "none" : `1px solid ${PAPER_DEEP}` }}>
+                      <button onClick={() => setSheetRecipeId(recipe.id)} style={{
+                        flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontFamily: sans,
+                      }}>
+                        <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={50} radius={12} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 15.5, fontWeight: 600, color: INK }}>{recipe.name}</div>
+                          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Mist: <span style={{ color: BURGUNDY, fontWeight: 600 }}>{ingredientLabel(missing[0])}</span></div>
+                        </div>
+                      </button>
+                      <button aria-label={done ? `${ingredientLabel(missing[0])} van boodschappenlijst halen` : `${ingredientLabel(missing[0])} op boodschappenlijst`} aria-pressed={done} className="tap-target-44"
+                        onClick={() => toggleOnList(recipe.id, missing[0], [recipe.name])} style={roundBtn(done)}>
+                        {done ? <Check size={17} strokeWidth={3} /> : <Plus size={18} />}
+                      </button>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: INK, textAlign: "center" }}>{label}</div>
-                    <div style={{ fontSize: 10, color: MUTED }}>{entries.length} recepten</div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
           {koopadviesAll.length > 0 && (
-            <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16, marginTop: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-                <Lightbulb size={15} color={BRASS} />
-                <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Koopadvies</span>
+            <div style={{ background: PAPER_DEEP, borderRadius: 16, padding: "16px 16px 8px", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Slim inkopen</span>
+                {koopadviesAll.length > 3 && (
+                  <button onClick={() => setKoopadviesExpanded(v => !v)} style={{ ...linkBtn, fontSize: 13 }}>{koopadviesExpanded ? "Toon minder" : `Alle ${koopadviesAll.length}`}</button>
+                )}
               </div>
-              <div key={koopadviesExpanded ? "expanded" : "collapsed"} className="accordion-reveal">
-                {koopadvies.map(item => (
-                  <div key={item.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderTop: `1px dotted ${BORDER}` }}>
-                    <div style={{ fontSize: 13.5, color: INK }}>
-                      Koop <strong>{item.label}</strong> en ontgrendel <strong>{item.recipeNames.length} cocktails</strong>
-                      <span style={{ color: MUTED }}>
-                        : {koopadviesExpanded ? item.recipeNames.join(", ") : item.recipeNames.slice(0, 3).join(", ")}
-                        {!koopadviesExpanded && item.recipeNames.length > 3 ? ", …" : ""}
-                      </span>
+              {koopadvies.map((item, i) => {
+                const done = onList(item.ref);
+                return (
+                  <div key={item.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: INK }}>Koop {item.label}</div>
+                      <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>
+                        Dan kun je er {item.recipeNames.length} cocktails bij maken: {item.recipeNames.slice(0, 3).join(", ")}{item.recipeNames.length > 3 ? ", …" : ""}
+                      </div>
                     </div>
+                    <button aria-label={done ? `${item.label} van boodschappenlijst halen` : `${item.label} op boodschappenlijst`} aria-pressed={done} className="tap-target-44"
+                      onClick={() => toggleOnList(`koop:${item.key}`, item.ref, item.recipeNames)}
+                      style={{ ...roundBtn(done), background: done ? SAGE : BOTTLE, border: "none", color: "#FBF6EA" }}>
+                      {done ? <Check size={17} strokeWidth={3} /> : <ShoppingCart size={17} />}
+                    </button>
                   </div>
-                ))}
-              </div>
-              {koopadviesAll.length > 4 && (
-                <button onClick={() => setKoopadviesExpanded(v => !v)} style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5, width: "100%",
-                  background: "none", border: "none", borderTop: `1px dotted ${BORDER}`, color: BRASS,
-                  fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "9px 0 0", marginTop: 3,
-                }}>
-                  {koopadviesExpanded
-                    ? <>Toon minder <ChevronUp size={13} /></>
-                    : <>Bekijk alle {koopadviesAll.length} koopadviezen <ChevronDown size={13} /></>}
-                </button>
-              )}
+                );
+              })}
             </div>
           )}
         </div>
@@ -5217,7 +5593,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
                         {recipe.ingredients.map((ing, i) => (
                           <li key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", color: isOwned(ing) ? INK : BURGUNDY, borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none" }}>
                             <span>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
-                            <span style={{ fontWeight: 600 }}>{ing.amount} {unitLabel(ing.unit, ing.amount)}</span>
+                            <span style={{ fontWeight: 600 }}>{ing.top ? "top op" : `${formatDutchNumber(ing.amount)} ${unitLabel(ing.unit, ing.amount)}`}</span>
                           </li>
                         ))}
                       </ul>
@@ -5269,200 +5645,875 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
         <RecipeSheet recipe={sheetEntry.recipe} missing={sheetEntry.missing} ingredientLabel={ingredientLabel}
           allIngredients={allIngredients} onAddMissing={addMissing} justAdded={justAddedId === sheetEntry.recipe.id}
           onClose={() => setSheetRecipeId(null)} onSound={onSound}
-          onOpenFullRecipe={onOpenRecipe} onAddToFeest={onAddToFeest} feestChosen={feestChosen} />
+          onOpenFullRecipe={onOpenRecipe} onAddToFeest={onAddToFeest} feestChosen={feestChosen}
+          favoriteRecipeIds={favoriteRecipeIds} onToggleFavorite={onToggleFavorite} onOpenCheckin={onOpenCheckin} shoppingKeys={shoppingKeys} />
       )}
-      {browseGroup && (
-        <BrowseSheet label={browseGroup.label} entries={browseGroup.entries} allIngredients={allIngredients}
-          onSelect={(id) => { setBrowseGroup(null); setSheetRecipeId(id); }} onClose={() => setBrowseGroup(null)} />
-      )}
-    </div>
+    </SecondaryTabScreen>
   );
 }
 
-function SchalerTab({ recipes, ingredientLabel, allIngredients }) {
-  const [recipeId, setRecipeId] = useState(recipes[0]?.id);
-  const [servings, setServings] = useState(1);
+// ===== Batch-calculator =====
+// Vervangt de Schaler: een cocktail groter maken voor een groep (Glazen), in
+// een kan voor vandaag (Kan) of vooraf in een fles (Fles), met praktische
+// hoeveelheden, voorraadcheck en batch-tips. Glazen ophogen voor jezelf kan
+// al in het recept zelf.
+const BATCH_BUBBLES = new Set(["tonic", "cola", "ginger_beer", "ginger_ale", "grapefruit_soda", "soda_water", "prosecco", "lemonade", "beer", "stout"]);
+const BATCH_DAIRY = new Set(["heavy_cream", "whipped_cream", "milk", "irish_cream", "butter", "egg_yolk", "advocaat", "coconut_cream"]);
+const BATCH_EGG = new Set(["egg_white", "egg_yolk"]);
+const BATCH_CITRUS = { lemon_juice: { ml: 35, one: "citroen", many: "citroenen" }, lime_juice: { ml: 25, one: "limoen", many: "limoenen" } };
+const BATCH_FRESH = new Set(["lemon_juice", "lime_juice", "orange_juice", "grapefruit_juice", "pineapple_juice", "passion_fruit_puree", "peach_puree", "tomato_juice"]);
+const BATCH_QUICK = [2, 4, 6, 8, 12, 20];
+const BATCH_KAN = [{ ml: 1000, label: "1 L" }, { ml: 1500, label: "1,5 L" }, { ml: 2000, label: "2 L" }];
+const BATCH_FLES = [{ ml: 500, label: "50 cl" }, { ml: 700, label: "70 cl" }, { ml: 1000, label: "1 L" }];
+
+// Kanmaat/Flesmaat in woorden, voor stappen en de deeltekst.
+function batchVolumeLabel(ml) {
+  return ml >= 1000 ? `${String(ml / 1000).replace(".", ",")} L` : `${ml / 10} cl`;
+}
+// Hele ml, boven de 100 ml op 5 ml.
+function roundBatchMl(ml) {
+  return ml >= 100 ? Math.round(ml / 5) * 5 : Math.round(ml);
+}
+function formatBatchAmount(ml, units) {
+  if (units === "cl") return `${formatDutchNumber(ml / 10)} cl`;
+  if (units === "oz") return `${formatDutchNumber(ml / 29.57)} oz`;
+  return `${roundBatchMl(ml)} ml`;
+}
+
+function analyzeBatchRecipe(recipe, allIngredients) {
+  const rows = recipe.ingredients.map(ing => ({ ing, meta: findIngredientMeta(ing, allIngredients) }));
+  const idOf = (r) => r.meta?.id || r.ing.id;
+  const techniques = inferTechniques(recipe.method);
+  const hasEgg = rows.some(r => BATCH_EGG.has(idOf(r)) && !r.ing.optional);
+  const hasEggOptional = rows.some(r => BATCH_EGG.has(idOf(r)));
+  const hasDairy = rows.some(r => BATCH_DAIRY.has(idOf(r)));
+  const hasBubbles = rows.some(r => BATCH_BUBBLES.has(idOf(r)));
+  const hasFresh = rows.some(r => BATCH_FRESH.has(idOf(r)));
+  const hot = recipe.family === "Warme dranken" || rows.some(r => ["hot_water", "hot_coffee", "espresso"].includes(idOf(r)));
+  const stirred = (techniques.includes("stirred") || ["Spirit-forward", "Stirred-down"].includes(recipe.family)) && !techniques.includes("shaken");
+  const shaken = techniques.includes("shaken");
+  // Waarom (niet) in een kan/fles — null = het kan.
+  const blockReason = hasEgg || hasDairy
+    ? "Deze cocktail kun je beter per glas shaken: ei en room horen niet in een batch."
+    : hasBubbles
+      ? "Deze cocktail maak je beter per glas: bubbels worden plat in een kan of fles."
+      : hot ? "Een warme cocktail maak je beter per glas." : null;
+  const kanBlock = blockReason;
+  const flesBlock = blockReason || (hasFresh ? "Vers sap blijft maar ± 4 uur goed, dus niet vooraf in een fles. Een kan voor vandaag kan wel." : null);
+  return { rows, idOf, techniques, hasEgg, hasEggOptional, hasBubbles, hasFresh, stirred, shaken, kanBlock, flesBlock };
+}
+
+function BatchRecipePicker({ recipes, allIngredients, recentRecipeIds, favoriteRecipeIds, currentId, onPick, onClose }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const [query, setQuery] = useState("");
+  const byId = useMemo(() => new Map(recipes.map(r => [r.id, r])), [recipes]);
+  const recent = recentRecipeIds.map(id => byId.get(id)).filter(Boolean).slice(0, 6);
+  const favs = favoriteRecipeIds.map(id => byId.get(id)).filter(Boolean);
+  const q = query.trim().toLowerCase();
+  const results = q ? recipes.filter(r => r.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 40) : [];
+  const pick = (id) => { onPick(id); close(); };
+  const row = (r) => (
+    <button key={r.id} onClick={() => pick(r.id)} className="press-scale" style={{
+      display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 56, padding: "6px 14px", border: "none",
+      background: r.id === currentId ? "rgba(92,122,82,0.14)" : "transparent", cursor: "pointer", textAlign: "left", fontFamily: sans,
+    }}>
+      <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} radius={10} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontFamily: serif, fontSize: 16, fontWeight: 700, color: INK }}>{r.name}</span>
+        <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>{r.family} · {(r.glass || "").split("(")[0].trim()}</span>
+      </span>
+      {r.id === currentId && <Check size={17} color={SAGE} strokeWidth={2.6} />}
+    </button>
+  );
+  const section = (title, list) => list.length > 0 && (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED, margin: "0 0 6px 4px" }}>{title}</div>
+      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>{list.map(row)}</div>
+    </div>
+  );
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in sheet-max-92" style={{
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", height: "88vh",
+        background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 20px 10px", touchAction: "none" }}>
+          <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 700 }}>Kies een cocktail</div>
+          <button onClick={close} aria-label="Sluiten" onTouchStart={e => e.stopPropagation()} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <X size={18} />
+          </button>
+        </div>
+        <div style={{ padding: "0 20px 10px", position: "relative" }}>
+          <Search size={16} color={MUTED} style={{ position: "absolute", left: 34, top: 14 }} />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Zoek een cocktail" aria-label="Zoek een cocktail"
+            style={{ width: "100%", boxSizing: "border-box", minHeight: 44, padding: "0 14px 0 40px", borderRadius: 12, border: `1px solid ${BORDER}`, background: CREAM, color: INK, fontFamily: sans, fontSize: 16 }} />
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "4px 20px calc(env(safe-area-inset-bottom) + 20px)", WebkitOverflowScrolling: "touch" }}>
+          {q ? (
+            results.length ? section(`${results.length} resultaten`, results)
+              : <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "24px 0" }}>Geen cocktail gevonden voor "{query}".</p>
+          ) : (
+            <>
+              {section("Recent", recent)}
+              {section("Favorieten", favs)}
+              {recent.length === 0 && favs.length === 0 && section("Alle cocktails", [...recipes].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 30))}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  ), document.body);
+}
+
+function BatchCalculatorTab({ recipes, ingredientLabel, allIngredients, isOwned, voorraadAantal = {}, recentRecipeIds = [], favoriteRecipeIds = [],
+  shoppingKeys, onAddToShoppingList, onSound, request }) {
+  const [recipeId, setRecipeId] = useState(() => request?.id || recentRecipeIds[0] || recipes[0]?.id);
+  const [mode, setMode] = useState("glazen");
+  const [glasses, setGlasses] = useState(8);
+  const [kanMl, setKanMl] = useState(1500);
+  const [flesMl, setFlesMl] = useState(700);
+  const [units, setUnits] = useState("ml");
+  const [picking, setPicking] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [shareState, setShareState] = useState(null);
+
+  // "Maak een batch" vanuit een recept: die cocktail meteen gekozen.
+  useEffect(() => {
+    if (request?.id) { setRecipeId(request.id); setMode("glazen"); window.scrollTo({ top: 0 }); }
+  }, [request?.nonce]);
+  useEffect(() => { setAdded(false); }, [recipeId, mode, glasses, kanMl, flesMl]);
+
   const recipe = recipes.find(r => r.id === recipeId) || recipes[0];
-  if (!recipe) return <p style={{ color: MUTED }}>Nog geen recepten.</p>;
+  const info = useMemo(() => recipe ? analyzeBatchRecipe(recipe, allIngredients) : null, [recipe, allIngredients]);
+  if (!recipe || !info) return <p style={{ color: MUTED }}>Nog geen recepten.</p>;
 
-  return (
-    <div>
-      <div style={{ display: "flex", gap: 14, marginBottom: 24, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <div style={{ flex: "1 1 240px" }}>
-          <SectionLabel>Recept</SectionLabel>
-          <RecipePicker recipes={recipes} value={recipe.id} listId="schaler-recipe" onChange={setRecipeId} style={{ width: "100%", boxSizing: "border-box" }} />
-        </div>
-        <div>
-          <SectionLabel>Aantal glazen</SectionLabel>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button onClick={() => setServings(Math.max(1, servings - 1))} style={{ width: 32, height: 32, borderRadius: 3, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>−</button>
-            <div style={{ width: 30, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE }}>{servings}</div>
-            <button onClick={() => setServings(Math.min(24, servings + 1))} style={{ width: 32, height: 32, borderRadius: 3, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>+</button>
-          </div>
-        </div>
-      </div>
+  const blocked = mode === "kan" ? info.kanBlock : mode === "fles" ? info.flesBlock : null;
+  const volume = mode === "kan" ? kanMl : flesMl;
+  const technique = info.stirred ? "geroerd" : info.shaken ? "geschud" : info.techniques.includes("build") ? "gebouwd" : null;
 
-      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS + 4, boxShadow: SHADOW_CARD, padding: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-          <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
-          <div>
-            <h3 style={{ margin: 0, fontFamily: serif, color: INK, fontSize: 21, fontWeight: 700 }}>{recipe.name}</h3>
-            <p style={{ margin: "2px 0 0", fontSize: 12.5, color: MUTED, letterSpacing: 0.3 }}>{recipe.family} · {recipe.glass}</p>
-          </div>
-        </div>
-        {recipe.ingredients.map((ing, idx) => {
-          const scaled = scaleAmount(ing.amount, ing.unit, servings);
-          return (
-            <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderTop: idx === 0 ? "none" : `1px dotted ${BORDER}`, fontSize: 15 }}>
-              <span style={{ color: INK }}>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
-              <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{scaled} {unitLabel(ing.unit, scaled)}</span>
-            </div>
-          );
-        })}
-        <p style={{ fontSize: 13.5, color: MUTED, marginTop: 16, lineHeight: 1.5 }}>{recipe.method}</p>
-        {recipe.garnish && (
-          <p style={{ fontSize: 13, color: BRASS, margin: "6px 0 0", lineHeight: 1.5 }}><strong>Afwerking:</strong> {recipe.garnish}</p>
-        )}
-      </div>
-    </div>
-  );
-}
+  // ---- Hoeveelheden ----
+  // Glazen: recept × N. Kan/Fles: zo geschaald dat alles (incl. water bij
+  // geroerde cocktails, ± 20% verdunning) precies in de kan/fles past.
+  const mlRows = info.rows.filter(r => r.ing.unit === "ml" && !r.ing.optional);
+  const baseMl = mlRows.reduce((s, r) => s + r.ing.amount, 0) || 1;
+  const dilution = mode !== "glazen" && info.stirred ? 0.2 : 0;
+  const scale = mode === "glazen" ? glasses : volume / (baseMl * (1 + dilution));
+  const servings = mode === "glazen" ? glasses : Math.max(1, Math.round(volume / (baseMl * (1 + dilution))));
+  // Per glas schenk je gewoon één portie van het recept (incl. verdunning).
+  const pourMl = mode === "glazen" ? null : roundBatchMl(baseMl * (1 + dilution));
 
-function WinkelmandjeTab({ shoppingList, recipes, isOwned, allIngredients, onRemove, onBuy, onClear, onAdd, onSound }) {
-  const [customName, setCustomName] = useState("");
-  const [justAddedCustom, setJustAddedCustom] = useState(false);
-  const ingredientNames = allIngredients.map(i => i.name);
+  const lines = info.rows
+    .filter(r => mode === "glazen" || (!BATCH_EGG.has(info.idOf(r)) && !r.ing.optional))
+    .map(r => {
+      const id = info.idOf(r);
+      const isEgg = BATCH_EGG.has(id);
+      const amount = isEgg ? (mode === "glazen" ? glasses : servings) * r.ing.amount : r.ing.amount * scale;
+      const owned = isOwned(r.ing);
+      const bottleMl = r.meta?.bottleMl || (r.meta && !r.meta.unitPrice ? 700 : null);
+      let status, enough, shortMl = 0, practical = null;
+      if (isEgg) {
+        status = mode === "glazen" ? "Niet in de batch" : "Niet in de batch";
+        enough = owned;
+      } else if (!owned) {
+        status = "Niet op voorraad"; enough = false;
+      } else if (r.ing.unit === "ml" && bottleMl && r.meta?.cat !== "Vers") {
+        const count = voorraadAantal[id] ?? 1;
+        const have = count * bottleMl;
+        const countLabel = `${formatDutchNumber(count)} ${count === 1 ? "fles" : "flessen"}`;
+        if (have >= amount) { status = `Je hebt ${countLabel} · genoeg`; enough = true; }
+        else { shortMl = amount - have; status = `Je hebt ${countLabel} · ${roundBatchMl(shortMl)} ml tekort`; enough = false; }
+      } else {
+        status = "Op voorraad"; enough = true;
+      }
+      if (isEgg) practical = mode === "glazen" ? "per glas" : null;
+      else if (BATCH_CITRUS[id] && r.ing.unit === "ml") {
+        const c = BATCH_CITRUS[id]; const n = Math.max(1, Math.ceil(amount / c.ml));
+        practical = `≈ ${n} ${n === 1 ? c.one : c.many}`;
+      } else if (id === "sugar_syrup" || id === "honey_syrup") practical = "of zelf maken";
+      else if (r.ing.unit === "ml" && bottleMl && r.meta?.cat !== "Vers") {
+        const bottles = amount / bottleMl;
+        if (bottles >= 0.4) { const b = Math.max(0.5, Math.round(bottles * 2) / 2); practical = `≈ ${formatDutchNumber(b)} ${b <= 1 ? "fles" : "flessen"}`; }
+      }
+      let amountLabel;
+      if (r.ing.unit === "ml") amountLabel = formatBatchAmount(amount, units);
+      else { const n = r.ing.unit === "dash" ? Math.round(amount) : Math.ceil(amount); amountLabel = `${n} ${unitLabel(r.ing.unit, n)}`; }
+      return { r, id, label: ingredientLabel(r.ing) + (r.ing.optional ? " (optioneel)" : ""), status, enough, practical, amount, amountLabel, isEgg };
+    });
+  const waterMl = dilution > 0 ? volume - lines.filter(l => l.r.ing.unit === "ml").reduce((s, l) => s + roundBatchMl(l.amount), 0) : 0;
 
-  const addCustom = () => {
-    const trimmed = customName.trim();
-    if (!trimmed) return;
-    onAdd([{ ref: { name: trimmed }, recipeNames: [] }]);
-    onSound("tick");
-    setCustomName("");
-    setJustAddedCustom(true);
-    setTimeout(() => setJustAddedCustom(false), 1800);
+  const missing = lines.filter(l => !l.enough && !(l.r.ing.optional));
+  const allOnList = missing.length > 0 && missing.every(l => shoppingKeys?.has(ingredientKey(l.r.ing)));
+  const addMissing = () => {
+    onAddToShoppingList(missing.map(l => ({ ref: l.r.ing, recipeNames: [recipe.name] })));
+    onSound?.("tick");
+    setAdded(true);
   };
 
-  const addForm = (
-    <div style={{ marginBottom: 22 }}>
-      <form onSubmit={e => { e.preventDefault(); addCustom(); }} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <IngredientAutocomplete value={customName} onChange={setCustomName} options={ingredientNames}
-          placeholder="Zelf iets toevoegen, bijv. limoensap" style={{ flex: "1 1 220px" }} />
-        <button type="submit" disabled={!customName.trim()} style={{
-          display: "flex", alignItems: "center", gap: 6, background: customName.trim() ? BOTTLE : BORDER,
-          color: customName.trim() ? CREAM : MUTED, border: "none", borderRadius: RADIUS, padding: "8px 14px",
-          fontSize: 13, fontWeight: 700, cursor: customName.trim() ? "pointer" : "default", flexShrink: 0,
-        }}>
-          <Plus size={14} /> Toevoegen
-        </button>
-      </form>
-      {justAddedCustom && (
-        <p className="success-pop" style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, margin: "8px 0 0" }}>
-          <Check size={14} strokeWidth={3} /> Toegevoegd aan winkelmandje
-        </p>
-      )}
+  // ---- Tips / stappen ----
+  const syrup = lines.find(l => l.id === "sugar_syrup" || l.id === "honey_syrup");
+  const tips = [
+    info.hasEggOptional && { icon: Droplet, strong: "Eiwit niet in de batch.", text: "Meng de rest vooraf en shake per glas met één eiwit." },
+    info.hasFresh && { icon: Citrus, strong: "Vers sap", text: "blijft ± 4 uur goed. Pers het op de dag zelf." },
+    syrup && (() => { const half = Math.max(5, Math.round(syrup.amount / 2 / 5) * 5); return syrup.id === "honey_syrup"
+      ? { icon: FlaskRound, strong: "Honingsiroop zelf maken:", text: `${half} g honing + ${half} ml warm water, roeren tot het is opgelost.` }
+      : { icon: FlaskRound, strong: "Suikersiroop zelf maken:", text: `${half} g suiker + ${half} ml heet water, roeren tot het is opgelost.` }; })(),
+    info.hasBubbles && { icon: CupSoda, strong: "Bubbels pas bij het inschenken.", text: "Meng de rest vooraf en vul elk glas pas op het laatst aan." },
+  ].filter(Boolean);
+  const glass = (recipe.glass || "glas").split("(")[0].trim().toLowerCase();
+  const steps = mode === "glazen" ? [] : [
+    `Giet alles${waterMl > 0 ? ", inclusief het water," : ""} in ${mode === "fles" ? `een schone fles van ${batchVolumeLabel(volume)}` : `een kan van ${batchVolumeLabel(volume)}`}.`,
+    mode === "fles"
+      ? "Minimaal 2 uur in de vriezer of koelkast. Goed afgesloten houdbaar tot ± 3 maanden."
+      : info.hasFresh ? "Zet de kan minimaal 1 uur in de koelkast en schenk binnen ± 4 uur (vers sap)." : "Zet de kan minimaal 1 uur in de koelkast.",
+    info.stirred || !info.shaken
+      ? `Schenk ${pourMl} ml per glas over ijs in een ${glass}${recipe.garnish ? ` en werk af: ${recipe.garnish.charAt(0).toLowerCase()}${recipe.garnish.slice(1)}` : "."}`
+      : `Schud per glas ${pourMl} ml kort met ijs en zeef in een ${glass}${recipe.garnish ? `. Afwerking: ${recipe.garnish.charAt(0).toLowerCase()}${recipe.garnish.slice(1)}` : "."}`,
+  ];
+
+  const share = async () => {
+    onSound?.("share");
+    const head = mode === "glazen" ? `${recipe.name} voor ${glasses} glazen` : `${recipe.name}, ${mode === "fles" ? "fles" : "kan"} van ${batchVolumeLabel(volume)} (± ${servings} glazen van ${pourMl} ml)`;
+    const text = [
+      `Batchkaart: ${head}`, "",
+      ...lines.map(l => `• ${l.label}: ${l.amountLabel}${l.isEgg ? " (per glas, niet in de batch)" : ""}`),
+      waterMl > 0 ? `• Water: ${formatBatchAmount(waterMl, units)} (verdunning, vervangt het roeren)` : null,
+      "",
+      ...(mode === "glazen" ? tips.map(t => `– ${t.strong} ${t.text}`) : steps.map((s, i) => `${i + 1}. ${s}`)),
+      "", "Gemaakt met Mijn Thuisbar",
+    ].filter(x => x !== null).join("\n");
+    let result;
+    try {
+      if (isNativeShell) { await Share.share({ title: `Batchkaart ${recipe.name}`, text, dialogTitle: "Deel batchkaart" }); result = "shared"; }
+      else if (navigator.share) { await navigator.share({ title: `Batchkaart ${recipe.name}`, text }); result = "shared"; }
+      else { await navigator.clipboard.writeText(text); result = "copied"; }
+    } catch (e) { result = /cancel|abort/i.test(`${e?.name} ${e?.message}`) ? "cancelled" : "failed"; }
+    if (result === "cancelled") return;
+    setShareState(result);
+    setTimeout(() => setShareState(null), 2500);
+  };
+
+  // ---- Weergave ----
+  const card = { background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, boxShadow: SHADOW_CARD };
+  const seg = (active) => ({
+    flex: 1, minHeight: 40, border: "none", borderRadius: 10, cursor: "pointer", fontFamily: sans, fontSize: 14.5, fontWeight: 700,
+    background: active ? CREAM : "transparent", color: active ? INK : MUTED, boxShadow: active ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
+  });
+  const pill = (active, dark) => ({
+    minWidth: 44, minHeight: 44, padding: "0 14px", borderRadius: 100, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700,
+    background: active ? (dark ? "#D8B06A" : BOTTLE) : (dark ? "rgba(245,239,230,0.14)" : PAPER_DEEP), color: active ? (dark ? "#1B2A26" : "#FBF6EA") : (dark ? "#F3ECDD" : INK),
+  });
+  const bigRound = (filled) => ({
+    width: 52, height: 52, borderRadius: "50%", border: "none", cursor: "pointer", fontSize: 24, fontWeight: 600, fontFamily: sans,
+    display: "flex", alignItems: "center", justifyContent: "center", background: filled ? BOTTLE : "rgba(184,134,46,0.2)", color: filled ? "#FBF6EA" : INK,
+  });
+  const heading = (text, right) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, margin: "22px 0 10px" }}>
+      <div style={{ fontFamily: systemFont, fontSize: 20, fontWeight: 700, color: INK }}>{text}</div>
+      {right}
     </div>
   );
 
-  if (shoppingList.length === 0) {
-    return (
-      <div>
-        {addForm}
-        <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "50px 0", lineHeight: 1.6 }}>
-          Je winkelmandje is leeg.<br />Voeg ontbrekende ingrediënten toe vanuit "Wat kan ik maken", de Feestplanner, of hierboven zelf.
-        </p>
-      </div>
-    );
-  }
-
-  let totalCost = 0;
-  const priced = shoppingList.map(item => {
-    const meta = item.id ? allIngredients.find(i => i.id === item.id) : null;
-    let priceLabel = null, cost = 0;
-    if (meta?.bottleMl && meta?.bottlePrice) { cost = meta.bottlePrice; priceLabel = `${euro(cost)} · fles (${meta.bottleMl} ml)`; }
-    else if (meta?.unitPrice) { cost = meta.unitPrice; priceLabel = `${euro(cost)} · per stuk`; }
-    if (cost) totalCost += cost;
-    return { ...item, priceLabel };
-  });
-
   return (
-    <div>
-      {addForm}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <SectionLabel>{shoppingList.length} item{shoppingList.length === 1 ? "" : "s"} op je lijst</SectionLabel>
-        <button onClick={() => { onSound("remove"); onClear(); }} style={{ background: "none", border: "none", color: MUTED, fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>
-          Leegmaken
-        </button>
+    <div style={{ fontFamily: sans }}>
+      {/* Gekozen cocktail */}
+      <div style={{ ...card, display: "flex", alignItems: "center", gap: 12, padding: 10 }}>
+        <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={60} radius={12} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: serif, fontSize: 19, fontWeight: 700, color: INK, lineHeight: 1.2 }}>{recipe.name}</div>
+          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>{[recipe.family, (recipe.glass || "").split("(")[0].trim(), technique].filter(Boolean).join(" · ")}</div>
+        </div>
+        <button onClick={() => setPicking(true)} className="press-scale" style={{ minHeight: 44, padding: "0 16px", borderRadius: 100, border: "none", background: PAPER_DEEP, color: INK, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Wijzig</button>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {priced.map((item, idx) => {
-        const alsoUnlocks = recipes.filter(r => {
-          const required = r.ingredients.filter(i => !i.optional);
-          const missing = required.filter(i => !isOwned(i));
-          return missing.length === 1 && ingredientKey(missing[0]) === item.key;
-        }).map(r => r.name).filter(name => !(item.recipes || []).includes(name));
-        const meta = item.id ? allIngredients.find(i => i.id === item.id) : allIngredients.find(i => i.name.toLowerCase() === item.label.toLowerCase());
-        const artRef = { id: item.id || item.key, name: item.label, cat: meta?.cat || "Vers" };
 
-        return (
-          <SwipeToDelete key={item.key} borderRadius={14} onDelete={() => { onSound("remove"); onRemove(item.key); }}>
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: "12px 14px" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: "50%", overflow: "hidden", flexShrink: 0, marginTop: 2 }}><ItemArt ing={artRef} /></div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {item.id && SHOP_LINKS[item.id] ? (
-                  <button onClick={() => Browser.open({ url: SHOP_LINKS[item.id] })} title="Bekijk op drankdozijn.nl, goedkoopste eerst"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont, fontWeight: 700, color: BOTTLE, fontSize: 16, textDecoration: "none", borderBottom: `1px dotted ${BOTTLE}` }}>
-                    {item.label} <ExternalLink size={13} style={{ flexShrink: 0 }} />
-                  </button>
-                ) : (
-                  <div style={{ fontFamily: systemFont, fontWeight: 700, color: INK, fontSize: 16 }}>{item.label}</div>
-                )}
-                {item.priceLabel && <div style={{ fontSize: 12.5, color: BOTTLE, fontWeight: 600, marginTop: 3 }}>{item.priceLabel}</div>}
-                {item.recipes && item.recipes.length > 0 && (
-                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>Toegevoegd voor: {item.recipes.join(", ")}</div>
-                )}
-                {alsoUnlocks.length > 0 && (
-                  <div style={{ fontSize: 12.5, color: BRASS, marginTop: 2 }}>Ontgrendelt ook: {alsoUnlocks.slice(0, 4).join(", ")}{alsoUnlocks.length > 4 ? ", …" : ""}</div>
-                )}
-              </div>
-              <button onClick={() => { onSound("remove"); onRemove(item.key); }} title="Verwijder" className="tap-target-44" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", flexShrink: 0 }}>
-                <X size={16} color={MUTED} />
-              </button>
+      {/* Glazen · Kan · Fles */}
+      <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 13, margin: "14px 0" }}>
+        {[["glazen", "Glazen"], ["kan", "Kan"], ["fles", "Fles"]].map(([k, l]) => (
+          <button key={k} role="tab" aria-selected={mode === k} onClick={() => setMode(k)} style={seg(mode === k)}>{l}</button>
+        ))}
+      </div>
+
+      {mode === "glazen" && (
+        <div style={{ ...card, padding: "16px 14px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 28 }}>
+            <button aria-label="Minder glazen" onClick={() => setGlasses(Math.max(1, glasses - 1))} style={bigRound(false)}>−</button>
+            <div style={{ textAlign: "center", minWidth: 64 }}>
+              <div style={{ fontFamily: serif, fontSize: 44, fontWeight: 700, color: INK, lineHeight: 1 }}>{glasses}</div>
+              <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{glasses === 1 ? "glas" : "glazen"}</div>
             </div>
-            {item.id && (
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-                <button onClick={() => { onSound("tick"); onBuy(item); }} title="Zet in voorraad" style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 3, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  <Check size={13} strokeWidth={3} /> In voorraad
-                </button>
+            <button aria-label="Meer glazen" onClick={() => setGlasses(Math.min(200, glasses + 1))} style={bigRound(true)}>+</button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
+            {BATCH_QUICK.map(n => <button key={n} onClick={() => setGlasses(n)} aria-pressed={glasses === n} style={pill(glasses === n)}>{n}</button>)}
+          </div>
+        </div>
+      )}
+
+      {mode !== "glazen" && blocked && (
+        <div style={{ ...card, padding: "16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <span style={{ width: 34, height: 34, borderRadius: 10, background: PAPER_DEEP, color: BRASS, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Info size={17} /></span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14.5, color: INK, lineHeight: 1.5 }}>{blocked}</div>
+            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+              <button onClick={() => setMode("glazen")} style={{ ...pill(true), minHeight: 44 }}>Reken per glas</button>
+              {mode === "fles" && !info.kanBlock && <button onClick={() => setMode("kan")} style={pill(false)}>Maak een kan</button>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mode !== "glazen" && !blocked && (
+        <div style={{ borderRadius: 16, padding: "16px 16px", background: "#1F3A33", color: "#F3ECDD", display: "flex", gap: 14, alignItems: "center", boxShadow: SHADOW_CARD }}>
+          <svg width="40" height="64" viewBox="0 0 40 64" aria-hidden style={{ flexShrink: 0 }}>
+            {mode === "fles" ? (
+              <path d="M15 2h10v12c0 3 9 6 9 16v28a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V30c0-10 9-13 9-16z" fill="none" stroke="#D8B06A" strokeWidth="2.2" strokeLinejoin="round" />
+            ) : (
+              <path d="M6 8h24l-2 6c4 2 8 6 8 14s-4 10-8 12v18a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z M30 20c3 1 5 4 5 8s-2 7-5 8" fill="none" stroke="#D8B06A" strokeWidth="2.2" strokeLinejoin="round" />
+            )}
+            <path d={mode === "fles" ? "M7 36h26v22a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3z" : "M7 30h21v28a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3z"} fill="#B8862E" opacity="0.55" />
+          </svg>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: "#D8B06A" }}>{mode === "fles" ? "Fles vullen" : "Kan vullen"}</div>
+            <div style={{ display: "flex", gap: 6, margin: "8px 0", flexWrap: "wrap" }}>
+              {(mode === "fles" ? BATCH_FLES : BATCH_KAN).map(o => {
+                const active = (mode === "fles" ? flesMl : kanMl) === o.ml;
+                return <button key={o.ml} aria-pressed={active} onClick={() => (mode === "fles" ? setFlesMl(o.ml) : setKanMl(o.ml))} style={pill(active, true)}>{o.label}</button>;
+              })}
+            </div>
+            <div style={{ fontSize: 13.5, color: "#F3ECDD" }}>Goed voor <strong>± {servings} glazen</strong> van {pourMl} ml</div>
+          </div>
+        </div>
+      )}
+
+      {!blocked && (
+        <>
+          {heading(mode === "fles" ? "In de fles" : mode === "kan" ? "In de kan" : "Wat heb je nodig", (
+            <div role="radiogroup" aria-label="Eenheid" style={{ display: "flex", gap: 2, padding: 3, background: PAPER_DEEP, borderRadius: 100 }}>
+              {["ml", "cl", "oz"].map(u => (
+                <button key={u} role="radio" aria-checked={units === u} onClick={() => setUnits(u)} style={{
+                  minWidth: 44, minHeight: 36, borderRadius: 100, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13, fontWeight: 700,
+                  background: units === u ? CREAM : "transparent", color: units === u ? INK : MUTED, boxShadow: units === u ? "0 1px 3px rgba(43,38,32,0.14)" : "none",
+                }}>{u}</button>
+              ))}
+            </div>
+          ))}
+          <div style={{ ...card, overflow: "hidden" }}>
+            {lines.map((l, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
+                <span aria-label={l.enough ? "Genoeg in huis" : "Niet genoeg in huis"} style={{
+                  width: 22, height: 22, borderRadius: "50%", flexShrink: 0, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
+                  background: l.enough ? SAGE : "transparent", border: l.enough ? "none" : `1.5px solid ${BURGUNDY}`,
+                }}>{l.enough && <Check size={13} strokeWidth={3} color={CREAM} />}</span>
+                <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, minHeight: 36 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: INK }}>{l.label}</div>
+                    <div style={{ fontSize: 12.5, marginTop: 1, color: l.enough || l.isEgg ? MUTED : BURGUNDY }}>{l.status}</div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: INK, whiteSpace: "nowrap" }}>{l.amountLabel}</div>
+                    {l.practical && <div style={{ fontSize: 12, color: MUTED, marginTop: 1, whiteSpace: "nowrap" }}>{l.practical}</div>}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {waterMl > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
+                <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, background: BOTTLE, color: CREAM, display: "flex", alignItems: "center", justifyContent: "center" }}><Droplet size={12} /></span>
+                <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderTop: `1px solid ${BORDER}` }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: INK }}>Water</div>
+                    <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>Verdunning (± 20%), vervangt het roeren</div>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: INK, whiteSpace: "nowrap" }}>{formatBatchAmount(waterMl, units)}</div>
+                </div>
               </div>
             )}
           </div>
-          </SwipeToDelete>
-        );
-      })}
+
+          {missing.length > 0 && (
+            added || allOnList ? (
+              <div className={added ? "success-pop" : undefined} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 52, color: SAGE, fontSize: 14.5, fontWeight: 700, marginTop: 10 }}>
+                <Check size={16} strokeWidth={3} /> Op je boodschappenlijst
+              </div>
+            ) : (
+              <button onClick={addMissing} className="press-scale" style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 10, borderRadius: 14, border: "none",
+                background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
+              }}>
+                <ShoppingCart size={17} /> {missing.length === 1 ? `${missing[0].label.replace(" (optioneel)", "")} op boodschappenlijst` : "Zet ontbrekende op boodschappenlijst"}
+              </button>
+            )
+          )}
+
+          {mode === "glazen" && tips.length > 0 && (
+            <>
+              {heading("Tips voor deze batch")}
+              <div style={{ ...card, padding: "2px 14px" }}>
+                {tips.map((t, i) => {
+                  const Icon = t.icon;
+                  return (
+                    <div key={i} style={{ display: "flex", gap: 12, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                      <span style={{ width: 30, height: 30, borderRadius: "50%", background: PAPER_DEEP, color: BRASS, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={15} /></span>
+                      <div style={{ fontSize: 14, color: INK, lineHeight: 1.5 }}><strong>{t.strong}</strong> {t.text}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {mode !== "glazen" && (
+            <>
+              {heading("Zo maak je het")}
+              <div style={{ ...card, padding: "2px 14px" }}>
+                {steps.map((s, i) => (
+                  <div key={i} style={{ display: "flex", gap: 12, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                    <span style={{ width: 26, height: 26, borderRadius: "50%", border: `1.5px solid ${BRASS}`, color: BRASS, fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxSizing: "border-box" }}>{i + 1}</span>
+                    <div style={{ fontSize: 14, color: INK, lineHeight: 1.5 }}>{s}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <button onClick={share} className="press-scale" style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 18, borderRadius: 14, border: "none",
+            background: "rgba(184,134,46,0.18)", color: INK, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+          }}>
+            <Share2 size={17} color={BRASS} /> {shareState === "copied" ? "Gekopieerd" : shareState === "shared" ? "Gedeeld" : shareState === "failed" ? "Delen lukte niet" : "Deel batchkaart"}
+          </button>
+        </>
+      )}
+
+      {picking && (
+        <BatchRecipePicker recipes={recipes} allIngredients={allIngredients} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
+          currentId={recipe.id} onPick={(id) => { setRecipeId(id); onSound?.("pop"); }} onClose={() => setPicking(false)} />
+      )}
+    </div>
+  );
+}
+
+// Vers fruit i.p.v. een fles sap: hoeveel sap één vrucht ongeveer geeft,
+// plus een richtprijs per stuk (supermarkt, indicatief).
+const FRESH_FRUIT = {
+  lime_juice: { ml: 25, label: "Limoenen", one: "limoen", price: 0.35 },
+  lemon_juice: { ml: 35, label: "Citroenen", one: "citroen", price: 0.4 },
+};
+// Een prijs die ouder is dan 30 dagen tonen we niet meer als actueel.
+const PRICE_MAX_AGE_DAYS = 30;
+const MONTHS_NL = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+function formatDateNl(value) {
+  if (!value) return "";
+  const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(String(value));
+  if (!m) return String(value);
+  const month = MONTHS_NL[Number(m[2]) - 1];
+  return m[3] ? `${Number(m[3])} ${month.slice(0, 3)} ${m[1]}` : `${month} ${m[1]}`;
+}
+function formatInhoud(ml) {
+  if (!ml) return "";
+  if (ml >= 1000) return `${String(ml / 1000).replace(".", ",")} L`;
+  return `${Math.round(ml / 10 * 10) / 10} cl`.replace(".", ",");
+}
+function isPriceFresh(product) {
+  if (product?.prijs == null || !product.prijs_gecontroleerd_op) return false;
+  const age = (Date.now() - new Date(product.prijs_gecontroleerd_op).getTime()) / 86400000;
+  return age >= 0 && age <= PRICE_MAX_AGE_DAYS;
+}
+// Alleen echte productpagina's op drankdozijn.nl openen — nooit iets anders.
+function isDrankdozijnUrl(url) {
+  try { const u = new URL(url); return u.protocol === "https:" && /(^|\.)drankdozijn\.nl$/.test(u.hostname); } catch { return false; }
+}
+// Goedgekeurde flessen voor één ingrediënt, met de labels
+// "Goedkoopste geschikte" (laagste prijs) en "Voordeligst per liter".
+function rankProducts(products) {
+  const withMeta = products.map(p => {
+    const fresh = isPriceFresh(p);
+    const usable = fresh && p.op_voorraad !== false;
+    return { ...p, fresh, usable, perLiter: fresh && p.inhoud_ml ? p.prijs / (p.inhoud_ml / 1000) : null };
+  });
+  const usable = withMeta.filter(p => p.usable);
+  const cheapest = usable.slice().sort((a, b) => a.prijs - b.prijs)[0] || null;
+  const bestPerLiter = usable.filter(p => p.perLiter != null).sort((a, b) => a.perLiter - b.perLiter)[0] || null;
+  return withMeta
+    .map(p => ({ ...p, isCheapest: cheapest?.id === p.id, isBestPerLiter: bestPerLiter?.id === p.id && bestPerLiter?.id !== cheapest?.id }))
+    .sort((a, b) => (b.usable - a.usable) || ((a.prijs ?? 1e9) - (b.prijs ?? 1e9)));
+}
+
+function FlesKiezenSheet({ item, meta, products, chosenId, recipeNames, onChoose, onClose }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const ranked = useMemo(() => rankProducts(products), [products]);
+  const defaultId = ranked.find(p => p.isCheapest)?.id || ranked[0]?.id || null;
+  const [selected, setSelected] = useState(chosenId && ranked.some(p => p.id === chosenId) ? chosenId : defaultId);
+  const current = ranked.find(p => p.id === selected) || null;
+  const spec = DRANK_SPECS[meta?.id] || null;
+  const forText = recipeNames.length ? recipeNames.slice(0, 2).join(" en ") + (recipeNames.length > 2 ? ` en ${recipeNames.length - 2} meer` : "") : null;
+  const checkedDates = ranked.map(p => p.prijs_gecontroleerd_op).filter(Boolean).sort();
+  const lastChecked = checkedDates[checkedDates.length - 1];
+  const pick = (id) => { setSelected(id); onChoose(id); };
+  const openShop = () => { if (current && isDrankdozijnUrl(current.url)) Browser.open({ url: current.url }); };
+
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in sheet-max-92" style={{
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
+        background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "6px 20px 14px", touchAction: "none" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}><ItemArt ing={meta || { id: item.key, name: item.label, cat: "Sterke drank" }} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: serif, fontSize: 23, fontWeight: 700, lineHeight: 1.15 }}>{item.label}</div>
+            {spec && <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>{spec.omschrijving}</div>}
+          </div>
+          <button onClick={close} aria-label="Sluiten" onTouchStart={e => e.stopPropagation()} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
+          {spec && (
+            <div style={{ display: "flex", gap: 10, padding: "12px 14px", borderRadius: 14, background: "rgba(92,122,82,0.14)", marginBottom: 16 }}>
+              <ShieldCheck size={17} color={SAGE} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div style={{ fontSize: 13.5, lineHeight: 1.5, color: INK }}>
+                <strong>{forText ? `Juiste fles voor ${forText}.` : "Waar de fles aan moet voldoen."}</strong> {spec.eis}
+              </div>
+            </div>
+          )}
+
+          {ranked.length > 0 ? (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Kies je fles</div>
+              <div role="radiogroup" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {ranked.map(p => {
+                  const on = p.id === selected;
+                  return (
+                    <button key={p.id} role="radio" aria-checked={on} onClick={() => pick(p.id)} style={{
+                      display: "flex", alignItems: "center", gap: 12, minHeight: 64, padding: "10px 14px", borderRadius: 14, cursor: "pointer", textAlign: "left",
+                      background: CREAM, border: `1.5px solid ${on ? BOTTLE : BORDER}`, fontFamily: sans, color: INK, opacity: p.usable ? 1 : 0.7,
+                    }}>
+                      <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${on ? BOTTLE : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxSizing: "border-box" }}>
+                        {on && <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOTTLE }} />}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>{[p.variant || p.productnaam, formatInhoud(p.inhoud_ml)].filter(Boolean).join(" · ")}</span>
+                        {p.isCheapest && <span style={{ display: "inline-block", marginTop: 4, fontSize: 11.5, fontWeight: 700, color: SAGE, background: "rgba(92,122,82,0.16)", borderRadius: 100, padding: "2px 8px" }}>Goedkoopste geschikte</span>}
+                        {p.isBestPerLiter && <span style={{ display: "inline-block", marginTop: 4, fontSize: 11.5, fontWeight: 700, color: BRASS, background: "rgba(184,134,46,0.16)", borderRadius: 100, padding: "2px 8px" }}>Voordeligst per liter</span>}
+                        {p.op_voorraad === false && <span style={{ display: "block", marginTop: 3, fontSize: 12, color: BURGUNDY }}>Niet op voorraad</span>}
+                      </span>
+                      <span style={{ textAlign: "right", flexShrink: 0 }}>
+                        {p.fresh ? (
+                          <>
+                            <span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>{euro(p.prijs)}</span>
+                            {p.perLiter != null && <span style={{ display: "block", fontSize: 11.5, color: MUTED, marginTop: 1 }}>{euro(p.perLiter)} / L</span>}
+                          </>
+                        ) : (
+                          <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: MUTED }}>Prijs onbekend</span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {lastChecked && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: MUTED, marginTop: 12 }}>
+                  <Clock size={13} /> Prijs gecontroleerd op {formatDateNl(lastChecked)} bij Drankdozijn
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700 }}>Nog geen gecontroleerde fles</div>
+              <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.5, marginTop: 4 }}>
+                Voor deze drank hebben we nog geen fles bij Drankdozijn nagekeken. Tot die tijd tonen we geen link, zodat je nooit bij een verkeerde fles uitkomt. Let bij het kopen op de eis hierboven.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {current && (
+          <div style={{ padding: "12px 20px calc(env(safe-area-inset-bottom) + 14px)", borderTop: `1px solid ${BORDER}`, background: PAPER }}>
+            <button onClick={openShop} disabled={!isDrankdozijnUrl(current.url)} className="press-scale" style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14, border: "none",
+              background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer",
+            }}>
+              Bekijk bij Drankdozijn <ExternalLink size={16} />
+            </button>
+            <div style={{ fontSize: 12, color: MUTED, textAlign: "center", marginTop: 8 }}>Opent de productpagina van precies deze fles</div>
+          </div>
+        )}
       </div>
-      {totalCost > 0 && (
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 2px 4px", fontSize: 16 }}>
-          <span style={{ fontFamily: systemFont, fontWeight: 700, color: INK }}>Geschatte totaal</span>
-          <span style={{ fontFamily: systemFont, fontWeight: 700, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></span>
+    </div>
+  ), document.body);
+}
+
+function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBuy, onUndoBuy, onClear, onAdd, onSound, isOwned, producten = [], chosenBottles = {}, onChooseBottle }) {
+  const [customName, setCustomName] = useState("");
+  const [bought, setBought] = useState([]); // [{ item, wasOwned }] — alleen deze sessie, doorgestreept
+  const [toast, setToast] = useState(null);
+  const [sheetKey, setSheetKey] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const toastTimer = useRef(null);
+  const ingredientNames = allIngredients.map(i => i.name);
+  const metaById = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
+  const recipesByName = useMemo(() => new Map(recipes.map(r => [r.name, r])), [recipes]);
+  const productsByIngredient = useMemo(() => {
+    const map = new Map();
+    producten.filter(p => p.status === "goedgekeurd").forEach(p => {
+      if (!map.has(p.ingredient_id)) map.set(p.ingredient_id, []);
+      map.get(p.ingredient_id).push(p);
+    });
+    return map;
+  }, [producten]);
+
+  // …-menu rechts in de navigatiebalk (Leegmaken).
+  const setNavOverride = useContext(NavOverrideContext);
+  useEffect(() => {
+    if (!setNavOverride) return;
+    setNavOverride({
+      right: (
+        <button onClick={() => setMenuOpen(v => !v)} aria-label="Meer opties" aria-expanded={menuOpen} style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "flex-end", background: "none", border: "none", cursor: "pointer", color: BRASS }}>
+          <MoreHorizontal size={20} />
+        </button>
+      ),
+    });
+  }, [setNavOverride, menuOpen]);
+  useEffect(() => () => setNavOverride && setNavOverride(null), [setNavOverride]);
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  const showToast = (t) => {
+    clearTimeout(toastTimer.current);
+    setToast(t);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  };
+  const addCustom = () => {
+    const trimmed = customName.trim();
+    if (!trimmed) return;
+    const meta = allIngredients.find(i => i.name.toLowerCase() === trimmed.toLowerCase());
+    onAdd([{ ref: meta ? { id: meta.id } : { name: trimmed }, recipeNames: [] }]);
+    onSound("tick");
+    setCustomName("");
+  };
+  const check = (row) => {
+    const wasOwned = row.meta ? isOwned({ id: row.meta.id }) : false;
+    onSound("tick");
+    onBuy(row.item);
+    setBought(prev => [...prev.filter(b => b.item.key !== row.item.key), { item: row.item, wasOwned, row }]);
+    showToast({ key: row.item.key, text: row.meta ? `${row.label} staat nu in je voorraad` : `${row.label} afgevinkt` });
+  };
+  const undo = (key) => {
+    const entry = bought.find(b => b.item.key === key);
+    if (!entry) return;
+    onSound("pop");
+    onUndoBuy(entry.item, entry.wasOwned);
+    setBought(prev => prev.filter(b => b.item.key !== key));
+    setToast(null);
+  };
+
+  const describe = (item) => {
+    const meta = item.id ? metaById.get(item.id) : allIngredients.find(i => i.name.toLowerCase() === (item.label || "").toLowerCase());
+    const names = item.recipes || [];
+    const fruit = meta && FRESH_FRUIT[meta.id];
+    let label = item.label, price = null, inhoud = "", note = null;
+    if (fruit) {
+      // Sap uit een fles → verse vruchten: optellen wat de cocktails nodig hebben.
+      const ml = names.reduce((s, n) => {
+        const ing = recipesByName.get(n)?.ingredients.find(i => (findIngredientMeta(i, allIngredients)?.id || i.id) === meta.id);
+        return s + (ing?.unit === "ml" ? ing.amount : 0);
+      }, 0);
+      const count = Math.max(2, Math.ceil((ml || fruit.ml * 2) / fruit.ml));
+      label = `${fruit.label} (±${count})`;
+      price = count * fruit.price;
+      inhoud = "los";
+    } else if (meta?.bottleMl && meta?.bottlePrice) {
+      price = meta.bottlePrice; inhoud = formatInhoud(meta.bottleMl);
+    } else if (meta?.unitPrice) {
+      price = meta.unitPrice; inhoud = "per stuk";
+    }
+    if (meta?.id === "sugar_syrup") note = "Of zelf maken: suiker + water";
+    const group = shopGroupFor(meta);
+    const products = meta ? productsByIngredient.get(meta.id) || [] : [];
+    // Is er voor deze drank een goedgekeurde fles gekozen (of de goedkoopste)?
+    let bottle = null;
+    if (group === "drankwinkel" && products.length) {
+      const ranked = rankProducts(products);
+      bottle = ranked.find(p => p.id === chosenBottles[meta.id]) || ranked.find(p => p.isCheapest) || null;
+      if (bottle) { price = bottle.fresh ? bottle.prijs : null; inhoud = formatInhoud(bottle.inhoud_ml); }
+    }
+    const sub = names.length ? `Voor ${names[0]}${names.length > 1 ? ` · +${names.length - 1} cocktail${names.length > 2 ? "s" : ""}` : ""}` : "Zelf toegevoegd";
+    return { item, meta, label, price, inhoud, note, group, products, bottle, sub };
+  };
+
+  const rows = shoppingList.map(describe);
+  const boughtRows = bought.map(b => ({ ...describe(b.item), done: true }));
+  const groups = [
+    { key: "drankwinkel", title: "Drankwinkel", icon: Wine },
+    { key: "supermarkt", title: "Supermarkt", icon: ShoppingCart },
+  ].map(g => {
+    const open = rows.filter(r => r.group === g.key);
+    const done = boughtRows.filter(r => r.group === g.key);
+    return { ...g, open, done, subtotal: open.reduce((s, r) => s + (r.price || 0), 0) };
+  });
+  const total = groups.reduce((s, g) => s + g.subtotal, 0);
+  const allNames = [...new Set(shoppingList.flatMap(i => i.recipes || []))];
+  const hasFruit = rows.some(r => r.meta && FRESH_FRUIT[r.meta.id]);
+  const usedDates = rows.map(r => r.bottle?.fresh ? r.bottle.prijs_gecontroleerd_op : null).filter(Boolean).sort();
+  const priceDate = usedDates.length ? formatDateNl(usedDates[0]) : formatDateNl(PRICES_UPDATED);
+  const sheetRow = sheetKey ? rows.find(r => r.item.key === sheetKey) : null;
+
+  const renderRow = (r, i) => {
+    const content = (
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px 0 12px", background: CREAM }}>
+        <button onClick={() => (r.done ? undo(r.item.key) : check(r))} aria-label={r.done ? `${r.label}: afvinken ongedaan maken` : `${r.label} afvinken als gekocht`} aria-pressed={!!r.done}
+          style={{ width: 44, height: 44, margin: "0 -6px 0 -8px", display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}>
+          <span style={{ width: 24, height: 24, borderRadius: "50%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", border: r.done ? "none" : `1.5px solid ${BORDER}`, background: r.done ? SAGE : "transparent" }}>
+            {r.done && <Check size={14} strokeWidth={3} color={CREAM} />}
+          </span>
+        </button>
+        <div style={{ width: 40, height: 40, borderRadius: 10, overflow: "hidden", flexShrink: 0, opacity: r.done ? 0.5 : 1 }}>
+          <ItemArt ing={r.meta || { id: r.item.id || r.item.key, name: r.label, cat: "Vers" }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, alignSelf: "stretch" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: r.done ? MUTED : INK, textDecoration: r.done ? "line-through" : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.label}</div>
+            <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.done ? "Gekocht · in je voorraad" : (r.note || r.sub)}</div>
+            {!r.done && r.group === "drankwinkel" && r.meta && (
+              <button onClick={() => setSheetKey(r.item.key)} style={{ display: "inline-flex", alignItems: "center", gap: 2, minHeight: 32, padding: 0, marginTop: 1, background: "none", border: "none", cursor: "pointer", color: BOTTLE, fontFamily: sans, fontSize: 12.5, fontWeight: 700 }}>
+                {r.products.length ? `Kies fles · ${r.products.length} ${r.products.length === 1 ? "optie" : "opties"}` : "Fles kiezen"} <ChevronRight size={14} />
+              </button>
+            )}
+          </div>
+          <div style={{ textAlign: "right", flexShrink: 0, opacity: r.done ? 0.5 : 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: INK }}>{r.price != null ? euro(r.price) : r.bottle ? "Prijs onbekend" : ""}</div>
+            {r.inhoud && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{r.inhoud}</div>}
+          </div>
+        </div>
+      </div>
+    );
+    if (r.done) return <div key={`done-${r.item.key}`}>{content}</div>;
+    return (
+      <SwipeToDelete key={r.item.key} onDelete={() => { onSound("remove"); onRemove(r.item.key); }}>{content}</SwipeToDelete>
+    );
+  };
+
+  return (
+    <div style={{ fontFamily: sans, position: "relative" }}>
+      {menuOpen && (
+        <>
+          <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 25 }} />
+          <div style={{ position: "absolute", top: -12, right: 0, zIndex: 26, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_HERO, minWidth: 190, overflow: "hidden" }}>
+            <button onClick={() => { setMenuOpen(false); if (shoppingList.length) setConfirmClear(true); }} disabled={!shoppingList.length} style={{
+              display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, padding: "0 16px", background: "none", border: "none",
+              cursor: shoppingList.length ? "pointer" : "default", color: shoppingList.length ? BURGUNDY : MUTED, fontFamily: sans, fontSize: 15, fontWeight: 600,
+            }}>
+              <Trash2 size={16} /> Leegmaken
+            </button>
+          </div>
+        </>
+      )}
+
+      <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.15 }}>
+        {shoppingList.length === 0 ? "Niets te halen" : `${shoppingList.length} te halen`}
+      </h1>
+      {allNames.length > 0 && (
+        <div style={{ fontSize: 13.5, color: MUTED, marginTop: 4 }}>
+          Voor {allNames.length <= 2 ? allNames.join(" en ") : `${allNames.slice(0, 2).join(", ")} en ${allNames.length - 2} meer`}
         </div>
       )}
-      <p style={{ fontSize: 12, color: MUTED, margin: "4px 0 0", lineHeight: 1.5 }}>
-        Richtprijzen o.b.v. drankdozijn.nl ({PRICES_UPDATED}), per fles of stuk, geen live koppeling.
-      </p>
+
+      <form onSubmit={e => { e.preventDefault(); addCustom(); }} style={{ display: "flex", alignItems: "center", gap: 6, margin: "16px 0 18px", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "0 6px 0 12px" }}>
+        <button type="submit" aria-label="Toevoegen" disabled={!customName.trim()} style={{ width: 32, height: 44, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", color: customName.trim() ? BOTTLE : MUTED, cursor: "pointer", padding: 0, flexShrink: 0 }}>
+          <Plus size={18} />
+        </button>
+        <IngredientAutocomplete value={customName} onChange={setCustomName} options={ingredientNames} placeholder="Iets toevoegen, bijv. ijsblokjes" style={{ flex: 1 }} variant="bare" />
+      </form>
+
+      {shoppingList.length === 0 && bought.length === 0 && (
+        <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "40px 0", lineHeight: 1.6 }}>
+          Je boodschappenlijst is leeg.<br />Voeg ontbrekende ingrediënten toe vanuit "Wat kan ik maken", een recept of de Feestplanner.
+        </p>
+      )}
+
+      {groups.filter(g => g.open.length || g.done.length).map(g => {
+        const Icon = g.icon;
+        return (
+          <div key={g.key} style={{ marginBottom: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 4px 8px" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: MUTED }}>
+                <Icon size={14} /> {g.title}
+              </span>
+              {g.subtotal > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: MUTED }}>{euro(g.subtotal)}</span>}
+            </div>
+            <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+              {[...g.open, ...g.done].map(renderRow)}
+            </div>
+            {g.key === "supermarkt" && hasFruit && (
+              <p style={{ fontSize: 12.5, color: MUTED, margin: "8px 4px 0", lineHeight: 1.5 }}>Tip: vers geperst sap is voor cocktails veel beter dan uit een fles.</p>
+            )}
+          </div>
+        );
+      })}
+
+      {total > 0 && (
+        <div style={{ background: "#1F3A33", color: "#F3ECDD", borderRadius: 16, padding: "16px 18px", marginTop: 6, boxShadow: SHADOW_CARD }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>Geschat totaal</span>
+            <span style={{ fontFamily: serif, fontSize: 28, fontWeight: 700 }}><AnimatedNumber value={total} format={euro} /></span>
+          </div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 6, color: "rgba(243,236,221,0.82)" }}>
+            Richtprijzen, gecontroleerd {usedDates.length ? "op" : "in"} {priceDate}. Prijzen in de winkel kunnen afwijken.
+          </div>
+        </div>
+      )}
+      {(shoppingList.length > 0 || bought.length > 0) && (
+        <p style={{ fontSize: 12, color: MUTED, textAlign: "center", margin: "12px 0 0" }}>Afvinken = gekocht · het gaat dan vanzelf naar je voorraad · veeg naar links om te verwijderen</p>
+      )}
+
+      {toast && createPortal((
+        <div role="status" className="success-pop" style={{
+          position: "fixed", left: 16, right: 16, bottom: "calc(env(safe-area-inset-bottom) + 92px)", zIndex: 40, maxWidth: 520, margin: "0 auto",
+          display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 8px 16px", borderRadius: 14, background: "#1F2A26", color: "#F3ECDD",
+          boxShadow: "0 10px 26px rgba(0,0,0,0.3)", fontFamily: sans,
+        }}>
+          <Check size={16} color="#9CC28E" strokeWidth={3} />
+          <span style={{ flex: 1, fontSize: 14 }}>{toast.text}</span>
+          <button onClick={() => undo(toast.key)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: "rgba(243,236,221,0.12)", color: "#F1D9A6", fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Ongedaan maken</button>
+        </div>
+      ), document.body)}
+
+      {confirmClear && (
+        <ConfirmDialog title="Lijst leegmaken?" message="Alle items verdwijnen van je boodschappenlijst." confirmLabel="Leegmaken"
+          onCancel={() => setConfirmClear(false)} onConfirm={() => { setConfirmClear(false); onSound("remove"); onClear(); setBought([]); }} />
+      )}
+
+      {sheetRow && (
+        <FlesKiezenSheet item={sheetRow.item} meta={sheetRow.meta} products={sheetRow.products} chosenId={chosenBottles[sheetRow.meta?.id]}
+          recipeNames={sheetRow.item.recipes || []} onChoose={(id) => onChooseBottle?.(sheetRow.meta.id, id)} onClose={() => setSheetKey(null)} />
+      )}
     </div>
   );
 }
 
 function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite, onSound,
-  openRecipeId, onOpenRecipeHandled, onAddToShoppingList, onAddToFeest, feestChosen, onOpenCheckin }) {
+  openRecipeId, onOpenRecipeHandled, onAddToShoppingList, onAddToFeest, feestChosen, onOpenCheckin,
+  backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange, rootTapTick = 0 }) {
   const [selectedId, setSelectedId] = useState(null);
+  // Scrollpositie van de lijst vlak vóór een recept openging, zodat "terug"
+  // je weer precies daar neerzet i.p.v. halverwege of bovenaan.
+  const listScrollRef = useRef(0);
   const [openTech, setOpenTech] = useState(null);
-  const [recipeView, setRecipeView] = useState("steps");
   const [servings, setServings] = useState(1);
-  const [justAddedShopping, setJustAddedShopping] = useState(false);
-  const [justAddedFeest, setJustAddedFeest] = useState(false);
+  // Welke recepten deze sessie al naar winkelmandje/feestplanner zijn
+  // gestuurd: de bevestiging blijft dan staan i.p.v. na 1,8 s terug te
+  // springen naar de knop (wat leek alsof het niet gelukt was).
+  const [addedShoppingIds, setAddedShoppingIds] = useState(() => new Set());
+  const [addedFeestIds, setAddedFeestIds] = useState(() => new Set());
   // Onthoudt welke recepten deze sessie al eens hun intro-animatie hebben
   // gehad — anders speelt de inschuif-animatie élke keer opnieuw af zodra je
   // hetzelfde recept nogmaals opent (bijv. via Winkelmandje of Feestplanner),
@@ -5481,9 +6532,12 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const canBatchAhead = recipe && role === "sterk" && techniques.length > 0 && techniques.every(t => ["stirred", "build"].includes(t));
 
   const selectRecipe = (id) => {
+    if (!selectedId) listScrollRef.current = window.scrollY;
+    // Een recept begint altijd bovenaan (net als een nieuw scherm op iOS),
+    // niet op de scrollpositie van de lijst waar je op tikte.
+    requestAnimationFrame(() => window.scrollTo(0, 0));
     setSelectedId(id);
     setOpenTech(null);
-    setRecipeView("steps");
     onViewRecipe(id);
   };
   const verrasMe = () => {
@@ -5491,6 +6545,23 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
     onSound("shuffle");
     selectRecipe(recipes[Math.floor(Math.random() * recipes.length)].id);
   };
+
+  const goBack = () => {
+    const y = listScrollRef.current;
+    setSelectedId(null);
+    if (onBackToOrigin) {
+      // Terug naar het scherm waar je het recept opende (Home, Feestplanner…).
+      // Eerst de lijstpositie herstellen: navigateTo onthoudt de huidige
+      // scrollY als die van Ontdekken, anders zou dat de receptpositie zijn.
+      window.scrollTo(0, y);
+      onBackToOrigin();
+    } else {
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+  };
+  useEffect(() => { onRecipeOpenChange?.(!!selectedId); }, [!!selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Op de al actieve Ontdekken-tab tikken = terug naar het overzicht (iOS).
+  useEffect(() => { if (rootTapTick) setSelectedId(null); }, [rootTapTick]);
 
   // Van buitenaf (Maken, Check-in "aanbevolen") direct naar dit recept
   // gestuurd worden: openRecipeId komt binnen, we selecteren 'm en melden
@@ -5508,15 +6579,13 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
     if (!recipe || missing.length === 0) return;
     onAddToShoppingList(missing.map(m => ({ ref: m, recipeNames: [recipe.name] })));
     onSound("tick");
-    setJustAddedShopping(true);
-    setTimeout(() => setJustAddedShopping(false), 1800);
+    setAddedShoppingIds(prev => new Set(prev).add(recipe.id));
   };
   const addToFeestplanner = () => {
     if (!recipe) return;
     onAddToFeest(recipe.id);
     onSound("chime");
-    setJustAddedFeest(true);
-    setTimeout(() => setJustAddedFeest(false), 1800);
+    setAddedFeestIds(prev => new Set(prev).add(recipe.id));
   };
 
   // Ontdekken: alleen relevant zolang er nog niets gekozen is, dus geen reden
@@ -5574,30 +6643,10 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             <RecipePicker recipes={recipes} value={selectedId} listId="verhaal-recipe" onChange={selectRecipe} style={{ width: "100%", boxSizing: "border-box" }} />
           </div>
         </div>
-      ) : (
-        // Combineert de terugknop (net als SecondaryTabScreen's navigatiebalk:
-        // vorige-schermnaam links van de chevron) met naam + favoriet, i.p.v.
-        // een aparte "Terug naar ontdekken"-link.
-        <div style={{
-          display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
-          height: 44, boxSizing: "border-box", marginBottom: 16, borderBottom: `1px solid ${BORDER}`,
-          marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        }}>
-          <button onClick={() => setSelectedId(null)} style={{
-            justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
-            cursor: "pointer", padding: 0, margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
-          }}>
-            <ChevronLeft size={18} strokeWidth={2.4} /> Ontdekken
-          </button>
-          <div style={{ justifySelf: "center", maxWidth: "100%", fontFamily: systemFont, fontWeight: 600, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</div>
-          <button onClick={() => { onSound("pop"); onToggleFavorite(recipe.id); }} aria-label={favoriteRecipeIds.includes(recipe.id) ? "Verwijder uit favorieten" : "Bewaar als favoriet"} style={{
-            justifySelf: "end", width: 32, height: 32, borderRadius: "50%", border: `1px solid ${BORDER}`, flexShrink: 0,
-            background: favoriteRecipeIds.includes(recipe.id) ? BURGUNDY : CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-          }}>
-            <Heart size={15} color={favoriteRecipeIds.includes(recipe.id) ? CREAM : BOTTLE} fill={favoriteRecipeIds.includes(recipe.id) ? CREAM : "none"} />
-          </button>
-        </div>
-      )}
+      ) : null}
+      {/* De navigatiebalk van een geopend recept staat nu bínnen het
+          veeggebied hieronder (sticky, terug naar het scherm van herkomst);
+          de favoriet-knop zit al rechtsboven in de receptfoto. */}
 
       {!recipe && (
         <div>
@@ -5699,7 +6748,29 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
       )}
 
       {recipe && (
-        <EdgeSwipeBackArea key={recipe.id} onBack={() => setSelectedId(null)}>
+        <EdgeSwipeBackArea key={recipe.id} onBack={goBack}>
+          {/* Eigen iOS-navigatiebalk, net als de Bar-schermen: terug naar waar
+              je vandaan kwam, met de naam van het recept in het midden. */}
+          <div className="glass-light" style={{
+            position: "sticky", top: STICKY_TOP, zIndex: 20,
+            marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
+            display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
+            minHeight: 44, marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none", background: "rgba(243,236,221,0.92)",
+          }}>
+            <button onClick={goBack} onTouchStart={(e) => e.stopPropagation()} style={{
+              justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
+              cursor: "pointer", padding: "10px 8px 10px 0", margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
+            }}>
+              <ChevronLeft size={18} strokeWidth={2.4} /> {backLabel}
+            </button>
+            <div style={{
+              justifySelf: "center", fontFamily: systemFont, fontWeight: 600, fontSize: 17, color: INK, whiteSpace: "nowrap",
+              overflow: "hidden", textOverflow: "ellipsis", maxWidth: "46vw",
+            }}>
+              {recipe.name}
+            </div>
+            <div aria-hidden />
+          </div>
           {/* Apart element van EdgeSwipeBackArea's eigen contentRef (die de
               rand-swipe-terug-physics imperatief op translateX zet) zodat de
               mount-animatie hier niet met die transform kan botsen. De klasse
@@ -5817,7 +6888,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               return (
                 <li key={i} className="ingredient-reveal" style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none", animationDelay: `${0.44 + Math.min(i, 8) * 0.05}s` }}>
                   <span>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
-                  <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{scaled} {unitLabel(ing.unit, scaled)}</span>
+                  <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{ing.top && servings === 1 ? "top op" : `${formatDutchNumber(scaled)} ${unitLabel(ing.unit, scaled)}`}</span>
                 </li>
               );
             })}
@@ -5837,8 +6908,8 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                 <Plus size={14} /> Inchecken
               </button>
             )}
-            {missing.length > 0 && (
-              justAddedShopping ? (
+            {(missing.length > 0 || addedShoppingIds.has(recipe.id)) && (
+              addedShoppingIds.has(recipe.id) ? (
                 <span className="success-pop" style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, padding: "9px 2px" }}>
                   <Check size={14} strokeWidth={3} /> Toegevoegd aan winkelmandje
                 </span>
@@ -5848,9 +6919,9 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                 </button>
               )
             )}
-            {justAddedFeest ? (
-              <span className="success-pop" style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, padding: "9px 2px" }}>
-                <Check size={14} strokeWidth={3} /> Toegevoegd aan feestplanner
+            {(addedFeestIds.has(recipe.id) || feestChosen?.includes(recipe.id)) ? (
+              <span className={addedFeestIds.has(recipe.id) ? "success-pop" : undefined} style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, padding: "9px 2px" }}>
+                <Check size={14} strokeWidth={3} /> {addedFeestIds.has(recipe.id) ? "Toegevoegd aan feestplanner" : "In feestplanner"}
               </span>
             ) : (
               <button onClick={addToFeestplanner} disabled={feestChosen?.includes(recipe.id)} style={{
@@ -5862,22 +6933,19 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                 <PartyPopper size={14} /> {feestChosen?.includes(recipe.id) ? "Al in feestplanner" : "Voeg toe aan feestplanner"}
               </button>
             )}
-          </div>
-
-          <div style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS + 3, marginBottom: 16 }}>
-            {[["steps", "Stap voor stap"], ["full", "Volledig recept"]].map(([key, label]) => (
-              <button key={key} onClick={() => setRecipeView(key)}
-                style={{
-                  flex: 1, border: "none", borderRadius: RADIUS, padding: "9px 10px", fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-                  background: recipeView === key ? CREAM : "none", color: recipeView === key ? BOTTLE : MUTED,
-                  boxShadow: recipeView === key ? SHADOW_CARD : "none",
-                }}>
-                {label}
+            {batchOpener.current && (
+              <button onClick={() => batchOpener.current(recipe.id)} style={{
+                display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BRASS}`, color: BRASS,
+                borderRadius: 100, padding: "9px 14px", minHeight: 40, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: sans,
+              }}>
+                <Scale size={14} /> Maak een batch
               </button>
-            ))}
+            )}
           </div>
 
-          {recipeView === "steps" ? (
+          {/* Alleen "Stap voor stap" (op verzoek): de weergave "Volledig recept"
+              herhaalde dezelfde tekst in één blok en voegde niets toe. */}
+          <div style={{ fontFamily: systemFont, fontSize: 20, fontWeight: 700, color: INK, marginBottom: 14 }}>Stap voor stap</div>
             <div>
               {steps.map((step, i) => (
                 <div key={i} style={{ display: "flex", gap: 14, paddingBottom: i < steps.length - 1 || recipe.garnish ? 20 : 0 }}>
@@ -5911,14 +6979,6 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                 </div>
               )}
             </div>
-          ) : (
-            <div>
-              <p style={{ fontSize: 15, color: INK, lineHeight: 1.7, margin: 0 }}>{scaleStepText(recipe.method, servings)}</p>
-              {recipe.garnish && (
-                <p style={{ fontSize: 14, color: BRASS, lineHeight: 1.6, margin: "10px 0 0" }}><strong>Afwerking:</strong> {scaleStepText(recipe.garnish, servings)}</p>
-              )}
-            </div>
-          )}
           </div>
         </EdgeSwipeBackArea>
       )}
@@ -5960,23 +7020,36 @@ function LessonBlock({ block }) {
   return null;
 }
 
+// Slagen = minstens 80% goed (4 van 5 per les, 24 van 30 bij de eindtoets).
+const QUIZ_PASS_RATIO = 0.8;
+function shuffledIndexes(n) {
+  const idx = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+  return idx;
+}
+
 function QuizBlock({ quiz, onFinish }) {
   const [answers, setAnswers] = useState({});
   const [checked, setChecked] = useState(false);
+  // Antwoordvolgorde per poging opnieuw gehusseld: de plek van het goede
+  // antwoord verraadt niets, ook niet bij een tweede poging.
+  const [attempt, setAttempt] = useState(0);
+  const orders = useMemo(() => quiz.map(q => shuffledIndexes(q.options.length)), [quiz, attempt]);
 
   const score = quiz.reduce((acc, q, i) => acc + (answers[i] === q.correct ? 1 : 0), 0);
   const allAnswered = quiz.every((_, i) => answers[i] !== undefined);
-  const passed = score / quiz.length >= 0.7;
+  const passed = score / quiz.length >= QUIZ_PASS_RATIO;
 
   const check = () => { setChecked(true); onFinish(score); };
-  const retry = () => { setAnswers({}); setChecked(false); };
+  const retry = () => { setAnswers({}); setChecked(false); setAttempt(n => n + 1); };
 
   return (
     <div style={{ marginTop: 8 }}>
       {quiz.map((q, i) => (
         <div key={i} style={{ marginBottom: 22 }}>
           <p style={{ fontWeight: 700, fontFamily: systemFont, fontSize: 15, color: INK, margin: "0 0 10px" }}>{i + 1}. {q.q}</p>
-          {q.options.map((opt, oi) => {
+          {orders[i].map(oi => {
+            const opt = q.options[oi];
             const isSelected = answers[i] === oi;
             const isCorrect = oi === q.correct;
             let border = BORDER, bg = "transparent";
@@ -6017,7 +7090,7 @@ function QuizBlock({ quiz, onFinish }) {
             background: passed ? "rgba(92,122,82,0.14)" : "rgba(122,46,42,0.08)", border: `1px solid ${passed ? SAGE : BURGUNDY}`,
           }}>
             <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: passed ? SAGE : BURGUNDY }}>{score}/{quiz.length}</span>
-            <span style={{ fontSize: 12.5, color: INK }}>{passed ? "Geslaagd, mooi gedaan!" : "Nog niet geslaagd, probeer het nog eens."}</span>
+            <span style={{ fontSize: 12.5, color: INK }}>{passed ? "Geslaagd, mooi gedaan!" : `Nog niet geslaagd: je hebt er ${Math.ceil(quiz.length * QUIZ_PASS_RATIO)} goed nodig. Lees de uitleg en probeer het opnieuw.`}</span>
           </div>
           <button onClick={retry} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${MUTED}`, color: MUTED, borderRadius: RADIUS, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
             <RotateCcw size={13} /> Opnieuw proberen
@@ -6028,30 +7101,69 @@ function QuizBlock({ quiz, onFinish }) {
   );
 }
 
+// Eigen illustratie per les in de app-stijl (goud op donkergroen, zelfde
+// beeldtaal als het app-icoon) i.p.v. externe Unsplash-foto's: volledig
+// lokaal, werkt offline en geen licentievragen. Eén icoon per lesonderwerp.
+const LESSON_ICONS = {
+  geschiedenis: Landmark, uitrusting: Wrench, glaswerk: Wine, ijs: Snowflake,
+  gedistilleerd: FlaskRound, "likeuren-bitters": Droplets, vers: Citrus, garnering: Cherry,
+  basistechnieken: Martini, "verdunning-temperatuur": Thermometer, "sour-formule": Scale, finesse: Layers,
+  families: Shapes, smaakcombinatie: Puzzle, ontwerpen: PenTool, menu: ClipboardList,
+  "mise-en-place": ListChecks, "batchen-groepen": Users, gastvrijheid: HeartHandshake, signature: Award,
+  infusies: Leaf, "fat-washing": Droplet, clarificatie: Sparkles, "carbonatie-rook": CloudFog,
+};
+const LESSON_ART_BG = `radial-gradient(ellipse 140% 120% at 25% 10%, #2A4B42, ${BOTTLE_DARK} 75%)`;
+
+function LessonArt({ lesson, variant = "thumb" }) {
+  const Icon = LESSON_ICONS[lesson.id] || GraduationCap;
+  if (variant === "thumb") {
+    return (
+      <div aria-hidden style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, background: LESSON_ART_BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon size={20} color="#DDB877" strokeWidth={1.8} />
+      </div>
+    );
+  }
+  return (
+    <div aria-hidden style={{ position: "absolute", inset: 0, background: LESSON_ART_BG, overflow: "hidden" }}>
+      {/* Groot, vaag icoon rechts als achtergrondtextuur. */}
+      <Icon size={190} color="#B8862E" strokeWidth={1} style={{ position: "absolute", right: -30, top: -18, opacity: 0.13 }} />
+      <div style={{ position: "absolute", left: 18, top: 18, width: 64, height: 64, borderRadius: "50%", border: "1.5px solid rgba(184,134,46,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon size={30} color="#DDB877" strokeWidth={1.7} />
+      </div>
+    </div>
+  );
+}
+
 function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLesson, onGoToExam }) {
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizDone, setQuizDone] = useState(false);
 
+  // Binnen Bar → Cursus neemt de les de bovenste navigatiebalk over
+  // ("‹ Cursus · Les 3") i.p.v. een tweede terugknop eronder; in gastmodus
+  // (geen balk) blijft de losse terugknop staan.
+  const setNavOverride = useContext(NavOverrideContext);
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+  useEffect(() => {
+    if (!setNavOverride) return;
+    setNavOverride({ label: "Cursus", title: `Les ${lesson.number}`, onBack: () => onBackRef.current() });
+    return () => setNavOverride(null);
+  }, [setNavOverride, lesson.number]);
+
   return (
     <EdgeSwipeBackArea onBack={onBack}>
-      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontFamily: sans }}>
-        <ChevronDown size={14} style={{ transform: "rotate(90deg)" }} /> Terug naar overzicht
-      </button>
-
-      {lesson.image && (
-        <div style={{ position: "relative", height: 168, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 20, boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}` }}>
-          <img src={lesson.image} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-          <div style={{ position: "absolute", inset: 0, background: `linear-gradient(0deg, rgba(19,38,34,0.75), rgba(19,38,34,0.05) 60%)` }} />
-          <div style={{ position: "absolute", left: 16, bottom: 12, fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#D9CBAE" }}>
-            Les {lesson.number} &middot; {COURSE_PARTS.find(p => p.id === lesson.part)?.title}
-          </div>
-        </div>
+      {!setNavOverride && (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontFamily: sans }}>
+          <ChevronDown size={14} style={{ transform: "rotate(90deg)" }} /> Terug naar overzicht
+        </button>
       )}
-      {!lesson.image && (
-        <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: BRASS, marginBottom: 6 }}>
+
+      <div style={{ position: "relative", height: 150, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 20, boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}` }}>
+        <LessonArt lesson={lesson} variant="hero" />
+        <div style={{ position: "absolute", left: 18, bottom: 14, fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#D9CBAE" }}>
           Les {lesson.number} &middot; {COURSE_PARTS.find(p => p.id === lesson.part)?.title}
         </div>
-      )}
+      </div>
       <h2 style={{ fontFamily: systemFont, fontSize: 27, fontWeight: 700, color: INK, margin: "0 0 14px" }}>{lesson.title}</h2>
       <p style={{ fontStyle: "italic", color: MUTED, fontSize: 14, borderLeft: `3px solid ${BRASS}`, paddingLeft: 14, margin: "0 0 22px", lineHeight: 1.55 }}>{lesson.intro}</p>
 
@@ -6070,7 +7182,7 @@ function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLe
           <GraduationCap size={16} /> Start de toets
         </button>
       ) : (
-        <QuizBlock quiz={lesson.quiz} onFinish={(score) => { onComplete(score, lesson.quiz.length); setQuizDone(true); }} />
+        <QuizBlock quiz={lesson.quiz} onFinish={(score) => { onComplete(score, lesson.quiz.length); setQuizDone(score / lesson.quiz.length >= QUIZ_PASS_RATIO); }} />
       )}
 
       {quizDone && (
@@ -6127,6 +7239,8 @@ function FinalExamView({ progress, onBack, onComplete }) {
 function CursusTab({ progress, setProgress, onSound }) {
   const [selectedId, setSelectedId] = useState(null);
   const [examOpen, setExamOpen] = useState(false);
+  // Een les of toets openen begint bovenaan, niet halverwege de lessenlijst.
+  useEffect(() => { window.scrollTo(0, 0); }, [selectedId, examOpen]);
   const [activeBadgeId, setActiveBadgeId] = useState(null);
   const lesson = COURSE_LESSONS.find(l => l.id === selectedId) || null;
   const totalLessons = COURSE_LESSONS.length;
@@ -6134,6 +7248,16 @@ function CursusTab({ progress, setProgress, onSound }) {
   const allLessonsDone = completedCount === totalLessons;
   const examProgress = progress.eindtoets;
   const courseInsights = useMemo(() => computeCourseInsights(progress), [progress]);
+  const unlockedParts = useMemo(() => computeUnlockedParts(progress), [progress]);
+  const isLessonOpen = (l) => !!l && (unlockedParts.has(l.part) || !!progress[l.id]?.completed);
+  // Moment van uitspelen (alle lessen + eindtoets gehaald): één keer vieren.
+  const mastery = computeCourseMastery(progress);
+  const prevMasteredRef = useRef(!!mastery);
+  const [showDiplomaCelebration, setShowDiplomaCelebration] = useState(false);
+  useEffect(() => {
+    if (mastery && !prevMasteredRef.current) { setShowDiplomaCelebration(true); setTimeout(() => onSound("levelup"), 300); }
+    prevMasteredRef.current = !!mastery;
+  }, [!!mastery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Zelfde fanfare-op-echte-mijlpaal-truc als bij Check-in: alleen geluid als
   // het niveau of een badge daadwerkelijk verandert door het net afronden van
@@ -6157,29 +7281,41 @@ function CursusTab({ progress, setProgress, onSound }) {
 
   const complete = (lessonId, score, total) => {
     const prev = progress[lessonId];
-    setProgress({ ...progress, [lessonId]: { completed: true, bestScore: Math.max(score, prev?.bestScore ?? 0), total } });
-    if (score / total >= 0.7) onSound("chime");
+    const passedNow = score / total >= QUIZ_PASS_RATIO;
+    // Voltooid = ooit geslaagd; een mislukte poging telt niet meer als "af".
+    setProgress({ ...progress, [lessonId]: { completed: !!prev?.completed || passedNow, bestScore: Math.max(score, prev?.bestScore ?? 0), total } });
+    if (passedNow) onSound("chime");
     setJustCompleted(true);
     setTimeout(() => setJustCompleted(false), 3000);
   };
 
+  const diplomaCelebration = showDiplomaCelebration && (
+    <ConfirmDialog title="🎓 Gefeliciteerd, je bent gediplomeerd!"
+      message={`Je hebt alle ${totalLessons} lessen en de eindtoets gehaald. Je diploma "Gediplomeerd thuisbartender" staat nu op je profiel, en je vrienden zien het ook.`}
+      confirmLabel="Proost!" confirmColor={BOTTLE} cancelLabel="Sluiten"
+      onCancel={() => setShowDiplomaCelebration(false)} onConfirm={() => setShowDiplomaCelebration(false)} />
+  );
+
   if (examOpen) {
-    return (
+    return (<>
+      {diplomaCelebration}
       <FinalExamView progress={examProgress} onBack={() => setExamOpen(false)}
         onComplete={(score, total) => complete("eindtoets", score, total)} />
-    );
+    </>);
   }
 
   if (lesson) {
     const lessonIndex = COURSE_LESSONS.findIndex(l => l.id === lesson.id);
-    const nextLesson = COURSE_LESSONS[lessonIndex + 1] || null;
+    // "Volgende les" alleen als die al open is (volgend deel pas na afronden).
+    const nextCandidate = COURSE_LESSONS[lessonIndex + 1] || null;
+    const nextLesson = isLessonOpen(nextCandidate) ? nextCandidate : null;
     return (
       <LessonView key={lesson.id} lesson={lesson} progress={progress[lesson.id]}
         onBack={() => setSelectedId(null)}
         onComplete={(score, total) => complete(lesson.id, score, total)}
         nextLesson={nextLesson}
-        onGoToLesson={setSelectedId}
-        onGoToExam={() => { setSelectedId(null); setExamOpen(true); }} />
+        onGoToLesson={(id) => { if (isLessonOpen(COURSE_LESSONS.find(l => l.id === id))) setSelectedId(id); }}
+        onGoToExam={() => { if (!allLessonsDone) return; setSelectedId(null); setExamOpen(true); }} />
     );
   }
 
@@ -6258,33 +7394,42 @@ function CursusTab({ progress, setProgress, onSound }) {
         </div>
       </div>
 
-      {COURSE_PARTS.map(part => {
+      {COURSE_PARTS.map((part, partIndex) => {
         const lessons = COURSE_LESSONS.filter(l => l.part === part.id);
+        const partOpen = unlockedParts.has(part.id);
+        const prevPart = COURSE_PARTS[partIndex - 1];
         return (
           <div key={part.id} style={{ marginBottom: 26 }}>
             <SectionLabel>{part.subtitle} &middot; {part.title}</SectionLabel>
+            {!partOpen && prevPart && (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: MUTED, margin: "-4px 0 10px" }}>
+                <Lock size={13} /> Rond eerst {prevPart.subtitle} ({prevPart.title}) af
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {lessons.map(l => {
               const p = progress[l.id];
+              const open = isLessonOpen(l);
               return (
-                <button key={l.id} onClick={() => setSelectedId(l.id)} style={{
+                <button key={l.id} onClick={() => open && setSelectedId(l.id)} disabled={!open} aria-label={open ? undefined : `${l.title} (vergrendeld)`} style={{
                   width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left",
-                  background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, cursor: "pointer", padding: "12px 14px", boxSizing: "border-box",
+                  background: open ? CREAM : PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: open ? SHADOW_CARD : "none",
+                  cursor: open ? "pointer" : "default", padding: "12px 14px", boxSizing: "border-box", opacity: open ? 1 : 0.6,
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                    {l.image && <img src={l.image} alt="" loading="lazy" style={{ width: 42, height: 42, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />}
+                    <LessonArt lesson={l} />
                     <div style={{
                       width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                       background: p?.completed ? SAGE : "transparent", border: `1.5px solid ${p?.completed ? SAGE : BORDER}`,
                     }}>
-                      {p?.completed ? <Check size={14} color="#FBF6EA" strokeWidth={3} /> : <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, fontFamily: systemFont }}>{l.number}</span>}
+                      {p?.completed ? <Check size={14} color="#FBF6EA" strokeWidth={3} /> : !open ? <Lock size={13} color={MUTED} strokeWidth={2.4} /> : <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, fontFamily: systemFont }}>{l.number}</span>}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontFamily: systemFont, fontWeight: 700, color: INK, fontSize: 15.5 }}>{l.title}</div>
                       {p && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>Beste score: {p.bestScore}/{p.total}</div>}
                     </div>
                   </div>
-                  <ChevronDown size={16} color={MUTED} style={{ transform: "rotate(-90deg)", flexShrink: 0 }} />
+                  {open ? <ChevronDown size={16} color={MUTED} style={{ transform: "rotate(-90deg)", flexShrink: 0 }} /> : <Lock size={15} color={MUTED} style={{ flexShrink: 0 }} />}
                 </button>
               );
             })}
@@ -6304,13 +7449,14 @@ function CursusTab({ progress, setProgress, onSound }) {
           </div>
           <h3 style={{ fontFamily: systemFont, fontSize: 21, fontWeight: 700, color: CREAM, margin: "0 0 8px" }}>Eindtoets: Van Basis tot Pro</h3>
           <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.9)", margin: "0 0 16px", lineHeight: 1.5, maxWidth: 480 }}>
-            30 vragen door elkaar over alle zes delen. {examProgress?.completed ? `Beste score: ${examProgress.bestScore}/${examProgress.total}.` : "Mag altijd, ook als je nog niet alle lessen hebt afgerond."}
+            30 vragen door elkaar over alle zes delen. {examProgress?.completed ? `Beste score: ${examProgress.bestScore}/${examProgress.total}.` : allLessonsDone ? "Haal minstens 80% (24 van de 30) en je krijgt je diploma op je profiel." : "Gaat open zodra je alle zes delen hebt afgerond."}
           </p>
-          <button onClick={() => setExamOpen(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: CREAM, color: BOTTLE, border: "none", borderRadius: RADIUS, padding: "10px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
-            <GraduationCap size={15} /> {examProgress?.completed ? "Opnieuw proberen" : "Start de eindtoets"}
+          <button onClick={() => allLessonsDone && setExamOpen(true)} disabled={!allLessonsDone} style={{ opacity: allLessonsDone ? 1 : 0.55, cursor: allLessonsDone ? "pointer" : "default", display: "flex", alignItems: "center", gap: 6, background: CREAM, color: BOTTLE, border: "none", borderRadius: RADIUS, padding: "10px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+            {allLessonsDone ? <GraduationCap size={15} /> : <Lock size={14} />} {examProgress?.completed ? "Opnieuw proberen" : "Start de eindtoets"}
           </button>
         </div>
       </div>
+      {diplomaCelebration}
     </div>
   );
 }
@@ -6573,11 +7719,22 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
     if (actionsWidth === 0) return;
     drag.current.tracking = true;
     drag.current.startX = e.touches[0].clientX;
+    drag.current.startY = e.touches[0].clientY;
+    drag.current.locked = false;
     drag.current.baseX = open ? -actionsWidth : 0;
   };
   const onTouchMove = (e) => {
     if (!drag.current.tracking) return;
     const dx = e.touches[0].clientX - drag.current.startX;
+    const dy = e.touches[0].clientY - (drag.current.startY ?? e.touches[0].clientY);
+    // Richting vastleggen: verticaal = gewoon scrollen, horizontaal = vegen
+    // (en dan niet ook de terugveeg-gestiek van het scherm eromheen starten).
+    if (!drag.current.locked) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) > Math.abs(dx)) { drag.current.tracking = false; return; }
+      drag.current.locked = true;
+    }
+    e.stopPropagation();
     const next = Math.max(-actionsWidth, Math.min(0, drag.current.baseX + dx));
     setX(next, false);
   };
@@ -6621,11 +7778,13 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
 function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active,
   parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled }) {
   const [selectedPartyId, setSelectedPartyId] = useState(null);
+  // Een feest openen (of terug naar de lijst) begint bovenaan.
+  useEffect(() => { window.scrollTo(0, 0); }, [selectedPartyId]);
   const [showNewPartySheet, setShowNewPartySheet] = useState(false);
   const [creatingParty, setCreatingParty] = useState(false);
   const [confirmDeletePartyId, setConfirmDeletePartyId] = useState(null);
 
-  // Cross-tab "open dit feest direct" (bijv. vanuit Smaakbalans' "gebruik dit
+  // Cross-tab "open dit feest direct" (bijv. vanuit Menu-assistent' "gebruik dit
   // menu") — zelfde pendingRecipeId-patroon als de rest van de app.
   useEffect(() => {
     if (openPartyId) { setSelectedPartyId(openPartyId); onOpenPartyHandled(); }
@@ -6645,17 +7804,24 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
   const deleteParty = () => {
     onSound("remove");
     onDeleteParty(confirmDeletePartyId);
+    if (confirmDeletePartyId === selectedPartyId) setSelectedPartyId(null);
     setConfirmDeletePartyId(null);
   };
 
   if (selectedParty) {
     return (
+      <>
       <PartyDetailScreen key={selectedParty.id} session={session} party={selectedParty}
         onUpdateParty={patch => onUpdateParty(selectedParty.id, patch)}
-        onBack={() => setSelectedPartyId(null)}
+        onBack={() => setSelectedPartyId(null)} onDelete={() => setConfirmDeletePartyId(selectedParty.id)}
         recipes={recipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
         onAddToShoppingList={onAddToShoppingList} voorraadAantal={voorraadAantal} onSound={onSound} onOpenRecipe={onOpenRecipe}
         active={active} />
+      {confirmDeletePartyId && (
+        <ConfirmDialog title="Feest verwijderen?" message="Het menu, de inkooplijst en de voorbereiding van dit feest gaan verloren."
+          confirmLabel="Verwijder" onCancel={() => setConfirmDeletePartyId(null)} onConfirm={deleteParty} />
+      )}
+      </>
     );
   }
 
@@ -6847,7 +8013,7 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
   ), document.body);
 }
 
-function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active }) {
+function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active }) {
   const [activeTab, setActiveTab] = useState("menu");
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [shareState, setShareState] = useState(null);
@@ -6951,16 +8117,9 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
   const shareSurvey = async () => {
     if (!survey) return;
     onSound("share");
-    const url = `${window.location.origin}${window.location.pathname}?smaaktest=${survey.id}`;
-    const text = "Vul even je cocktailvoorkeuren in voor het feest!";
-    try {
-      if (navigator.share) { await navigator.share({ title: "Mijn Thuisbar: smaaktest", text, url }); setSurveyShareState("shared"); }
-      else { await navigator.clipboard.writeText(url); setSurveyShareState("copied"); }
-    } catch (e) {
-      if (e.name !== "AbortError") {
-        try { await navigator.clipboard.writeText(url); setSurveyShareState("copied"); } catch { setSurveyShareState("failed"); }
-      }
-    }
+    const result = await shareLink({ title: "Mijn Thuisbar: smaaktest", text: "Vul even je cocktailvoorkeuren in voor het feest!", url: publicAppUrl(`smaaktest=${survey.id}`) });
+    if (result === "cancelled") return;
+    setSurveyShareState(result === "no-url" ? "failed" : result);
     setTimeout(() => setSurveyShareState(null), 2500);
   };
 
@@ -7033,21 +8192,9 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
 
   const shareMenu = async (ids) => {
     onSound("share");
-    const url = `${window.location.origin}${window.location.pathname}?menu=${ids.join(",")}`;
-    const text = "Bekijk het cocktailmenu voor vanavond!";
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Mijn Thuisbar: menu", text, url });
-        setShareState("shared");
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareState("copied");
-      }
-    } catch (e) {
-      if (e.name !== "AbortError") {
-        try { await navigator.clipboard.writeText(url); setShareState("copied"); } catch { setShareState("failed"); }
-      }
-    }
+    const result = await shareLink({ title: "Mijn Thuisbar: menu", text: "Bekijk het cocktailmenu voor vanavond!", url: publicAppUrl(`menu=${ids.join(",")}`) });
+    if (result === "cancelled") return;
+    setShareState(result === "no-url" ? "failed" : result);
     setTimeout(() => setShareState(null), 2500);
   };
 
@@ -7167,6 +8314,32 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
     schedulePartyReminder(party).then(result => { if (result !== "ok") onUpdateParty({ reminder_enabled: false }); });
   }, [party.starts_at]);
 
+  // Eén navigatiebalk: de bovenste balk (van SecondaryTabScreen) toont hier
+  // "‹ Feesten · naam van het feest" met de deelknop, i.p.v. een tweede
+  // balk eronder. Terugvegen gaat daardoor ook naar de feestenlijst.
+  const setNavOverride = useContext(NavOverrideContext);
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+  const shareRef = useRef(null);
+  shareRef.current = () => shareMenu(chosen);
+  useEffect(() => {
+    if (!setNavOverride) return;
+    setNavOverride({
+      label: "Feesten",
+      title: party.name,
+      onBack: () => onBackRef.current(),
+      right: (
+        <button onClick={() => shareRef.current()} onTouchStart={(e) => e.stopPropagation()} title="Deel dit menu" aria-label="Deel dit menu" style={{
+          width: 32, height: 32, borderRadius: "50%", border: `1px solid ${SAGE}`, flexShrink: 0,
+          background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: SAGE,
+        }}>
+          <Share2 size={14} />
+        </button>
+      ),
+    });
+  }, [setNavOverride, party.name]);
+  useEffect(() => () => setNavOverride?.(null), [setNavOverride]);
+
   return (
     <div {...surveyPullHandlers} style={{ touchAction: "pan-y" }}>
       <div ref={surveyPullRef} aria-hidden style={{
@@ -7178,27 +8351,6 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
         </span>
       </div>
 
-      {/* Eigen navigatiebalk (net als een receptdetail): niet sticky, "Feesten"
-          links i.p.v. de vaste "Bar" van de buitenste SecondaryTabScreen. */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
-        height: 44, boxSizing: "border-box", marginBottom: 12, borderBottom: `1px solid ${BORDER}`,
-        marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-      }}>
-        <button onClick={onBack} style={{
-          justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
-          cursor: "pointer", padding: 0, margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
-        }}>
-          <ChevronLeft size={18} strokeWidth={2.4} /> Feesten
-        </button>
-        <div style={{ justifySelf: "center", maxWidth: "100%", fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{party.name}</div>
-        <button onClick={() => shareMenu(chosen)} title="Deel dit menu" style={{
-          justifySelf: "end", width: 32, height: 32, borderRadius: "50%", border: `1px solid ${SAGE}`, flexShrink: 0,
-          background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: SAGE,
-        }}>
-          <Share2 size={14} />
-        </button>
-      </div>
       {shareState && (
         <p style={{ fontSize: 11.5, color: SAGE, textAlign: "right", margin: "-8px 0 8px" }}>
           {shareState === "shared" ? "Gedeeld!" : shareState === "copied" ? "Link gekopieerd!" : "Delen mislukt"}
@@ -7226,6 +8378,14 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
               <div style={stepperValue}>{guests}</div>
               <button onClick={() => setGuests(Math.min(100, guests + 1))} style={stepperBtn}>+</button>
               <span style={{ fontSize: 11.5, color: MUTED }}>gasten</span>
+            </div>
+            {/* Drankjes per persoon stond alleen verstopt in het bewerkscherm
+                (tik op de datum); nu direct instelbaar, net als het aantal gasten. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }} onClick={e => e.stopPropagation()}>
+              <button onClick={() => setDrinksPerGuest(Math.max(1, drinksPerGuest - 1))} aria-label="Minder drankjes per persoon" style={stepperBtn}>−</button>
+              <div style={stepperValue}>{drinksPerGuest}</div>
+              <button onClick={() => setDrinksPerGuest(Math.min(10, drinksPerGuest + 1))} aria-label="Meer drankjes per persoon" style={stepperBtn}>+</button>
+              <span style={{ fontSize: 11.5, color: MUTED }}>drankjes p.p.</span>
             </div>
           </div>
           <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
@@ -7401,11 +8561,13 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
                         const warnings = getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals);
                         return (
                         <button key={recipe.id} onClick={() => setSuggestionSheetId(recipe.id)} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                          <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 7px", fontSize: 10.5, fontWeight: 700 }}>{score}% match</div>
                           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                             <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} />
                           </div>
                           <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 12.5, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
+                          {/* Match-label in de gewone flow i.p.v. absoluut rechtsboven:
+                              daar viel het achter de ronde foto en was het onleesbaar. */}
+                          <MatchPill pct={score} label="match" />
                           {requiredCount > 0 && (
                             <div style={{ fontSize: 10.5, color: MUTED, marginTop: 4 }}>{ownedCount} van {requiredCount} ingrediënten in huis</div>
                           )}
@@ -7715,6 +8877,18 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
       </>
       )}
 
+      {/* Altijd zichtbaar (niet alleen via naar-links-vegen in de lijst, wat
+          niemand vanzelf ontdekt). */}
+      {onDelete && (
+        <button onClick={onDelete} style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 28,
+          padding: "12px", borderRadius: RADIUS, border: `1px solid rgba(122,46,42,0.35)`, background: "none",
+          color: BURGUNDY, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer",
+        }}>
+          <Trash2 size={15} /> Feest verwijderen
+        </button>
+      )}
+
       {sheetIndex !== null && chosenRecipes[sheetIndex] && (() => {
         const r = chosenRecipes[sheetIndex];
         const required = r.ingredients.filter(ing => !ing.optional);
@@ -7728,228 +8902,662 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, recipes, isO
   );
 }
 
-function SmaakbalansTab({ recipes, isOwned, allIngredients, menu, setMenu, onUseInFeestplanner, onSound }) {
-  const [pickerValues, setPickerValues] = useState({});
-  const [expandedWhy, setExpandedWhy] = useState(null);
+// ===== Menu-assistent =====
+// Vervangt de oude Smaakbalans: in 7 korte vragen een menu in balans, per
+// smaakhoek (zelfde indeling als MENU_ROLES/getMenuRole) de best passende
+// cocktail. Antwoorden blijven bewaard (useStorage → Preferences).
+const MENU_ASSISTANT_DEFAULTS = {
+  count: 4, guests: 4, adventure: "mix", strength: "gemiddeld", effort: "werk",
+  avoid: [], mustHave: null, minBottles: false, buy: "max2", alcoholvrij: true,
+};
+const MENU_ASSISTANT_STEPS = 7;
+// Wat telt als "fles" bij bijkopen en "zo min mogelijk flessen": de sterke
+// drank, likeuren en bitters. Sap, frisdrank en citroenen zijn gewone
+// boodschappen en tellen niet mee.
+const MENU_BOTTLE_CATS = new Set(["Sterke drank", "Likeuren & versterkte wijnen", "Bitters"]);
+// Uit "Mixers", maar wél een fles die je apart koopt.
+const MENU_BOTTLE_EXTRA = new Set(["prosecco", "white_wine", "red_wine", "sake", "peach_schnapps", "beer", "stout"]);
+// Bekende klassiekers (wat de meeste gasten kennen of weleens besteld
+// hebben); de rest geldt als "minder bekend" voor de avontuurlijkheidsvraag.
+const MENU_CLASSICS = new Set([
+  "whiskey_sour", "daiquiri", "margarita", "pisco_sour", "gimlet", "cosmopolitan", "sidecar", "caipirinha",
+  "amaretto_sour", "gin_tonic", "cuba_libre", "moscow_mule", "paloma", "dark_n_stormy", "mojito", "long_island",
+  "americano", "sex_on_the_beach", "tequila_sunrise", "bloody_mary", "screwdriver", "pimms_cup", "old_fashioned",
+  "negroni", "sazerac", "boulevardier", "mint_julep", "martini", "manhattan", "dirty_martini", "tom_collins",
+  "french_75", "espresso_martini", "kir_royale", "bellini", "mimosa", "gin_fizz", "porn_star_martini",
+  "aperol_spritz", "pina_colada", "mai_tai", "bramble", "zombie", "white_russian", "black_russian",
+  "irish_coffee", "hot_toddy", "mulled_wine", "godfather", "rusty_nail", "brandy_alexander", "grasshopper",
+  "virgin_mojito", "virgin_pina_colada", "virgin_mule", "shirley_temple", "hugo", "blue_lagoon", "rob_roy",
+]);
+const MENU_AVOID_OPTIONS = [
+  { key: "eiwit", label: "Eiwit", ids: ["egg_white", "egg_yolk", "advocaat"] },
+  { key: "zuivel", label: "Room/zuivel", ids: ["heavy_cream", "whipped_cream", "milk", "irish_cream", "butter", "egg_yolk"] },
+  { key: "koffie", label: "Koffie", ids: ["espresso", "hot_coffee", "coffee_liqueur"] },
+  { key: "noten", label: "Noten", ids: ["amaretto", "orgeat", "frangelico", "creme_de_noyaux"] },
+  { key: "gin", label: "Gin", ids: ["gin", "sloe_gin"] },
+  { key: "whisky", label: "Whisky", ids: ["bourbon", "rye", "scotch", "irish_whiskey", "drambuie"] },
+  { key: "tequila", label: "Tequila", ids: ["tequila_blanco", "mezcal"] },
+  { key: "rum", label: "Rum", ids: ["white_rum", "dark_rum"] },
+  { key: "anijs", label: "Anijs", ids: ["absinthe", "galliano"] },
+  { key: "zoet", label: "Heel zoet", ids: [] },
+];
+const MENU_HOMEMADE_SYRUPS = new Set(["honey_syrup", "honey_ginger_syrup", "raspberry_syrup"]);
+const MENU_FRESH_JUICES = new Set(["lemon_juice", "lime_juice", "orange_juice", "grapefruit_juice", "pineapple_juice", "passion_fruit_puree", "peach_puree", "tomato_juice"]);
+const MENU_CORNER_COLORS = { fris: "var(--sage)", sterk: "var(--brass)", avontuurlijk: "var(--burgundy)", comfort: "#8A6A4A", alcoholvrij: "var(--sage)" };
+const MENU_CORNER_TITLES = { fris: "Fris & verfrissend", sterk: "Sterk & aromatisch", avontuurlijk: "Avontuurlijk", comfort: "Comfort", alcoholvrij: "Alcoholvrij" };
+const MENU_ANSWER_LABELS = {
+  adventure: { klassiek: "Vooral klassiekers", mix: "Een mix", verras: "Verras ze maar" },
+  strength: { licht: "Licht", gemiddeld: "Gemiddeld sterk", stevig: "Stevig" },
+  effort: { snel: "Snel en simpel", werk: "Mag wat werk zijn", bar: "Achter de bar" },
+  buy: { geen: "Alleen wat in huis is", max2: "Max 1–2 flessen", vrij: "Bijkopen mag" },
+};
 
-  const addFromRole = (roleKey) => {
-    const id = pickerValues[roleKey];
-    if (!id || menu.includes(id)) return;
-    onSound("pop");
-    setMenu([...menu, id]);
-    setPickerValues({ ...pickerValues, [roleKey]: null });
-  };
-  const removeFromMenu = (id) => { onSound("remove"); setMenu(menu.filter(x => x !== id)); };
+// Welke smaakhoeken er op een menu van N cocktails komen. De alcoholvrije
+// optie telt mee in N (zoals op een echte menukaart), de rest vult in deze
+// volgorde: fris, sterk, avontuurlijk, comfort, en daarna nog een fris/sterk.
+function menuSlotsFor(count, alcoholvrij) {
+  const base = [
+    { key: "fris", corner: "fris" }, { key: "sterk", corner: "sterk" },
+    { key: "avontuurlijk", corner: "avontuurlijk" }, { key: "comfort", corner: "comfort" },
+    { key: "fris2", corner: "fris" }, { key: "sterk2", corner: "sterk" },
+  ];
+  const n = alcoholvrij ? Math.max(1, count - 1) : count;
+  const slots = base.slice(0, n);
+  if (alcoholvrij) slots.push({ key: "alcoholvrij", corner: "alcoholvrij" });
+  return slots;
+}
 
-  const recipesByRole = useMemo(() => {
-    const map = {};
-    MENU_ROLE_KEYS.forEach(k => { map[k] = []; });
-    recipes.forEach(r => {
-      const role = getMenuRole(r);
-      if (map[role]) map[role].push(r);
-    });
-    return map;
-  }, [recipes]);
+function menuRecipeFacts(recipe, allIngredients, isOwned) {
+  const required = recipe.ingredients.filter(i => !i.optional);
+  const metas = recipe.ingredients.map(ing => ({ ing, meta: findIngredientMeta(ing, allIngredients) }));
+  const ids = new Set(metas.map(({ ing, meta }) => meta?.id || ing.id).filter(Boolean));
+  const missing = required.filter(ing => !isOwned(ing));
+  const bottleOf = (ing) => { const m = findIngredientMeta(ing, allIngredients); return m && (MENU_BOTTLE_CATS.has(m.cat) || MENU_BOTTLE_EXTRA.has(m.id)) ? m.id : null; };
+  const bottles = [...new Set(required.map(bottleOf).filter(Boolean))];
+  const missingBottles = [...new Set(missing.map(bottleOf).filter(Boolean))];
+  const techniques = inferTechniques(recipe.method);
+  const hasEgg = ids.has("egg_white") || ids.has("egg_yolk");
+  const hasDairy = [...ids].some(id => ["heavy_cream", "whipped_cream", "milk", "egg_yolk", "irish_cream", "butter"].includes(id));
+  const hasHomemade = [...ids].some(id => MENU_HOMEMADE_SYRUPS.has(id));
+  const hasFreshJuice = required.some(ing => MENU_FRESH_JUICES.has(findIngredientMeta(ing, allIngredients)?.id || ing.id));
+  const hot = [...ids].some(id => ["hot_water", "hot_coffee", "espresso"].includes(id)) || recipe.family === "Warme dranken";
+  // Vooraf te batchen: geen vers sap, ei, room of koffie en niets om te
+  // muddelen/laagjes te gieten. Bruis (tonic, soda) mag: dat gaat er bij
+  // het serveren pas bij.
+  const batchable = !hasFreshJuice && !hasEgg && !hasDairy && !hot && !techniques.some(t => ["muddle", "float_layer", "blend", "dry_shake"].includes(t));
+  const taste = getTasteProfile(recipe, allIngredients);
+  return { recipe, required, ids, missing, bottles, missingBottles, techniques, hasEgg, hasHomemade, batchable, taste };
+}
 
-  const menuRecipes = menu.map(id => recipes.find(r => r.id === id)).filter(Boolean);
+function menuCornerOf(recipe, taste) {
+  const role = getMenuRole(recipe);
+  if (role !== "overig") return role;
+  return taste.sterk >= 4 ? "sterk" : "fris";
+}
 
-  const roleCounts = useMemo(() => {
-    const counts = {};
-    MENU_ROLE_KEYS.forEach(k => { counts[k] = 0; });
-    menuRecipes.forEach(r => {
-      const role = getMenuRole(r);
-      if (role !== "overig") counts[role] = (counts[role] || 0) + 1;
-    });
-    return counts;
-  }, [menuRecipes]);
-  const maxCount = Math.max(1, ...Object.values(roleCounts));
+// Harde filters op de antwoorden (vragen 3, 4, 5 en 7).
+function menuPassesFilters(f, answers, corner) {
+  const avoidIds = new Set(MENU_AVOID_OPTIONS.filter(o => answers.avoid.includes(o.key)).flatMap(o => o.ids));
+  if ([...f.ids].some(id => avoidIds.has(id))) return false;
+  if (answers.avoid.includes("zoet") && f.taste.zoet >= 4) return false;
+  if (answers.effort === "snel" && (f.required.length > 3 || f.hasEgg || f.hasHomemade || f.techniques.includes("dry_shake") || f.techniques.includes("float_layer"))) return false;
+  if (answers.effort === "werk" && (f.required.length > 5 || f.techniques.includes("float_layer") || f.techniques.includes("blend"))) return false;
+  if (corner !== "alcoholvrij") {
+    if (answers.strength === "licht" && f.taste.sterk > 3) return false;
+    if (answers.strength === "gemiddeld" && f.taste.sterk > 4) return false;
+  }
+  if (answers.buy === "geen" && f.missingBottles.length > 0) return false;
+  if (answers.buy === "max2" && f.missingBottles.length > 2) return false;
+  return true;
+}
 
-  const sharedIngredients = useMemo(() => {
-    const count = new Map();
-    menuRecipes.forEach(r => {
-      const seen = new Set();
-      r.ingredients.forEach(ing => {
-        const key = ingredientKey(ing);
-        if (seen.has(key)) return;
-        seen.add(key);
-        const label = findIngredientMeta(ing, allIngredients)?.name || ing.name || ing.id;
-        const entry = count.get(key) || { label, n: 0 };
-        entry.n += 1;
-        count.set(key, entry);
-      });
-    });
-    return [...count.values()].filter(e => e.n >= 2).sort((a, b) => b.n - a.n);
-  }, [menuRecipes, allIngredients]);
+function menuScore(f, answers, corner, menuBottles, tasteLikes, allIngredients) {
+  const reasons = [];
+  let score = 0;
+  const classic = MENU_CLASSICS.has(f.recipe.id);
+  if (answers.adventure === "klassiek") { score += classic ? 3 : -1.5; if (classic) reasons.push({ w: 3, t: "Klassieker" }); }
+  else if (answers.adventure === "verras") { score += classic ? -1 : 2.5; if (!classic) reasons.push({ w: 3, t: "Jouw verrassing" }); }
+  else {
+    // Een mix: klassiekers in de vertrouwde hoeken, een verrassing in de avontuurlijke.
+    const wantSurprise = corner === "avontuurlijk";
+    score += classic === !wantSurprise ? 1.5 : 0;
+    if (classic && !wantSurprise) reasons.push({ w: 2, t: "Klassieker" });
+    if (!classic && wantSurprise) reasons.push({ w: 2.5, t: "Jouw verrassing" });
+  }
+  // In huis hebben weegt zwaar: ontbrekende flessen kosten geld, ontbrekende
+  // boodschappen (limoen, tonic) veel minder.
+  score -= f.missingBottles.length * 2.2;
+  score -= (f.missing.length - f.missingBottles.length) * 0.9;
+  if (f.missing.length === 0) score += 1.5;
+  if (f.batchable) { score += 0.8; reasons.push({ w: 1, t: "te batchen" }); }
+  if (answers.strength === "licht" && corner !== "alcoholvrij") score += (3 - f.taste.sterk) * 0.4;
+  if (answers.strength === "stevig" && corner !== "alcoholvrij") score += f.taste.sterk * 0.35;
+  if (answers.effort === "snel") score += (4 - f.required.length) * 0.3;
+  if (f.required.length <= 3) reasons.push({ w: 1.2, t: `${f.required.length} ingrediënten` });
+  if (answers.minBottles) {
+    const shared = f.bottles.filter(b => menuBottles.has(b));
+    score += shared.length * 1.6;
+    if (shared.length > 0) {
+      const name = (findIngredientMeta({ id: shared[0] }, allIngredients)?.name || shared[0]).split(" (")[0].toLowerCase();
+      reasons.push({ w: 4, t: `${name} dubbel gebruikt` });
+    }
+  }
+  // Zonder "zo min mogelijk flessen" juist wat afwisseling: niet vier keer dezelfde basis.
+  if (!answers.minBottles) score -= f.bottles.filter(b => menuBottles.has(b)).length * 0.6;
+  if (tasteLikes) {
+    const fit = ["zoet", "zuur", "bitter", "sterk"].reduce((s, k) => s + ((tasteLikes[k] || 0) / 100) * (f.taste[k] / 5), 0);
+    score += fit * 0.8;
+    if (fit >= 1) reasons.push({ w: 1.5, t: "past bij jouw smaak" });
+  }
+  if (corner === "fris" && f.taste.sterk <= 2) reasons.push({ w: 0.8, t: "fris en licht" });
+  if (corner === "sterk") reasons.push({ w: 0.5, t: "stevig en aromatisch" });
+  if (corner === "comfort") reasons.push({ w: 0.6, t: "zacht en romig" });
+  if (corner === "alcoholvrij") reasons.push({ w: 0.9, t: "voor wie niet drinkt" });
+  // Kleine, vaste tie-breaker zodat het menu niet bij elke render verspringt.
+  score += (hashString(f.recipe.id) % 100) / 1000;
+  const top = reasons.sort((a, b) => b.w - a.w).slice(0, 2).map(r => r.t);
+  const why = top.length ? top.join(" · ").replace(/^./, c => c.toUpperCase()) : "";
+  return { score, why };
+}
 
-  const tasteAvg = useMemo(() => {
-    if (menuRecipes.length === 0) return null;
-    const sums = { zoet: 0, zuur: 0, bitter: 0, sterk: 0 };
-    menuRecipes.forEach(r => {
-      const p = getTasteProfile(r, allIngredients);
-      sums.zoet += p.zoet; sums.zuur += p.zuur; sums.bitter += p.bitter; sums.sterk += p.sterk;
-    });
-    const n = menuRecipes.length;
-    return { zoet: sums.zoet / n, zuur: sums.zuur / n, bitter: sums.bitter / n, sterk: sums.sterk / n };
-  }, [menuRecipes, allIngredients]);
+// Stelt het menu samen: vastgezette kaarten eerst, dan per smaakhoek de
+// hoogste score (of — na "Wissel" — de volgende kandidaat).
+function buildAssistantMenu({ facts, answers, slots, locks, swaps, tasteLikes, allIngredients }) {
+  const byId = new Map(facts.map(f => [f.recipe.id, f]));
+  const chosen = new Map();
+  const usedIds = new Set();
+  const menuBottles = new Set();
+  const missingBottles = new Set();
+  slots.forEach(slot => {
+    const id = locks[slot.key];
+    const f = id && byId.get(id);
+    if (!f) return;
+    chosen.set(slot.key, { f, locked: true, why: menuScore(f, answers, slot.corner, new Set(), tasteLikes, allIngredients).why });
+    usedIds.add(id);
+    f.bottles.forEach(b => menuBottles.add(b));
+    f.missingBottles.forEach(b => missingBottles.add(b));
+  });
+  slots.forEach(slot => {
+    if (chosen.has(slot.key)) return;
+    const candidates = facts
+      .filter(f => !usedIds.has(f.recipe.id) && f.corner === slot.corner && menuPassesFilters(f, answers, slot.corner))
+      .filter(f => answers.buy !== "max2" || new Set([...missingBottles, ...f.missingBottles]).size <= 2)
+      .map(f => ({ f, ...menuScore(f, answers, slot.corner, menuBottles, tasteLikes, allIngredients) }))
+      .sort((a, b) => b.score - a.score);
+    if (candidates.length === 0) { chosen.set(slot.key, { f: null, count: 0 }); return; }
+    const pick = candidates[(swaps[slot.key] || 0) % candidates.length];
+    chosen.set(slot.key, { f: pick.f, why: pick.why, count: candidates.length });
+    usedIds.add(pick.f.recipe.id);
+    pick.f.bottles.forEach(b => menuBottles.add(b));
+    pick.f.missingBottles.forEach(b => missingBottles.add(b));
+  });
+  return slots.map(slot => ({ slot, ...chosen.get(slot.key) }));
+}
 
-  const weakestAxis = useMemo(() => {
-    if (!tasteAvg || menuRecipes.length < 2) return null;
-    const [key, value] = Object.entries(tasteAvg).sort((a, b) => a[1] - b[1])[0];
-    return value < 1.5 ? key : null;
-  }, [tasteAvg, menuRecipes.length]);
-
-  const suggestions = useMemo(() => {
-    if (!weakestAxis) return [];
-    return recipes
-      .filter(r => !menu.includes(r.id))
-      .map(r => {
-        const score = getTasteProfile(r, allIngredients)[weakestAxis];
-        const missingCount = r.ingredients.filter(ing => !ing.optional).filter(ing => !isOwned(ing)).length;
-        return { r, score, missingCount };
-      })
-      .filter(x => x.score >= 3)
-      .sort((a, b) => (a.missingCount - b.missingCount) || (b.score - a.score))
-      .slice(0, 2);
-  }, [weakestAxis, recipes, menu, allIngredients, isOwned]);
-
-  const addToMenu = (id) => { if (!menu.includes(id)) { onSound("pop"); setMenu([...menu, id]); } };
-
+function MenuOptionCard({ selected, onClick, icon, title, subtitle }) {
   return (
-    <div>
-      <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 18, marginBottom: 26 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-          <Sparkles size={15} color={BRASS} />
-          <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Hoe bartending-menu's in elkaar zitten</span>
-        </div>
-        <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: "0 0 10px" }}>
-          Menuguides voor bars werken met een "smaakmatrix" van vier hoeken: <strong>fris &amp; verfrissend</strong>,
-          <strong> avontuurlijk</strong>, <strong>sterk &amp; aromatisch</strong> en <strong>comfort</strong>, met daarnaast altijd
-          een volwaardige <strong>alcoholvrije</strong> optie. Elke hoek moet ongeveer even zwaar wegen, anders voelt het menu
-          eenzijdig aan. Voor een bar is 10-12 opties gangbaar; voor een housefeestje is 3-6 cocktails ruim genoeg.
-        </p>
-        <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: 0 }}>
-          Praktische vuistregels die er direct bij horen: reken op 2 drankjes per gast het eerste uur en daarna 1 per uur;
-          een fles van 70cl levert ongeveer 16 drankjes van 45 ml op; en gestirde cocktails zonder vers sap of ei
-          (Sterk &amp; aromatisch) zijn het makkelijkst om vooraf te batchen, wat jou als gastheer tijd bespaart tijdens het feest.
-          Bouw hieronder je eigen menu: de balk per smaakhoek laat live zien of je iets mist.
-        </p>
-      </div>
+    <button onClick={onClick} role="radio" aria-checked={selected} className="press-scale" style={{
+      display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 64, boxSizing: "border-box",
+      padding: "12px 14px", marginBottom: 10, textAlign: "left", cursor: "pointer", fontFamily: sans,
+      background: CREAM, borderRadius: 14, border: `1.5px solid ${selected ? BOTTLE : BORDER}`,
+      boxShadow: selected ? "none" : SHADOW_CARD, transition: "border-color 0.15s ease",
+    }}>
+      <span style={{
+        width: 38, height: 38, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+        background: selected ? BOTTLE : PAPER_DEEP, color: selected ? "#F1D9A6" : BRASS, fontFamily: serif, fontWeight: 700, fontSize: 16,
+      }}>{icon}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: INK }}>{title}</span>
+        {subtitle && <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{subtitle}</span>}
+      </span>
+      <span aria-hidden style={{
+        width: 22, height: 22, borderRadius: "50%", flexShrink: 0, boxSizing: "border-box",
+        border: `2px solid ${selected ? BOTTLE : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        {selected && <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOTTLE }} />}
+      </span>
+    </button>
+  );
+}
 
-      <div style={{ marginBottom: 26 }}>
-        <SectionLabel>Voeg toe per smaakhoek</SectionLabel>
-        <p style={{ fontSize: 12.5, color: MUTED, margin: "0 0 14px", lineHeight: 1.5 }}>
-          Kies hieronder per hoek een cocktail, zo weet je meteen onder welke categorie 'm valt, in plaats van dat pas achteraf te zien.
-        </p>
-        {MENU_ROLE_KEYS.map(key => {
-          const role = MENU_ROLES[key];
-          const roleRecipes = recipesByRole[key];
-          const value = pickerValues[key] || null;
-          return (
-            <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: BRASS, letterSpacing: 0.4, minWidth: 150 }}>{role.label}</span>
-              <RecipePicker recipes={roleRecipes} value={value} listId={`balans-add-${key}`}
-                onChange={id => setPickerValues({ ...pickerValues, [key]: id })} style={{ flex: "1 1 180px" }} />
-              <button onClick={() => addFromRole(key)} disabled={!value}
-                style={{ display: "flex", alignItems: "center", gap: 5, background: value ? BOTTLE : BORDER, color: value ? "#FBF6EA" : MUTED, border: "none", borderRadius: 3, padding: "8px 13px", fontSize: 13, fontWeight: 700, cursor: value ? "pointer" : "default" }}>
-                <Plus size={13} /> Toevoegen
-              </button>
-            </div>
-          );
-        })}
+function MenuToggleRow({ title, subtitle, checked, onChange }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 64, boxSizing: "border-box", padding: "12px 14px", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, marginTop: 6 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>{title}</div>
+        {subtitle && <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{subtitle}</div>}
       </div>
+      <Switch checked={checked} onChange={onChange} />
+    </div>
+  );
+}
 
-      <div style={{ marginBottom: 28 }}>
-        <SectionLabel>Balans van je menu</SectionLabel>
-        {MENU_ROLE_KEYS.map(key => {
-          const role = MENU_ROLES[key];
-          const count = roleCounts[key] || 0;
-          return (
-            <div key={key} style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                <span style={{ color: INK, fontWeight: 600 }}>{role.label}</span>
-                <span style={{ color: count === 0 ? BURGUNDY : MUTED, fontWeight: 600 }}>{count}</span>
-              </div>
-              <div style={{ height: 6, background: BORDER, borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ width: `${(count / maxCount) * 100}%`, height: "100%", background: count === 0 ? BURGUNDY : BOTTLE }} />
-              </div>
-              {count === 0 && menuRecipes.length > 0 && (
-                <p style={{ fontSize: 12, color: MUTED, margin: "5px 0 0", lineHeight: 1.5 }}>Nog niets hier: {role.why}</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
+function MenuBalanceInfo() {
+  return (
+    <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 16px", margin: "4px 0 16px" }}>
+      <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: "0 0 8px" }}>
+        Bars bouwen een menu op vier smaakhoeken: <strong>fris &amp; verfrissend</strong>, <strong>sterk &amp; aromatisch</strong>,
+        {" "}<strong>avontuurlijk</strong> en <strong>comfort</strong>, met daarnaast een volwaardige <strong>alcoholvrije</strong> optie.
+        Zo vindt elke gast iets en voelt het menu niet eenzijdig.
+      </p>
+      <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: 0 }}>
+        Vuistregels: reken op 2 drankjes per gast het eerste uur en daarna 1 per uur. Geroerde cocktails zonder vers sap of ei
+        kun je vooraf batchen, dan sta je tijdens het feest minder achter de bar.
+      </p>
+    </div>
+  );
+}
 
-      {weakestAxis && suggestions.length > 0 && (
-        <div style={{ marginBottom: 22, padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: BRASS, marginBottom: 6 }}>Slimme aanvulling</div>
-          <p style={{ fontSize: 13, color: INK, margin: "0 0 10px", lineHeight: 1.5 }}>
-            Je menu scoort laag op <strong>{{ zoet: "zoet", zuur: "zuur", bitter: "bitter", sterk: "sterk" }[weakestAxis]}</strong>. Dit zijn recepten die dat aanvullen, met voorrang voor wat je al in huis hebt:
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {suggestions.map(({ r, missingCount }) => (
-              <button key={r.id} onClick={() => addToMenu(r.id)}
-                style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: RADIUS, padding: "7px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                <Plus size={13} /> {r.name}
-                <StatusTag missingCount={missingCount} />
-              </button>
-            ))}
+function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, favoriteRecipeIds = [], recentRecipeIds = [], tasteLikes, onAddToShoppingList, onUseInFeestplanner, onSound }) {
+  const [stored, setStored] = useStorage("thuisbar-menu-assistent", MENU_ASSISTANT_DEFAULTS);
+  const answers = { ...MENU_ASSISTANT_DEFAULTS, ...stored };
+  const setAnswer = (patch) => setStored({ ...answers, ...patch });
+  const [step, setStep] = useState(1); // 1..7, 8 = menu
+  const [locks, setLocks] = useState({});
+  const [swaps, setSwaps] = useState({});
+  const [showInfo, setShowInfo] = useState(false);
+  const [listAdded, setListAdded] = useState(false);
+  const [shareState, setShareState] = useState(null);
+  const [swapFlash, setSwapFlash] = useState(null);
+  const showMenu = step > MENU_ASSISTANT_STEPS;
+
+  const goTo = (next) => { setStep(next); setShowInfo(false); window.scrollTo({ top: 0 }); };
+
+  // Navigatiebalk: "Sla over" bij de optionele vragen, op het menu "‹ Vragen" + info.
+  const setNavOverride = useContext(NavOverrideContext);
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  useEffect(() => {
+    if (!setNavOverride) return;
+    const linkStyle = { background: "none", border: "none", cursor: "pointer", color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700, padding: "10px 0 10px 8px", minHeight: 44 };
+    if (showMenu) {
+      setNavOverride({
+        label: "Vragen", title: "Menu-assistent", onBack: () => goTo(MENU_ASSISTANT_STEPS),
+        right: (
+          <button onClick={() => setShowInfo(v => !v)} aria-label="Hoe werkt een gebalanceerd menu?" style={{ ...linkStyle, display: "flex", alignItems: "center", minWidth: 44, justifyContent: "flex-end" }}>
+            <Info size={18} />
+          </button>
+        ),
+      });
+    } else if (step >= 2 && step <= 6) {
+      setNavOverride({ right: <button onClick={() => goTo(stepRef.current + 1)} style={linkStyle}>Sla over</button> });
+    } else {
+      setNavOverride(null);
+    }
+  }, [setNavOverride, step, showMenu]);
+  useEffect(() => () => setNavOverride && setNavOverride(null), [setNavOverride]);
+
+  const facts = useMemo(() => recipes.map(r => {
+    const f = menuRecipeFacts(r, allIngredients, isOwned);
+    return { ...f, corner: menuCornerOf(r, f.taste) };
+  }), [recipes, allIngredients, isOwned]);
+  const factsById = useMemo(() => new Map(facts.map(f => [f.recipe.id, f])), [facts]);
+
+  const slots = useMemo(() => {
+    const s = menuSlotsFor(answers.count, answers.alcoholvrij);
+    const must = answers.mustHave && factsById.get(answers.mustHave);
+    if (must && !s.some(x => x.corner === must.corner)) {
+      // Must-have valt in een hoek die bij dit aantal niet op het menu staat:
+      // die hoek vervangt dan de laatste niet-alcoholvrije plek.
+      const idx = s.reduce((acc, x, i) => (x.corner !== "alcoholvrij" ? i : acc), -1);
+      if (idx >= 0) s[idx] = { key: must.corner, corner: must.corner };
+    }
+    return s;
+  }, [answers.count, answers.alcoholvrij, answers.mustHave, factsById]);
+
+  const startMenu = () => {
+    onSound?.("chime");
+    const must = answers.mustHave && factsById.get(answers.mustHave);
+    const nextLocks = {};
+    if (must) {
+      const slot = slots.find(s => s.corner === must.corner);
+      if (slot) nextLocks[slot.key] = must.recipe.id;
+    }
+    setLocks(nextLocks);
+    setSwaps({});
+    setListAdded(false);
+    goTo(MENU_ASSISTANT_STEPS + 1);
+  };
+
+  const menu = useMemo(
+    () => showMenu ? buildAssistantMenu({ facts, answers, slots, locks, swaps, tasteLikes, allIngredients }) : [],
+    [showMenu, facts, stored, slots, locks, swaps, tasteLikes, allIngredients]
+  );
+  const picked = menu.filter(m => m.f);
+  const makeable = picked.filter(m => m.f.missing.length === 0).length;
+  const batchCount = picked.filter(m => m.f.batchable).length;
+  const missingRows = useMemo(() => {
+    const map = new Map();
+    picked.forEach(m => m.f.missing.forEach(ing => {
+      const key = ingredientKey(ing);
+      if (!map.has(key)) map.set(key, { ref: ing, label: ingredientLabel(ing), recipeNames: [] });
+      map.get(key).recipeNames.push(m.f.recipe.name);
+    }));
+    return [...map.values()];
+  }, [menu]);
+  const missingKey = missingRows.map(r => ingredientKey(r.ref)).join("|");
+  useEffect(() => { setListAdded(false); }, [missingKey]);
+  const drinks = Math.round(answers.guests * 2.5);
+
+  const toggleLock = (slotKey, recipeId) => {
+    onSound?.("tick");
+    setLocks(prev => {
+      const next = { ...prev };
+      if (next[slotKey]) delete next[slotKey]; else next[slotKey] = recipeId;
+      return next;
+    });
+  };
+  const swap = (slotKey) => {
+    onSound?.("pop");
+    setSwaps(prev => ({ ...prev, [slotKey]: (prev[slotKey] || 0) + 1 }));
+    setSwapFlash(slotKey);
+    setTimeout(() => setSwapFlash(k => (k === slotKey ? null : k)), 350);
+  };
+
+  const shareMenu = async () => {
+    const names = picked.map(m => m.f.recipe.name);
+    if (names.length === 0) return;
+    onSound?.("share");
+    const title = "Mijn Thuisbar: menu";
+    const text = `Het cocktailmenu voor vanavond:\n${names.map(n => `• ${n}`).join("\n")}`;
+    const url = publicAppUrl(`menu=${picked.map(m => m.f.recipe.id).join(",")}`);
+    let result;
+    if (url) {
+      result = await shareLink({ title, text: "Bekijk het cocktailmenu voor vanavond!", url });
+    } else {
+      // Nog geen openbare webversie ingesteld: deel het menu dan als tekst.
+      try {
+        if (isNativeShell) { await Share.share({ title, text, dialogTitle: title }); result = "shared"; }
+        else if (navigator.share) { await navigator.share({ title, text }); result = "shared"; }
+        else { await navigator.clipboard.writeText(text); result = "copied"; }
+      } catch (e) {
+        result = /cancel|abort/i.test(`${e?.name} ${e?.message}`) ? "cancelled" : "failed";
+      }
+    }
+    if (result === "cancelled") return;
+    setShareState(result === "no-url" ? "failed" : result);
+    setTimeout(() => setShareState(null), 2500);
+  };
+
+  const answerChips = [
+    MENU_ANSWER_LABELS.adventure[answers.adventure],
+    MENU_ANSWER_LABELS.strength[answers.strength],
+    MENU_ANSWER_LABELS.effort[answers.effort],
+    ...MENU_AVOID_OPTIONS.filter(o => answers.avoid.includes(o.key)).map(o => `Zonder ${o.label.toLowerCase()}`),
+    answers.minBottles ? "Min. flessen" : null,
+    MENU_ANSWER_LABELS.buy[answers.buy],
+  ].filter(Boolean);
+
+  // ---------- Menu ----------
+  if (showMenu) {
+    const allFilled = menu.every(m => m.f);
+    const smallBtn = (active) => ({
+      width: 44, height: 44, borderRadius: 12, border: `1px solid ${active ? BRASS : BORDER}`,
+      background: active ? "rgba(184,134,46,0.16)" : PAPER_DEEP, color: active ? BRASS : MUTED,
+      display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0,
+    });
+    return (
+      <div style={{ fontFamily: sans }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+          <div>
+            <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.15 }}>Jouw menu</h1>
+            <div style={{ fontSize: 13.5, color: MUTED, marginTop: 4 }}>{menu.length} cocktails · {answers.guests} {answers.guests === 1 ? "gast" : "gasten"}</div>
           </div>
+          <button onClick={() => goTo(1)} style={{ background: "none", border: "none", color: BRASS, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer", minHeight: 44, padding: "0 0 0 8px" }}>Aanpassen</button>
         </div>
-      )}
 
-      <SectionLabel>Jouw menu ({menuRecipes.length})</SectionLabel>
-      {menuRecipes.length === 0 ? (
-        <p style={{ color: MUTED, fontSize: 14, padding: "10px 0 20px" }}>Nog leeg. Zoek hierboven een cocktail op en voeg 'm toe.</p>
-      ) : (
+        {showInfo && <MenuBalanceInfo />}
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+          {answerChips.map(c => (
+            <span key={c} style={{ fontSize: 12, fontWeight: 600, color: INK, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "5px 10px" }}>{c}</span>
+          ))}
+        </div>
+
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "11px 14px", borderRadius: 12, marginBottom: 14, fontSize: 13.5, fontWeight: 600,
+          background: allFilled ? "rgba(92,122,82,0.16)" : "rgba(122,46,42,0.10)", color: allFilled ? SAGE : BURGUNDY,
+        }}>
+          {allFilled ? <Check size={16} strokeWidth={2.6} /> : <Info size={16} />}
+          {allFilled
+            ? (menu.length >= 4 ? "In balans: elke smaakhoek is vertegenwoordigd" : "In balans: drie verschillende smaakhoeken")
+            : "Niet elke smaakhoek heeft een match"}
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {menuRecipes.map(r => {
-            const role = getMenuRole(r);
-            const roleInfo = MENU_ROLES[role];
-            const missingCount = r.ingredients.filter(ing => !ing.optional).filter(ing => !isOwned(ing)).length;
-            const isExpanded = expandedWhy === r.id;
-            return (
-              <div key={r.id} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 15.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
-                    <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{r.family} · {r.glass}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                    <button onClick={() => setExpandedWhy(isExpanded ? null : r.id)}
-                      style={{ background: "none", border: `1px solid ${BRASS}`, color: BRASS, borderRadius: 3, padding: "4px 9px", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", cursor: "pointer" }}>
-                      {roleInfo.label}
-                    </button>
-                    <StatusTag missingCount={missingCount} />
-                    <button onClick={() => removeFromMenu(r.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
-                      <X size={15} color={MUTED} />
-                    </button>
-                  </div>
+          {menu.map(({ slot, f, why, locked, count }) => {
+            const isLocked = !!locks[slot.key];
+            if (!f) {
+              return (
+                <div key={slot.key} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "14px 14px", boxShadow: SHADOW_CARD }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: MENU_CORNER_COLORS[slot.corner] }}>{MENU_CORNER_TITLES[slot.corner]}</div>
+                  <div style={{ fontFamily: serif, fontSize: 17, fontWeight: 700, color: INK, marginTop: 4 }}>Geen match</div>
+                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>Niets in deze smaakhoek past bij je antwoorden. Pas je antwoorden aan, bijvoorbeeld wat je wilt vermijden of bijkopen.</div>
+                  <button onClick={() => goTo(1)} style={{ marginTop: 8, background: "none", border: "none", color: BRASS, fontWeight: 700, fontSize: 13.5, cursor: "pointer", padding: 0, minHeight: 44, fontFamily: sans }}>Antwoorden aanpassen</button>
                 </div>
-                {isExpanded && <p style={{ fontSize: 12.5, color: MUTED, margin: "10px 0 0", lineHeight: 1.5 }}>{roleInfo.why}</p>}
+              );
+            }
+            const missingLabels = f.missing.map(ing => ingredientLabel(ing));
+            const status = f.missing.length === 0
+              ? `Alles in huis${f.batchable ? " · batchbaar" : ""}`
+              : `Mist: ${missingLabels.join(", ")}${f.batchable ? " · batchbaar" : ""}`;
+            const canSwap = !isLocked && (count || 0) > 1;
+            return (
+              <div key={slot.key} className={swapFlash === slot.key ? "success-pop" : undefined} style={{
+                display: "flex", alignItems: "center", gap: 12, background: CREAM, borderRadius: 16, padding: 10, boxShadow: SHADOW_CARD,
+                border: `1.5px solid ${isLocked ? BRASS : BORDER}`,
+              }}>
+                <RecipeCircle recipe={f.recipe} allIngredients={allIngredients} size={72} radius={12} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: MENU_CORNER_COLORS[slot.corner] }}>{MENU_CORNER_TITLES[slot.corner]}</div>
+                  <div style={{ fontFamily: serif, fontSize: 18, fontWeight: 700, color: INK, marginTop: 2, lineHeight: 1.2 }}>{f.recipe.name}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 3, color: f.missing.length === 0 ? SAGE : BURGUNDY, lineHeight: 1.35 }}>{status}</div>
+                  {why && <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.35 }}>{why}</div>}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                  <button onClick={() => canSwap && swap(slot.key)} disabled={!canSwap} aria-label={`Wissel ${f.recipe.name}`}
+                    style={{ ...smallBtn(false), opacity: canSwap ? 1 : 0.4, cursor: canSwap ? "pointer" : "default" }}>
+                    <RefreshCw size={17} />
+                  </button>
+                  <button onClick={() => toggleLock(slot.key, f.recipe.id)} aria-label={isLocked ? `Maak ${f.recipe.name} los` : `Zet ${f.recipe.name} vast`} aria-pressed={isLocked}
+                    style={smallBtn(isLocked)}>
+                    <Lock size={16} strokeWidth={isLocked ? 2.4 : 1.8} />
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
-      )}
+        <p style={{ fontSize: 12, color: MUTED, textAlign: "center", margin: "10px 0 18px" }}>Tik op ↻ voor een ander voorstel · slotje = deze houden</p>
 
-      {sharedIngredients.length > 0 && (
-        <div style={{ marginTop: 22, padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: BOTTLE, marginBottom: 6 }}>Efficiënt inkopen</div>
-          <p style={{ fontSize: 13, color: INK, margin: 0, lineHeight: 1.5 }}>
-            Deze ingrediënten komen in meerdere gekozen cocktails voor, dus je koopt ze toch maar één keer:{" "}
-            {sharedIngredients.map(e => `${e.label} (${e.n}×)`).join(", ")}.
-          </p>
+        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, boxShadow: SHADOW_CARD, padding: "4px 14px", marginBottom: 16 }}>
+          {[
+            { icon: <Check size={16} strokeWidth={2.4} />, content: <span><strong>{makeable} van {picked.length}</strong> kun je nu maken</span> },
+            missingRows.length > 0 && {
+              icon: <ShoppingCart size={16} />, color: BURGUNDY,
+              content: <span><span style={{ display: "block" }}>Nog nodig</span><span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>{missingRows.map(r => r.label).join(", ")}</span></span>,
+              action: listAdded ? (
+                <span className="success-pop" style={{ display: "flex", alignItems: "center", gap: 4, color: SAGE, fontSize: 13, fontWeight: 700, minHeight: 36 }}><Check size={14} strokeWidth={3} /> Op lijst</span>
+              ) : (
+                <button onClick={() => { onAddToShoppingList(missingRows.map(r => ({ ref: r.ref, recipeNames: r.recipeNames }))); onSound?.("tick"); setListAdded(true); }}
+                  style={{ background: BOTTLE, color: "#FBF6EA", border: "none", borderRadius: 100, padding: "0 14px", minHeight: 36, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: sans, flexShrink: 0 }}>
+                  Op lijst
+                </button>
+              ),
+            },
+            { icon: <Clock size={16} />, content: <span><strong>{batchCount} van {picked.length}</strong> kun je vooraf batchen</span> },
+            { icon: <Users size={16} />, content: <span>Voor {answers.guests} {answers.guests === 1 ? "gast" : "gasten"}: <strong>± {drinks} drankjes</strong></span> },
+          ].filter(Boolean).map((row, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, fontSize: 14, color: INK }}>
+              <span style={{ width: 30, height: 30, borderRadius: 9, background: PAPER_DEEP, color: row.color || SAGE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{row.icon}</span>
+              <div style={{ flex: 1, minWidth: 0, lineHeight: 1.35 }}>{row.content}</div>
+              {row.action}
+            </div>
+          ))}
         </div>
-      )}
 
-      {menuRecipes.length > 0 && (
-        <button onClick={() => { onSound("chime"); onUseInFeestplanner(menuRecipes.map(r => r.id)); }}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: BOTTLE, color: "#FBF6EA", border: "none", borderRadius: RADIUS, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA, marginTop: 24 }}>
-          <Sparkles size={15} /> Gebruik dit menu in de Feestplanner
+        <button onClick={shareMenu} disabled={picked.length === 0} className="press-scale" style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14,
+          background: BOTTLE_DARK, color: "#FBF6EA", border: "none", fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA, marginBottom: 10,
+        }}>
+          <Share2 size={17} /> {shareState === "copied" ? "Gekopieerd" : shareState === "shared" ? "Gedeeld" : shareState === "failed" ? "Delen lukte niet" : "Deel menu"}
         </button>
-      )}
+        <button onClick={() => { onSound?.("chime"); onUseInFeestplanner(picked.map(m => m.f.recipe.id), answers.guests); }} disabled={picked.length === 0} className="press-scale" style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14,
+          background: "rgba(184,134,46,0.18)", color: INK, border: "none", fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+        }}>
+          <PartyPopper size={17} color={BRASS} /> Gebruik voor een feest
+        </button>
+      </div>
+    );
+  }
+
+  // ---------- Vragen ----------
+  const segBtn = (active) => ({
+    flex: 1, minHeight: 44, border: "none", borderRadius: 10, cursor: "pointer", fontFamily: sans, fontSize: 16, fontWeight: 700,
+    background: active ? BOTTLE : "transparent", color: active ? "#FBF6EA" : INK, transition: "background 0.15s ease",
+  });
+  const roundBtn = { width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(184,134,46,0.2)", color: INK, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 600, fontFamily: sans };
+
+  const QUESTIONS = {
+    1: { title: "Voor wie maak je het menu?", sub: "Dan kloppen de hoeveelheden meteen." },
+    2: { title: "Hoe avontuurlijk zijn je gasten?", sub: "Zo kiezen we tussen bekende klassiekers en verrassende cocktails." },
+    3: { title: "Hoe sterk mag het zijn?", sub: "Lichter is fijn bij een lange avond of veel gasten." },
+    4: { title: "Hoeveel moeite wil je doen?", sub: "We houden rekening met ingrediënten en bereiding." },
+    5: { title: "Iets wat je wilt vermijden?", sub: "Kies er zoveel je wilt, of sla over." },
+    6: { title: "Moet er iets per se in?", sub: "Kies één cocktail die zeker op het menu komt." },
+    7: { title: "Hoeveel wil je bijkopen?", sub: "Dan houden we rekening met je voorraad." },
+  };
+  const q = QUESTIONS[step];
+
+  const mustHaveChoices = (() => {
+    const ids = [...new Set([answers.mustHave, ...favoriteRecipeIds, ...recentRecipeIds].filter(Boolean))];
+    return ids.map(id => recipes.find(r => r.id === id)).filter(Boolean).slice(0, 4);
+  })();
+
+  let body = null;
+  if (step === 1) {
+    body = (
+      <>
+        <div style={{ fontSize: 14, fontWeight: 700, color: INK, marginBottom: 8 }}>Hoeveel cocktails op het menu?</div>
+        <div role="radiogroup" style={{ display: "flex", gap: 4, padding: 4, background: "rgba(184,134,46,0.16)", borderRadius: 14, marginBottom: 18 }}>
+          {[3, 4, 5].map(n => (
+            <button key={n} role="radio" aria-checked={answers.count === n} onClick={() => setAnswer({ count: n })} style={segBtn(answers.count === n)}>{n}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "12px 14px", minHeight: 64, boxSizing: "border-box" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>Aantal gasten</div>
+            <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Inclusief jezelf</div>
+          </div>
+          <button aria-label="Minder gasten" onClick={() => setAnswer({ guests: Math.max(1, answers.guests - 1) })} style={roundBtn}>−</button>
+          <span style={{ minWidth: 28, textAlign: "center", fontSize: 18, fontWeight: 700, color: INK }}>{answers.guests}</span>
+          <button aria-label="Meer gasten" onClick={() => setAnswer({ guests: Math.min(100, answers.guests + 1) })} style={roundBtn}>+</button>
+        </div>
+        <button onClick={() => setShowInfo(v => !v)} style={{ background: "none", border: "none", color: BRASS, fontFamily: sans, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0, minHeight: 44, marginTop: 10, display: "flex", alignItems: "center", gap: 5 }}>
+          <Info size={14} /> Hoe werkt een gebalanceerd menu?
+        </button>
+        {showInfo && <MenuBalanceInfo />}
+      </>
+    );
+  } else if (step === 2) {
+    body = [
+      { v: "klassiek", icon: "K", t: "Vooral klassiekers", s: "Bekende favorieten zoals Mojito en Margarita" },
+      { v: "mix", icon: "M", t: "Een mix", s: "Een paar klassiekers en één of twee verrassingen" },
+      { v: "verras", icon: "!", t: "Verras ze maar", s: "Minder bekende pareltjes zoals Penicillin of Last Word" },
+    ].map(o => <MenuOptionCard key={o.v} selected={answers.adventure === o.v} onClick={() => setAnswer({ adventure: o.v })} icon={o.icon} title={o.t} subtitle={o.s} />);
+  } else if (step === 3) {
+    body = [
+      { v: "licht", icon: "1", t: "Licht", s: "Highballs en spritzes, lekker lang drinken" },
+      { v: "gemiddeld", icon: "2", t: "Gemiddeld", s: "Een goede mix van licht en krachtig" },
+      { v: "stevig", icon: "3", t: "Stevig", s: "Meer spirit-forward, zoals Negroni en Old Fashioned" },
+    ].map(o => <MenuOptionCard key={o.v} selected={answers.strength === o.v} onClick={() => setAnswer({ strength: o.v })} icon={o.icon} title={o.t} subtitle={o.s} />);
+  } else if (step === 4) {
+    body = [
+      { v: "snel", icon: <Zap size={18} />, t: "Snel en simpel", s: "Max 3 ingrediënten, geen eiwit of zelfgemaakte siroop" },
+      { v: "werk", icon: <Sparkle size={18} />, t: "Mag wat werk zijn", s: "Shaken en een verse garnering is prima" },
+      { v: "bar", icon: <Star size={18} />, t: "Ik sta graag achter de bar", s: "Alles mag, ook eiwit en huisgemaakte siropen" },
+    ].map(o => <MenuOptionCard key={o.v} selected={answers.effort === o.v} onClick={() => setAnswer({ effort: o.v })} icon={o.icon} title={o.t} subtitle={o.s} />);
+  } else if (step === 5) {
+    body = (
+      <>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {MENU_AVOID_OPTIONS.map(o => {
+            const on = answers.avoid.includes(o.key);
+            return (
+              <button key={o.key} aria-pressed={on} onClick={() => setAnswer({ avoid: on ? answers.avoid.filter(k => k !== o.key) : [...answers.avoid, o.key] })} style={{
+                display: "flex", alignItems: "center", gap: 5, minHeight: 44, padding: "0 16px", borderRadius: 100, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 600,
+                background: on ? BOTTLE : CREAM, color: on ? "#FBF6EA" : INK, border: `1px solid ${on ? BOTTLE : BORDER}`,
+              }}>
+                {on && <X size={14} strokeWidth={2.6} />}{o.label}
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5, margin: "12px 0 0" }}>Handig bij allergieën, veganistische gasten of een drank waar iemand niet van houdt.</p>
+      </>
+    );
+  } else if (step === 6) {
+    body = (
+      <>
+        <MenuOptionCard selected={!answers.mustHave} onClick={() => setAnswer({ mustHave: null })} icon={<X size={17} />} title="Geen voorkeur" subtitle="De assistent kiest alles zelf" />
+        {mustHaveChoices.map(r => (
+          <MenuOptionCard key={r.id} selected={answers.mustHave === r.id} onClick={() => setAnswer({ mustHave: r.id })}
+            icon={<RecipeCircle recipe={r} allIngredients={allIngredients} size={38} radius={10} />} title={r.name}
+            subtitle={favoriteRecipeIds.includes(r.id) ? "Favoriet" : answers.mustHave === r.id ? "Gekozen" : "Recent bekeken"} />
+        ))}
+        <div style={{ fontSize: 13, fontWeight: 700, color: INK, margin: "8px 0 6px" }}>Of zoek een cocktail</div>
+        <RecipePicker recipes={recipes} value={mustHaveChoices.some(r => r.id === answers.mustHave) ? null : answers.mustHave} listId="menu-assistent-must"
+          onChange={id => setAnswer({ mustHave: id || null })} style={{ width: "100%", boxSizing: "border-box" }} />
+        <div style={{ height: 8 }} />
+        <MenuToggleRow title="Zo min mogelijk flessen" subtitle="Flessen dubbel gebruiken, dan hoef je minder te kopen" checked={answers.minBottles} onChange={v => setAnswer({ minBottles: v })} />
+      </>
+    );
+  } else if (step === 7) {
+    body = (
+      <>
+        {[
+          { v: "geen", icon: <Refrigerator size={18} />, t: "Alleen wat ik in huis heb", s: "Geen nieuwe flessen, hooguit verse boodschappen" },
+          { v: "max2", icon: <ShoppingCart size={18} />, t: "Max 1–2 flessen", s: "Een paar nieuwe flessen is prima" },
+          { v: "vrij", icon: <Wine size={18} />, t: "Maakt niet uit", s: "Kies gewoon het beste menu" },
+        ].map(o => <MenuOptionCard key={o.v} selected={answers.buy === o.v} onClick={() => setAnswer({ buy: o.v })} icon={o.icon} title={o.t} subtitle={o.s} />)}
+        <MenuToggleRow title="Alcoholvrije optie" subtitle="Een volwaardige cocktail zonder alcohol op het menu" checked={answers.alcoholvrij} onChange={v => setAnswer({ alcoholvrij: v })} />
+      </>
+    );
+  }
+
+  return (
+    // minHeight + negatieve marge: de knoppenbalk staat bij korte vragen
+    // precies boven de onderbalk, zonder dat de pagina daardoor gaat scrollen.
+    <div style={{ fontFamily: sans, display: "flex", flexDirection: "column", minHeight: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 154px)", marginBottom: -62 }}>
+      <div style={{ display: "flex", gap: 5, marginBottom: 14 }} aria-hidden>
+        {Array.from({ length: MENU_ASSISTANT_STEPS }, (_, i) => (
+          <span key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < step ? BOTTLE : BORDER, transition: "background 0.2s ease" }} />
+        ))}
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Vraag {step} van {MENU_ASSISTANT_STEPS}</div>
+      <h1 style={{ fontFamily: serif, fontSize: 27, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.2 }}>{q.title}</h1>
+      <p style={{ fontSize: 14, color: MUTED, margin: "6px 0 20px", lineHeight: 1.45 }}>{q.sub}</p>
+      <div key={step} className="tab-fade" role={step >= 2 && step <= 4 ? "radiogroup" : undefined}>{body}</div>
+
+      <div className="menu-assist-footer" style={{
+        marginTop: "auto", padding: "18px 0 8px", display: "flex", gap: 10,
+        position: "sticky", bottom: "calc(env(safe-area-inset-bottom) + 80px)", zIndex: 5,
+        background: `linear-gradient(180deg, transparent 0, ${PAPER} 16px)`,
+      }}>
+        {step > 1 && (
+          <button onClick={() => goTo(step - 1)} className="press-scale" style={{
+            flex: "0 0 32%", minHeight: 52, borderRadius: 14, border: "none", background: "rgba(184,134,46,0.22)", color: INK,
+            fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+          }}>Terug</button>
+        )}
+        <button onClick={() => (step < MENU_ASSISTANT_STEPS ? goTo(step + 1) : startMenu())} className="press-scale" style={{
+          flex: 1, minHeight: 52, borderRadius: 14, border: "none", background: BOTTLE_DARK, color: "#FBF6EA",
+          fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
+        }}>
+          {step < MENU_ASSISTANT_STEPS ? "Volgende" : "Stel mijn menu voor"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -7957,54 +9565,39 @@ function SmaakbalansTab({ recipes, isOwned, allIngredients, menu, setMenu, onUse
 // "3.0" voor een heel getal, "3.25"/"3.5"/"3.75" voor een kwart-ster —
 // overal waar een beoordeling getoond wordt, i.p.v. het vaste "{rating}.0"
 // dat alleen bij hele sterren klopte.
+// Beoordelingen en gemiddelden overal hetzelfde: hele getallen zonder
+// decimaal ("4"), anders één decimaal met komma ("3,8" — ook 2.25 → "2,3").
 function formatRating(value) {
-  if (Number.isInteger(value)) return `${value}.0`;
-  return value.toFixed(2).replace(/0$/, "");
+  const v = Number(value) || 0;
+  if (Number.isInteger(v)) return String(v);
+  return v.toFixed(1).replace(".", ",");
+}
+function formatDecimal1(value) {
+  return (Number(value) || 0).toFixed(1).replace(".", ",");
 }
 
 // Puur de visuele sterrenrij (met eventuele kwart-vulling) + het getal —
 // tikken op een ster zet 'm meteen op een heel getal; de fijnafstemming in
 // kwarten gebeurt via een los schuifbalkje eronder (zie de check-in-sheet),
 // want precies op een kwart ster tikken is op een telefoon niet te doen.
-function StarPicker({ value, onChange, size = 19, onSound }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ display: "flex", gap: 4 }}>
-        {[0, 1, 2, 3, 4].map(i => {
-          const filled = Math.min(1, Math.max(0, value - i));
-          return (
-            <button key={i} onClick={() => { const v = i + 1; if (onSound && v !== value) onSound("tick"); onChange(v); }}
-              className="press-scale" style={{ position: "relative", width: size, height: size, flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-              <Star size={size} color="#C9BC9C" strokeWidth={1.5} style={{ display: "block" }} />
-              {filled > 0 && (
-                <div style={{ position: "absolute", inset: 0, width: `${filled * 100}%`, overflow: "hidden" }}>
-                  <Star size={size} fill={BRASS} color={BRASS} strokeWidth={1.5} style={{ display: "block" }} />
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
-      {value > 0 && <span style={{ fontFamily: systemFont, fontWeight: 600, fontSize: 15, color: INK }}>{formatRating(value)}</span>}
-    </div>
-  );
-}
-
 // Eén notitieregel die vanzelf meegroeit met de tekst — geen zichtbare rand
 // of resize-greep, past bij het vlakke, kaderloze veldontwerp van de
 // check-in-sheet.
-function AutoGrowTextField({ value, onChange, placeholder }) {
+function AutoGrowTextField({ value, onChange, placeholder, bare }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!ref.current) return;
     ref.current.style.height = "auto";
     ref.current.style.height = `${ref.current.scrollHeight}px`;
+    // Groeit het veld tijdens het typen, dan blijft de onderkant (waar je
+    // typt) zichtbaar boven het toetsenbord.
+    if (document.activeElement === ref.current) revealInSheet(ref.current);
   }, [value]);
   return (
     <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={1} style={{
-      width: "100%", border: "none", outline: "none", resize: "none", background: PAPER, borderRadius: 12,
-      padding: "13px 14px", fontSize: 15, fontFamily: systemFont, color: INK, boxSizing: "border-box",
-      lineHeight: 1.4, overflow: "hidden", display: "block",
+      width: "100%", border: "none", outline: "none", resize: "none", background: bare ? "transparent" : PAPER, borderRadius: 12,
+      padding: bare ? "10px 0" : "13px 14px", fontSize: 15, fontFamily: systemFont, color: INK, boxSizing: "border-box",
+      lineHeight: 1.4, overflow: "hidden", display: "block", scrollMarginTop: 70, scrollMarginBottom: 24,
     }} />
   );
 }
@@ -8019,9 +9612,12 @@ function fieldStyle() {
 // niets getypt is, een rij "Laatst gemaakt" — puur zodat je bij een
 // check-in zo min mogelijk hoeft te typen voor een cocktail die je al
 // eerder maakte.
-function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredients, recent }) {
+function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredients, recent, onOpenChange }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => { onOpenChange?.(open); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => onOpenChange?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
   const wrapRef = useRef(null);
+  const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 260);
   const sorted = useMemo(() => [...recipes].sort((a, b) => a.name.localeCompare(b.name)), [recipes]);
 
   const filtered = useMemo(() => {
@@ -8038,20 +9634,23 @@ function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredi
     return () => { document.removeEventListener("mousedown", onOutside); document.removeEventListener("touchstart", onOutside); };
   }, [open]);
 
-  const pick = (r) => { onSelect(r); setOpen(false); };
+  const pick = (r) => { onSelect(r); setOpen(false); document.activeElement?.blur?.(); };
   const flatFieldStyle = {
     width: "100%", border: "none", outline: "none", background: PAPER, borderRadius: 12,
     padding: "13px 14px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box",
   };
 
   return (
-    <div ref={wrapRef} style={{ position: "relative" }}>
+    <div ref={wrapRef} data-kb-scope style={{ position: "relative" }}>
       <input value={value} onChange={e => { onChange(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
         placeholder="Zoek een cocktail…" enterKeyHint="next" autoCapitalize="words" style={flatFieldStyle} />
       {open && filtered.length > 0 && (
+        // In de flow i.p.v. absoluut zwevend: in het check-in-venster viel een
+        // zwevende lijst onder de Inchecken-knop weg. Nu duwt de lijst de rest
+        // omlaag en schuift het zoekveld bovenaan (zie useKeyboardBehavior).
         <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: CREAM,
-          borderRadius: 14, maxHeight: 260, overflowY: "auto",
+          position: "relative", marginTop: 6, background: CREAM,
+          borderRadius: 14, maxHeight: dropdownMaxH, overflowY: "auto", overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {filtered.map(r => (
@@ -8112,6 +9711,92 @@ const TASTE_META = {
   sterk: { emoji: "🥃", label: "Sterk" },
   bitter: { emoji: "🍫", label: "Bitter" },
 };
+// Smaaklabels bij het inchecken ("Wat proefde je?"). De eerste vijf zijn de
+// bestaande smaaktags met exact dezelfde betekenis (smaakprofiel,
+// aanbevelingen, vriendenfeed tellen alleen die vijf — zie TASTE_META);
+// de rest zijn extra beschrijvende labels die gewoon mee worden opgeslagen
+// in taste_tags en in de check-in zichtbaar zijn.
+const CHECKIN_TASTE_TAGS = [
+  { key: "bitter", label: "Bitter", emoji: "🍫" },
+  { key: "sterk", label: "Sterk", emoji: "🥃" },
+  { key: "zoet", label: "Zoet", emoji: "🍬" },
+  { key: "zuur", label: "Zuur", emoji: "🍋" },
+  { key: "fruitig", label: "Fruitig", emoji: "🍓" },
+  { key: "kruidig", label: "Kruidig", emoji: "🌿" },
+  { key: "fris", label: "Fris", emoji: "🧊" },
+  { key: "romig", label: "Romig", emoji: "🥛" },
+  { key: "licht", label: "Licht", emoji: "🪶" },
+  { key: "rokerig", label: "Rokerig", emoji: "🔥" },
+];
+const CHECKIN_TASTE_META = Object.fromEntries(CHECKIN_TASTE_TAGS.map(t => [t.key, t]));
+
+// Voorzet voor de smaaklabels bij een herkend recept: de familie-heuristiek
+// (FAMILY_TASTE, gewicht ≥ 0,6) plus een paar duidelijke ingrediënt-signalen
+// — zo krijgt een Negroni (familie "Spirit-forward" = alleen sterk) via
+// Campari en zoete vermouth ook Bitter en Kruidig. De gebruiker corrigeert.
+const TASTE_INGREDIENT_HINTS = {
+  bitter: ["campari", "aperol", "amaro_nonino", "cynar", "fernet_branca"],
+  kruidig: ["sweet_vermouth", "yellow_chartreuse", "green_chartreuse", "benedictine", "ginger_beer", "ginger_wine", "ginger_root", "honey_ginger_syrup"],
+  rokerig: ["mezcal"],
+  romig: ["heavy_cream", "whipped_cream", "coconut_cream", "irish_cream", "milk"],
+  fris: ["mint", "cucumber", "soda_water", "tonic", "grapefruit_soda", "prosecco"],
+};
+function suggestTasteTags(recipe) {
+  if (!recipe) return [];
+  const tags = new Set();
+  Object.entries(FAMILY_TASTE[recipe.family] || {}).forEach(([k, w]) => { if (w >= 0.6) tags.add(k); });
+  const ids = new Set(recipe.ingredients.map(i => i.id));
+  Object.entries(TASTE_INGREDIENT_HINTS).forEach(([tag, list]) => { if (list.some(id => ids.has(id))) tags.add(tag); });
+  if (["Highballs", "Mocktail / alcoholvrij"].includes(recipe.family) && !tags.has("sterk")) tags.add("licht");
+  return CHECKIN_TASTE_TAGS.map(t => t.key).filter(k => tags.has(k));
+}
+
+const RATING_WORDS = { 1: "Matig", 2: "Oké", 3: "Goed", 4: "Heerlijk", 5: "Top" };
+
+// Grote, gecentreerde sterren voor het inchecken: tik = hele ster, nog eens
+// op dezelfde ster tikken = halve ster (4 → 3,5), en weer terug.
+function CheckinStars({ value, onChange, onSound }) {
+  const size = 44;
+  const tap = (n) => {
+    const next = value === n ? n - 0.5 : n;
+    if (next !== value) onSound?.("tick");
+    onChange(next);
+  };
+  const shown = value > 0 ? Math.min(5, Math.max(1, Math.round(value))) : 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {[1, 2, 3, 4, 5].map(n => {
+          const filled = Math.min(1, Math.max(0, value - (n - 1)));
+          return (
+            <button key={n} onClick={() => tap(n)} aria-label={`${n} ${n === 1 ? "ster" : "sterren"}`} className="press-scale" style={{
+              position: "relative", width: size, height: size, flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer",
+            }}>
+              <Star size={size} color="#C9BC9C" strokeWidth={1.4} style={{ display: "block" }} />
+              {filled > 0 && (
+                <div style={{ position: "absolute", inset: 0, width: `${filled * 100}%`, overflow: "hidden" }}>
+                  <Star size={size} fill={BRASS} color={BRASS} strokeWidth={1.4} style={{ display: "block" }} />
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 10, minHeight: 30 }}>
+        {value > 0 ? (
+          <>
+            <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 24, color: INK }}>{String(value).replace(".", ",")}</span>
+            <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: BRASS }}>{RATING_WORDS[shown]}</span>
+          </>
+        ) : (
+          <span style={{ fontFamily: systemFont, fontSize: 15, color: MUTED }}>Hoe was 'ie?</span>
+        )}
+      </div>
+      <div style={{ fontFamily: systemFont, fontSize: 12, color: MUTED, marginTop: 2 }}>Tik op een ster · nog een keer tikken = halve ster</div>
+    </div>
+  );
+}
+
 const PERSONALITY = {
   fruitig: { emoji: "🍓", title: "DE FRUITIGE ONTDEKKER", text: "Je check-ins laten zien dat je houdt van fruitige, verfrissende cocktails." },
   zoet: { emoji: "🍬", title: "DE ZOETEKAUW", text: "Je check-ins laten zien dat je een zwak hebt voor romige, zoete cocktails." },
@@ -8208,13 +9893,66 @@ const COURSE_BADGE_DEFS = [
   { id: "vak", emoji: "🍸", label: "Bartender Pro", text: "Alle lessen van Deel V (Het vak van bartender) voltooid.", partId: "vak" },
   { id: "geavanceerd", emoji: "🔬", label: "Meester-mixoloog", text: "Alle lessen van Deel VI (Geavanceerde technieken) voltooid.", partId: "geavanceerd" },
   { id: "halverwege", emoji: "📖", label: "Halverwege", text: "12 van de 24 lessen voltooid." },
-  { id: "eindtoets-gehaald", emoji: "🎓", label: "Geslaagd", text: "De eindtoets gehaald met minstens 70%." },
+  { id: "eindtoets-gehaald", emoji: "🎓", label: "Geslaagd", text: "De eindtoets gehaald met minstens 80%." },
   { id: "perfecte-score", emoji: "💯", label: "Perfecte Score", text: "De eindtoets met een perfecte score afgerond." },
 ];
+// Deel N gaat pas open als alle lessen van de delen ervóór af zijn. Een les
+// die je al eerder afrondde blijft altijd te openen (oude voortgang).
+function computeUnlockedParts(progress) {
+  const unlocked = new Set();
+  for (const part of COURSE_PARTS) {
+    unlocked.add(part.id);
+    const done = COURSE_LESSONS.filter(l => l.part === part.id).every(l => progress[l.id]?.completed);
+    if (!done) break;
+  }
+  return unlocked;
+}
+// "Uitgespeeld" = alle lessen af én de eindtoets gehaald (≥ 80%).
+function computeCourseMastery(progress) {
+  const allLessons = COURSE_LESSONS.every(l => progress?.[l.id]?.completed);
+  const exam = progress?.eindtoets;
+  const passed = !!(exam?.completed && exam.bestScore / exam.total >= QUIZ_PASS_RATIO);
+  return allLessons && passed ? { scorePct: Math.round((exam.bestScore / exam.total) * 100) } : null;
+}
+
+// Beloning voor het uitspelen van de cursus: een diploma op je profiel, dat
+// je vrienden ook zien (profiles.course_completed_at). compact = het kleine
+// label naast je naam; anders de volledige diploma-kaart.
+function CourseDiploma({ date, scorePct, compact, isOwn = true }) {
+  if (compact) {
+    return (
+      <span style={{
+        display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: "#8F6A21",
+        background: "rgba(184,134,46,0.14)", border: "1px solid rgba(184,134,46,0.35)", borderRadius: 100, padding: "2px 8px", whiteSpace: "nowrap",
+      }}>🎓 Gediplomeerd</span>
+    );
+  }
+  const when = date ? new Date(date).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) : null;
+  return (
+    <div style={{
+      position: "relative", overflow: "hidden", borderRadius: 16, padding: "16px 18px", marginBottom: 18,
+      background: `radial-gradient(ellipse 140% 120% at 20% 0%, #2A4B42, ${BOTTLE_DARK} 75%)`, color: CREAM,
+      border: `1.5px solid ${BRASS}`, boxShadow: SHADOW_CARD,
+    }}>
+      <GraduationCap size={120} color={BRASS} strokeWidth={1} style={{ position: "absolute", right: -18, top: -16, opacity: 0.12 }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", border: "1.5px solid rgba(221,184,119,0.7)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>🎓</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: "#DDB877" }}>Diploma</div>
+          <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 18, lineHeight: 1.2, marginTop: 2 }}>Gediplomeerd thuisbartender</div>
+          <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 4, lineHeight: 1.4 }}>
+            {isOwn ? "Je hebt" : "Heeft"} de cursus "Van Basis tot Pro" uitgespeeld{scorePct ? ` · eindtoets ${scorePct}%` : ""}{when ? ` · ${when}` : ""}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function computeCourseInsights(progress) {
   const completedLessons = COURSE_LESSONS.filter(l => progress[l.id]?.completed);
   const examProgress = progress.eindtoets;
-  const examPassed = !!(examProgress?.completed && examProgress.bestScore / examProgress.total >= 0.7);
+  const examPassed = !!(examProgress?.completed && examProgress.bestScore / examProgress.total >= QUIZ_PASS_RATIO);
   const examPerfect = !!(examProgress?.completed && examProgress.bestScore === examProgress.total);
   const xp = completedLessons.length * 30 + (examPassed ? 150 : 0);
   const level = computeCourseLevel(xp);
@@ -8278,8 +10016,12 @@ function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqu
 
   const tasteTotals = { fruitig: 0, zoet: 0, zuur: 0, sterk: 0, bitter: 0 };
   matched.forEach(({ entry, recipe }) => {
-    if (entry.tasteTags && entry.tasteTags.length > 0) {
-      entry.tasteTags.forEach(k => { if (k in tasteTotals) tasteTotals[k] += 1; });
+    // Alleen de vijf kernsmaken tellen mee; nieuwe labels (kruidig, fris…)
+    // zijn beschrijvend. Heeft een check-in géén kernsmaak (bv. alleen
+    // "Kruidig"), dan valt die terug op de familie, net als zonder tags.
+    const coreTags = (entry.tasteTags || []).filter(k => k in tasteTotals);
+    if (coreTags.length > 0) {
+      coreTags.forEach(k => { tasteTotals[k] += 1; });
     } else if (recipe) {
       const weights = FAMILY_TASTE[recipe.family];
       if (weights) Object.entries(weights).forEach(([k, w]) => { tasteTotals[k] += w; });
@@ -8306,7 +10048,16 @@ function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqu
       "smaakvast": maxFamilyCount >= 5,
       "vaste-klant": logboek.length >= 50,
     }[a.id];
-    return { ...a, unlocked };
+    // Voortgang richting de badge, voor het balkje + "3 van 7 dagen".
+    const progress = {
+      "eerste-slok": { value: Math.min(1, logboek.length), goal: 1, unit: "check-in" },
+      "streak7": { value: Math.min(7, streak), goal: 7, unit: "dagen" },
+      "proever": { value: Math.min(10, uniqueCount), goal: 10, unit: "cocktails" },
+      "eigen-recept": { value: usedCustomRecipe ? 1 : 0, goal: 1, unit: "eigen recept" },
+      "smaakvast": { value: Math.min(5, maxFamilyCount), goal: 5, unit: "keer" },
+      "vaste-klant": { value: Math.min(50, logboek.length), goal: 50, unit: "check-ins" },
+    }[a.id];
+    return { ...a, unlocked, progress };
   });
 
   const spiritCounts = new Map();
@@ -8366,8 +10117,9 @@ function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqu
     const recencyWeight = Math.pow(0.5, daysAgo / 90); // halveert ongeveer elke 90 dagen
     const ratingWeight = Math.max(0.2, entry.rating / 5);
     const weight = recencyWeight * ratingWeight;
-    const source = (entry.tasteTags && entry.tasteTags.length > 0)
-      ? Object.fromEntries(entry.tasteTags.map(k => [k, 1]))
+    const coreTags = (entry.tasteTags || []).filter(k => k in weightedTaste);
+    const source = coreTags.length > 0
+      ? Object.fromEntries(coreTags.map(k => [k, 1]))
       : (recipe ? (FAMILY_TASTE[recipe.family] || {}) : {});
     Object.entries(source).forEach(([k, w]) => { if (k in weightedTaste) weightedTaste[k] += w * weight; });
   });
@@ -8501,6 +10253,7 @@ function PlaceAutocomplete({ value, onChange, placeholder }) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 240);
   const debounceRef = useRef(null);
   const requestIdRef = useRef(0);
 
@@ -8535,10 +10288,11 @@ function PlaceAutocomplete({ value, onChange, placeholder }) {
     onChange(place.label, place);
     setResults([]);
     setOpen(false);
+    document.activeElement?.blur?.();
   };
 
   return (
-    <div ref={wrapRef} style={{ position: "relative" }}>
+    <div ref={wrapRef} data-kb-scope style={{ position: "relative" }}>
       <Search size={16} color={MUTED} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
       <input value={query} onChange={e => handleType(e.target.value)} onFocus={() => (results.length > 0 || loading) && setOpen(true)}
         placeholder={placeholder} enterKeyHint="done" autoCapitalize="words" style={{
@@ -8547,8 +10301,10 @@ function PlaceAutocomplete({ value, onChange, placeholder }) {
         }} />
       {open && (loading || results.length > 0) && (
         <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: CREAM,
-          borderRadius: 14, maxHeight: 240, overflowY: "auto",
+          // In de flow i.p.v. zwevend: in het check-in-venster viel een zwevende
+          // lijst achter de Inchecken-knop onderaan.
+          position: "relative", marginTop: 6, background: CREAM,
+          borderRadius: 14, maxHeight: dropdownMaxH, overflowY: "auto", overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch", zIndex: 30, boxShadow: SHADOW_CARD,
         }}>
           {loading && <div style={{ padding: "10px 12px", fontSize: 13.5, color: MUTED, fontFamily: systemFont }}>Plekken zoeken…</div>}
@@ -8740,7 +10496,122 @@ function MapFullscreenSheet({ locations, coords, onClose }) {
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active }) {
+// Profielfoto met een gouden voortgangsring (XP naar het volgende niveau).
+function AvatarProgressRing({ name, photo, size = 66, progress = 0 }) {
+  const ring = size + 12, r = ring / 2 - 2.5, c = 2 * Math.PI * r;
+  return (
+    <div style={{ position: "relative", width: ring, height: ring, flexShrink: 0 }}>
+      <svg width={ring} height={ring} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
+        <circle cx={ring / 2} cy={ring / 2} r={r} fill="none" stroke={BORDER} strokeWidth={3} />
+        <circle cx={ring / 2} cy={ring / 2} r={r} fill="none" stroke={BRASS} strokeWidth={3} strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={c * (1 - Math.max(0, Math.min(1, progress)))} style={{ transition: "stroke-dashoffset 1s cubic-bezier(.22,.9,.3,1)" }} />
+      </svg>
+      <div style={{ position: "absolute", inset: 6 }}><Avatar name={name} photo={photo} size={size} /></div>
+    </div>
+  );
+}
+
+// Webdiagram van het smaakprofiel (5 assen), in goud op de groene kaart.
+const RADAR_AXES = [["fruitig", "Fruitig"], ["zuur", "Zuur"], ["zoet", "Zoet"], ["sterk", "Sterk"], ["bitter", "Bitter"]];
+function TasteRadar({ taste, size = 230 }) {
+  const byKey = Object.fromEntries(taste.map(t => [t.key, t.pct / 100]));
+  const cx = size / 2, cy = size / 2 + 4, R = size * 0.33;
+  const pt = (i, f) => { const ang = (-90 + i * 72) * Math.PI / 180; return [cx + Math.cos(ang) * R * f, cy + Math.sin(ang) * R * f]; };
+  const poly = (f) => RADAR_AXES.map((_, i) => pt(i, f).join(",")).join(" ");
+  const values = RADAR_AXES.map(([k], i) => pt(i, Math.max(0.08, byKey[k] || 0)));
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} width="100%" style={{ maxWidth: size, display: "block", margin: "0 auto" }} role="img" aria-label="Smaakprofiel">
+      {[0.34, 0.67, 1].map(f => <polygon key={f} points={poly(f)} fill="none" stroke="rgba(221,184,119,0.28)" strokeWidth={1} />)}
+      {RADAR_AXES.map((_, i) => { const [x, y] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(221,184,119,0.22)" strokeWidth={1} />; })}
+      <polygon points={values.map(v => v.join(",")).join(" ")} fill="rgba(221,184,119,0.32)" stroke="#DDB877" strokeWidth={2} strokeLinejoin="round" />
+      {values.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={3.2} fill="#DDB877" />)}
+      {RADAR_AXES.map(([, label], i) => {
+        const [x, y] = pt(i, 1.24);
+        return <text key={label} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="#FBF6EA" fontSize={12} fontWeight={600} fontFamily="Inter, -apple-system, sans-serif">{label}</text>;
+      })}
+    </svg>
+  );
+}
+
+// Details van één check-in (tik op een tegel in het fotoraster), met
+// verwijderen. Eigen lettertype expliciet: rendert via een portal.
+function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, who, whoAvatar, onClose, onRemove }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const img = entry.photo || (recipe && (localItemImageUrl("cocktail", recipe.id) || recipe.image)) || null;
+  const tags = (entry.tasteTags || []).filter(k => CHECKIN_TASTE_META[k]);
+  const ingredientsLine = recipe ? recipe.ingredients.map(ing => ingredientLabel(ing)).join(" · ") : null;
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in" style={{
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
+        background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
+        display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: sans,
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 20px 12px", flexShrink: 0, touchAction: "none" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 24, lineHeight: 1.15 }}>{entry.name}</div>
+            {recipe && <div style={{ fontSize: 13, color: MUTED, marginTop: 3 }}>{[recipe.family, recipe.glass].filter(Boolean).join(" · ")}</div>}
+          </div>
+          <button onClick={close} aria-label="Sluiten" className="tap-target-44" onTouchStart={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0 }}><X size={15} /></button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 20px" }}>
+          <div onClick={img ? () => setPhotoOpen(true) : undefined} style={{ borderRadius: 16, overflow: "hidden", aspectRatio: "4 / 3", background: PAPER_DEEP, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: img ? "zoom-in" : undefined }}>
+            {img ? <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
+              : recipe ? <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={140} radius={16} />
+              : <Martini size={40} color={BRASS} strokeWidth={1.3} />}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 2 }}>
+              {[1, 2, 3, 4, 5].map(n => {
+                const f = Math.min(1, Math.max(0, entry.rating - (n - 1)));
+                return (
+                  <span key={n} style={{ position: "relative", width: 18, height: 18 }}>
+                    <Star size={18} color="#C9BC9C" strokeWidth={1.4} style={{ display: "block" }} />
+                    {f > 0 && <span style={{ position: "absolute", inset: 0, width: `${f * 100}%`, overflow: "hidden" }}><Star size={18} fill={BRASS} color={BRASS} strokeWidth={1.4} style={{ display: "block" }} /></span>}
+                  </span>
+                );
+              })}
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 15 }}>{formatRating(entry.rating)}</span>
+          </div>
+          {tags.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              {tags.map(k => <span key={k} style={{ fontSize: 12.5, fontWeight: 600, color: INK, background: PAPER_DEEP, borderRadius: 100, padding: "5px 11px" }}>{CHECKIN_TASTE_META[k].label}</span>)}
+            </div>
+          )}
+          <div style={{ background: PAPER_DEEP, borderRadius: 14, overflow: "hidden" }}>
+            {[
+              entry.notes ? { label: "Notitie", text: entry.notes } : null,
+              { label: "Wanneer en waar", text: `${formatCheckinDate(entry.date)}${entry.location ? ` · ${entry.location}` : ""}` },
+              ingredientsLine ? { label: "Ingrediënten", text: ingredientsLine } : null,
+            ].filter(Boolean).map((row, i) => (
+              <div key={row.label} style={{ margin: "0 14px", padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: MUTED }}>{row.label}</div>
+                <div style={{ fontSize: 14.5, lineHeight: 1.5, marginTop: 2, whiteSpace: "pre-wrap" }}>{row.text}</div>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => setConfirmDelete(true)} style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 18, height: 48, borderRadius: 14,
+            border: "none", background: PAPER_DEEP, color: BURGUNDY, fontFamily: sans, fontSize: 15, fontWeight: 600, cursor: "pointer",
+          }}><Trash2 size={16} /> Check-in verwijderen</button>
+        </div>
+      </div>
+      {photoOpen && <CheckinPhotoViewer entry={entry} matched={recipe} who={who} whoAvatar={whoAvatar} allIngredients={allIngredients} onClose={() => setPhotoOpen(false)} />}
+      {confirmDelete && (
+        <ConfirmDialog title="Check-in verwijderen?" message={`${entry.name} verdwijnt uit je logboek.`} confirmLabel="Verwijder"
+          onCancel={() => setConfirmDelete(false)} onConfirm={() => { setConfirmDelete(false); onRemove(entry.id); close(); }} />
+      )}
+    </div>
+  ), document.body);
+}
+
+function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -8788,35 +10659,15 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const [stampNumber, setStampNumber] = useState(null);
   const fileInputRef = useRef(null);
   const handleLocationChange = (text, place) => { setLocation(text); setLocationCoords(place ? { lat: place.lat, lon: place.lon } : null); };
-  // Drie sliders (Zoet/Zuur, Licht/Sterk, Bitter/Fruitig) i.p.v. losse
-  // smaak-chips — 50 is het neutrale midden. De derde slider dekt de twee
-  // tags (bitter, fruitig) die anders bij de sliders-omslag zouden
-  // wegvallen, zodat het bestaande smaakprofiel (elders in de app) nog
-  // steeds op alle vijf smaken kan blijven bouwen. Bij het herkennen van een
-  // recept stellen we een voorzet voor uit de bestaande familie-heuristiek,
-  // maar de gebruiker kan 'm vóór het inchecken nog verschuiven.
-  const [tasteBalance, setTasteBalance] = useState(50);
-  const [strengthBalance, setStrengthBalance] = useState(50);
-  const [fruitBalance, setFruitBalance] = useState(50);
-  useEffect(() => {
-    if (!matchedRecipe) return;
-    const fam = FAMILY_TASTE[matchedRecipe.family] || {};
-    if (fam.zuur) setTasteBalance(20);
-    else if (fam.zoet) setTasteBalance(80);
-    else setTasteBalance(50);
-    setStrengthBalance(fam.sterk ? 75 : 40);
-    if (fam.bitter) setFruitBalance(20);
-    else if (fam.fruitig) setFruitBalance(80);
-    else setFruitBalance(50);
-  }, [matchedRecipe?.id]);
-  const derivedTasteTags = () => {
-    const tags = [];
-    if (tasteBalance <= 35) tags.push("zuur");
-    else if (tasteBalance >= 65) tags.push("zoet");
-    if (strengthBalance >= 65) tags.push("sterk");
-    if (fruitBalance <= 35) tags.push("bitter");
-    else if (fruitBalance >= 65) tags.push("fruitig");
-    return tags;
+  // Smaaklabels ("Wat proefde je?") i.p.v. de drie schuifjes: meerdere aan
+  // tegelijk. Bij een herkend recept vullen we een voorzet in
+  // (suggestTasteTags), de gebruiker corrigeert alleen. Wat hier aan staat
+  // gaat letterlijk als taste_tags de database in.
+  const [tasteTags, setTasteTags] = useState([]);
+  useEffect(() => { setTasteTags(suggestTasteTags(matchedRecipe)); }, [matchedRecipe?.id]);
+  const toggleTasteTag = (key) => {
+    onSound("tick");
+    setTasteTags(prev => prev.includes(key) ? prev.filter(k => k !== key) : CHECKIN_TASTE_TAGS.map(t => t.key).filter(k => k === key || prev.includes(k)));
   };
   const recentCocktails = useMemo(() => {
     const seen = new Set();
@@ -8859,14 +10710,22 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const heroPhotoSrc = photo || (matchedRecipe ? (localItemImageUrl("cocktail", matchedRecipe.id) || matchedRecipe.image) : null);
 
   const addEntry = () => {
-    const name = nameInput.trim();
+    let name = nameInput.trim();
     if (!name || rating === 0) return;
+    // Vangnet: half getypte naam ("Sex On") die bij precies één recept past
+    // → dat recept gebruiken, i.p.v. een losse, afgekapte naam op te slaan.
+    let recipeForEntry = matchedRecipe;
+    if (!recipeForEntry) {
+      const q = name.toLowerCase();
+      const starts = recipes.filter(r => r.name.toLowerCase().startsWith(q));
+      if (starts.length === 1) { recipeForEntry = starts[0]; name = starts[0].name; }
+    }
     const checkinNumber = logboek.length + 1;
     onAddEntry({
-      recipeId: matchedRecipe ? matchedRecipe.id : null,
+      recipeId: recipeForEntry ? recipeForEntry.id : null,
       name, rating, notes: notes.trim(), photo, location: location.trim() || "Thuis",
       locationLat: locationCoords?.lat ?? null, locationLon: locationCoords?.lon ?? null,
-      tasteTags: derivedTasteTags(),
+      tasteTags: tasteTags,
     });
     onSound("chime");
     setStampNumber(checkinNumber);
@@ -8874,15 +10733,14 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       setStampNumber(null);
       closeCheckinSheet();
       setNameInput(""); setNotes(""); setRating(0); setPhoto(null); setLocation("Thuis"); setLocationCoords(null);
-      setTasteBalance(50); setStrengthBalance(50); setFruitBalance(50); setMoreOpen(false);
+      setTasteTags([]); setMoreOpen(false);
     }, 1050);
   };
   const removeEntry = (id) => { onSound("remove"); onRemoveEntry(id); };
   const cardRefs = useRef({});
   const scrollToEntry = (id) => cardRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "center" });
-  const [photoViewer, setPhotoViewer] = useState(null);
-  const openPhoto = (entry, matched) => setPhotoViewer({ entry, matched, who: profile?.name || "Jij", whoAvatar: profile?.avatar_url });
   const [showCheckinSheet, setShowCheckinSheet] = useState(false);
+  const [cocktailSearchOpen, setCocktailSearchOpen] = useState(false);
   const { panelRef: checkinPanelRef, closing: checkinClosing, close: closeCheckinSheet, dragHandlers: checkinDragHandlers } = useSheetDismiss(() => setShowCheckinSheet(false));
   // Extern verzoek om in te checken (centrale +-knop, of straks direct vanaf
   // een recept) — de sheet zelf blijft hier leven (portal't toch al naar
@@ -8905,12 +10763,13 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   );
 
   const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
-  const heroEntry = logboek[0] || null;
-  const heroMatched = heroEntry ? findMatch(heroEntry) : null;
-  const heroTint = heroMatched ? recipeTint(heroMatched, allIngredients) : [PAPER_DEEP, BORDER];
-  const heroImage = heroEntry ? (heroEntry.photo || (heroMatched && (localItemImageUrl("cocktail", heroMatched.id) || heroMatched.image)) || null) : null;
-  const recentGrid = useMemo(() => logboek.slice(0, 6).map(entry => ({ entry, matched: findMatch(entry) })), [logboek, recipes]);
-  const topTasteKeys = useMemo(() => new Set([...insights.taste].sort((a, b) => b.pct - a.pct).slice(0, 2).map(t => t.key)), [insights.taste]);
+  // Profiel in drie tabbladen (Check-ins · Smaak · Prestaties); bewust niet
+  // onthouden over sessies heen — altijd beginnen bij Check-ins.
+  const [profileTab, setProfileTab] = useState("checkins");
+  const [openEntryId, setOpenEntryId] = useState(null);
+  const openEntry = logboek.find(e => e.id === openEntryId) || null;
+  const monthKey = new Date().toISOString().slice(0, 7);
+  const thisMonthCount = logboek.filter(e => (e.date || "").slice(0, 7) === monthKey).length;
 
   // Speelt een fanfare af zodra een check-in een level-up of nieuwe prestatie
   // ontgrendelt — alleen tijdens het "Proost"-venster na een echte check-in,
@@ -8933,36 +10792,23 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
   return (
     <div>
-      <LargeTitleHeader title="Profiel" active={active} sticky={false} />
-      {/* De titel zelf is niet meer sticky (op verzoek, zelfde als Ontdekken).
-          Topbalk (vrienden/instellingen) blijft wel sticky, maar dan meteen
-          bovenaan (STICKY_TOP i.p.v. STICKY_SUBHEADER_TOP) want er zit nu
-          geen sticky titelbalk meer boven die anders die ruimte al innam.
-          Achtergrond expliciet naar PAPER's eigen RGB i.p.v. .glass-light's
-          net-iets-andere tint, anders valt de balk in rust op als een band
-          met een afwijkende kleur (zelfde fix als bij Ontdekken). */}
-      <div className="glass-light" style={{
-        position: "sticky", top: STICKY_TOP, zIndex: 6,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        height: 44, boxSizing: "border-box", marginBottom: 8, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.72)",
-      }}>
-        <button onClick={onGoVrienden} className="press-scale tap-target-44" aria-label="Vrienden" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
-          <Users size={17} strokeWidth={1.8} />
-        </button>
-        <button onClick={onGoInstellingen} className="press-scale tap-target-44" aria-label="Instellingen" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, cursor: "pointer" }}>
-          <Settings size={17} strokeWidth={1.8} />
-        </button>
+      {/* Kop: titel met Vrienden/Instellingen rechts op dezelfde regel */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "6px 0 16px" }}>
+        <h1 style={{ fontFamily: systemFont, fontWeight: 800, fontSize: 34, color: INK, margin: 0, letterSpacing: -0.4 }}>Profiel</h1>
+        <div style={{ display: "flex", gap: 10 }}>
+          {[{ onClick: onGoVrienden, label: "Vrienden", Icon: Users }, { onClick: onGoInstellingen, label: "Instellingen", Icon: Settings }].map(({ onClick, label, Icon }) => (
+            <button key={label} onClick={onClick} className="press-scale" aria-label={label} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: BOTTLE, cursor: "pointer" }}>
+              <Icon size={18} strokeWidth={1.8} />
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Compacte profielstrip: identiteit + kerncijfers in één oogopslag, geen boxed dashboard-paneel meer. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+      {/* Identiteit: foto met XP-ring, naam (tik = wijzigen), niveau */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <input ref={photoInputRef} type="file" accept="image/*" onChange={handleProfilePhotoFile} style={{ display: "none" }} />
-        <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" style={{ position: "relative", border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0, borderRadius: "50%" }}>
-          <Avatar name={profile?.name || "Jij"} photo={profile?.avatar_url} size={88} />
-          <span style={{ position: "absolute", bottom: -3, right: -3, display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%", background: BOTTLE, border: `2px solid ${CREAM}`, color: CREAM }}>
-            <Camera size={18} strokeWidth={2} />
-          </span>
+        <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" aria-label="Profielfoto wijzigen" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
+          <AvatarProgressRing name={profile?.name || "Jij"} photo={profile?.avatar_url} progress={insights.level.progress} />
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           {editingName ? (
@@ -8970,313 +10816,302 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               <input value={draftName} onChange={e => setDraftName(e.target.value)} autoFocus
                 autoCapitalize="words" enterKeyHint="done"
                 onKeyDown={e => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditingName(false); }}
-                style={{ ...fieldStyle(), flex: 1, padding: "7px 10px", fontSize: 14.5 }} />
-              <button onClick={saveName} className="press-scale" style={{ background: BOTTLE, color: CREAM, border: "none", borderRadius: RADIUS, padding: "7px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
-                Opslaan
-              </button>
+                style={{ ...fieldStyle(), flex: 1, minWidth: 0, padding: "7px 10px", fontSize: 16 }} />
+              <button onClick={saveName} className="press-scale" style={{ background: BOTTLE, color: CREAM, border: "none", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>Opslaan</button>
             </div>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: INK }}>{profile?.name || "Jouw logboek"}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.4, color: "#8F6A21", background: "rgba(184,134,46,0.14)", border: "1px solid rgba(184,134,46,0.35)", borderRadius: 100, padding: "5px 10px", flexShrink: 0 }}>NIV. {insights.level.level}</span>
-              <button onClick={startEditName} className="press-scale tap-target-44" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", border: `1px solid ${BORDER}`, background: "none", color: MUTED, cursor: "pointer", flexShrink: 0 }}>
-                <Pencil size={11} />
-              </button>
-            </div>
+            <button onClick={startEditName} aria-label="Naam wijzigen" style={{ display: "block", maxWidth: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
+            </button>
           )}
-          <div style={{ fontSize: 17, fontWeight: 500, color: BRASS, marginTop: 2 }}>{insights.level.title}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: BRASS, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            Niveau {insights.level.level} · {insights.level.title}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 3 }}>
+            <span style={{ fontSize: 12, color: MUTED }}>{insights.level.to ? `${insights.level.to - insights.level.xp} XP tot niveau ${insights.level.level + 1}` : "Hoogste niveau bereikt"}</span>
+            {courseDiploma && <CourseDiploma compact />}
+          </div>
         </div>
       </div>
 
-      {stats.total > 0 && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", padding: "0 2px", marginBottom: 14 }}>
-            <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={stats.total} /></div>
-              <div style={{ fontSize: 11, color: "#5C5548", marginTop: 2 }}>check-ins</div>
-            </div>
-            <div style={{ width: 1, height: 28, background: BORDER }} />
-            <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}><AnimatedNumber value={stats.uniques} /></div>
-              <div style={{ fontSize: 11, color: "#5C5548", marginTop: 2 }}>unieke cocktails</div>
-            </div>
-            <div style={{ width: 1, height: 28, background: BORDER }} />
-            <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
-                <Star size={12} fill={BRASS} color={BRASS} />
-                <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 21, color: BOTTLE }}>{stats.avg.toFixed(1)}</span>
-              </div>
-              <div style={{ fontSize: 11, color: "#5C5548", marginTop: 2 }}>gem. beoordeling</div>
-            </div>
+      {/* Kerncijfers */}
+      <div style={{ display: "flex", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 0", marginBottom: 16 }}>
+        {[
+          { value: <AnimatedNumber value={stats.total} />, label: "check-ins" },
+          { value: <AnimatedNumber value={stats.uniques} />, label: "uniek" },
+          { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill={BRASS} color={BRASS} /></span>, label: "gemiddeld" },
+        ].map((c, i) => (
+          <div key={c.label} style={{ flex: 1, textAlign: "center", borderLeft: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: INK }}>{c.value}</div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{c.label}</div>
           </div>
+        ))}
+      </div>
 
-          <div style={{ marginBottom: 26 }}>
-            <div style={{ height: 3, borderRadius: 2, background: BORDER, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${insights.level.progress * 100}%`, background: `linear-gradient(90deg, ${BRASS}, #8F6A21)`, borderRadius: 2, transition: "width 1s cubic-bezier(.22,.9,.3,1)" }} />
+      {/* Tabbladen */}
+      <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12, marginBottom: 18 }}>
+        {[["checkins", "Check-ins"], ["smaak", "Smaak"], ["prestaties", "Prestaties"]].map(([id, label]) => (
+          <button key={id} role="tab" aria-selected={profileTab === id} onClick={() => setProfileTab(id)} style={{
+            flex: 1, height: 34, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 600,
+            background: profileTab === id ? CREAM : "transparent", color: profileTab === id ? INK : MUTED,
+            boxShadow: profileTab === id ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* ---------- Tab: Check-ins ---------- */}
+      {profileTab === "checkins" && (
+        logboek.length === 0 ? (
+          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "26px 20px", textAlign: "center" }}>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 4 }}>Nog geen check-ins</div>
+            <p style={{ margin: 0, fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>Tik op de + onderin om je eerste cocktail in te checken.</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ fontSize: 14, color: INK }}><strong>{thisMonthCount}</strong> deze maand</span>
+              {insights.streak >= 2 && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "#8F6A21", background: "rgba(184,134,46,0.14)", borderRadius: 100, padding: "4px 10px" }}>
+                  <Flame size={13} /> {insights.streak} dagen op rij
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 5, textAlign: "right" }}>{insights.level.to ? `${insights.level.xp} / ${insights.level.to} XP tot niveau ${insights.level.level + 1}` : `${insights.level.xp} XP · max niveau`}</div>
-          </div>
-        </>
-      )}
-
-      {/* Fotografische hero: laatste check-in als groot, karaktervol moment i.p.v. een kleine cirkel. */}
-      {heroEntry ? (
-        <div className="card-press" style={{ position: "relative", borderRadius: 20, overflow: "hidden", height: 360, marginBottom: 20, boxShadow: SHADOW_HERO, cursor: "pointer" }} onClick={() => heroImage ? openPhoto(heroEntry, heroMatched) : scrollToEntry(heroEntry.id)}>
-          {heroImage ? (
-            <img src={heroImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
-          ) : (
-            <div style={{ position: "absolute", inset: 0, background: BOTTLE_DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {heroMatched && <GlassArt glass={heroMatched.glass} colors={heroTint} garnishes={inferGarnishes(heroMatched, allIngredients)} rim={inferRim(heroMatched, allIngredients)} foam={inferFoam(heroMatched, allIngredients)} iceStyle={inferIceStyle(heroMatched)} size={150} />}
-            </div>
-          )}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0.05) 0%, rgba(19,38,34,0.18) 45%, rgba(15,26,23,0.94) 100%)" }} />
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "20px 20px 22px" }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "#D8AE5E", marginBottom: 7 }}>Laatste check-in</div>
-            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 28, color: CREAM, lineHeight: 1.1, marginBottom: 9 }}>{heroEntry.name}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", gap: 2 }}>
-                {[1, 2, 3, 4, 5].map(n => <Star key={n} size={12} fill={n <= heroEntry.rating ? "#D8AE5E" : "none"} color={n <= heroEntry.rating ? "#D8AE5E" : "rgba(251,246,234,0.4)"} />)}
-              </div>
-              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(251,246,234,0.5)" }} />
-              <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "rgba(251,246,234,0.82)", fontWeight: 500 }}>
-                <MapPin size={10} color="rgba(251,246,234,0.82)" /> {heroEntry.location}
-              </span>
-              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(251,246,234,0.5)" }} />
-              <span style={{ fontSize: 12, color: "rgba(251,246,234,0.82)", fontWeight: 500 }}>{heroEntry.date}</span>
-            </div>
-            {heroEntry.notes && <p style={{ margin: "10px 0 0", fontFamily: systemFont, fontSize: 13.5, color: "rgba(251,246,234,0.88)", lineHeight: 1.5, maxWidth: 300 }}>&ldquo;{heroEntry.notes}&rdquo;</p>}
-          </div>
-        </div>
-      ) : (
-        <div style={{ borderRadius: 20, border: `1px dashed ${BORDER}`, padding: "30px 20px", textAlign: "center", marginBottom: 20 }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 4 }}>Nog geen check-ins</div>
-          <p style={{ margin: 0, fontSize: 13, color: MUTED }}>Log je eerste cocktail hieronder — dit wordt jouw eigen barlogboek.</p>
-        </div>
-      )}
-
-      {/* Snel inchecken: opent het formulier als popup i.p.v. ernaartoe te scrollen. */}
-      <button onClick={() => { onSound("pop"); setShowCheckinSheet(true); }} className="press-scale" style={{
-        display: "flex", alignItems: "center", gap: 11, width: "100%", boxSizing: "border-box", padding: "13px 16px",
-        borderRadius: 100, background: CREAM, border: `1.5px solid ${BORDER}`, boxShadow: "0 3px 10px -4px rgba(43,38,32,0.12)",
-        cursor: "pointer", marginBottom: 30,
-      }}>
-        <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(184,134,46,0.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Plus size={13} color={BRASS} strokeWidth={2.4} />
-        </span>
-        <span style={{ fontFamily: systemFont, fontSize: 14.5, color: MUTED, flex: 1, textAlign: "left" }}>Cocktail inchecken</span>
-        <ChevronRight size={14} color="#ABA18F" />
-      </button>
-
-      {insights.hasTaste && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel>Jouw smaak</SectionLabel>
-          {insights.personality && (
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK, lineHeight: 1.3, marginBottom: 8 }}>{insights.personality.title}</div>
-          )}
-          {insights.personality && <p style={{ margin: "0 0 18px", fontSize: 13.5, color: "#5C5548", lineHeight: 1.55 }}>{insights.personality.text}</p>}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 18, height: 52, padding: "0 2px" }}>
-            {insights.taste.map(t => (
-              <div key={t.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                <div style={{
-                  width: 7, height: Math.max(6, (t.pct / 100) * 46), borderRadius: "4px 4px 1px 1px",
-                  background: topTasteKeys.has(t.key) ? `linear-gradient(180deg, #D8AE5E, ${BRASS})` : BORDER,
-                }} />
-                <span style={{ fontSize: 11, fontWeight: topTasteKeys.has(t.key) ? 700 : 500, color: topTasteKeys.has(t.key) ? INK : MUTED }}>{t.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {recentGrid.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
-            <SectionLabel>Recente check-ins</SectionLabel>
-            <span style={{ fontSize: 11.5, color: MUTED }}>{stats.total} check-ins</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3 }}>
-            {recentGrid.map(({ entry, matched }, i) => {
-              const img = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
-              const tint = matched ? recipeTint(matched, allIngredients) : [PAPER_DEEP, BORDER];
-              const corner = i === 0 ? "10px 0 0 0" : i === 2 ? "0 10px 0 0" : i === recentGrid.length - 3 ? "0 0 0 10px" : i === recentGrid.length - 1 ? "0 0 10px 0" : "0";
-              return (
-                <button key={entry.id} onClick={() => img ? openPhoto(entry, matched) : scrollToEntry(entry.id)} style={{
-                  position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", padding: 0, cursor: "pointer", borderRadius: corner,
-                  background: img ? "none" : BOTTLE_DARK,
-                }}>
-                  {img ? (
-                    <img src={img} alt={entry.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER, display: "block" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Martini size={26} color="rgba(251,246,234,0.85)" strokeWidth={1.3} />
-                    </div>
-                  )}
-                  <div className="glass-chip-dark" style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, borderRadius: 100, padding: "2px 7px" }}>
-                    <Star size={9} fill="#D8AE5E" color="#D8AE5E" />
-                    <span style={{ fontSize: 10, color: CREAM, fontWeight: 600 }}>{formatRating(entry.rating)}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {(() => {
-        const activeAch = insights.achievements.find(a => a.id === activeAchievementId) || insights.achievements.find(a => a.unlocked) || insights.achievements[0];
-        return (
-          <div style={{ marginBottom: 24 }}>
-            <SectionLabel>Prestaties</SectionLabel>
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
-              {insights.achievements.map(a => {
-                const AchIcon = a.icon;
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginLeft: -20, marginRight: -20 }}>
+              {logboek.map(entry => {
+                const matched = findMatch(entry);
+                const own = entry.photo;
+                const recipeImg = matched && (localItemImageUrl("cocktail", matched.id) || matched.image);
                 return (
-                <button key={a.id} onClick={() => setActiveAchievementId(a.id)} style={{
-                  border: "none", background: "none", padding: 0, margin: 0, cursor: "pointer", width: 72, flexShrink: 0,
-                  color: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 7,
-                }}>
-                  <div style={{
-                    position: "relative", width: 58, height: 58, borderRadius: "50%",
-                    background: a.unlocked ? BOTTLE_DARK : PAPER_DEEP,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: a.unlocked ? SHADOW_CARD : "none",
-                    border: a.unlocked ? `2px solid ${BRASS}` : `1.5px dashed ${BORDER}`,
+                  <button key={entry.id} onClick={() => setOpenEntryId(entry.id)} aria-label={`${entry.name}, ${formatRating(entry.rating)} sterren`} style={{
+                    position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", padding: 0, cursor: "pointer", background: PAPER_DEEP,
                   }}>
-                    <AchIcon size={24} strokeWidth={1.8} color={a.unlocked ? BRASS : MUTED} />
-                    {!a.unlocked && (
-                      <div style={{ position: "absolute", bottom: -2, right: -2, width: 19, height: 19, borderRadius: "50%", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Lock size={9} color={MUTED} strokeWidth={2.6} />
+                    {own || recipeImg ? (
+                      <img src={own || recipeImg} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: own ? "none" : RECIPE_PHOTO_FILTER }} />
+                    ) : matched ? (
+                      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <RecipeCircle recipe={matched} allIngredients={allIngredients} size={96} radius={12} />
+                      </div>
+                    ) : (
+                      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: 8, boxSizing: "border-box" }}>
+                        <Martini size={28} color={BRASS} strokeWidth={1.4} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: INK, textAlign: "center", lineHeight: 1.2 }}>{entry.name}</span>
                       </div>
                     )}
-                  </div>
-                  <span style={{ fontSize: 11.5, textAlign: "center", lineHeight: 1.25, color: a.unlocked ? "#4A4438" : "#7D7461", fontWeight: 600 }}>{a.label}</span>
-                </button>
+                    <div className="glass-chip-dark" style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, borderRadius: 100, padding: "2px 7px" }}>
+                      <span style={{ fontSize: 12, color: CREAM, fontWeight: 700 }}>{formatRating(entry.rating)}</span>
+                      <Star size={10} fill="#D8AE5E" color="#D8AE5E" />
+                    </div>
+                  </button>
                 );
               })}
             </div>
-            <div style={{ marginTop: 12, padding: "11px 13px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 10, display: "flex", alignItems: "center", gap: 10 }}>
-              {(() => { const ActiveIcon = activeAch.icon; return <ActiveIcon size={19} strokeWidth={1.8} color={activeAch.unlocked ? BRASS : MUTED} />; })()}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: INK }}>{activeAch.label}{!activeAch.unlocked && " (nog niet ontgrendeld)"}</div>
-                <div style={{ fontSize: 12, color: "#5C5548", marginTop: 1 }}>{activeAch.text}</div>
+          </>
+        )
+      )}
+
+      {/* ---------- Tab: Smaak ---------- */}
+      {profileTab === "smaak" && (() => {
+        const titleCase = (t) => t ? t.charAt(0) + t.slice(1).toLowerCase() : "";
+        const persona = insights.personality;
+        const personaTitle = persona ? titleCase(persona.title) : "Jouw smaak";
+        const canShare = isNativeShell || (typeof navigator !== "undefined" && !!navigator.share);
+        const shareTaste = async () => {
+          const text = `Mijn smaakprofiel in Mijn Thuisbar: ${personaTitle}. ${persona?.text || ""}`.trim();
+          try {
+            if (isNativeShell) await Share.share({ title: "Mijn smaakprofiel", text, dialogTitle: "Deel je smaakprofiel" });
+            else await navigator.share({ title: "Mijn smaakprofiel", text });
+          } catch { /* geannuleerd */ }
+        };
+        const needed = Math.max(0, 3 - logboek.length);
+        const favRecipe = insights.favoriteCocktail ? recipes.find(r => r.name.toLowerCase() === insights.favoriteCocktail.name.toLowerCase()) : null;
+        const famName = insights.favoriteFamilyEntry?.[0];
+        const famRecipe = famName ? (logboek.map(findMatch).filter(r => r && r.family === famName)[0] || recipes.find(r => r.family === famName)) : null;
+        const favCards = [
+          insights.favoriteCocktail && { label: "Favoriete cocktail", title: insights.favoriteCocktail.name, recipe: favRecipe, serifTitle: true },
+          famName && { label: "Favoriete stijl", title: famName, recipe: famRecipe },
+        ].filter(Boolean);
+        const monthsWithData = insights.months.filter(m => m.count > 0).length;
+        const spiritMeta = (label) => allIngredients.find(i => i.name === label && i.cat === "Sterke drank");
+        return (
+          <>
+            <div style={{ position: "relative", background: BOTTLE_DARK, color: "#FBF6EA", borderRadius: 18, padding: "18px 18px 16px", boxShadow: SHADOW_HERO, borderBottom: `3px solid ${BRASS}`, marginBottom: 22 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, color: "#DDB877" }}>Jouw smaakprofiel</span>
+                {canShare && persona && (
+                  <button onClick={shareTaste} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 30, padding: "0 12px", borderRadius: 100, border: "1px solid rgba(251,246,234,0.3)", background: "rgba(251,246,234,0.08)", color: "#FBF6EA", fontFamily: sans, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                    <Share2 size={13} /> Deel
+                  </button>
+                )}
               </div>
+              <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26, lineHeight: 1.15 }}>{personaTitle}</div>
+              {persona && <p style={{ margin: "6px 0 0", fontSize: 13.5, lineHeight: 1.5, color: "rgba(251,246,234,0.85)" }}>{persona.text}</p>}
+              {needed > 0 || !insights.hasTaste ? (
+                <div style={{ marginTop: 14, padding: "14px 12px", borderRadius: 12, background: "rgba(251,246,234,0.08)", fontSize: 14, textAlign: "center", color: "#FBF6EA" }}>
+                  {needed > 0 ? `Nog ${needed} check-in${needed === 1 ? "" : "s"} en we kennen je smaak` : "Check wat vaker in, dan leren we je smaak kennen"}
+                </div>
+              ) : (
+                <div style={{ marginTop: 6 }}><TasteRadar taste={insights.taste} /></div>
+              )}
             </div>
-          </div>
+
+            {favCards.length > 0 && (
+              <div style={{ marginBottom: 22 }}>
+                <SectionLabel>Favorieten</SectionLabel>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+                  {favCards.map(c => (
+                    <div key={c.label} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+                      <div style={{ height: 96, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                        {c.recipe && (localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image)
+                          ? <img src={localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
+                          : c.recipe ? <RecipeCircle recipe={c.recipe} allIngredients={allIngredients} size={70} radius={12} /> : <Martini size={28} color={BRASS} strokeWidth={1.4} />}
+                      </div>
+                      <div style={{ padding: "10px 12px 12px" }}>
+                        <div style={{ fontSize: 12, color: MUTED }}>{c.label}</div>
+                        <div style={{ fontFamily: c.serifTitle ? serif : systemFont, fontWeight: 700, fontSize: 16, color: INK, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {insights.spirits.length > 0 && (
+              <div style={{ marginBottom: 22 }}>
+                <SectionLabel>Meest gebruikte drank</SectionLabel>
+                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+                  {insights.spirits.map((sp, i) => {
+                    const meta = spiritMeta(sp.label);
+                    return (
+                      <div key={sp.label} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 9, overflow: "hidden", background: PAPER_DEEP, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {meta ? <ItemImage id={meta.id} type="drank" size={34} radius={9} /> : <Wine size={16} color={MUTED} />}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                          <span style={{ width: 86, flexShrink: 0, fontSize: 14, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sp.label}</span>
+                          <div style={{ flex: 1, height: 6, borderRadius: 3, background: PAPER_DEEP, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${sp.pct}%`, background: BRASS, borderRadius: 3 }} />
+                          </div>
+                          <span style={{ width: 38, textAlign: "right", fontSize: 13, fontWeight: 700, color: INK }}>{sp.pct}%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {monthsWithData >= 2 && (
+              <div style={{ marginBottom: 22 }}>
+                <SectionLabel>Check-ins per maand</SectionLabel>
+                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "16px 16px 12px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80 }}>
+                    {insights.months.map((m, i) => (
+                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 6 }}>
+                        <div style={{ width: "100%", maxWidth: 18, borderRadius: 4, background: m.count ? BRASS : PAPER_DEEP, height: `${Math.max(6, (m.count / insights.monthMax) * 100)}%` }} />
+                        <span style={{ fontSize: 12, color: MUTED }}>{m.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         );
       })()}
 
-      {insights.locations.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel>Jouw cocktailkaart</SectionLabel>
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", boxShadow: SHADOW_CARD }}>
-            <CocktailMap locations={insights.locations} />
-          </div>
-        </div>
-      )}
-
-      <div style={{ marginBottom: 24 }}>
-        <SectionLabel>Statistieken</SectionLabel>
-        <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px 6px" }}>
-            {[
-              { value: stats.total, label: "Cocktails geproefd" },
-              { value: stats.uniques, label: "Unieke cocktails" },
-              { value: stats.avg.toFixed(1), label: "Gem. beoordeling" },
-              { value: insights.customUsedCount, label: "Eigen recepten" },
-              { value: insights.streak, label: "Langste streak (dagen)" },
-            ].map((s, i) => (
-              <div key={i} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: BOTTLE }}>{s.value}</div>
-                <div style={{ fontSize: 11.5, color: "#5C5548", marginTop: 3, lineHeight: 1.3, fontWeight: 500 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ margin: "18px 0 4px", paddingTop: 16, borderTop: `1px dashed ${BORDER}` }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3, color: "#4A4438", marginBottom: 12 }}>Check-ins per maand</div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 72 }}>
-              {insights.months.map((m, i) => (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 7 }}>
-                  <div style={{ width: "100%", maxWidth: 15, borderRadius: "3px 3px 1px 1px", background: `linear-gradient(180deg, ${BRASS}, #8F6A21)`, height: `${Math.max(4, (m.count / insights.monthMax) * 100)}%`, opacity: i === insights.months.length - 1 ? 1 : 0.75, transition: "height 1s cubic-bezier(.22,.9,.3,1)" }} />
-                  <span style={{ fontSize: 11, color: "#5C5548", fontWeight: 600 }}>{m.label}</span>
-                </div>
-              ))}
+      {/* ---------- Tab: Prestaties ---------- */}
+      {profileTab === "prestaties" && (() => {
+        const achieved = insights.achievements.filter(a => a.unlocked).length;
+        const activeAch = insights.achievements.find(a => a.id === activeAchievementId) || null;
+        const lessonsDone = COURSE_LESSONS.filter(l => courseProgress?.[l.id]?.completed).length;
+        const mapLocations = insights.locations.filter(l => l.name.trim().toLowerCase() !== "thuis");
+        return (
+          <>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <SectionLabel>Badges</SectionLabel>
+              <span style={{ fontSize: 13, color: MUTED }}>{achieved} van {insights.achievements.length} behaald</span>
             </div>
-          </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: activeAch ? 10 : 22 }}>
+              {insights.achievements.map(a => {
+                const AchIcon = a.icon;
+                const pr = a.progress || { value: 0, goal: 1, unit: "" };
+                const selected = activeAchievementId === a.id;
+                return (
+                  <button key={a.id} onClick={() => setActiveAchievementId(selected ? null : a.id)} aria-pressed={selected} style={{
+                    background: CREAM, border: `1px solid ${selected ? BRASS : BORDER}`, borderRadius: 16, padding: "14px 8px 12px", cursor: "pointer",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 7, fontFamily: sans, minWidth: 0,
+                  }}>
+                    <div style={{
+                      width: 50, height: 50, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                      background: a.unlocked ? BOTTLE_DARK : PAPER_DEEP, border: a.unlocked ? `2px solid ${BRASS}` : "none",
+                    }}>
+                      <AchIcon size={21} strokeWidth={1.8} color={a.unlocked ? "#DDB877" : MUTED} />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: INK, textAlign: "center", lineHeight: 1.2 }}>{a.label}</span>
+                    {a.unlocked ? (
+                      <span style={{ fontSize: 12, fontWeight: 600, color: SAGE }}>Behaald</span>
+                    ) : (
+                      <>
+                        <div style={{ width: "80%", height: 4, borderRadius: 2, background: PAPER_DEEP, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${(pr.value / pr.goal) * 100}%`, background: BRASS }} />
+                        </div>
+                        <span style={{ fontSize: 12, color: MUTED, textAlign: "center" }}>{pr.value} van {pr.goal}{pr.unit ? ` ${pr.unit}` : ""}</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {activeAch && (
+              <div className="accordion-reveal" style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 14px", marginBottom: 22 }}>
+                {(() => { const I = activeAch.icon; return <I size={20} strokeWidth={1.8} color={activeAch.unlocked ? BRASS : MUTED} />; })()}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: INK }}>{activeAch.label}{activeAch.unlocked ? "" : " · nog niet behaald"}</div>
+                  <div style={{ fontSize: 13, color: MUTED, marginTop: 1 }}>{activeAch.text}</div>
+                </div>
+              </div>
+            )}
 
-          {insights.spirits.length > 0 && (
-            <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px dashed ${BORDER}` }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3, color: "#4A4438", marginBottom: 12 }}>Meest gebruikte drank</div>
-              {insights.spirits.map((sp, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12.5, color: INK, width: 90, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 500 }}>{sp.label}</span>
-                  <div style={{ flex: 1, height: 8, borderRadius: 4, background: BORDER, overflow: "hidden" }}>
-                    <div style={{ height: "100%", borderRadius: 4, background: BRASS, width: `${sp.pct}%` }} />
+            {courseDiploma ? (
+              <CourseDiploma date={courseDiploma.date} scorePct={courseDiploma.scorePct} />
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "14px", marginBottom: 12 }}>
+                <span style={{ width: 40, height: 40, borderRadius: 12, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><GraduationCap size={19} color={BOTTLE} strokeWidth={1.8} /></span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>Cocktailcursus</div>
+                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{lessonsDone} van {COURSE_LESSONS.length} lessen · diploma na de eindtoets</div>
+                  <div style={{ height: 4, borderRadius: 2, background: PAPER_DEEP, overflow: "hidden", marginTop: 8 }}>
+                    <div style={{ height: "100%", width: `${(lessonsDone / COURSE_LESSONS.length) * 100}%`, background: BRASS }} />
                   </div>
-                  <span style={{ fontSize: 12, color: "#5C5548", fontWeight: 700, width: 30, textAlign: "right", flexShrink: 0 }}>{sp.pct}%</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+              </div>
+            )}
 
-      {(insights.favoriteCocktail || insights.favoriteFamilyEntry) && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel>Jouw favorieten</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 11 }}>
-            {insights.favoriteCocktail && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid #7A2E2A`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Heart size={13} color="#7A2E2A" fill="#7A2E2A" /> Favoriete cocktail</div>
-                <div style={{ marginTop: 4, fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteCocktail.name}</div>
-              </div>
-            )}
-            {insights.favoriteHomemade && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${SAGE}`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Home size={13} color={SAGE} /> Favoriet eigen recept</div>
-                <div style={{ marginTop: 4, fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteHomemade.name}</div>
-              </div>
-            )}
-            {insights.favoriteFamilyEntry && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${BRASS}`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Martini size={13} color={BRASS} /> Favoriete stijl</div>
-                <div style={{ marginTop: 4, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteFamilyEntry[0]}</div>
-              </div>
-            )}
-            {insights.favoriteSpiritEntry && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${MUTED}`, borderRadius: 14, padding: "13px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, letterSpacing: 0.3, textTransform: "uppercase", color: "#5C5548", fontWeight: 700 }}><Wine size={13} color={MUTED} /> Favoriete drank</div>
-                <div style={{ marginTop: 4, fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: INK, lineHeight: 1.3 }}>{insights.favoriteSpiritEntry[0]}</div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {insights.recommended.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <SectionLabel>Aanbevolen voor jou</SectionLabel>
-          <div style={{ fontSize: 12.5, color: "#5C5548", margin: "-6px 0 13px" }}>Gebaseerd op je smaakprofiel en je voorraad</div>
-          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-            {insights.recommended.map(({ recipe, matchPct }) => (
-              <button key={recipe.id} onClick={() => { onSound("pop"); onOpenRecipe(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                <div className="glass-chip-dark" style={{ position: "absolute", top: 8, right: 8, borderRadius: 100, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>{matchPct}%</div>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-                  <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
+            {insights.locations.length >= 2 && mapLocations.length > 0 ? (
+              <div style={{ marginBottom: 12 }}>
+                <SectionLabel>Jouw cocktailkaart</SectionLabel>
+                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+                  <CocktailMap locations={mapLocations} />
                 </div>
-                <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 13, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
-                <div style={{ fontSize: 11, color: "#5C5548", marginTop: 4, fontWeight: 500 }}>{recipe.family}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "14px", marginBottom: 12 }}>
+                <span style={{ width: 40, height: 40, borderRadius: 12, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><MapPin size={19} color={BOTTLE} strokeWidth={1.8} /></span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>Jouw cocktailkaart</div>
+                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1, lineHeight: 1.4 }}>Check in op een tweede plek en je kaart verschijnt hier.</div>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {showCheckinSheet && createPortal((
-        <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: "var(--kb-pad, 0px)", transition: "padding-bottom 0.25s ease" }}>
           <div className="sheet-backdrop-in" onClick={closeCheckinSheet} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: checkinClosing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-          <div ref={checkinPanelRef} className="sheet-slide-in" style={{
-            position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "92vh",
+          <div ref={checkinPanelRef} className="sheet-slide-in sheet-max-92" style={{
+            position: "relative", maxWidth: 960, width: "100%", margin: "0 auto",
             background: PAPER_DEEP, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
             display: "flex", flexDirection: "column", overflow: "hidden",
           }}>
@@ -9297,8 +11132,11 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             <div style={{ background: PAPER_DEEP, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", flex: 1, minHeight: 0 }}>
               {/* Beeldvlak 4:3: eigen foto, anders de foto van het gekozen recept, anders een rustige placeholder. Tikken opent de camera/foto-kiezer. */}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
+              {/* Tijdens het zoeken naar een cocktail klapt de grote foto in, zodat
+                  zoekveld + resultaten de ruimte boven het toetsenbord krijgen. */}
               <button onClick={() => fileInputRef.current?.click()} disabled={photoBusy} style={{
-                position: "relative", display: "block", margin: "18px 20px 0", width: "calc(100% - 40px)",
+                display: cocktailSearchOpen ? "none" : "block",
+                position: "relative", margin: "18px 20px 0", width: "calc(100% - 40px)",
                 aspectRatio: "4 / 3", border: "none", borderRadius: 20, padding: 0,
                 cursor: photoBusy ? "default" : "pointer", overflow: "hidden",
                 background: heroPhotoSrc ? "none" : `radial-gradient(ellipse 420px 260px at 50% 20%, #2A4B42, ${BOTTLE_DARK} 75%)`,
@@ -9322,44 +11160,47 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               </button>
 
               <div style={{ padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 22 }}>
-                <RecipeSearchWithPhotos recipes={recipes} value={nameInput} onChange={setNameInput}
+                <RecipeSearchWithPhotos recipes={recipes} value={nameInput} onChange={setNameInput} onOpenChange={setCocktailSearchOpen}
                   onSelect={(r) => setNameInput(r.name)} allIngredients={allIngredients} recent={recentCocktails} />
 
+                <CheckinStars value={rating} onChange={setRating} onSound={onSound} />
+
                 <div>
-                  <StarPicker value={rating} onChange={setRating} size={32} onSound={onSound} />
-                  <input type="range" min="0" max="5" step="0.25" value={rating}
-                    onChange={e => { const v = Number(e.target.value); if (v !== rating) onSound("tick"); setRating(v); }}
-                    style={{ width: "100%", accentColor: BRASS, marginTop: 12 }} />
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+                    <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: INK }}>Wat proefde je?</span>
+                    <span style={{ fontFamily: systemFont, fontSize: 12, color: MUTED }}>Kies er zoveel je wilt</span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {CHECKIN_TASTE_TAGS.map(({ key, label }) => {
+                      const on = tasteTags.includes(key);
+                      return (
+                        <button key={key} onClick={() => toggleTasteTag(key)} aria-pressed={on} className="press-scale" style={{
+                          height: 40, padding: "0 16px", borderRadius: 100, boxSizing: "border-box",
+                          display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                          border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : PAPER, color: on ? CREAM : INK,
+                          fontFamily: systemFont, fontSize: 14, fontWeight: 600,
+                        }}>
+                          {on && <Check size={14} strokeWidth={3} color="#DDB877" />}
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <AutoGrowTextField value={notes} onChange={setNotes} placeholder="Voeg een notitie toe…" />
 
                 <div>
-                  <button onClick={() => setMoreOpen(v => !v)} style={{ display: "flex", alignItems: "center", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont, fontSize: 15.5, fontWeight: 600, color: INK }}>
+                  <button onClick={(e) => {
+                    const btn = e.currentTarget;
+                    setMoreOpen(v => { if (!v) setTimeout(() => btn.scrollIntoView({ block: "start", behavior: "smooth" }), 60); return !v; });
+                  }} style={{ display: "flex", alignItems: "center", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont, fontSize: 15.5, fontWeight: 600, color: INK }}>
                     <span style={{ flex: 1, textAlign: "left" }}>Meer toevoegen</span>
                     {moreOpen ? <ChevronUp size={18} color={MUTED} /> : <ChevronDown size={18} color={MUTED} />}
                   </button>
 
                   {moreOpen && (
                     <div className="accordion-reveal" style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 20 }}>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>
-                          <span>Zuur</span><span>Zoet</span>
-                        </div>
-                        <input type="range" min="0" max="100" value={tasteBalance} onChange={e => setTasteBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
-                      </div>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>
-                          <span>Licht</span><span>Sterk</span>
-                        </div>
-                        <input type="range" min="0" max="100" value={strengthBalance} onChange={e => setStrengthBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
-                      </div>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>
-                          <span>Bitter</span><span>Fruitig</span>
-                        </div>
-                        <input type="range" min="0" max="100" value={fruitBalance} onChange={e => setFruitBalance(Number(e.target.value))} style={{ width: "100%", accentColor: BRASS }} />
-                      </div>
                       <div>
                         <div style={{ fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>Locatie</div>
                         <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
@@ -9383,7 +11224,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               </div>
             </div>
 
-            <div style={{ padding: "14px 20px calc(env(safe-area-inset-bottom) + 14px)", background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
+            <div className="checkin-footer" style={{ padding: "14px 20px calc(env(safe-area-inset-bottom) + 14px)", background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
               {(() => {
                 const canSubmit = nameInput.trim().length > 0 && rating > 0;
                 return (
@@ -9414,96 +11255,10 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
         </div>
       ), document.body)}
 
-      {photoViewer && <CheckinPhotoViewer {...photoViewer} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)} />}
-      {logboek.length === 0 ? (
-        <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "20px 0" }}>Nog geen check-ins.</p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {logboek.map(entry => {
-            const matched = entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
-            const tint = matched ? recipeTint(matched, allIngredients) : null;
-            const circle = matched ? <RecipeCircle recipe={matched} allIngredients={allIngredients} size={54} /> : (
-              <div style={{ width: 54, height: 54, borderRadius: "50%", background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <NotebookPen size={21} color={MUTED} />
-              </div>
-            );
-            let ingredientsLine = null;
-            if (matched) {
-              const names = matched.ingredients.map(ing => ingredientLabel(ing));
-              ingredientsLine = names.length > 5 ? `${names.slice(0, 5).join(" · ")} + ${names.length - 5} meer` : names.join(" · ");
-            }
-            const ratingBadge = (
-              <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "5px 10px" }}>
-                <Star size={12} fill={BRASS} color={BRASS} />
-                <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 13, color: BOTTLE }}>{formatRating(entry.rating)}</span>
-              </div>
-            );
-            return (
-              <div key={entry.id} ref={el => cardRefs.current[entry.id] = el} style={{ position: "relative", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 18, boxShadow: SHADOW_CARD, scrollMarginTop: 20 }}>
-                {tint && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, borderRadius: "18px 0 0 18px", background: BRASS }} />}
-                {entry.photo && (
-                  <div onClick={() => openPhoto(entry, matched)} style={{ position: "relative", width: "100%", height: 172, cursor: "zoom-in" }}>
-                    <img src={entry.photo} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: "18px 18px 0 0" }} />
-                    <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 4, background: "rgba(20,16,10,0.55)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", borderRadius: 100, padding: "5px 11px", border: "1px solid rgba(255,255,255,0.25)" }}>
-                      <Star size={12} fill={BRASS} color={BRASS} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: CREAM }}>{formatRating(entry.rating)}</span>
-                    </div>
-                    <div style={{ position: "absolute", left: 18, bottom: -22, width: 64, height: 64, borderRadius: "50%", background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 3px 10px rgba(20,16,10,0.35)" }}>
-                      {circle}
-                    </div>
-                  </div>
-                )}
-                <div style={{ padding: "16px 18px 16px", paddingLeft: tint ? 22 : 18, paddingTop: entry.photo ? 32 : 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                    <div style={{ display: "flex", gap: 14, minWidth: 0, alignItems: "center" }}>
-                      {!entry.photo && (
-                        <div style={{ position: "relative", width: 54, height: 54, flexShrink: 0 }}>
-                          {tint && <div style={{ position: "absolute", inset: -7, borderRadius: "50%", background: `radial-gradient(circle, ${tint[0]}66, transparent 72%)`, zIndex: 0 }} />}
-                          <div style={{ position: "relative", zIndex: 1 }}>{circle}</div>
-                        </div>
-                      )}
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 17.5 }}>{entry.name}</div>
-                        {matched && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{matched.family} · {matched.glass}</div>}
-                      </div>
-                    </div>
-                    {!entry.photo && ratingBadge}
-                  </div>
-
-                  {entry.tasteTags && entry.tasteTags.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 }}>
-                      {entry.tasteTags.filter(k => TASTE_META[k]).map(k => (
-                        <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "#8F6A21", background: "rgba(184,134,46,0.12)", border: "1px solid rgba(184,134,46,0.3)", borderRadius: 100, padding: "3px 9px" }}>
-                          {TASTE_META[k].label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {ingredientsLine && (
-                    <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5, margin: "12px 0 0", paddingTop: 10, borderTop: `1px dotted ${BORDER}` }}>
-                      {ingredientsLine}
-                    </div>
-                  )}
-
-                  {entry.notes && (
-                    <p style={{ fontFamily: systemFont, fontSize: 13.5, color: INK, margin: "10px 0 0", paddingLeft: 10, borderLeft: `2px solid ${BRASS}`, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-                      “{entry.notes}”
-                    </p>
-                  )}
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 10, borderTop: `1px dashed ${BORDER}` }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#5C5548", fontWeight: 500 }}>
-                      {entry.location && <MapPin size={11} color="#5C5548" />}
-                      {entry.date}{entry.location ? ` · ${entry.location}` : ""}
-                    </span>
-                    <button onClick={() => removeEntry(entry.id)} className="press-scale" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: "50%" }}><Trash2 size={14} color={MUTED} /></button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {openEntry && (
+        <CheckinDetailSheet entry={openEntry} recipe={findMatch(openEntry)} allIngredients={allIngredients} ingredientLabel={ingredientLabel}
+          who={profile?.name || "Jij"} whoAvatar={profile?.avatar_url}
+          onClose={() => setOpenEntryId(null)} onRemove={removeEntry} />
       )}
     </div>
   );
@@ -9698,7 +11453,10 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
         <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
           <Avatar name={name} photo={friendProfile?.avatar_url} size={44} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK }}>{name}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK }}>{name}</span>
+              {friendProfile?.course_completed_at && <CourseDiploma compact />}
+            </div>
             {insights && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{insights.level.title} · niveau {insights.level.level}</div>}
           </div>
           <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
@@ -9724,6 +11482,9 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "18px 20px" }}>
+          {friendProfile?.course_completed_at && (
+            <CourseDiploma date={friendProfile.course_completed_at} scorePct={friendProfile.course_exam_score} isOwn={false} />
+          )}
           {!logboek ? (
             <p style={{ color: MUTED, fontSize: 13.5, textAlign: "center", padding: "40px 0" }}>Bezig met laden…</p>
           ) : logboek.length === 0 ? (
@@ -9737,7 +11498,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                     {[
                       { value: stats.total, label: "Cocktails geproefd" },
                       { value: stats.uniques, label: "Unieke cocktails" },
-                      { value: stats.avg.toFixed(1), label: "Gem. beoordeling" },
+                      { value: formatDecimal1(stats.avg), label: "Gem. beoordeling" },
                       { value: insights.customUsedCount, label: "Eigen recepten" },
                       { value: insights.streak, label: "Langste streak (dagen)" },
                     ].map((s, i) => (
@@ -9878,16 +11639,9 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
   const [openFriendId, setOpenFriendId] = useState(null);
 
   const shareInvite = async () => {
-    const url = `${window.location.origin}${window.location.pathname}?invite=${myId}`;
-    const text = "Voeg me toe als vriend in Mijn Thuisbar, dan zien we elkaars check-ins!";
-    try {
-      if (navigator.share) { await navigator.share({ title: "Mijn Thuisbar", text, url }); setShareState("shared"); }
-      else { await navigator.clipboard.writeText(url); setShareState("copied"); }
-    } catch (e) {
-      if (e.name !== "AbortError") {
-        try { await navigator.clipboard.writeText(url); setShareState("copied"); } catch { setShareState("failed"); }
-      }
-    }
+    const result = await shareLink({ title: "Mijn Thuisbar", text: "Voeg me toe als vriend in Mijn Thuisbar, dan zien we elkaars check-ins!", url: publicAppUrl(`invite=${myId}`) });
+    if (result === "cancelled") return;
+    setShareState(result === "no-url" ? "failed" : result);
     setTimeout(() => setShareState(null), 2500);
   };
 
@@ -9897,7 +11651,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
     setFriendships(rows);
     const otherIds = [...new Set(rows.map(f => (f.requester_id === myId ? f.addressee_id : f.requester_id)))];
     if (otherIds.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("id, name, avatar_url").in("id", otherIds);
+      const { data: profs } = await supabase.from("profiles").select("*").in("id", otherIds);
       const map = {};
       (profs || []).forEach(p => { map[p.id] = p; });
       setProfilesById(map);
@@ -10039,7 +11793,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
               <div style={{ ...rowStyle, background: CREAM, borderBottom: i < accepted.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                 <button onClick={() => setOpenFriendId(otherId)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
                   <Avatar name={profilesById[otherId]?.name} photo={profilesById[otherId]?.avatar_url} size={32} />
-                  <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: INK }}>{profilesById[otherId]?.name || "…"}</span>
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: INK }}>{profilesById[otherId]?.name || "…"}{profilesById[otherId]?.course_completed_at ? " 🎓" : ""}</span>
                 </button>
                 <button onClick={() => removeFriendship(f.id)} disabled={busyId === f.id} className="press-scale tap-target-44" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", flexShrink: 0 }}>
                   <Trash2 size={15} color={MUTED} />
@@ -10065,134 +11819,497 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
   );
 }
 
-function EigenRecepten({ customRecipes, setCustomRecipes, allIngredients, onSound }) {
-  const emptyRow = () => ({ name: "", amount: "", unit: "ml", optional: false });
-  const [editingId, setEditingId] = useState(null);
-  const [name, setName] = useState("");
-  const [family, setFamily] = useState("");
-  const [glass, setGlass] = useState("");
-  const [method, setMethod] = useState("");
-  const [garnish, setGarnish] = useState("");
-  const [rows, setRows] = useState([emptyRow(), emptyRow()]);
+// ===== Eigen recepten: nieuw recept =====
+// Ingrediënten, stijl en glas worden gekozen uit wat de app kent (i.p.v.
+// vrij getypt), zodat een eigen recept altijd meetelt bij "Wat kan ik
+// maken", de voorraad en de boodschappenlijst.
+const EIGEN_FAMILIES = [
+  { value: "Sours", label: "Sours" }, { value: "Highballs", label: "Highballs" },
+  { value: "Stirred-down", label: "Stirred-down" }, { value: "Spirit-forward", label: "Spirit-forward" },
+  { value: "Fizz / Flip", label: "Fizz / Flip" }, { value: "Modern / Tiki", label: "Tiki" },
+  { value: "Moderne klassiekers", label: "Moderne klassiekers" }, { value: "Zuivel & dessert", label: "Dessert" },
+  { value: "Warme dranken", label: "Warm" }, { value: "Mocktail / alcoholvrij", label: "Alcoholvrij" },
+];
+const EIGEN_GLASSES = ["Coupe", "Rocks", "Highball", "Champagneflute", "Wijnglas", "Hurricane", "Koperen beker", "Glazen mok", "Julep beker"];
+const EIGEN_GLASS_LABELS = { Champagneflute: "Flute", Wijnglas: "Wijn", "Koperen beker": "Koper", "Glazen mok": "Mok", "Julep beker": "Julep" };
+const EIGEN_TECHNIQUES = [
+  { key: "geschud", label: "Geschud", steps: (g) => ["Doe alles met ijs in de shaker.", "Shake stevig, ± 12 seconden.", `Zeef in een ${g}.`] },
+  { key: "geroerd", label: "Geroerd", steps: (g) => ["Doe alles met ijs in een mengglas.", "Roer rustig 20 tot 30 seconden, tot het goed koud is.", `Zeef in een ${g}.`] },
+  { key: "gebouwd", label: "Gebouwd", steps: () => ["Vul het glas met ijs.", "Schenk de ingrediënten in volgorde in het glas.", "Roer kort door."] },
+  { key: "geblend", label: "Geblend", steps: (g) => ["Doe alles met een schep crushed ijs in de blender.", "Blend ± 20 seconden tot het glad is.", `Schenk in een ${g}.`] },
+];
+const EIGEN_GARNISHES = ["Limoenschijfje", "Citroenzeste", "Sinaasappelzeste", "Cocktailkers", "Takje munt", "Olijf"];
+const EIGEN_UNITS = [{ key: "ml", label: "ml" }, { key: "dash", label: "dash" }, { key: "stuk", label: "stuk" }, { key: "top", label: "top op" }];
+const EIGEN_NEW_CATS = [
+  { cat: "Sterke drank", label: "Sterke drank" }, { cat: "Likeuren & versterkte wijnen", label: "Likeur" }, { cat: "Mixers", label: "Mixer" },
+  { cat: "Vers", label: "Siroop / vers" }, { cat: "Bitters", label: "Bitters" }, { cat: "Zuivel & room", label: "Zuivel" },
+];
+const TOP_OP_ML = 60; // "top op": voor berekeningen ± 60 ml
 
-  const updateRow = (idx, field, val) => { const next = rows.slice(); next[idx] = { ...next[idx], [field]: val }; setRows(next); };
-  const addRow = () => setRows([...rows, emptyRow()]);
-  const removeRow = (idx) => setRows(rows.filter((_, i) => i !== idx));
+// Hoe het glas in de laatste stap heet ("Zeef in een gekoelde coupe.").
+const EIGEN_GLASS_PHRASES = {
+  Coupe: "gekoelde coupe", Rocks: "rocksglas met ijs", Highball: "highballglas met ijs", Champagneflute: "gekoelde flute",
+  Wijnglas: "wijnglas met ijs", Hurricane: "hurricaneglas met crushed ijs", "Koperen beker": "koperen beker met ijs",
+  "Glazen mok": "glazen mok", "Julep beker": "julepbeker met crushed ijs",
+};
+function glassWord(glass) { return EIGEN_GLASS_PHRASES[glass] || "gekoeld glas"; }
+function techniqueFromMethod(method) {
+  const t = inferTechniques(method);
+  if (t.includes("blend")) return "geblend";
+  if (t.includes("stirred") && !t.includes("shaken")) return "geroerd";
+  if (t.includes("build") && !t.includes("shaken")) return "gebouwd";
+  return "geschud";
+}
 
-  const resetForm = () => {
-    setEditingId(null);
-    setName(""); setFamily(""); setGlass(""); setMethod(""); setGarnish(""); setRows([emptyRow(), emptyRow()]);
+function IngredientPickerSheet({ allIngredients, isOwned, onPick, onClose }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const [query, setQuery] = useState("");
+  const [chosen, setChosen] = useState(null); // { id } | { newName }
+  const [newCat, setNewCat] = useState(null);
+  const [amount, setAmount] = useState({ amount: 15, unit: "ml" });
+  const [custom, setCustom] = useState(false);
+  const [customAmount, setCustomAmount] = useState("");
+  const q = query.trim().toLowerCase();
+  const results = q ? allIngredients.filter(i => i.name.toLowerCase().includes(q)).slice(0, 12) : [];
+  const exact = q && allIngredients.some(i => i.name.toLowerCase() === q);
+  const quick = [
+    { amount: 10, unit: "ml", label: "10 ml" }, { amount: 15, unit: "ml", label: "15 ml" }, { amount: 22.5, unit: "ml", label: "22,5 ml" },
+    { amount: 30, unit: "ml", label: "30 ml" }, { amount: 45, unit: "ml", label: "45 ml" }, { amount: 1, unit: "dash", label: "dash" }, { amount: TOP_OP_ML, unit: "top", label: "top op" },
+  ];
+  const ready = chosen && (chosen.id || (chosen.newName && newCat)) && (!custom || parseFloat(customAmount.replace(",", ".")) > 0);
+  const submit = () => {
+    if (!ready) return;
+    const amt = custom ? { amount: parseFloat(customAmount.replace(",", ".")), unit: "ml" } : amount;
+    onPick({ ...(chosen.id ? { id: chosen.id } : { newName: chosen.newName, newCat }), ...amt });
+    close();
   };
+  const chip = (on) => ({ minHeight: 40, padding: "0 14px", borderRadius: 100, cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 600, border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : CREAM, color: on ? "#FBF6EA" : INK });
+  const head = (t) => <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: MUTED, margin: "16px 0 8px" }}>{t}</div>;
 
-  const startEdit = (r) => {
-    setEditingId(r.id);
-    setName(r.name); setFamily(r.family); setGlass(r.glass); setMethod(r.method === "—" ? "" : r.method); setGarnish(r.garnish || "");
-    setRows(r.ingredients.map(ing => ({ name: ing.name, amount: String(ing.amount), unit: ing.unit, optional: !!ing.optional })));
-  };
-
-  const save = () => {
-    if (!name.trim()) return;
-    const ingredients = rows.filter(r => r.name.trim() && r.amount !== "").map(r => ({ name: r.name.trim(), amount: parseFloat(r.amount) || 0, unit: r.unit, optional: r.optional }));
-    if (ingredients.length === 0) return;
-    if (editingId) {
-      setCustomRecipes(customRecipes.map(r => r.id === editingId
-        ? { ...r, name: name.trim(), family: family.trim() || "Eigen recept", glass: glass.trim() || "Naar keuze", ingredients, method: method.trim() || "—", garnish: garnish.trim() }
-        : r));
-    } else {
-      setCustomRecipes([...customRecipes, { id: "custom_" + Date.now().toString(36), name: name.trim(), family: family.trim() || "Eigen recept", glass: glass.trim() || "Naar keuze", ingredients, method: method.trim() || "—", garnish: garnish.trim() }]);
-    }
-    onSound("chime");
-    resetForm();
-  };
-  const removeRecipe = (id) => { onSound("remove"); setCustomRecipes(customRecipes.filter(r => r.id !== id)); if (editingId === id) resetForm(); };
-  const ingredientNames = allIngredients.map(i => i.name);
-
-  return (
-    <div>
-      <div style={{ background: PAPER_DEEP, border: `1px solid ${editingId ? BRASS : BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 18, marginBottom: 28 }}>
-        <SectionLabel>{editingId ? "Recept bewerken" : "Nieuw recept toevoegen"}</SectionLabel>
-        <p style={{ margin: "0 0 16px", fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
-          {editingId ? "Pas de velden aan en sla op: het recept behoudt dezelfde plek in je lijst." : "Mist er een drank? Voeg 'm toe, hij telt meteen mee bij \"Wat kan ik maken\" en de schaler."}
-        </p>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-          <div style={{ flex: "2 1 200px" }}>
-            <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 5 }}>Naam</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Bijv. Amaretto Sour" autoCapitalize="words" enterKeyHint="next" style={fieldStyle()} />
-          </div>
-          <div style={{ flex: "1 1 140px" }}>
-            <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 5 }}>Familie</label>
-            <input value={family} onChange={e => setFamily(e.target.value)} placeholder="Bijv. Sours" autoCapitalize="words" enterKeyHint="next" style={fieldStyle()} />
-          </div>
-          <div style={{ flex: "1 1 140px" }}>
-            <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 5 }}>Glas</label>
-            <input value={glass} onChange={e => setGlass(e.target.value)} placeholder="Bijv. Rocks" autoCapitalize="words" enterKeyHint="next" style={fieldStyle()} />
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in sheet-max-92" style={{ position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", height: "88vh", background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 20px 10px", touchAction: "none" }}>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>Ingrediënt kiezen</div>
+          <button onClick={close} onTouchStart={e => e.stopPropagation()} style={{ minHeight: 44, background: "none", border: "none", color: BRASS, fontFamily: sans, fontSize: 15, fontWeight: 600, cursor: "pointer", padding: "0 0 0 10px" }}>Annuleer</button>
+        </div>
+        <div data-kb-scope style={{ padding: "0 20px 4px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: PAPER_DEEP, borderRadius: 12, padding: "0 12px" }}>
+            <Search size={16} color={MUTED} />
+            <input autoFocus value={query} onChange={e => { setQuery(e.target.value); setChosen(null); }} placeholder="Zoek een ingrediënt" aria-label="Zoek een ingrediënt" autoCorrect="off"
+              style={{ flex: 1, minHeight: 44, border: "none", outline: "none", background: "transparent", fontFamily: sans, fontSize: 16, color: INK }} />
           </div>
         </div>
-
-        <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 6 }}>Ingrediënten</label>
-        {rows.map((row, idx) => (
-          <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <IngredientAutocomplete value={row.name} onChange={v => updateRow(idx, "name", v)} options={ingredientNames} style={{ flex: "2 1 160px" }} />
-            <input type="number" value={row.amount} onChange={e => updateRow(idx, "amount", e.target.value)} placeholder="Hoeveelheid"
-              style={{ ...fieldStyle(), flex: "1 1 90px", padding: "8px 9px", fontSize: 13.5 }} />
-            <select value={row.unit} onChange={e => updateRow(idx, "unit", e.target.value)} style={{ ...fieldStyle(), flex: "1 1 80px", padding: "8px 9px", fontSize: 13.5 }}>
-              <option value="ml">ml</option><option value="dash">dash</option><option value="stuk">stuk</option>
-            </select>
-            <button onClick={() => removeRow(idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><X size={16} color={MUTED} /></button>
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
+          {results.length > 0 && (<>
+            {head("Uit de app")}
+            <div role="radiogroup" style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>
+              {results.map((ing, i) => {
+                const on = chosen?.id === ing.id;
+                return (
+                  <button key={ing.id} role="radio" aria-checked={on} onClick={() => setChosen({ id: ing.id })} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 56, padding: "6px 14px", border: "none", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, background: on ? "rgba(92,122,82,0.14)" : "transparent", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}><ItemArt ing={ing} /></div>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 15, fontWeight: 600 }}>{ing.name}</span>
+                      <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{ing.cat === CUSTOM_CAT ? "Eigen ingrediënt" : ing.cat} · {isOwned({ id: ing.id }) ? "in huis" : "niet in huis"}</span>
+                    </span>
+                    {on && <Check size={17} color={SAGE} strokeWidth={2.6} />}
+                  </button>
+                );
+              })}
+            </div>
+          </>)}
+          {q && !exact && (<>
+            {head("Niet gevonden?")}
+            <div style={{ background: CREAM, border: `1.5px solid ${chosen?.newName ? BRASS : BORDER}`, borderRadius: 14, padding: "4px 14px 14px" }}>
+              <button onClick={() => setChosen({ newName: query.trim() })} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: sans, color: INK, textAlign: "left" }}>
+                <span style={{ width: 26, height: 26, borderRadius: "50%", background: BRASS, color: "#FBF6EA", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Plus size={15} /></span>
+                <span style={{ fontSize: 14.5 }}>Nieuw ingrediënt: <strong>{query.trim()}</strong></span>
+              </button>
+              {chosen?.newName && (<>
+                <div style={{ fontSize: 12.5, color: MUTED, margin: "2px 0 8px" }}>In welke categorie hoort het?</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {EIGEN_NEW_CATS.map(c => <button key={c.cat} onClick={() => setNewCat(c.cat)} aria-pressed={newCat === c.cat} style={chip(newCat === c.cat)}>{newCat === c.cat ? "✓ " : ""}{c.label}</button>)}
+                </div>
+              </>)}
+            </div>
+          </>)}
+          {head("Hoeveelheid")}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {quick.map(o => {
+              const on = !custom && amount.amount === o.amount && amount.unit === o.unit;
+              return <button key={o.label} onClick={() => { setCustom(false); setAmount({ amount: o.amount, unit: o.unit }); }} aria-pressed={on} style={chip(on)}>{o.label}</button>;
+            })}
+            <button onClick={() => setCustom(true)} aria-pressed={custom} style={{ ...chip(custom), color: custom ? "#FBF6EA" : BRASS }}>Anders…</button>
           </div>
-        ))}
-        <button onClick={addRow} style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px dashed ${MUTED}`, borderRadius: 3, padding: "6px 12px", fontSize: 13, color: MUTED, cursor: "pointer", marginBottom: 16 }}>
-          <Plus size={14} /> Extra ingrediënt
-        </button>
-
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 5 }}>Bereidingswijze</label>
-          <textarea value={method} onChange={e => setMethod(e.target.value)} rows={2} placeholder="Bijv. Shake met ijs, zeven in gekoeld glas." style={{ ...fieldStyle(), resize: "vertical" }} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 5 }}>Afwerking / garnering (optioneel)</label>
-          <input value={garnish} onChange={e => setGarnish(e.target.value)} placeholder="Bijv. Schijfje limoen en een cocktailkers." autoCapitalize="sentences" enterKeyHint="done" style={fieldStyle()} />
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={save} style={{ display: "flex", alignItems: "center", gap: 6, background: BOTTLE, color: "#FBF6EA", border: "none", borderRadius: RADIUS, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA }}>
-            {editingId ? <Check size={16} /> : <Plus size={16} />} {editingId ? "Wijzigingen opslaan" : "Recept opslaan"}
-          </button>
-          {editingId && (
-            <button onClick={resetForm} style={{ background: "none", border: `1px solid ${MUTED}`, color: MUTED, borderRadius: 3, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-              Annuleren
-            </button>
+          {custom && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+              <input value={customAmount} onChange={e => setCustomAmount(e.target.value)} inputMode="decimal" placeholder="Bijv. 20" aria-label="Hoeveelheid in ml"
+                style={{ width: 110, minHeight: 44, borderRadius: 12, border: `1px solid ${BORDER}`, background: CREAM, padding: "0 12px", fontFamily: sans, fontSize: 16, color: INK }} />
+              <span style={{ fontSize: 14, color: MUTED }}>ml</span>
+            </div>
           )}
         </div>
+        <div style={{ padding: "12px 20px calc(env(safe-area-inset-bottom) + 14px)", borderTop: `1px solid ${BORDER}` }}>
+          <button onClick={submit} disabled={!ready} className="press-scale" style={{ width: "100%", minHeight: 52, borderRadius: 14, border: "none", background: ready ? BOTTLE_DARK : BORDER, color: ready ? "#FBF6EA" : MUTED, fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: ready ? "pointer" : "default" }}>Voeg toe aan recept</button>
+        </div>
+      </div>
+    </div>
+  ), document.body);
+}
+
+// Eén ingrediëntregel: veeg naar links = verwijderen, lang indrukken = verslepen.
+function EigenIngredientRow({ row, index, count, meta, owned, onChange, onRemove, onMove, dragState, setDragState }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let timer = null, startY = 0, active = false, rowH = 56;
+    const start = (e) => {
+      if (e.target.closest("input,select,button")) return;
+      startY = e.touches[0].clientY; rowH = el.offsetHeight || 56;
+      timer = setTimeout(() => { active = true; hapticFor("tick"); setDragState({ index, dy: 0 }); }, 450);
+    };
+    const move = (e) => {
+      const dy = e.touches[0].clientY - startY;
+      if (!active) { if (Math.abs(dy) > 8) clearTimeout(timer); return; }
+      e.preventDefault(); e.stopPropagation();
+      setDragState({ index, dy });
+    };
+    const end = (e) => {
+      clearTimeout(timer);
+      if (!active) return;
+      active = false;
+      e.stopPropagation();
+      const dy = (e.changedTouches?.[0]?.clientY ?? startY) - startY;
+      const to = Math.max(0, Math.min(count - 1, index + Math.round(dy / rowH)));
+      setDragState(null);
+      if (to !== index) onMove(index, to);
+    };
+    el.addEventListener("touchstart", start, { passive: true });
+    el.addEventListener("touchmove", move, { passive: false });
+    el.addEventListener("touchend", end);
+    el.addEventListener("touchcancel", end);
+    return () => { clearTimeout(timer); el.removeEventListener("touchstart", start); el.removeEventListener("touchmove", move); el.removeEventListener("touchend", end); el.removeEventListener("touchcancel", end); };
+  }, [index, count]);
+  const dragging = dragState?.index === index;
+  const name = meta?.name || row.newName || row.name || "?";
+  const isNew = !!row.newName;
+  const amountText = row.unit === "top" ? "" : (row.amount === "" || row.amount == null ? "" : String(row.amount).replace(".", ","));
+  const content = (
+    <div ref={ref} style={{
+      display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: CREAM,
+      transform: dragging ? `translateY(${dragState.dy}px) scale(1.02)` : "none", boxShadow: dragging ? "0 8px 20px rgba(43,38,32,0.2)" : "none",
+      position: "relative", zIndex: dragging ? 2 : 0, transition: dragging ? "none" : "transform 0.15s ease",
+    }}>
+      <div style={{ width: 36, height: 36, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
+        {meta ? <ItemArt ing={meta} /> : <div style={{ width: "100%", height: "100%", background: "rgba(184,134,46,0.18)", color: BRASS, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>{name[0]?.toUpperCase()}</div>}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginTop: 1 }}>
+          {isNew ? <span style={{ color: "#8A6420", fontWeight: 600 }}>Nieuw ingrediënt · {EIGEN_NEW_CATS.find(c => c.cat === row.newCat)?.label || row.newCat}</span>
+            : owned ? <span style={{ color: SAGE, fontWeight: 600 }}>✓ in huis</span> : <span style={{ color: MUTED }}>niet in huis</span>}
+          <button onClick={() => onChange({ optional: !row.optional })} aria-pressed={!!row.optional} style={{ minHeight: 26, padding: "0 8px", borderRadius: 100, border: `1px solid ${row.optional ? BRASS : BORDER}`, background: row.optional ? "rgba(184,134,46,0.16)" : "transparent", color: row.optional ? "#8A6420" : MUTED, fontFamily: sans, fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>optioneel</button>
+        </div>
+      </div>
+      {row.unit !== "top" && (
+        <input value={amountText} onChange={e => onChange({ amount: e.target.value.replace(",", ".") })} inputMode="decimal" aria-label={`Hoeveelheid ${name}`}
+          style={{ width: 52, minHeight: 40, borderRadius: 10, border: "none", background: PAPER_DEEP, textAlign: "center", fontFamily: sans, fontSize: 16, fontWeight: 700, color: INK, padding: 0 }} />
+      )}
+      <label style={{ position: "relative", display: "flex", alignItems: "center", gap: 2, minHeight: 40, padding: "0 10px", borderRadius: 10, background: PAPER_DEEP, fontSize: 13, color: MUTED, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+        {EIGEN_UNITS.find(u => u.key === row.unit)?.label || row.unit} <ChevronDown size={13} />
+        <select value={row.unit} aria-label={`Eenheid ${name}`} onChange={e => onChange({ unit: e.target.value, ...(e.target.value === "top" ? { amount: TOP_OP_ML } : {}) })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", fontSize: 16 }}>
+          {EIGEN_UNITS.map(u => <option key={u.key} value={u.key}>{u.label}</option>)}
+        </select>
+      </label>
+    </div>
+  );
+  return <SwipeToDelete onDelete={onRemove}>{content}</SwipeToDelete>;
+}
+
+function EigenRecepten({ customRecipes, allIngredients, recipes, isOwned, recentRecipeIds = [], favoriteRecipeIds = [], onSaveRecipe, onRemoveRecipe, onAddToShoppingList, shoppingKeys, onOpenRecipe, onSound }) {
+  const blank = { name: "", family: "", glass: "", rows: [], technique: "geschud", steps: null, garnishes: [], photo: null, editingId: null };
+  const [form, setForm] = useState(blank);
+  const [picker, setPicker] = useState(false);
+  const [fromExisting, setFromExisting] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [saved, setSaved] = useState(null);
+  const [customGarnish, setCustomGarnish] = useState(null);
+  const [dragState, setDragState] = useState(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const fileRef = useRef(null);
+  const set = (patch) => setForm(f => ({ ...f, ...patch }));
+  const metaOf = (row) => row.id ? allIngredients.find(i => i.id === row.id) : row.name ? allIngredients.find(i => i.name.toLowerCase() === row.name.toLowerCase()) : null;
+  const tech = EIGEN_TECHNIQUES.find(t => t.key === form.technique) || EIGEN_TECHNIQUES[0];
+  const steps = form.steps ?? tech.steps(glassWord(form.glass));
+  const canSave = form.name.trim().length > 0 && form.rows.length >= 2;
+
+  const buildRecipe = (idMap = {}) => {
+    const ingredients = form.rows.map(r => {
+      const amount = r.unit === "top" ? TOP_OP_ML : (parseFloat(r.amount) || 0);
+      const unit = r.unit === "top" ? "ml" : r.unit;
+      const base = r.newName ? (idMap[r.key] ? { id: idMap[r.key] } : { name: r.newName }) : r.id ? { id: r.id } : { name: r.name };
+      return { ...base, amount, unit, ...(r.unit === "top" ? { top: true } : {}), ...(r.optional ? { optional: true } : {}) };
+    });
+    const cleanSteps = steps.map(s => s.trim()).filter(Boolean);
+    return {
+      id: form.editingId || "custom_" + Date.now().toString(36),
+      name: form.name.trim() || "Naamloos recept", family: form.family || "Eigen recept", glass: form.glass || "Naar keuze",
+      ingredients, steps: cleanSteps, method: cleanSteps.join(" ") || "—", garnish: form.garnishes.join(", "),
+      ...(form.photo ? { image: form.photo } : {}),
+    };
+  };
+
+  // Navigatiebalk: titel + "Bewaar" rechts.
+  const setNavOverride = useContext(NavOverrideContext);
+  const saveRef = useRef(null);
+  useEffect(() => {
+    if (!setNavOverride) return;
+    setNavOverride({
+      title: form.editingId ? "Recept bewerken" : "Nieuw recept",
+      right: <button onClick={() => saveRef.current?.()} disabled={!canSave} style={{ minHeight: 44, background: "none", border: "none", padding: "0 0 0 10px", fontFamily: sans, fontSize: 15.5, fontWeight: 800, color: canSave ? BOTTLE : MUTED, opacity: canSave ? 1 : 0.55, cursor: canSave ? "pointer" : "default" }}>Bewaar</button>,
+    });
+  }, [setNavOverride, canSave, form.editingId]);
+  useEffect(() => () => setNavOverride && setNavOverride(null), [setNavOverride]);
+
+  const save = () => {
+    if (!canSave) return;
+    const newOnes = form.rows.filter(r => r.newName).map(r => ({ key: r.key, name: r.newName, cat: r.newCat }));
+    const recipe = onSaveRecipe(newOnes, (idMap) => buildRecipe(idMap));
+    onSound("chime");
+    setSaved(recipe);
+  };
+  saveRef.current = save;
+
+  const startFrom = (id) => {
+    const r = recipes.find(x => x.id === id);
+    if (!r) return;
+    const glass = EIGEN_GLASSES.find(g => normalizeGlass(g) === normalizeGlass(r.glass)) || "";
+    setForm({
+      ...blank, name: `Mijn ${r.name}`, family: EIGEN_FAMILIES.some(f => f.value === r.family) ? r.family : "", glass,
+      rows: r.ingredients.map((ing, i) => ({ key: `r${Date.now()}${i}`, id: findIngredientMeta(ing, allIngredients)?.id || ing.id, name: ing.name, amount: ing.top ? TOP_OP_ML : ing.amount, unit: ing.top ? "top" : ing.unit, optional: !!ing.optional })),
+      technique: techniqueFromMethod(r.method), steps: r.steps || splitMethodIntoSteps(r.method),
+      garnishes: r.garnish ? [r.garnish.replace(/\.$/, "")] : [],
+    });
+    window.scrollTo({ top: 0 });
+  };
+  const editExisting = (r) => { startFrom(r.id); setForm(f => ({ ...f, name: r.name, editingId: r.id, photo: r.image || null })); };
+
+  const addRow = (pick) => set({ rows: [...form.rows, { key: `r${Date.now()}`, ...pick, optional: false }] });
+  const updateRow = (i, patch) => set({ rows: form.rows.map((r, j) => j === i ? { ...r, ...patch } : r) });
+  const moveRow = (from, to) => { const rows = form.rows.slice(); const [x] = rows.splice(from, 1); rows.splice(to, 0, x); set({ rows }); };
+  const setStep = (i, text) => set({ steps: steps.map((s, j) => j === i ? text : s) });
+
+  const handlePhoto = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setPhotoBusy(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 480, s = Math.min(img.width, img.height);
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        canvas.getContext("2d").drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+        set({ photo: canvas.toDataURL("image/jpeg", 0.62) });
+        setPhotoBusy(false);
+      };
+      img.onerror = () => setPhotoBusy(false);
+      img.src = ev.target.result;
+    };
+    reader.onerror = () => setPhotoBusy(false);
+    reader.readAsDataURL(file);
+  };
+
+  const draft = buildRecipe();
+  const label = (t, extra) => <div style={{ fontSize: 15, fontWeight: 700, color: INK, margin: "22px 0 10px" }}>{t}{extra && <span style={{ fontWeight: 500, color: MUTED }}> {extra}</span>}</div>;
+  const chip = (on) => ({ minHeight: 40, padding: "0 14px", borderRadius: 100, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 600, border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : CREAM, color: on ? "#FBF6EA" : INK });
+  const ingLabel = (ref) => findIngredientMeta(ref, allIngredients)?.name || ref.name || ref.id;
+  const savedMissing = saved ? saved.ingredients.filter(i => !i.optional && !isOwned(i)) : [];
+
+  return (
+    <div style={{ fontFamily: sans }}>
+      <button onClick={() => setFromExisting(true)} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 60, padding: "8px 14px", borderRadius: 14, border: `1px solid ${BORDER}`, background: CREAM, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK, boxShadow: SHADOW_CARD }}>
+        <span style={{ width: 34, height: 34, borderRadius: 10, background: PAPER_DEEP, color: BRASS, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Layers size={17} /></span>
+        <span style={{ flex: 1 }}>
+          <span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>Begin vanaf een bestaand recept</span>
+          <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>Bijv. de Gimlet overnemen en aanpassen</span>
+        </span>
+        <ChevronRight size={18} color={MUTED} />
+      </button>
+
+      {/* Foto + naam */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 14, marginTop: 18 }}>
+        <button onClick={() => fileRef.current?.click()} disabled={photoBusy} aria-label="Foto maken of kiezen" style={{ position: "relative", width: 92, height: 92, borderRadius: 18, border: "none", padding: 0, overflow: "visible", cursor: "pointer", flexShrink: 0, background: "none" }}>
+          <div style={{ width: 92, height: 92, borderRadius: 18, overflow: "hidden" }}>
+            {form.photo ? <img src={form.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : <RecipeCircle recipe={{ ...draft, image: undefined, id: "__concept__" }} allIngredients={allIngredients} size={92} radius={18} />}
+          </div>
+          <span style={{ position: "absolute", right: -6, bottom: -6, width: 32, height: 32, borderRadius: "50%", background: BOTTLE_DARK, border: `3px solid ${PAPER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Camera size={14} color="#FBF6EA" />
+          </span>
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
+        <label style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 12, color: MUTED, marginBottom: 2 }}>Naam</span>
+          <input value={form.name} onChange={e => set({ name: e.target.value })} placeholder="Bijv. Rozemarijn Gimlet" autoCapitalize="words" enterKeyHint="done"
+            style={{ width: "100%", boxSizing: "border-box", minHeight: 48, border: "none", borderBottom: `2px solid ${BOTTLE}`, background: "transparent", outline: "none", fontFamily: serif, fontSize: 24, fontWeight: 700, color: INK, padding: "4px 0" }} />
+        </label>
       </div>
 
-      {customRecipes.length > 0 && (
-        <div>
-          <SectionLabel>Jouw eigen recepten</SectionLabel>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {customRecipes.map(r => (
-            <div key={r.id} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ display: "flex", gap: 12, minWidth: 0 }}>
-                <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 15.5 }}>{r.name}</div>
-                  <div style={{ fontSize: 12.5, color: MUTED, margin: "2px 0 8px" }}>{r.family} · {r.glass}</div>
-                  <ul style={{ margin: "0 0 8px", paddingLeft: 0, listStyle: "none", fontSize: 13.5 }}>
-                    {r.ingredients.map((ing, i) => <li key={i} style={{ padding: "2px 0" }}>{ing.amount} {unitLabel(ing.unit, ing.amount)} {ing.name}</li>)}
-                  </ul>
-                  <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>{r.method}</p>
-                  {r.garnish && <p style={{ fontSize: 12.5, color: BRASS, margin: "4px 0 0" }}><strong>Afwerking:</strong> {r.garnish}</p>}
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                <button onClick={() => startEdit(r)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><Pencil size={15} color={MUTED} /></button>
-                <button onClick={() => removeRecipe(r.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><Trash2 size={15} color={MUTED} /></button>
-              </div>
+      {label("Stijl")}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {EIGEN_FAMILIES.map(f => <button key={f.value} onClick={() => set({ family: form.family === f.value ? "" : f.value })} aria-pressed={form.family === f.value} style={chip(form.family === f.value)}>{f.label}</button>)}
+      </div>
+
+      {label("Glas")}
+      <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", margin: "0 -20px", padding: "0 20px 4px" }}>
+        {EIGEN_GLASSES.map(g => {
+          const on = form.glass === g;
+          return (
+            <button key={g} onClick={() => set({ glass: on ? "" : g })} aria-pressed={on} style={{ flexShrink: 0, width: 66, height: 72, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, borderRadius: 14, cursor: "pointer", fontFamily: sans, fontSize: 12, fontWeight: 600, background: CREAM, color: on ? INK : MUTED, border: `1.5px solid ${on ? BOTTLE : BORDER}` }}>
+              <div style={{ height: 36, display: "flex", alignItems: "flex-end" }}><GlassArt glass={g} mono size={22} /></div>
+              {EIGEN_GLASS_LABELS[g] || g}
+            </button>
+          );
+        })}
+      </div>
+
+      {label("Ingrediënten")}
+      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+        {form.rows.map((row, i) => {
+          const meta = row.newName ? null : metaOf(row);
+          return (
+            <div key={row.key || i} style={{ borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+              <EigenIngredientRow row={row} index={i} count={form.rows.length} meta={meta} owned={meta ? isOwned({ id: meta.id }) : false}
+                onChange={(p) => updateRow(i, p)} onRemove={() => { onSound("remove"); set({ rows: form.rows.filter((_, j) => j !== i) }); }}
+                onMove={moveRow} dragState={dragState} setDragState={setDragState} />
             </div>
-          ))}
+          );
+        })}
+        <button onClick={() => setPicker(true)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 52, padding: "0 14px", border: "none", borderTop: form.rows.length ? `1px solid ${BORDER}` : "none", background: "none", color: BOTTLE, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+          <Plus size={18} /> Ingrediënt toevoegen
+        </button>
+      </div>
+      {form.rows.length > 0 && <p style={{ fontSize: 12, color: MUTED, margin: "8px 4px 0" }}>Veeg naar links om te verwijderen · houd vast om te verslepen</p>}
+
+      {label("Techniek")}
+      <div role="radiogroup" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 13 }}>
+        {EIGEN_TECHNIQUES.map(t => {
+          const on = form.technique === t.key;
+          return <button key={t.key} role="radio" aria-checked={on} onClick={() => set({ technique: t.key, steps: null })} style={{ flex: 1, minHeight: 40, border: "none", borderRadius: 10, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : MUTED, boxShadow: on ? "0 1px 4px rgba(43,38,32,0.14)" : "none" }}>{t.label}</button>;
+        })}
+      </div>
+      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, marginTop: 10, padding: "4px 14px" }}>
+        {steps.map((s, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+            <span style={{ width: 24, height: 24, marginTop: 8, borderRadius: "50%", border: `1.5px solid ${BRASS}`, color: BRASS, fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxSizing: "border-box" }}>{i + 1}</span>
+            <div style={{ flex: 1 }}><AutoGrowTextField bare value={s} onChange={(v) => setStep(i, v)} placeholder="Beschrijf deze stap" /></div>
+            <button onClick={() => set({ steps: steps.filter((_, j) => j !== i) })} aria-label={`Stap ${i + 1} verwijderen`} style={{ width: 36, height: 40, background: "none", border: "none", color: MUTED, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={15} /></button>
           </div>
+        ))}
+        <button onClick={() => set({ steps: [...steps, ""] })} style={{ display: "flex", alignItems: "center", gap: 6, minHeight: 44, background: "none", border: "none", padding: 0, color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}><Plus size={16} /> Stap toevoegen</button>
+      </div>
+      <p style={{ fontSize: 12, color: MUTED, margin: "8px 4px 0" }}>Voorgesteld op basis van de techniek · tik op een stap om aan te passen</p>
+
+      {label("Afwerking", "(optioneel)")}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {[...new Set([...EIGEN_GARNISHES, ...form.garnishes])].map(g => {
+          const on = form.garnishes.includes(g);
+          return <button key={g} onClick={() => set({ garnishes: on ? form.garnishes.filter(x => x !== g) : [...form.garnishes, g] })} aria-pressed={on} style={chip(on)}>{on ? "✓ " : ""}{g}</button>;
+        })}
+        {customGarnish === null ? (
+          <button onClick={() => setCustomGarnish("")} style={{ ...chip(false), color: BRASS }}>+ Zelf typen</button>
+        ) : (
+          <form onSubmit={e => { e.preventDefault(); const v = customGarnish.trim(); if (v) set({ garnishes: [...form.garnishes, v] }); setCustomGarnish(null); }} style={{ display: "flex", gap: 6 }}>
+            <input autoFocus value={customGarnish} onChange={e => setCustomGarnish(e.target.value)} placeholder="Bijv. takje rozemarijn" enterKeyHint="done"
+              style={{ minHeight: 40, borderRadius: 100, border: `1px solid ${BORDER}`, background: CREAM, padding: "0 14px", fontFamily: sans, fontSize: 16, color: INK, width: 200 }} />
+            <button type="submit" style={{ ...chip(true), minWidth: 44 }}>OK</button>
+          </form>
+        )}
+      </div>
+
+      <button onClick={() => setPreview(draft)} disabled={form.rows.length === 0} className="press-scale" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 26, borderRadius: 14, border: "none", background: "rgba(184,134,46,0.18)", color: INK, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: form.rows.length ? "pointer" : "default", opacity: form.rows.length ? 1 : 0.5 }}>
+        <BookOpen size={17} color={BRASS} /> Voorbeeld bekijken
+      </button>
+      {!canSave && <p style={{ fontSize: 12.5, color: MUTED, textAlign: "center", margin: "10px 0 0" }}>Geef je recept een naam en minstens 2 ingrediënten om te bewaren.</p>}
+
+      {customRecipes.length > 0 && (<>
+        {label(`Jouw eigen recepten (${customRecipes.length})`)}
+        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+          {customRecipes.map((r, i) => (
+            <SwipeToDelete key={r.id} onDelete={() => onRemoveRecipe(r.id)}>
+              <button onClick={() => editExisting(r)} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 58, padding: "6px 14px", border: "none", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, background: CREAM, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK }}>
+                <RecipeCircle recipe={r} allIngredients={allIngredients} size={40} radius={10} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontFamily: serif, fontSize: 16, fontWeight: 700 }}>{r.name}</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: MUTED }}>{r.family} · {r.glass}</span>
+                </span>
+                <Pencil size={15} color={MUTED} />
+              </button>
+            </SwipeToDelete>
+          ))}
         </div>
+        <p style={{ fontSize: 12, color: MUTED, margin: "8px 4px 0" }}>Tik om te bewerken · veeg naar links om te verwijderen</p>
+      </>)}
+
+      {picker && <IngredientPickerSheet allIngredients={allIngredients} isOwned={isOwned} onPick={addRow} onClose={() => setPicker(false)} />}
+      {fromExisting && (
+        <BatchRecipePicker recipes={recipes} allIngredients={allIngredients} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
+          currentId={null} onPick={(id) => { startFrom(id); onSound("pop"); }} onClose={() => setFromExisting(false)} />
+      )}
+      {preview && (
+        <RecipeSheet recipe={preview} missing={preview.ingredients.filter(i => !i.optional && !isOwned(i))} ingredientLabel={ingLabel} allIngredients={allIngredients}
+          onAddMissing={() => {}} onSound={onSound} onClose={() => setPreview(null)} />
+      )}
+      {saved && (
+        <EigenSavedSheet recipe={saved} missing={savedMissing} ingLabel={ingLabel} allIngredients={allIngredients} shoppingKeys={shoppingKeys}
+          onAddToList={() => onAddToShoppingList(savedMissing.map(ref => ({ ref, recipeNames: [saved.name] })))}
+          onView={() => { const id = saved.id; setSaved(null); setForm(blank); setTimeout(() => onOpenRecipe(id), 200); }}
+          onAnother={() => { setSaved(null); setForm(blank); window.scrollTo({ top: 0 }); }}
+          onClose={() => { setSaved(null); setForm(blank); }} />
       )}
     </div>
   );
+}
+
+function EigenSavedSheet({ recipe, missing, ingLabel, allIngredients, shoppingKeys, onAddToList, onView, onAnother, onClose }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const [added, setAdded] = useState(false);
+  const onList = added || (missing.length > 0 && missing.every(m => shoppingKeys?.has(ingredientKey(m))));
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in" style={{ position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)", padding: "0 20px calc(env(safe-area-inset-bottom) + 16px)" }}>
+        <SheetGrabber {...dragHandlers} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", paddingTop: 10 }}>
+          <div className="success-pop" style={{ position: "relative" }}>
+            <div style={{ width: 96, height: 96, borderRadius: 20, overflow: "hidden", boxShadow: SHADOW_CARD }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} size={96} radius={20} /></div>
+            <span style={{ position: "absolute", right: -8, bottom: -8, width: 32, height: 32, borderRadius: "50%", background: SAGE, border: `3px solid ${PAPER}`, display: "flex", alignItems: "center", justifyContent: "center" }}><Check size={16} strokeWidth={3} color="#FBF6EA" /></span>
+          </div>
+          <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 700, marginTop: 16 }}>{recipe.name}</div>
+          <div style={{ fontSize: 14, color: MUTED, marginTop: 4 }}>Opgeslagen · staat nu tussen je recepten</div>
+        </div>
+        {missing.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18, padding: "12px 14px", borderRadius: 14, background: "rgba(122,46,42,0.10)" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: BURGUNDY }}>Mist nog: {missing.map(ingLabel).join(", ")}</div>
+              <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Zelf maken of op je lijst zetten</div>
+            </div>
+            {onList ? <span className={added ? "success-pop" : undefined} style={{ display: "flex", alignItems: "center", gap: 4, color: SAGE, fontSize: 13, fontWeight: 700, flexShrink: 0 }}><Check size={14} strokeWidth={3} /> Op lijst</span>
+              : <button onClick={() => { onAddToList(); setAdded(true); }} style={{ minHeight: 40, padding: "0 16px", borderRadius: 100, border: "none", background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Op lijst</button>}
+          </div>
+        )}
+        <button onClick={onView} className="press-scale" style={{ width: "100%", minHeight: 52, marginTop: 22, borderRadius: 14, border: "none", background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer" }}>Bekijk recept</button>
+        <button onClick={onAnother} className="press-scale" style={{ width: "100%", minHeight: 52, marginTop: 10, borderRadius: 14, border: "none", background: "rgba(184,134,46,0.18)", color: INK, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Nog een recept toevoegen</button>
+      </div>
+    </div>
+  ), document.body);
 }
