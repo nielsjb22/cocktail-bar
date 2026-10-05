@@ -3262,7 +3262,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                   </div>
                 </div>
 
-                <div style={{ height: photo ? 190 : 150, position: "relative", margin: "0 0 12px" }}>
+                <PhotoFrame src={entry.photo} height={photo ? 190 : 150} style={{ margin: "0 0 12px" }}>
                   {photo ? (
                     <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
                   ) : (
@@ -3278,7 +3278,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                   <div className="glass-chip-dark" style={{ position: "absolute", left: 12, bottom: 10, display: "flex", alignItems: "center", gap: 4, borderRadius: 100, padding: "4px 9px", color: CREAM, fontSize: 12, fontWeight: 700 }}>
                     <Star size={11} fill={BRASS} color={BRASS} /> {formatRating(entry.rating)}
                   </div>
-                </div>
+                </PhotoFrame>
 
                 <div style={{ padding: "0 14px 14px" }}>
                   <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 2 }}>{entry.name}</div>
@@ -9436,8 +9436,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               <div key={entry.id} ref={el => cardRefs.current[entry.id] = el} style={{ position: "relative", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 18, boxShadow: SHADOW_CARD, scrollMarginTop: 20 }}>
                 {tint && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, borderRadius: "18px 0 0 18px", background: BRASS }} />}
                 {entry.photo && (
-                  <div style={{ position: "relative", width: "100%", height: 172 }}>
-                    <img src={entry.photo} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: "18px 18px 0 0" }} />
+                  <PhotoFrame src={entry.photo}>
+                    <img src={entry.photo} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: "18px 18px 0 0" }} />
                     <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 4, background: "rgba(20,16,10,0.55)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", borderRadius: 100, padding: "5px 11px", border: "1px solid rgba(255,255,255,0.25)" }}>
                       <Star size={12} fill={BRASS} color={BRASS} />
                       <span style={{ fontSize: 12, fontWeight: 700, color: CREAM }}>{formatRating(entry.rating)}</span>
@@ -9445,7 +9445,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                     <div style={{ position: "absolute", left: 18, bottom: -22, width: 64, height: 64, borderRadius: "50%", background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 3px 10px rgba(20,16,10,0.35)" }}>
                       {circle}
                     </div>
-                  </div>
+                  </PhotoFrame>
                 )}
                 <div style={{ padding: "16px 18px 16px", paddingLeft: tint ? 22 : 18, paddingTop: entry.photo ? 32 : 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
@@ -9501,6 +9501,67 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       )}
     </div>
   );
+}
+
+// Eigen check-infoto's (feed + logboek): het kader volgt de verhouding van de
+// foto zelf, begrensd tussen 4:5 (staand) en 1,91:1 (liggend) zoals Instagram,
+// zodat er hooguit een randje wegvalt i.p.v. een lage strook uit het midden.
+// Tikken opent de hele foto schermvullend. Zonder eigen foto (src leeg) is het
+// een gewoon kader met vaste hoogte voor de receptfoto/illustratie.
+const PHOTO_MIN_RATIO = 4 / 5;
+const PHOTO_MAX_RATIO = 1.91;
+function PhotoFrame({ src, height = 172, style, children }) {
+  const [ratio, setRatio] = useState(PHOTO_MIN_RATIO);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!src) return;
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled || !img.naturalWidth || !img.naturalHeight) return;
+      setRatio(Math.min(PHOTO_MAX_RATIO, Math.max(PHOTO_MIN_RATIO, img.naturalWidth / img.naturalHeight)));
+    };
+    img.src = src;
+    return () => { cancelled = true; };
+  }, [src]);
+
+  if (!src) return <div style={{ position: "relative", height, ...style }}>{children}</div>;
+  return (
+    <>
+      <div role="button" aria-label="Foto groot bekijken" onClick={() => setOpen(true)}
+        style={{ position: "relative", width: "100%", aspectRatio: String(ratio), cursor: "zoom-in", ...style }}>
+        {children}
+      </div>
+      {open && <PhotoViewer src={src} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function PhotoViewer({ src, onClose }) {
+  useBodyScrollLock();
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  // Portal naar body: anders valt de overlay binnen de stacking context van
+  // de tab/sheet en schuift de onderbalk er alsnog overheen.
+  return createPortal((
+    <div className="sheet-backdrop-in" onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 1000, background: "rgba(8,10,9,0.94)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "calc(env(safe-area-inset-top) + 56px) 12px calc(env(safe-area-inset-bottom) + 24px)",
+    }}>
+      <img src={src} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 6, display: "block" }} />
+      <button onClick={onClose} aria-label="Sluiten" className="glass-chip-dark" style={{
+        position: "absolute", top: "calc(env(safe-area-inset-top) + 12px)", right: 14,
+        width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center", color: CREAM,
+      }}>
+        <X size={20} />
+      </button>
+    </div>
+  ), document.body);
 }
 
 const AVATAR_COLORS = [BOTTLE, BRASS, BURGUNDY, SAGE, "#6B4A2E"];
