@@ -9523,6 +9523,59 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
+  // Swipe omhoog of omlaag om te sluiten, zoals in de Foto's-app: de foto
+  // volgt je vinger, de achtergrond en balken vervagen mee, en ver genoeg
+  // (of snel genoeg) geveegd schuift hij het scherm uit. Direct via refs i.p.v.
+  // state, zodat het slepen niet bij elke pixel de hele weergave hertekent.
+  const rootRef = useRef(null);
+  const photoRef = useRef(null);
+  const drag = useRef(null);
+  const justDragged = useRef(false);
+  const applyDrag = (dy, ms = 0) => {
+    const fade = Math.max(0, 1 - Math.abs(dy) / 350);
+    const t = ms ? `${ms}ms ease` : "none";
+    if (photoRef.current) {
+      photoRef.current.style.transition = ms ? `transform ${t}` : "none";
+      photoRef.current.style.transform = `translateY(${dy}px) scale(${1 - Math.min(Math.abs(dy) / 2500, 0.08)})`;
+    }
+    if (rootRef.current) {
+      rootRef.current.style.transition = ms ? `background-color ${t}` : "none";
+      rootRef.current.style.backgroundColor = `rgba(0,0,0,${fade})`;
+      rootRef.current.querySelectorAll("[data-viewer-bar]").forEach(el => {
+        el.style.transition = ms ? `opacity ${t}` : "none";
+        el.style.opacity = String(fade);
+      });
+    }
+  };
+  const onPointerDown = (e) => {
+    if (e.target.closest("button")) return;
+    drag.current = { y: e.clientY, t: Date.now(), dy: 0, moved: false };
+  };
+  const onPointerMove = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    d.dy = e.clientY - d.y;
+    if (!d.moved && Math.abs(d.dy) > 8) {
+      d.moved = true;
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    }
+    if (d.moved) applyDrag(d.dy);
+  };
+  const onPointerUp = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d || !d.moved) return;
+    justDragged.current = true;
+    setTimeout(() => { justDragged.current = false; }, 50);
+    const velocity = d.dy / Math.max(1, Date.now() - d.t);
+    if (Math.abs(d.dy) > 110 || Math.abs(velocity) > 0.6) {
+      applyDrag(Math.sign(d.dy || 1) * window.innerHeight, 220);
+      setTimeout(onClose, 200);
+    } else {
+      applyDrag(0, 200);
+    }
+  };
+
   const src = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
   const subtitle = matched ? [matched.family, matched.glass].filter(Boolean).join(" · ") : null;
   const bar = { background: "#1B2421", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 };
@@ -9530,9 +9583,10 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
   // Portal naar body: anders valt de overlay binnen de stacking context van
   // de tab en schuift de onderbalk er alsnog overheen.
   return createPortal((
-    <div className="sheet-backdrop-in" role="dialog" aria-modal="true" aria-label={entry.name}
-      style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#000", display: "flex", flexDirection: "column", fontFamily: systemFont }}>
-      <div style={{ ...bar, padding: "calc(env(safe-area-inset-top) + 12px) 14px 12px 16px" }}>
+    <div ref={rootRef} className="sheet-backdrop-in" role="dialog" aria-modal="true" aria-label={entry.name}
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
+      style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#000", display: "flex", flexDirection: "column", fontFamily: systemFont, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}>
+      <div data-viewer-bar style={{ ...bar, padding: "calc(env(safe-area-inset-top) + 12px) 14px 12px 16px" }}>
         <Avatar name={who} photo={whoAvatar} size={42} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: VIEWER_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{who}</div>
@@ -9546,15 +9600,15 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
         </button>
       </div>
 
-      <div onClick={onClose} style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div ref={photoRef} onClick={() => { if (!justDragged.current) onClose(); }} style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
         {src ? (
-          <img src={src} alt={entry.name} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }} />
+          <img src={src} alt={entry.name} draggable={false} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block", pointerEvents: "none" }} />
         ) : (
           <Martini size={56} color={VIEWER_MUTED} strokeWidth={1.2} />
         )}
       </div>
 
-      <div style={{ ...bar, padding: "14px 18px calc(env(safe-area-inset-bottom) + 16px)" }}>
+      <div data-viewer-bar style={{ ...bar, padding: "14px 18px calc(env(safe-area-inset-bottom) + 16px)" }}>
         {matched ? <RecipeCircle recipe={matched} allIngredients={allIngredients} size={52} /> : (
           <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(251,246,234,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Martini size={22} color={VIEWER_TEXT} strokeWidth={1.4} />
