@@ -2620,7 +2620,9 @@ export default function ThuisbarApp() {
   // vervangt de prijs van de voordeligste fles de vaste richtprijs, zodat
   // Feestplanner, menu-assistent en boodschappenlijst overal met echte
   // prijzen rekenen.
-  const bottleOptions = useFlessen();
+  const [flessenTick, setFlessenTick] = useState(0);
+  const bottleOptions = useFlessen(flessenTick);
+  useEffect(() => { if (tab === "mandje") setFlessenTick(t => t + 1); }, [tab]);
   const allIngredients = useMemo(() => [...INGREDIENTS, ...customIngredients].map(i => {
     const best = bottleOptions.get(i.id)?.[0]?.best;
     return best?.prijs != null ? { ...i, bottlePrice: best.prijs, bottleMl: best.inhoud_ml || i.bottleMl, livePrice: best.fresh } : i;
@@ -6509,8 +6511,10 @@ function offerIsFresh(o) {
 // Geladen bij de start: klein, en de prijzen worden overal gebruikt (ook in
 // Feestplanner en menu-assistent). Lukt het niet, dan blijven de
 // richtprijzen uit recipes.js staan.
-function useFlessen() {
+function useFlessen(refreshKey) {
   const [data, setData] = useState({ flessen: [], aanbiedingen: [] });
+  // Opnieuw ophalen als refreshKey verandert (bv. bij het openen van de
+  // boodschappenlijst), zodat nieuwe flessen/prijzen meteen zichtbaar zijn.
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -6521,7 +6525,7 @@ function useFlessen() {
       setData({ flessen: f.data || [], aanbiedingen: a.data || [] });
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshKey]);
   return useMemo(() => buildBottleOptions(data.flessen, data.aanbiedingen), [data]);
 }
 // Map ingredient_id → [{ fles, niveau, label, offers (beste eerst), best, from }]
