@@ -1,0 +1,10 @@
+# Netlify: bouwt de webversie (gastenmenu, smaaktest) en zet de edge function
+# voor het WhatsApp-linkvoorbeeld van gedeelde menu's aan. Werkt bij een
+# deploy vanuit GitHub of met de Netlify CLI; bij slepen van de dist-map
+# worden edge functions niet meegenomen.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"

@@ -10,7 +10,7 @@ import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { supabase } from "./supabaseClient";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
-import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, renderMenuCanvas, canvasToPdf } from "./menuCard";
+import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf } from "./menuCard";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor } from "./native";
 import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
@@ -8320,9 +8320,26 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
   const shareMenu = async (ids) => {
     onSound("share");
     const names = ids.map(id => recipes.find(r => r.id === id)?.name).filter(Boolean);
+    // Linkvoorbeeld-afbeelding voor WhatsApp: in de app eerst uploaden naar
+    // Supabase Storage (bucket "menukaarten"). Lukt dat niet (bucket nog niet
+    // aangemaakt, geen netwerk) of duurt het te lang, dan delen we gewoon
+    // zonder; het voorbeeld valt dan terug op de standaardafbeelding. Op het
+    // web slaan we dit over: daar moet het deelmenu direct na de tik openen.
+    let image = "";
+    if (isNativeShell && session?.user?.id) {
+      try {
+        const { party: p, items } = menuCardData();
+        const canvas = await renderMenuOgCanvas({ party: p, items });
+        const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+        const path = `${session.user.id}/${party.id}.png`;
+        const upload = supabase.storage.from("menukaarten").upload(path, blob, { contentType: "image/png", upsert: true });
+        const { error } = await Promise.race([upload, new Promise(res => setTimeout(() => res({ error: "timeout" }), 5000))]);
+        if (!error) image = `${supabase.storage.from("menukaarten").getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
+      } catch { /* zonder voorbeeldafbeelding verder */ }
+    }
     const query = partyMenuQuery({
       ids, title: party.name, host: (hostName || "").split(" ")[0], startsAt: party.starts_at,
-      address: party.show_address ? party.address : "",
+      address: party.show_address ? party.address : "", image,
     });
     const result = await shareLink({
       title: party.name || "Mijn Thuisbar: menu", text: "Bekijk het cocktailmenu!", url: publicAppUrl(query),

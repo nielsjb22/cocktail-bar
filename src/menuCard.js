@@ -230,13 +230,14 @@ export function menuCocktailInfo(recipe, ingredients, taste) {
 // ---------- Feestgegevens in de deellink ----------
 // Alles staat in de link zelf (?menu=…&t=…&h=…&d=…&a=…): de gast heeft geen
 // account, en zo hoeft de feestentabel niet openbaar leesbaar te zijn.
-export function partyMenuQuery({ ids, title, host, startsAt, address }) {
+export function partyMenuQuery({ ids, title, host, startsAt, address, image }) {
   const p = new URLSearchParams();
   p.set("menu", ids.join(","));
   if (title) p.set("t", title);
   if (host) p.set("h", host);
   if (startsAt) p.set("d", startsAt);
   if (address) p.set("a", address);
+  if (image) p.set("i", image); // linkvoorbeeld-afbeelding (zie netlify/edge-functions/menu-og.js)
   return p.toString().replace(/%2C/g, ",");
 }
 export function readPartyFromSearch(search) {
@@ -453,4 +454,41 @@ export function canvasToPdf(canvas, { widthPt = 419.53, heightPt = 595.28 } = {}
   let pos = 0;
   for (const p of parts) { out.set(p, pos); pos += p.length; }
   return out;
+}
+
+// ---------- Linkvoorbeeld-afbeelding (Open Graph, 1200×630) ----------
+// Liggend formaat voor het voorbeeld in WhatsApp/iMessage: alleen naam,
+// datum en de cocktailnamen — de volledige kaart past daar niet leesbaar in.
+export async function renderMenuOgCanvas({ party, items }) {
+  await ensureMenuFonts();
+  const W = 1200, H = 630, C = MENU_COLORS;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = "center";
+  const fit = (str, font, size, maxW) => {
+    let s = size;
+    do { ctx.font = font(s); s -= 2; } while (ctx.measureText(str).width > maxW && s > 20);
+    return s + 2;
+  };
+  ctx.save(); ctx.translate(W / 2 - 18, 105); ctx.scale(1.5, 1.5);
+  ctx.strokeStyle = C.gold; ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  MARTINI_PATHS.forEach(d => ctx.stroke(new Path2D(d))); ctx.restore();
+
+  const title = party.title || "Het menu van vanavond";
+  const tSize = fit(title, s => `500 ${s}px ${MENU_SERIF}`, 84, W - 140);
+  ctx.fillStyle = C.text; ctx.fillText(title, W / 2, 235 + tSize * 0.3);
+  const sub = partySubtitle(party);
+  if (sub) {
+    fit(sub, s => `italic 500 ${s}px ${MENU_SERIF}`, 34, W - 160);
+    ctx.fillStyle = C.body; ctx.fillText(sub, W / 2, 335);
+  }
+  ctx.save(); ctx.globalAlpha = 0.45; ctx.fillStyle = C.gold; ctx.fillRect(160, 387, W - 320, 2); ctx.restore();
+  ctx.font = `italic 500 30px ${MENU_SERIF}`; ctx.fillStyle = C.gold;
+  ctx.fillText("Op de kaart vanavond", W / 2, 445);
+  const names = items.map(i => i.name).join("  ·  ");
+  const nSize = fit(names, s => `500 ${s}px ${MENU_SERIF}`, 44, W - 140);
+  ctx.fillStyle = C.text; ctx.fillText(names, W / 2, 525 + nSize * 0.2);
+  return canvas;
 }
