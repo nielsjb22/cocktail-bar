@@ -6744,7 +6744,9 @@ function FlesKiezenSheet({ item, meta, options = [], chosenId, recipeNames, onCh
                               <span style={{ flex: 1, minWidth: 0 }}>
                                 <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{shopLabel(x.winkel)}</span>
                                 <span style={{ display: "block", fontSize: 12, color: x.op_voorraad ? MUTED : BURGUNDY, marginTop: 1 }}>
-                                  {formatInhoud(x.inhoud_ml)} · {x.op_voorraad ? "op voorraad" : "niet op voorraad"}{!x.fresh ? " · richtprijs" : ""}
+                                  {x.prijs == null
+                                    ? "Prijs volgt deze week"
+                                    : <>{[formatInhoud(x.inhoud_ml), x.op_voorraad ? "op voorraad" : "niet op voorraad"].filter(Boolean).join(" · ")}{!x.fresh ? " · richtprijs" : ""}</>}
                                 </span>
                               </span>
                               <span style={{ textAlign: "right" }}>

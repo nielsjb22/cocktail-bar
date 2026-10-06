@@ -27,7 +27,7 @@ const PAUZE_MS: Record<string, number> = { mitra: 2000, dirckiii: 2000, drankgig
 const MAX_PER_RUN = 120;
 const MIN_LEEFTIJD_DAGEN = 6;
 
-type Aanbieding = { id: string; winkel: string; url: string; prijs: number | null; mislukte_checks: number };
+type Aanbieding = { id: string; winkel: string; url: string; prijs: number | null; inhoud_ml: number | null; mislukte_checks: number };
 type Uitkomst = { prijs: number; opVoorraad: boolean } | null;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -63,6 +63,17 @@ function leesPrijs(html: string): Uitkomst {
   return null;
 }
 
+// Inhoud van de fles uit de paginatekst ("Inhoud 70 cl", "Inhoud: 1 liter").
+function leesInhoud(html: string): number | null {
+  const tekst = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  const m = tekst.match(/Inhoud:?\s?(\d+(?:[.,]\d+)?)\s?(cl|ml|liter|l)\b/i);
+  if (!m) return null;
+  const v = Number(m[1].replace(",", "."));
+  const eenheid = m[2].toLowerCase();
+  const ml = eenheid === "cl" ? v * 10 : eenheid === "ml" ? v : v * 1000;
+  return ml > 0 && ml <= 5000 ? Math.round(ml) : null;
+}
+
 Deno.serve(async (req) => {
   if (!secret || req.headers.get("x-prijscheck-secret") !== secret) {
     return new Response(JSON.stringify({ error: "Geen toegang" }), { status: 401 });
@@ -71,7 +82,7 @@ Deno.serve(async (req) => {
   const grens = new Date(Date.now() - MIN_LEEFTIJD_DAGEN * 86400000).toISOString();
   const { data, error } = await admin
     .from("fles_aanbiedingen")
-    .select("id, winkel, url, prijs, mislukte_checks")
+    .select("id, winkel, url, prijs, inhoud_ml, mislukte_checks")
     .eq("automatisch", true).eq("actief", true).in("winkel", AUTO_WINKELS)
     .or(`prijs_gecontroleerd_op.is.null,prijs_gecontroleerd_op.lt.${grens}`)
     .order("prijs_gecontroleerd_op", { ascending: true, nullsFirst: true })
@@ -118,9 +129,12 @@ Deno.serve(async (req) => {
           }).eq("id", a.id);
         } else {
           v.bijgewerkt++;
+          // Nieuwe links (nog zonder inhoud) krijgen meteen ook de inhoud van de fles.
+          const inhoud = a.inhoud_ml ? null : leesInhoud(html);
           await admin.from("fles_aanbiedingen").update({
             prijs: uitkomst.prijs, op_voorraad: uitkomst.opVoorraad, prijs_gecontroleerd_op: nu,
             mislukte_checks: 0, laatste_fout: null,
+            ...(inhoud ? { inhoud_ml: inhoud } : {}),
           }).eq("id", a.id);
         }
       } else {
