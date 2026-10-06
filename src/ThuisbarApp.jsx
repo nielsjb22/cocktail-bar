@@ -2501,6 +2501,17 @@ export default function ThuisbarApp() {
     if (data) {
       setLogboekState(cur => [checkinRowToEntry(data), ...cur]);
       supabase.functions.invoke("notify-friends", { body: { userId: session.user.id, cocktailName: entry.name } }).catch(() => {});
+      // Vrienden taggen. Bij overnemen: de oorspronkelijke tag wijst nu naar
+      // jouw eigen check-in, en jij tagt de ander terug (al "overgenomen",
+      // dus zonder melding). De post en het cijfer van de ander blijven gelijk.
+      const adopt = entry.adoptTag || null;
+      const rows = (entry.tagUserIds || []).filter(id => id !== adopt?.taggerId)
+        .map(id => ({ checkin_id: data.id, tagger_id: session.user.id, tagged_user_id: id }));
+      if (adopt) {
+        rows.push({ checkin_id: data.id, tagger_id: session.user.id, tagged_user_id: adopt.taggerId, adopted_checkin_id: adopt.checkinId });
+        await supabase.from("checkin_tags").update({ adopted_checkin_id: data.id }).eq("id", adopt.id);
+      }
+      if (rows.length > 0) await supabase.from("checkin_tags").insert(rows);
     }
   };
   const removeLogEntry = async (id) => {
@@ -2589,7 +2600,7 @@ export default function ThuisbarApp() {
   // object (i.p.v. een simpele boolean) zorgt dat twee achtereenvolgende
   // aanvragen voor dezelfde naam allebei echt de sheet heropenen.
   const [checkinRequest, setCheckinRequest] = useState(null);
-  const openCheckin = (name = "") => setCheckinRequest({ ts: Date.now(), name });
+  const openCheckin = (req = "") => setCheckinRequest(typeof req === "string" ? { ts: Date.now(), name: req } : { ts: Date.now(), ...req });
 
   // Eén recept toevoegen aan de Feestplanner-keuze, vanuit Maken of een
   // recept-detail — dus niet via de bulk "gebruik dit menu"-actie van
@@ -2892,7 +2903,7 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="vrienden" active={tab === "vrienden"} visited={visitedTabs.has("vrienden")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.vrienden} onBack={() => navigateTo("profiel", { restore: true })}>
-            <VriendenTab session={session} profile={profile} recipes={allRecipes} allIngredients={allIngredients} onSound={chime} active={tab === "vrienden"} />
+            <VriendenTab session={session} profile={profile} recipes={allRecipes} allIngredients={allIngredients} onSound={chime} active={tab === "vrienden"} myLogboek={logboek} onOpenRecipe={openRecipeDetail} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
@@ -3378,6 +3389,87 @@ async function schedulePartyReminder(party) {
   }
 }
 
+// Je geaccepteerde vrienden (voor taggen bij het inchecken). Pas laden als
+// het nodig is (enabled), en daarna bewaren.
+function useFriendList(myId, enabled) {
+  const [friends, setFriends] = useState(null);
+  useEffect(() => {
+    if (!enabled || !myId || friends) return;
+    let cancelled = false;
+    supabase.from("friendships").select("*").or(`requester_id.eq.${myId},addressee_id.eq.${myId}`).eq("status", "accepted")
+      .then(async ({ data }) => {
+        const ids = [...new Set((data || []).map(f => (f.requester_id === myId ? f.addressee_id : f.requester_id)))];
+        if (ids.length === 0) { if (!cancelled) setFriends([]); return; }
+        const { data: profs } = await supabase.from("profiles").select("*").in("id", ids);
+        if (!cancelled) setFriends((profs || []).sort((a, b) => (a.name || "").localeCompare(b.name || "", "nl")));
+      });
+    return () => { cancelled = true; };
+  }, [myId, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  return friends;
+}
+// "Lisa", "Lisa en Sem", "Lisa, Sem en Anouk"
+function joinNames(names) {
+  if (names.length <= 1) return names[0] || "";
+  return `${names.slice(0, -1).join(", ")} en ${names[names.length - 1]}`;
+}
+// Tags bij een set check-ins: { checkinId: [{ id, name }] }. Namen komen uit
+// de profielen die we al kennen; onbekende (vrienden van vrienden) halen we op.
+function useCheckinTags(checkinIds, active, knownProfiles, reloadKey) {
+  const [tags, setTags] = useState({});
+  const key = checkinIds.join(",");
+  useEffect(() => {
+    if (!active || checkinIds.length === 0) { setTags({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from("checkin_tags").select("checkin_id, tagged_user_id").in("checkin_id", checkinIds);
+      if (cancelled || error || !data) return;
+      const names = {};
+      Object.values(knownProfiles || {}).forEach(p => { if (p?.id) names[p.id] = p.name; });
+      const missing = [...new Set(data.map(t => t.tagged_user_id))].filter(id => !names[id]);
+      if (missing.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("id, name").in("id", missing);
+        (profs || []).forEach(p => { names[p.id] = p.name; });
+      }
+      if (cancelled) return;
+      const map = {};
+      data.forEach(t => { (map[t.checkin_id] = map[t.checkin_id] || []).push({ id: t.tagged_user_id, name: names[t.tagged_user_id] || "een vriend" }); });
+      setTags(map);
+    })();
+    return () => { cancelled = true; };
+  }, [key, active, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  return tags;
+}
+// Openstaande tags voor jou: iemand heeft je getagd en je hebt de check-in
+// nog niet overgenomen of weggetikt.
+function useTagInbox(myId, active, reloadKey) {
+  const [items, setItems] = useState([]);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!active || !myId) return;
+    let cancelled = false;
+    (async () => {
+      const { data: tags, error } = await supabase.from("checkin_tags").select("*")
+        .eq("tagged_user_id", myId).is("adopted_checkin_id", null).eq("dismissed", false)
+        .order("created_at", { ascending: false }).limit(5);
+      if (cancelled || error || !tags || tags.length === 0) { if (!cancelled) setItems([]); return; }
+      const [{ data: checkins }, { data: profs }] = await Promise.all([
+        supabase.from("checkins").select("*").in("id", tags.map(t => t.checkin_id)),
+        supabase.from("profiles").select("id, name, avatar_url").in("id", [...new Set(tags.map(t => t.tagger_id))]),
+      ]);
+      if (cancelled) return;
+      const byId = Object.fromEntries((checkins || []).map(c => [c.id, checkinRowToEntry(c)]));
+      const profById = Object.fromEntries((profs || []).map(p => [p.id, p]));
+      setItems(tags.filter(t => byId[t.checkin_id]).map(t => ({ tag: t, entry: byId[t.checkin_id], tagger: profById[t.tagger_id] || null })));
+    })();
+    return () => { cancelled = true; };
+  }, [myId, active, reloadKey, tick]);
+  const dismiss = async (tagId) => {
+    setItems(cur => cur.filter(i => i.tag.id !== tagId));
+    await supabase.from("checkin_tags").update({ dismissed: true }).eq("id", tagId);
+  };
+  return { items, dismiss, reload: () => setTick(t => t + 1) };
+}
+
 function useFriendsFeed(session, active) {
   const myId = session?.user?.id;
   const [friendProfiles, setFriendProfiles] = useState({});
@@ -3563,6 +3655,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
     }
   };
   const rankOf = (entry) => entry.mine ? courseRank : profileCourseRank(friendProfiles[entry.friendId]);
+  const knownProfiles = useMemo(() => ({ ...friendProfiles, ...(profile?.id ? { [profile.id]: profile } : {}) }), [friendProfiles, profile]);
+  const checkinTags = useCheckinTags(feedIds, active, knownProfiles, logboek.length);
+  const tagInbox = useTagInbox(myId, active, logboek.length);
   const handleRefresh = async () => {
     onSound("pop");
     await Promise.all([onReloadLogboek(), Promise.resolve(reloadFriendFeed())]);
@@ -3683,6 +3778,36 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
       </button>
 
       {photoViewer && <CheckinPhotoViewer {...photoViewer} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)} />}
+      {tagInbox.items.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
+          {tagInbox.items.map(({ tag, entry, tagger }) => {
+            const taggerName = tagger?.name || "Een vriend";
+            return (
+              <div key={tag.id} style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 16, padding: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Avatar name={taggerName} photo={tagger?.avatar_url} size={40} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, lineHeight: 1.35 }}><strong>{taggerName}</strong> heeft je getagd bij <span style={{ fontFamily: serif, fontWeight: 700 }}>{entry.name}</span></div>
+                    <div style={{ fontSize: 12, color: "#C9D2CB", marginTop: 2 }}>{entry.location} · {entry.date}</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <button onClick={() => onOpenCheckin({
+                    name: entry.name, location: entry.location, photo: entry.photo,
+                    adoptTag: { id: tag.id, checkinId: entry.id, taggerId: tag.tagger_id, taggerName: taggerName.split(" ")[0] },
+                  })} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: BRASS, color: BOTTLE_DARK, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
+                    Ook inchecken
+                  </button>
+                  <button onClick={() => tagInbox.dismiss(tag.id)} style={{ minHeight: 42, padding: "0 16px", borderRadius: 12, border: "1px solid rgba(251,246,234,0.25)", background: "none", color: CREAM, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: sans }}>
+                    Niet nu
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <SectionLabel>Activiteit</SectionLabel>
       {combinedFeed.length === 0 ? (
         <div style={{ padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS }}>
@@ -3758,6 +3883,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                       </button>
                     )}
                     {rankOf(entry)?.rank && <span style={{ marginLeft: 6 }}><CourseRankLabel courseRank={rankOf(entry)} /></span>}
+                    {checkinTags[entry.id]?.length > 0 && (
+                      <div style={{ fontSize: 12.5, color: INK, marginTop: 1 }}>met {joinNames(checkinTags[entry.id].map(t => (t.name || "een vriend").split(" ")[0]))}</div>
+                    )}
                     <div style={{ fontSize: 11, color: MUTED, marginTop: 1, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                       <MapPin size={11} style={{ flexShrink: 0 }} /> {entry.location} · {entry.date}
                     </div>
@@ -3872,6 +4000,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           recipes={recipes}
           allIngredients={allIngredients}
           session={session}
+          myLogboek={logboek}
+          myProfile={profile}
+          onOpenRecipe={onOpenRecipe}
           onBlocked={() => setOpenFriendId(null)}
           onClose={() => setOpenFriendId(null)}
         />
@@ -11105,7 +11236,7 @@ function CourseRankLadder({ courseRank }) {
             <span style={{ height: 16, display: "flex", alignItems: "center" }}>
               <span style={{ width: d, height: d, borderRadius: "50%", boxSizing: "border-box", background: reached ? BRASS : "transparent", border: reached ? "none" : "1.5px solid #B8A98A" }} />
             </span>
-            <span style={{ fontSize: 11, textAlign: "center", lineHeight: 1.2, fontWeight: current ? 700 : 500, color: current ? INK : MUTED }}>{r.name}</span>
+            <span lang="nl" style={{ fontSize: 11, textAlign: "center", lineHeight: 1.2, fontWeight: current ? 700 : 500, color: current ? INK : MUTED, hyphens: "manual", overflowWrap: "anywhere" }}>{r.name === "Thuisbartender" ? "Thuis\u00ADbartender" : r.name}</span>
           </div>
         );
       })}
@@ -11114,21 +11245,23 @@ function CourseRankLadder({ courseRank }) {
 }
 
 // Cursuskaart op je eigen profiel: delen, XP, de rangladder en de badges.
-function CourseProgressCard({ courseProgress, courseRank }) {
-  const ci = computeCourseInsights(courseProgress || {});
+function CourseProgressCard({ courseProgress, courseRank, firstName = null }) {
+  const ci = courseProgress ? computeCourseInsights(courseProgress) : null;
   const r = courseRank || withRank(-1, 0, false);
   return (
     <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16, marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14, gap: 8 }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: INK }}>Cursus</span>
-        <span style={{ fontSize: 12.5, color: MUTED }}>{r.partsDone} van {COURSE_PART_COUNT} delen · {ci.xp} XP</span>
+        <span style={{ fontSize: 12.5, color: MUTED }}>{r.partsDone} van {COURSE_PART_COUNT} delen{ci ? ` · ${ci.xp} XP` : ""}</span>
       </div>
       <CourseRankLadder courseRank={r} />
       <div style={{ fontSize: 13, color: INK, marginTop: 14, lineHeight: 1.45 }}>
-        {r.index < 0 ? "Start de cursus onder Bar en word Leerling." : courseRankHint(r) + "."}
+        {firstName
+          ? (r.index < 0 ? `${firstName} is nog niet met de cursus begonnen.` : r.master ? `${firstName} heeft de cursus en de eindtoets gehaald.` : `${firstName} is ${r.rank.name}.`)
+          : (r.index < 0 ? "Start de cursus onder Bar en word Leerling." : courseRankHint(r) + ".")}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
-        {ci.badges.map(b => {
+      {ci && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+        {ci && ci.badges.map(b => {
           const Icon = b.icon;
           return (
             <span key={b.id} title={b.label} aria-label={`${b.label}${b.unlocked ? "" : " (nog niet behaald)"}`} style={{
@@ -11138,7 +11271,7 @@ function CourseProgressCard({ courseProgress, courseRank }) {
             }}><Icon size={16} strokeWidth={1.8} /></span>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -11715,10 +11848,91 @@ function MapFullscreenSheet({ locations, coords, onClose }) {
   ), document.body);
 }
 
+// Favorieten, meest gebruikte drank en check-ins per maand: gedeeld door
+// je eigen profiel en dat van een vriend (zelfde afleiding uit het logboek).
+function TasteDetails({ insights, logboek, recipes, allIngredients }) {
+  const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
+  const favRecipe = insights.favoriteCocktail ? recipes.find(r => r.name.toLowerCase() === insights.favoriteCocktail.name.toLowerCase()) : null;
+  const famName = insights.favoriteFamilyEntry?.[0];
+  const famRecipe = famName ? (logboek.map(findMatch).filter(r => r && r.family === famName)[0] || recipes.find(r => r.family === famName)) : null;
+  const favCards = [
+    insights.favoriteCocktail && { label: "Favoriete cocktail", title: insights.favoriteCocktail.name, recipe: favRecipe, serifTitle: true },
+    famName && { label: "Favoriete stijl", title: famName, recipe: famRecipe },
+  ].filter(Boolean);
+  const monthsWithData = insights.months.filter(m => m.count > 0).length;
+  const spiritMeta = (label) => allIngredients.find(i => i.name === label && i.cat === "Sterke drank");
+  return (
+    <>
+      {favCards.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <SectionLabel>Favorieten</SectionLabel>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+            {favCards.map(c => (
+              <div key={c.label} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+                <div style={{ height: 96, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  {c.recipe && (localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image)
+                    ? <img src={localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
+                    : c.recipe ? <RecipeCircle recipe={c.recipe} allIngredients={allIngredients} size={70} radius={12} /> : <Martini size={28} color={BRASS} strokeWidth={1.4} />}
+                </div>
+                <div style={{ padding: "10px 12px 12px" }}>
+                  <div style={{ fontSize: 12, color: MUTED }}>{c.label}</div>
+                  <div style={{ fontFamily: c.serifTitle ? serif : systemFont, fontWeight: 700, fontSize: 16, color: INK, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {insights.spirits.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <SectionLabel>Meest gebruikte drank</SectionLabel>
+          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+            {insights.spirits.map((sp, i) => {
+              const meta = spiritMeta(sp.label);
+              return (
+                <div key={sp.label} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, overflow: "hidden", background: PAPER_DEEP, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {meta ? <ItemImage id={meta.id} type="drank" size={34} radius={9} /> : <Wine size={16} color={MUTED} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+                    <span style={{ width: 86, flexShrink: 0, fontSize: 14, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sp.label}</span>
+                    <div style={{ flex: 1, height: 6, borderRadius: 3, background: PAPER_DEEP, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${sp.pct}%`, background: BRASS, borderRadius: 3 }} />
+                    </div>
+                    <span style={{ width: 38, textAlign: "right", fontSize: 13, fontWeight: 700, color: INK }}>{sp.pct}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {monthsWithData >= 2 && (
+        <div style={{ marginBottom: 22 }}>
+          <SectionLabel>Check-ins per maand</SectionLabel>
+          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "16px 16px 12px" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80 }}>
+              {insights.months.map((m, i) => (
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 6 }}>
+                  <div style={{ width: "100%", maxWidth: 18, borderRadius: 4, background: m.count ? BRASS : PAPER_DEEP, height: `${Math.max(6, (m.count / insights.monthMax) * 100)}%` }} />
+                  <span style={{ fontSize: 12, color: MUTED }}>{m.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // Webdiagram van het smaakprofiel (5 assen), in goud op de groene kaart.
 const RADAR_AXES = [["fruitig", "Fruitig"], ["zuur", "Zuur"], ["zoet", "Zoet"], ["sterk", "Sterk"], ["bitter", "Bitter"]];
-function TasteRadar({ taste, size = 230 }) {
+function TasteRadar({ taste, size = 230, compare = null }) {
   const byKey = Object.fromEntries(taste.map(t => [t.key, t.pct / 100]));
+  const cmpKey = compare ? Object.fromEntries(compare.map(t => [t.key, t.pct / 100])) : null;
   const cx = size / 2, cy = size / 2 + 4, R = size * 0.33;
   const pt = (i, f) => { const ang = (-90 + i * 72) * Math.PI / 180; return [cx + Math.cos(ang) * R * f, cy + Math.sin(ang) * R * f]; };
   const poly = (f) => RADAR_AXES.map((_, i) => pt(i, f).join(",")).join(" ");
@@ -11727,6 +11941,7 @@ function TasteRadar({ taste, size = 230 }) {
     <svg viewBox={`0 0 ${size} ${size}`} width="100%" style={{ maxWidth: size, display: "block", margin: "0 auto" }} role="img" aria-label="Smaakprofiel">
       {[0.34, 0.67, 1].map(f => <polygon key={f} points={poly(f)} fill="none" stroke="rgba(221,184,119,0.28)" strokeWidth={1} />)}
       {RADAR_AXES.map((_, i) => { const [x, y] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(221,184,119,0.22)" strokeWidth={1} />; })}
+      {cmpKey && <polygon points={RADAR_AXES.map(([k], i) => pt(i, Math.max(0.08, cmpKey[k] || 0)).join(",")).join(" ")} fill="none" stroke="#C9D2CB" strokeWidth={1.5} strokeDasharray="4 3" strokeLinejoin="round" />}
       <polygon points={values.map(v => v.join(",")).join(" ")} fill="rgba(221,184,119,0.32)" stroke="#DDB877" strokeWidth={2} strokeLinejoin="round" />
       {values.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={3.2} fill="#DDB877" />)}
       {RADAR_AXES.map(([, label], i) => {
@@ -11930,6 +12145,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       name, rating, notes: notes.trim(), photo, location: location.trim() || "Thuis",
       locationLat: locationCoords?.lat ?? null, locationLon: locationCoords?.lon ?? null,
       tasteTags: tasteTags,
+      tagUserIds: taggedIds, adoptTag,
     });
     onSound("chime");
     setStampNumber(checkinNumber);
@@ -11938,6 +12154,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       closeCheckinSheet();
       setNameInput(""); setNotes(""); setRating(0); setPhoto(null); setLocation("Thuis"); setLocationCoords(null);
       setTasteTags([]); setMoreOpen(false);
+      setTaggedIds([]); setTagQuery(""); setAdoptTag(null);
     }, 1050);
   };
   const removeEntry = (id) => { onSound("remove"); onRemoveEntry(id); };
@@ -11945,13 +12162,27 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const scrollToEntry = (id) => cardRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "center" });
   const [showCheckinSheet, setShowCheckinSheet] = useState(false);
   const [cocktailSearchOpen, setCocktailSearchOpen] = useState(false);
-  const { panelRef: checkinPanelRef, closing: checkinClosing, close: closeCheckinSheet, dragHandlers: checkinDragHandlers } = useSheetDismiss(() => setShowCheckinSheet(false));
+  const { panelRef: checkinPanelRef, closing: checkinClosing, close: closeCheckinSheet, dragHandlers: checkinDragHandlers } = useSheetDismiss(() => {
+    setShowCheckinSheet(false);
+    // Overnemen afgebroken: de volgende check-in begint weer blanco.
+    if (adoptTag) { setAdoptTag(null); setNameInput(""); setPhoto(null); setLocation("Thuis"); }
+  });
   // Extern verzoek om in te checken (centrale +-knop, of straks direct vanaf
   // een recept) — de sheet zelf blijft hier leven (portal't toch al naar
   // document.body, dus verschijnt sowieso boven elke tab).
+  // Vrienden taggen ("Met wie drink je?") en een tag overnemen.
+  const [taggedIds, setTaggedIds] = useState([]);
+  const [tagQuery, setTagQuery] = useState("");
+  const [adoptTag, setAdoptTag] = useState(null);
+  const tagFriends = useFriendList(profile?.id, showCheckinSheet);
   useEffect(() => {
     if (!checkinRequest) return;
     if (checkinRequest.name) setNameInput(checkinRequest.name);
+    if (checkinRequest.adoptTag) {
+      setAdoptTag(checkinRequest.adoptTag);
+      if (checkinRequest.location) setLocation(checkinRequest.location);
+      if (checkinRequest.photo) setPhoto(checkinRequest.photo);
+    }
     setShowCheckinSheet(true);
   }, [checkinRequest]);
 
@@ -12127,15 +12358,6 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
           } catch { /* geannuleerd */ }
         };
         const needed = Math.max(0, 3 - logboek.length);
-        const favRecipe = insights.favoriteCocktail ? recipes.find(r => r.name.toLowerCase() === insights.favoriteCocktail.name.toLowerCase()) : null;
-        const famName = insights.favoriteFamilyEntry?.[0];
-        const famRecipe = famName ? (logboek.map(findMatch).filter(r => r && r.family === famName)[0] || recipes.find(r => r.family === famName)) : null;
-        const favCards = [
-          insights.favoriteCocktail && { label: "Favoriete cocktail", title: insights.favoriteCocktail.name, recipe: favRecipe, serifTitle: true },
-          famName && { label: "Favoriete stijl", title: famName, recipe: famRecipe },
-        ].filter(Boolean);
-        const monthsWithData = insights.months.filter(m => m.count > 0).length;
-        const spiritMeta = (label) => allIngredients.find(i => i.name === label && i.cat === "Sterke drank");
         return (
           <>
             <div style={{ position: "relative", background: BOTTLE_DARK, color: "#FBF6EA", borderRadius: 18, padding: "18px 18px 16px", boxShadow: SHADOW_HERO, borderBottom: `3px solid ${BRASS}`, marginBottom: 22 }}>
@@ -12158,67 +12380,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               )}
             </div>
 
-            {favCards.length > 0 && (
-              <div style={{ marginBottom: 22 }}>
-                <SectionLabel>Favorieten</SectionLabel>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-                  {favCards.map(c => (
-                    <div key={c.label} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
-                      <div style={{ height: 96, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                        {c.recipe && (localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image)
-                          ? <img src={localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
-                          : c.recipe ? <RecipeCircle recipe={c.recipe} allIngredients={allIngredients} size={70} radius={12} /> : <Martini size={28} color={BRASS} strokeWidth={1.4} />}
-                      </div>
-                      <div style={{ padding: "10px 12px 12px" }}>
-                        <div style={{ fontSize: 12, color: MUTED }}>{c.label}</div>
-                        <div style={{ fontFamily: c.serifTitle ? serif : systemFont, fontWeight: 700, fontSize: 16, color: INK, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {insights.spirits.length > 0 && (
-              <div style={{ marginBottom: 22 }}>
-                <SectionLabel>Meest gebruikte drank</SectionLabel>
-                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
-                  {insights.spirits.map((sp, i) => {
-                    const meta = spiritMeta(sp.label);
-                    return (
-                      <div key={sp.label} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 9, overflow: "hidden", background: PAPER_DEEP, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          {meta ? <ItemImage id={meta.id} type="drank" size={34} radius={9} /> : <Wine size={16} color={MUTED} />}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
-                          <span style={{ width: 86, flexShrink: 0, fontSize: 14, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sp.label}</span>
-                          <div style={{ flex: 1, height: 6, borderRadius: 3, background: PAPER_DEEP, overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${sp.pct}%`, background: BRASS, borderRadius: 3 }} />
-                          </div>
-                          <span style={{ width: 38, textAlign: "right", fontSize: 13, fontWeight: 700, color: INK }}>{sp.pct}%</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {monthsWithData >= 2 && (
-              <div style={{ marginBottom: 22 }}>
-                <SectionLabel>Check-ins per maand</SectionLabel>
-                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "16px 16px 12px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80 }}>
-                    {insights.months.map((m, i) => (
-                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 6 }}>
-                        <div style={{ width: "100%", maxWidth: 18, borderRadius: 4, background: m.count ? BRASS : PAPER_DEEP, height: `${Math.max(6, (m.count / insights.monthMax) * 100)}%` }} />
-                        <span style={{ fontSize: 12, color: MUTED }}>{m.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            <TasteDetails insights={insights} logboek={logboek} recipes={recipes} allIngredients={allIngredients} />
           </>
         );
       })()}
@@ -12355,6 +12517,55 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                   onSelect={(r) => setNameInput(r.name)} allIngredients={allIngredients} recent={recentCocktails} />
 
                 <CheckinStars value={rating} onChange={setRating} onSound={onSound} />
+
+                {adoptTag ? (
+                  <div style={{ padding: "12px 14px", borderRadius: 14, background: PAPER_DEEP, fontSize: 13.5, lineHeight: 1.45, color: INK, fontFamily: systemFont }}>
+                    Je checkt in met <strong>{adoptTag.taggerName || "je vriend"}</strong>. Je cijfer en notitie zijn alleen van jou; aan de check-in van {adoptTag.taggerName || "je vriend"} verandert niets.
+                  </div>
+                ) : tagFriends && tagFriends.length > 0 && (() => {
+                  const q = tagQuery.trim().toLowerCase();
+                  const shown = q ? tagFriends.filter(f => (f.name || "").toLowerCase().includes(q)) : tagFriends;
+                  const toggle = (id) => { onSound("pop"); setTaggedIds(cur => cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]); };
+                  return (
+                    <div>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+                        <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: INK }}>Met wie drink je?</span>
+                        <span style={{ fontFamily: systemFont, fontSize: 12, color: MUTED }}>{taggedIds.length > 0 ? `${taggedIds.length} getagd` : "Optioneel"}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 12, overflowX: "auto", margin: "-5px -20px 0", padding: "6px 20px 6px" }}>
+                        {shown.map(f => {
+                          const on = taggedIds.includes(f.id);
+                          return (
+                            <button key={f.id} onClick={() => toggle(f.id)} aria-pressed={on} style={{
+                              display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: 60, flexShrink: 0,
+                              background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont,
+                            }}>
+                              <span style={{ position: "relative", width: 52, height: 52, borderRadius: "50%", boxShadow: on ? `0 0 0 2.5px ${PAPER}, 0 0 0 4.5px ${BRASS}` : "none" }}>
+                                <Avatar name={f.name} photo={f.avatar_url} size={52} />
+                                {on && (
+                                  <span style={{ position: "absolute", right: -3, bottom: -3, width: 20, height: 20, borderRadius: "50%", background: BRASS, border: `2px solid ${PAPER}`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <Check size={11} strokeWidth={3.5} color={BOTTLE_DARK} />
+                                  </span>
+                                )}
+                              </span>
+                              <span style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: on ? INK : MUTED, maxWidth: 60, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(f.name || "Vriend").split(" ")[0]}</span>
+                            </button>
+                          );
+                        })}
+                        {shown.length === 0 && <span style={{ fontSize: 13, color: MUTED, padding: "16px 0" }}>Geen vriend gevonden</span>}
+                      </div>
+                      {tagFriends.length > 6 && (
+                        <input value={tagQuery} onChange={e => setTagQuery(e.target.value)} placeholder="Zoek een vriend" enterKeyHint="search"
+                          style={{ ...fieldStyle(), width: "100%", boxSizing: "border-box", marginTop: 10, fontSize: 16 }} />
+                      )}
+                      {taggedIds.length > 0 && (
+                        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 8, lineHeight: 1.45, fontFamily: systemFont }}>
+                          {joinNames(tagFriends.filter(f => taggedIds.includes(f.id)).map(f => (f.name || "Vriend").split(" ")[0]))} {taggedIds.length === 1 ? "ziet" : "zien"} dit en {taggedIds.length === 1 ? "kan" : "kunnen"} de check-in overnemen met een eigen cijfer.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
@@ -12590,17 +12801,71 @@ function Avatar({ name, photo, size = 38 }) {
   );
 }
 
-// Read-only variant van het eigen Check-in-profiel, voor een vriend: zelfde
-// computeCheckinStats/computeCheckinInsights als LogboekTab, maar dan gevoed
-// met de check-ins van de vriend (die RLS je al toont zodra jullie
-// geaccepteerde vrienden zijn) i.p.v. je eigen logboek. Geen "aanbevolen voor
-// jou" of kaart-sectie — die zijn aan JOUW voorraad/locaties gekoppeld en dus
-// niet zinvol in andermans profiel.
-function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, onClose, session, onBlocked }) {
+// Wat jij en een vriend delen: samen gedronken (via tags), allebei geproefd
+// (zelfde cocktail los ingecheckt) en iets wat de vriend lekker vindt en jij
+// nog niet hebt gehad. Alles uit bestaande check-ins en tags afgeleid.
+function computeTogether({ myLog, herLog, pairTags, myId, recipes }) {
+  const findMatch = (e) => e.recipeId ? recipes.find(r => r.id === e.recipeId) : recipes.find(r => r.name.toLowerCase() === e.name.toLowerCase());
+  const myById = Object.fromEntries(myLog.map(e => [String(e.id), e]));
+  const herById = Object.fromEntries(herLog.map(e => [String(e.id), e]));
+  const seen = new Set();
+  const events = [];
+  pairTags.forEach(t => {
+    const iTagged = t.tagger_id === myId;
+    const mine = iTagged ? myById[String(t.checkin_id)] : (t.adopted_checkin_id != null ? myById[String(t.adopted_checkin_id)] : null);
+    const hers = iTagged ? (t.adopted_checkin_id != null ? herById[String(t.adopted_checkin_id)] : null) : herById[String(t.checkin_id)];
+    const ids = [mine?.id, hers?.id].filter(x => x != null).map(String);
+    if (ids.length === 0 || ids.some(id => seen.has(id))) return;
+    ids.forEach(id => seen.add(id));
+    const base = mine || hers;
+    events.push({ key: ids.join("-"), name: base.name, recipe: findMatch(base), location: base.location, createdAt: base.createdAt || base.date, date: base.date, me: mine?.rating ?? null, her: hers?.rating ?? null, herEntryId: hers?.id ?? null, myEntryId: mine?.id ?? null });
+  });
+  events.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const keyOf = (e) => e.recipeId ? `id:${e.recipeId}` : `name:${e.name.trim().toLowerCase()}`;
+  const avgBy = (log) => {
+    const m = {};
+    log.forEach(e => { const k = keyOf(e); (m[k] = m[k] || { name: e.name, sum: 0, n: 0 }); m[k].sum += e.rating; m[k].n += 1; });
+    return m;
+  };
+  const mineAvg = avgBy(myLog), herAvg = avgBy(herLog);
+  const roundHalf = (x) => Math.round(x * 2) / 2;
+  let both = Object.keys(mineAvg).filter(k => herAvg[k]).map(k => ({
+    key: k, name: mineAvg[k].name, me: roundHalf(mineAvg[k].sum / mineAvg[k].n), her: roundHalf(herAvg[k].sum / herAvg[k].n), n: mineAvg[k].n + herAvg[k].n,
+  })).sort((a, b) => b.n - a.n).slice(0, 4);
+  const maxDiff = Math.max(0, ...both.map(b => Math.abs(b.me - b.her)));
+  both = both.map(b => {
+    const d = Math.abs(b.me - b.her);
+    const note = d === 0 ? "Jullie zijn het eens" : (d === maxDiff && d >= 1 ? "Hier verschillen jullie het meest" : d === 0.5 ? "Scheelt een halve ster" : `Scheelt ${formatRating(d)} ster${d === 1 ? "" : "ren"}`);
+    return { ...b, note };
+  });
+
+  const triedKeys = new Set(myLog.map(keyOf));
+  const tryOne = herLog
+    .filter(e => e.rating >= 4 && !triedKeys.has(keyOf(e)) && findMatch(e))
+    .sort((a, b) => b.rating - a.rating || new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))[0] || null;
+
+  const firstDate = events.length ? events[events.length - 1].createdAt : null;
+  return { events, both, tryOne: tryOne ? { entry: tryOne, recipe: findMatch(tryOne) } : null, firstDate };
+}
+
+// Profiel van een vriend: zelfde opbouw als je eigen profiel (ring, rang,
+// kerncijfers, Check-ins · Smaak · Prestaties), schermvullend, plus "Samen".
+// Melden en blokkeren zitten achter de ··· rechtsboven.
+function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, onClose, session, onBlocked, myLogboek = [], onOpenRecipe, myProfile = null }) {
   const [logboek, setLogboek] = useState(null);
+  const [pairTags, setPairTags] = useState([]);
   const myId = session?.user?.id;
+  const [tab, setTab] = useState("checkins");
+  const [view, setView] = useState("profiel");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [reported, setReported] = useState(false);
+  const [photoViewer, setPhotoViewer] = useState(null);
+  const [activeAchievementId, setActiveAchievementId] = useState(null);
+  const scrollRef = useRef(null);
+
   const blockUser = async () => {
     if (!myId || blocking) return;
     setBlocking(true);
@@ -12609,208 +12874,359 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
     setBlocking(false);
     onBlocked?.();
   };
+  const reportUser = async () => {
+    setMenuOpen(false);
+    if (!myId || reported) return;
+    const { error } = await supabase.from("content_reports").insert({ reporter_id: myId, target_type: "user", target_id: friendId });
+    if (!error) setReported(true);
+  };
 
   useEffect(() => {
     let cancelled = false;
     supabase.from("checkins").select("*").eq("user_id", friendId).order("created_at", { ascending: false })
       .then(({ data }) => { if (!cancelled) setLogboek((data || []).map(checkinRowToEntry)); });
+    if (myId) {
+      supabase.from("checkin_tags").select("*")
+        .or(`and(tagger_id.eq.${myId},tagged_user_id.eq.${friendId}),and(tagger_id.eq.${friendId},tagged_user_id.eq.${myId})`)
+        .then(({ data, error }) => { if (!cancelled && !error) setPairTags(data || []); });
+    }
     return () => { cancelled = true; };
-  }, [friendId]);
+  }, [friendId, myId]);
 
   useBodyScrollLock();
-  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") close(); };
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
+  useEffect(() => { scrollRef.current?.scrollTo(0, 0); }, [view]);
 
   const stats = useMemo(() => (logboek ? computeCheckinStats(logboek) : null), [logboek]);
   const insights = useMemo(
     () => (logboek && stats) ? computeCheckinInsights(logboek, recipes, allIngredients, () => false, stats.uniques) : null,
     [logboek, stats, recipes, allIngredients]
   );
+  const myInsights = useMemo(() => {
+    if (!myLogboek.length) return null;
+    const st = computeCheckinStats(myLogboek);
+    return computeCheckinInsights(myLogboek, recipes, allIngredients, () => false, st.uniques);
+  }, [myLogboek, recipes, allIngredients]);
+  const together = useMemo(
+    () => logboek ? computeTogether({ myLog: myLogboek, herLog: logboek, pairTags, myId, recipes }) : null,
+    [logboek, myLogboek, pairTags, myId, recipes]
+  );
   const name = friendProfile?.name || "Vriend";
+  const firstName = name.split(" ")[0];
   const friendRank = profileCourseRank(friendProfile);
+  const findMatch = (e) => e.recipeId ? recipes.find(r => r.id === e.recipeId) : recipes.find(r => r.name.toLowerCase() === e.name.toLowerCase());
+  const withMeIds = useMemo(() => new Set((together?.events || []).map(ev => ev.herEntryId).filter(x => x != null).map(String)), [together]);
+  const monthName = (iso) => iso ? new Date(iso).toLocaleDateString("nl-NL", { month: "long" }) : "";
+  const shortDate = (d) => {
+    const dt = new Date(d);
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString("nl-NL", { day: "numeric", month: "short", ...(dt.getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}) });
+  };
 
-  return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-      <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
-        background: PAPER, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
-        display: "flex", flexDirection: "column", overflow: "hidden",
-      }}>
-        <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
-          <RankAvatar name={name} photo={friendProfile?.avatar_url} size={52} courseRank={friendRank} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK }}>{name}</span>
-              <CourseRankLabel courseRank={friendRank} chip />
-            </div>
-            {insights && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{insights.level.title} · niveau {insights.level.level}</div>}
-          </div>
-          <button onClick={close} aria-label="Sluiten" className="tap-target-44" style={{
-            display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
-            borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0,
-          }}><X size={16} /></button>
-        </div>
+  const label = (text) => <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED, margin: "0 0 8px" }}>{text}</div>;
+  const pairAvatars = (size, ring) => (
+    <span style={{ position: "relative", display: "block", width: size * 1.55, height: size, flexShrink: 0 }}>
+      <span style={{ position: "absolute", left: 0, top: 0, display: "block", width: size, height: size, borderRadius: "50%" }}><Avatar name={myProfile?.name || "Jij"} photo={myProfile?.avatar_url} size={size} /></span>
+      <span style={{ position: "absolute", left: size * 0.55, top: 0, display: "block", width: size, height: size, borderRadius: "50%", boxShadow: `0 0 0 ${size > 40 ? 3 : 2}px ${ring}` }}><Avatar name={name} photo={friendProfile?.avatar_url} size={size} /></span>
+    </span>
+  );
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, padding: "8px 20px 0", flexShrink: 0 }}>
-          {!confirmBlock ? (
-            <button onClick={() => setConfirmBlock(true)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
-              <UserX size={12} /> Blokkeer gebruiker
+  const header = (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 44, marginBottom: 8, position: "relative" }}>
+      <button onClick={view === "samen" ? () => setView("profiel") : onClose} style={{ display: "flex", alignItems: "center", gap: 2, minHeight: 44, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: sans, fontSize: 16, fontWeight: 600, color: "#8F6A21" }}>
+        <ChevronLeft size={22} /> {view === "samen" ? firstName : "Terug"}
+      </button>
+      {view === "profiel" && (
+        <button onClick={() => setMenuOpen(o => !o)} aria-label="Meer" aria-expanded={menuOpen} style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <MoreHorizontal size={18} />
+        </button>
+      )}
+      {menuOpen && (
+        <>
+          <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 1 }} />
+          <div className="accordion-reveal" style={{ position: "absolute", right: 0, top: 46, zIndex: 2, minWidth: 210, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: "0 10px 30px rgba(43,38,32,0.18)", overflow: "hidden" }}>
+            <button onClick={reportUser} disabled={reported} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, padding: "0 16px", background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, cursor: reported ? "default" : "pointer", fontFamily: sans, fontSize: 15, color: INK, textAlign: "left" }}>
+              {reported ? <Check size={16} color={SAGE} /> : <Flag size={16} />} {reported ? "Gemeld" : `Meld ${firstName}`}
             </button>
-          ) : (
-            <>
-              <span style={{ fontSize: 12, color: MUTED }}>Weet je het zeker?</span>
-              <button onClick={blockUser} disabled={blocking} style={{ background: "none", border: "none", color: BURGUNDY, fontWeight: 700, fontSize: 12, cursor: "pointer", padding: 0 }}>
-                {blocking ? "Bezig…" : "Ja, blokkeer"}
-              </button>
-              <button onClick={() => setConfirmBlock(false)} style={{ background: "none", border: "none", color: MUTED, fontSize: 12, cursor: "pointer", padding: 0 }}>Annuleer</button>
-            </>
-          )}
+            <button onClick={() => { setMenuOpen(false); setConfirmBlock(true); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, padding: "0 16px", background: "none", border: "none", cursor: "pointer", fontFamily: sans, fontSize: 15, color: BURGUNDY, textAlign: "left" }}>
+              <UserX size={16} /> Blokkeer {firstName}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  const samenView = together && (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
+        {pairAvatars(56, PAPER)}
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontFamily: serif, fontSize: 26, fontWeight: 700, margin: 0, color: INK }}>Jij en {firstName}</h1>
+          <div style={{ fontSize: 13.5, color: MUTED, marginTop: 2 }}>
+            {together.events.length > 0 ? `${together.events.length} keer samen gedronken · sinds ${monthName(together.firstDate)}` : "Nog niet samen ingecheckt"}
+          </div>
         </div>
+      </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "18px 20px" }}>
-          {friendProfile?.course_completed_at && (
-            <CourseDiploma date={friendProfile.course_completed_at} scorePct={friendProfile.course_exam_score} isOwn={false} />
-          )}
-          {!logboek ? (
-            <p style={{ color: MUTED, fontSize: 13.5, textAlign: "center", padding: "40px 0" }}>Bezig met laden…</p>
-          ) : logboek.length === 0 ? (
-            <p style={{ color: MUTED, fontSize: 13.5, textAlign: "center", padding: "40px 0" }}>{name} heeft nog niets ingecheckt.</p>
-          ) : (
-            <>
-              <div style={{ marginBottom: 24 }}>
-                <SectionLabel>Statistieken</SectionLabel>
-                <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 16 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px 6px" }}>
-                    {[
-                      { value: stats.total, label: "Cocktails geproefd" },
-                      { value: stats.uniques, label: "Unieke cocktails" },
-                      { value: formatDecimal1(stats.avg), label: "Gem. beoordeling" },
-                      { value: insights.customUsedCount, label: "Eigen recepten" },
-                      { value: insights.streak, label: "Langste streak (dagen)" },
-                    ].map((s, i) => (
-                      <div key={i} style={{ textAlign: "center" }}>
-                        <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 18, color: BOTTLE }}>{s.value}</div>
-                        <div style={{ fontSize: 9.5, color: MUTED, marginTop: 2, lineHeight: 1.25 }}>{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
+      {label("Samen gedronken")}
+      {together.events.length > 0 ? (
+        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "0 14px", marginBottom: 22 }}>
+          {together.events.slice(0, 12).map((ev, i) => (
+            <div key={ev.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none" }}>
+              {ev.recipe ? <RecipeCircle recipe={ev.recipe} allIngredients={allIngredients} size={44} radius={10} /> : <span style={{ width: 44, height: 44, borderRadius: 10, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Martini size={18} color={MUTED} /></span>}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontFamily: serif, fontSize: 15.5, fontWeight: 700, color: INK }}>{ev.name}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>{ev.location} · {shortDate(ev.date)}</span>
+              </span>
+              <span style={{ textAlign: "right", fontSize: 12.5, lineHeight: 1.45, flexShrink: 0, color: INK }}>
+                <span style={{ display: "block" }}>Jij <strong>{ev.me != null ? formatRating(ev.me) : "–"}</strong></span>
+                <span style={{ display: "block", color: "#8F6A21" }}>{firstName} <strong>{ev.her != null ? formatRating(ev.her) : "–"}</strong></span>
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.5, margin: "0 0 22px" }}>Tag {firstName} bij je volgende check-in onder "Met wie drink je?", dan verschijnt hij hier.</p>
+      )}
+
+      {together.both.length > 0 && (
+        <>
+          {label("Allebei geproefd")}
+          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 14, marginBottom: 22 }}>
+            {together.both.map(b => (
+              <div key={b.key} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 14, marginBottom: 8 }}>
+                  <span style={{ fontWeight: 700, color: INK }}>{b.name}</span>
+                  <span style={{ color: MUTED, fontSize: 12.5, textAlign: "right" }}>{b.note}</span>
                 </div>
-              </div>
-
-              {insights.hasTaste && (
-                <div style={{ marginBottom: 24 }}>
-                  <SectionLabel>Smaakprofiel</SectionLabel>
-                  <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 16 }}>
-                    {insights.taste.map(t => (
-                      <div key={t.key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 13 }}>
-                        <span style={{ fontSize: 15, width: 18, textAlign: "center", flexShrink: 0 }}>{t.emoji}</span>
-                        <span style={{ fontSize: 12, color: INK, width: 50, flexShrink: 0 }}>{t.label}</span>
-                        <div style={{ flex: 1, height: 7, borderRadius: 4, background: BORDER, overflow: "hidden" }}>
-                          <div style={{ height: "100%", borderRadius: 4, background: BRASS, width: `${t.pct}%` }} />
-                        </div>
-                        <span style={{ fontSize: 11, color: MUTED, fontWeight: 700, width: 32, textAlign: "right", flexShrink: 0 }}>{t.pct}%</span>
-                      </div>
-                    ))}
-                    {insights.personality && (
-                      <div style={{ marginTop: 6, padding: 14, borderRadius: 10, background: "rgba(184,134,46,0.12)", border: "1px solid rgba(184,134,46,0.25)" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                          <span style={{ fontSize: 22 }}>{insights.personality.emoji}</span>
-                          <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: "#8F6A21" }}>{insights.personality.title}</span>
-                        </div>
-                        <p style={{ margin: "8px 0 0", fontSize: 12, color: "#5C5548", fontStyle: "italic", lineHeight: 1.5 }}>"{insights.personality.text}"</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ marginBottom: 24 }}>
-                <SectionLabel>Prestaties</SectionLabel>
-                <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
-                  {insights.achievements.map(a => (
-                    <div key={a.id} title={a.text} style={{ width: 72, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7 }}>
-                      <div style={{
-                        position: "relative", width: 58, height: 58, borderRadius: "50%",
-                        background: a.unlocked ? BOTTLE_DARK : PAPER_DEEP,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: a.unlocked ? SHADOW_CARD : "none",
-                        border: a.unlocked ? `2px solid ${BRASS}` : `1.5px dashed ${BORDER}`,
-                      }}>
-                        <span style={{ fontSize: 23, opacity: a.unlocked ? 1 : 0.4, filter: a.unlocked ? "none" : "grayscale(1)" }}>{a.emoji}</span>
-                        {!a.unlocked && (
-                          <div style={{ position: "absolute", bottom: -2, right: -2, width: 19, height: 19, borderRadius: "50%", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <Lock size={9} color={MUTED} strokeWidth={2.6} />
-                          </div>
-                        )}
-                      </div>
-                      <span style={{ fontSize: 10, textAlign: "center", lineHeight: 1.25, color: a.unlocked ? "#5C5548" : "#ABA18F", fontWeight: 600 }}>{a.label}</span>
-                    </div>
+                <div style={{ position: "relative", height: 6, borderRadius: 3, background: PAPER_DEEP, margin: "0 7px" }}>
+                  {[[b.me, BOTTLE], [b.her, BRASS]].map(([v, c], i) => (
+                    <span key={i} style={{ position: "absolute", top: "50%", left: `${((v - 1) / 4) * 100}%`, width: 14, height: 14, borderRadius: "50%", border: `2px solid ${CREAM}`, boxSizing: "border-box", transform: "translate(-50%, -50%)", background: c }} />
                   ))}
                 </div>
               </div>
+            ))}
+            <div style={{ display: "flex", gap: 16, fontSize: 12, color: MUTED }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: BOTTLE }} />Jij</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: BRASS }} />{firstName}</span>
+            </div>
+          </div>
+        </>
+      )}
 
-              {(insights.favoriteCocktail || insights.favoriteFamilyEntry || insights.favoriteSpiritEntry) && (
-                <div style={{ marginBottom: 24 }}>
-                  <SectionLabel>Favorieten</SectionLabel>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 11 }}>
-                    {insights.favoriteCocktail && (
-                      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 13, position: "relative", overflow: "hidden" }}>
-                        <div style={{ position: "absolute", top: -18, right: -18, width: 62, height: 62, borderRadius: "50%", background: "rgba(122,46,42,0.14)" }} />
-                        <div style={{ width: 32, height: 32, borderRadius: 9, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, position: "relative" }}>❤️</div>
-                        <div style={{ marginTop: 9, fontSize: 9.5, letterSpacing: 0.4, textTransform: "uppercase", color: MUTED, position: "relative" }}>Favoriete cocktail</div>
-                        <div style={{ marginTop: 2, fontFamily: serif, fontWeight: 700, fontSize: 13.5, color: INK, position: "relative", lineHeight: 1.25 }}>{insights.favoriteCocktail.name}</div>
-                      </div>
-                    )}
-                    {insights.favoriteFamilyEntry && (
-                      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 13, position: "relative", overflow: "hidden" }}>
-                        <div style={{ position: "absolute", top: -18, right: -18, width: 62, height: 62, borderRadius: "50%", background: "rgba(184,134,46,0.16)" }} />
-                        <div style={{ width: 32, height: 32, borderRadius: 9, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, position: "relative" }}>🍸</div>
-                        <div style={{ marginTop: 9, fontSize: 9.5, letterSpacing: 0.4, textTransform: "uppercase", color: MUTED, position: "relative" }}>Favoriete stijl</div>
-                        <div style={{ marginTop: 2, fontFamily: systemFont, fontWeight: 700, fontSize: 13.5, color: INK, position: "relative", lineHeight: 1.25 }}>{insights.favoriteFamilyEntry[0]}</div>
-                      </div>
-                    )}
-                    {insights.favoriteSpiritEntry && (
-                      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 13, position: "relative", overflow: "hidden" }}>
-                        <div style={{ position: "absolute", top: -18, right: -18, width: 62, height: 62, borderRadius: "50%", background: "rgba(138,129,113,0.16)" }} />
-                        <div style={{ width: 32, height: 32, borderRadius: 9, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, position: "relative" }}>🥃</div>
-                        <div style={{ marginTop: 9, fontSize: 9.5, letterSpacing: 0.4, textTransform: "uppercase", color: MUTED, position: "relative" }}>Favoriete drank</div>
-                        <div style={{ marginTop: 2, fontFamily: systemFont, fontWeight: 700, fontSize: 13.5, color: INK, position: "relative", lineHeight: 1.25 }}>{insights.favoriteSpiritEntry[0]}</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+      {together.tryOne && (
+        <>
+          {label(`Probeer wat ${firstName} lekker vindt`)}
+          <div style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
+            <RecipeCircle recipe={together.tryOne.recipe} allIngredients={allIngredients} size={56} radius={12} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontFamily: serif, fontSize: 17, fontWeight: 700 }}>{together.tryOne.recipe.name}</span>
+              <span style={{ display: "block", fontSize: 12.5, color: "#C9D2CB", marginTop: 2 }}>{firstName} gaf een {formatRating(together.tryOne.entry.rating)} · jij hebt hem nog niet gehad</span>
+            </span>
+            {onOpenRecipe && (
+              <button onClick={() => { onClose(); onOpenRecipe(together.tryOne.recipe.id); }} style={{ minHeight: 44, background: "none", border: "none", color: "#DDB877", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>Recept</button>
+            )}
+          </div>
+        </>
+      )}
+    </>
+  );
 
-              <SectionLabel>Recente check-ins</SectionLabel>
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden" }}>
-                {logboek.slice(0, 8).map((e, i) => {
-                  const matched = e.recipeId ? recipes.find(r => r.id === e.recipeId) : recipes.find(r => r.name.toLowerCase() === e.name.toLowerCase());
-                  return (
-                  <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i < Math.min(8, logboek.length) - 1 ? `1px solid ${BORDER}` : "none" }}>
-                    {matched ? <RecipeCircle recipe={matched} allIngredients={allIngredients} size={36} /> : (
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <NotebookPen size={15} color={MUTED} />
-                      </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 14, color: INK }}>{e.name}</div>
-                      <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{e.date} · {e.location}</div>
-                    </div>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3, color: BRASS, fontWeight: 700, fontSize: 12, flexShrink: 0 }}><Star size={11} fill={BRASS} /> {formatRating(e.rating)}</span>
-                  </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+  const showSamenStrip = together && (together.events.length > 0 || together.both.length > 0 || together.tryOne);
+  const lastEvent = together?.events[0];
+
+  const profielView = (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+        <CourseRing name={name} photo={friendProfile?.avatar_url} size={84} partsDone={friendRank.partsDone} master={friendRank.master} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+          {friendRank.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={friendRank} chip /></div>}
+          {insights && <div style={{ fontSize: 14, fontWeight: 600, color: BRASS, marginTop: 2 }}>Niveau {insights.level.level} · {insights.level.title}</div>}
         </div>
       </div>
+
+      {stats && (
+        <div style={{ display: "flex", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 0", marginBottom: 12 }}>
+          {[
+            { value: stats.total, label: "check-ins" },
+            { value: stats.uniques, label: "uniek" },
+            { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill={BRASS} color={BRASS} /></span>, label: "gemiddeld" },
+          ].map((c, i) => (
+            <div key={c.label} style={{ flex: 1, textAlign: "center", borderLeft: i === 0 ? "none" : `1px solid ${BORDER}` }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: INK }}>{c.value}</div>
+              <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{c.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showSamenStrip && (
+        <button onClick={() => setView("samen")} className="press-scale" style={{
+          display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 14px", boxSizing: "border-box", borderRadius: 16,
+          background: BOTTLE_DARK, color: CREAM, border: "none", cursor: "pointer", textAlign: "left", fontFamily: sans, marginBottom: 18,
+        }}>
+          {pairAvatars(34, BOTTLE_DARK)}
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>
+              {together.events.length > 0 ? `${together.events.length} keer samen gedronken` : together.both.length > 0 ? `${together.both.length} cocktail${together.both.length === 1 ? "" : "s"} allebei geproefd` : "Jij en " + firstName}
+            </span>
+            <span style={{ display: "block", fontSize: 12.5, color: "#C9D2CB", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {lastEvent ? `Laatst: ${lastEvent.name} · ${shortDate(lastEvent.date)}` : `Bekijk wat jullie delen`}
+            </span>
+          </span>
+          <ChevronRight size={16} color="#DDB877" />
+        </button>
+      )}
+
+      <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12, marginBottom: 16 }}>
+        {[["checkins", "Check-ins"], ["smaak", "Smaak"], ["prestaties", "Prestaties"]].map(([id, lbl]) => (
+          <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} style={{
+            flex: 1, height: 34, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 600,
+            background: tab === id ? CREAM : "transparent", color: tab === id ? INK : MUTED,
+            boxShadow: tab === id ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
+          }}>{lbl}</button>
+        ))}
+      </div>
+
+      {!logboek ? (
+        <p style={{ color: MUTED, fontSize: 13.5, textAlign: "center", padding: "40px 0" }}>Bezig met laden…</p>
+      ) : tab === "checkins" ? (
+        logboek.length === 0 ? (
+          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "26px 20px", textAlign: "center", fontSize: 14, color: MUTED }}>{firstName} heeft nog niets ingecheckt.</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginLeft: -20, marginRight: -20 }}>
+            {logboek.map(entry => {
+              const matched = findMatch(entry);
+              const recipeImg = matched && (localItemImageUrl("cocktail", matched.id) || matched.image);
+              const src = entry.photo || recipeImg;
+              return (
+                <button key={entry.id} onClick={() => setPhotoViewer({ entry, matched })} aria-label={`${entry.name}, ${formatRating(entry.rating)} sterren`} style={{
+                  position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", padding: 0, cursor: "pointer", background: PAPER_DEEP,
+                }}>
+                  {src ? (
+                    <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
+                  ) : matched ? (
+                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <RecipeCircle recipe={matched} allIngredients={allIngredients} size={96} radius={12} />
+                    </div>
+                  ) : (
+                    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: 8, boxSizing: "border-box" }}>
+                      <Martini size={28} color={BRASS} strokeWidth={1.4} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: INK, textAlign: "center", lineHeight: 1.2 }}>{entry.name}</span>
+                    </div>
+                  )}
+                  <div className="glass-chip-dark" style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, borderRadius: 100, padding: "2px 7px" }}>
+                    <span style={{ fontSize: 12, color: CREAM, fontWeight: 700 }}>{formatRating(entry.rating)}</span>
+                    <Star size={10} fill="#D8AE5E" color="#D8AE5E" />
+                  </div>
+                  {withMeIds.has(String(entry.id)) && (
+                    <span title="Samen met jou" style={{ position: "absolute", right: 6, top: 6, borderRadius: "50%", boxShadow: `0 0 0 1.5px ${CREAM}` }}>
+                      <Avatar name={myProfile?.name || "Jij"} photo={myProfile?.avatar_url} size={22} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )
+      ) : tab === "smaak" ? (
+        <>
+          <div style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 18, padding: "18px 18px 14px", boxShadow: SHADOW_HERO, borderBottom: `3px solid ${BRASS}`, marginBottom: 22 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, color: "#DDB877", marginBottom: 6 }}>Smaakprofiel van {firstName}</div>
+            {insights?.personality && (
+              <>
+                <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 25, lineHeight: 1.15 }}>{insights.personality.title.charAt(0) + insights.personality.title.slice(1).toLowerCase()}</div>
+              </>
+            )}
+            {insights?.hasTaste && logboek.length >= 3 ? (
+              <>
+                <div style={{ marginTop: 6 }}><TasteRadar taste={insights.taste} compare={myInsights?.hasTaste ? myInsights.taste : null} /></div>
+                {myInsights?.hasTaste && (
+                  <div style={{ display: "flex", justifyContent: "center", gap: 16, fontSize: 12, color: "#C9D2CB" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 3, background: "#DDB877", borderRadius: 2 }} />{firstName}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, borderTop: "2px dashed #C9D2CB" }} />Jij</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ marginTop: 12, padding: "14px 12px", borderRadius: 12, background: "rgba(251,246,234,0.08)", fontSize: 14, textAlign: "center" }}>
+                {firstName} heeft nog te weinig ingecheckt voor een smaakprofiel
+              </div>
+            )}
+          </div>
+          {insights && <TasteDetails insights={insights} logboek={logboek} recipes={recipes} allIngredients={allIngredients} />}
+        </>
+      ) : (
+        <>
+          {friendProfile?.course_completed_at && (
+            <CourseDiploma date={friendProfile.course_completed_at} scorePct={friendProfile.course_exam_score} isOwn={false} />
+          )}
+          <CourseProgressCard courseRank={friendRank} firstName={firstName} />
+          {insights && (() => {
+            const achieved = insights.achievements.filter(a => a.unlocked).length;
+            const active = insights.achievements.find(a => a.id === activeAchievementId) || null;
+            return (
+              <>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 10 }}>
+                  <SectionLabel>Badges</SectionLabel>
+                  <span style={{ fontSize: 13, color: MUTED }}>{achieved} van {insights.achievements.length} behaald</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
+                  {insights.achievements.map(a => {
+                    const AchIcon = a.icon;
+                    const selected = activeAchievementId === a.id;
+                    return (
+                      <button key={a.id} onClick={() => setActiveAchievementId(selected ? null : a.id)} aria-pressed={selected} style={{
+                        background: CREAM, border: `1px solid ${selected ? BRASS : BORDER}`, borderRadius: 16, padding: "14px 8px 12px", cursor: "pointer",
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 7, fontFamily: sans, minWidth: 0,
+                      }}>
+                        <div style={{ width: 50, height: 50, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: a.unlocked ? BOTTLE_DARK : PAPER_DEEP, border: a.unlocked ? `2px solid ${BRASS}` : "none" }}>
+                          <AchIcon size={21} strokeWidth={1.8} color={a.unlocked ? "#DDB877" : MUTED} />
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: INK, textAlign: "center", lineHeight: 1.2 }}>{a.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: a.unlocked ? SAGE : MUTED }}>{a.unlocked ? "Behaald" : "Nog niet"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {active && (
+                  <div className="accordion-reveal" style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 14px" }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: INK }}>{active.label}</div>
+                    <div style={{ fontSize: 13, color: MUTED, marginTop: 1 }}>{active.text}</div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </>
+      )}
+    </>
+  );
+
+  return createPortal((
+    <div ref={scrollRef} className="push-slide-in" style={{
+      position: "fixed", inset: 0, zIndex: 30, background: PAPER, overflowY: "auto", overscrollBehavior: "contain",
+      WebkitOverflowScrolling: "touch", fontFamily: sans, color: INK,
+    }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 8px) 20px calc(env(safe-area-inset-bottom) + 36px)", overflowX: "hidden" }}>
+        <EdgeSwipeBackArea onBack={view === "samen" ? () => setView("profiel") : onClose}>
+          {header}
+          {view === "samen" ? samenView : profielView}
+        </EdgeSwipeBackArea>
+      </div>
+      {photoViewer && <CheckinPhotoViewer entry={photoViewer.entry} matched={photoViewer.matched} who={name} whoAvatar={friendProfile?.avatar_url} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)} />}
+      {confirmBlock && (
+        <ConfirmDialog title={`${firstName} blokkeren?`}
+          message={`Jullie zijn dan geen vrienden meer en ${firstName} kan je niet meer vinden of je check-ins zien.`}
+          confirmLabel={blocking ? "Bezig…" : "Blokkeer"} busy={blocking}
+          onCancel={() => setConfirmBlock(false)} onConfirm={blockUser} />
+      )}
     </div>
   ), document.body);
 }
@@ -12819,7 +13235,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
 // (twee kanten: requester/addressee, status pending/accepted), de feed leest
 // gewoon uit dezelfde `checkins`-tabel als je eigen logboek — RLS zorgt dat je
 // alléén rijen van geaccepteerde vrienden binnenkrijgt, niet van iedereen.
-function VriendenTab({ session, profile, recipes, allIngredients, onSound, active }) {
+function VriendenTab({ session, profile, recipes, allIngredients, onSound, active, myLogboek = [], onOpenRecipe }) {
   const myId = session.user.id;
   const [friendships, setFriendships] = useState([]);
   const [profilesById, setProfilesById] = useState({});
@@ -13003,6 +13419,9 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
           recipes={recipes}
           allIngredients={allIngredients}
           session={session}
+          myLogboek={myLogboek}
+          myProfile={profile}
+          onOpenRecipe={onOpenRecipe}
           onBlocked={() => { setOpenFriendId(null); loadFriendships(); }}
           onClose={() => setOpenFriendId(null)}
         />
