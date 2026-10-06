@@ -7904,6 +7904,17 @@ function PracticeLessonBody({ lesson, recipes, allIngredients, onOpenRecipe, onC
         ))}
       </div>
 
+      {lesson.demos?.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
+          {lesson.demos.map(t => (
+            <div key={t} style={{ maxWidth: 340 }}>
+              <TechniqueAnimation technique={t} />
+              <div style={{ fontSize: 13, fontWeight: 700, color: MUTED, textAlign: "center", marginTop: 6 }}>{{ shaken: "Shaken", stirred: "Roeren", muddle: "Muddelen" }[t] || t}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ padding: "14px 16px", borderRadius: 14, background: PAPER_DEEP, marginBottom: 24 }}>
         {label("Veelgemaakte fout", BURGUNDY)}
         <p style={{ fontSize: 14.5, lineHeight: 1.55, margin: 0, color: INK }}>{lesson.mistake}</p>
