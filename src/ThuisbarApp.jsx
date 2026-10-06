@@ -2443,13 +2443,36 @@ export default function ThuisbarApp() {
   // diploma ook zien. Faalt stil als de kolommen (migratie) nog ontbreken;
   // je eigen profiel toont het diploma dan toch, op basis van lokale voortgang.
   const courseMastery = useMemo(() => computeCourseMastery(courseProgress), [courseProgress]);
+  // Rang + afgeronde delen naar je profiel, zodat vrienden je ring en rang
+  // zien. Alleen omhoog: op een nieuw toestel (lege lokale voortgang) blijft
+  // je opgeslagen rang staan. Bij een nieuwe rang vanaf Barback komt er een
+  // moment in de feed. Zonder de migratie valt het terug op alleen het diploma.
+  const localCourseRank = useMemo(() => computeCourseRank(courseProgress), [courseProgress]);
+  const courseRank = useMemo(() => mergeCourseRank(localCourseRank, profileCourseRank(profile)), [localCourseRank, profile]);
   useEffect(() => {
-    if (!session || !profile || !courseMastery || profile.course_completed_at) return;
-    supabase.from("profiles")
-      .update({ course_completed_at: new Date().toISOString(), course_exam_score: courseMastery.scorePct })
-      .eq("id", session.user.id).select().single()
-      .then(({ data, error }) => { if (!error && data) setProfile(data); });
-  }, [session, profile, courseMastery]);
+    if (!session || !profile) return;
+    const diploma = courseMastery && !profile.course_completed_at
+      ? { course_completed_at: new Date().toISOString(), course_exam_score: courseMastery.scorePct } : {};
+    const rankUpdate = {};
+    const storedIndex = COURSE_RANKS.findIndex(r => r.id === profile.course_rank);
+    if (localCourseRank.index > storedIndex) rankUpdate.course_rank = localCourseRank.rank.id;
+    if (localCourseRank.partsDone > (profile.course_parts_done || 0)) rankUpdate.course_parts_done = localCourseRank.partsDone;
+    if (Object.keys(diploma).length === 0 && Object.keys(rankUpdate).length === 0) return;
+    const prevIndex = profileCourseRank(profile).index;
+    let cancelled = false;
+    (async () => {
+      let { data, error } = await supabase.from("profiles").update({ ...diploma, ...rankUpdate }).eq("id", session.user.id).select().single();
+      if (error && Object.keys(diploma).length > 0) {
+        ({ data, error } = await supabase.from("profiles").update(diploma).eq("id", session.user.id).select().single());
+      }
+      if (cancelled || error || !data) return;
+      setProfile(data);
+      if (localCourseRank.index > prevIndex && localCourseRank.index >= 1) {
+        await supabase.from("course_milestones").insert({ user_id: session.user.id, rank: localCourseRank.rank.id, parts_done: localCourseRank.partsDone });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session, profile, courseMastery, localCourseRank]);
   const courseDiploma = profile?.course_completed_at
     ? { date: profile.course_completed_at, scorePct: profile.course_exam_score ?? courseMastery?.scorePct }
     : (courseMastery ? { date: null, scorePct: courseMastery.scorePct } : null);
@@ -2769,7 +2792,7 @@ export default function ThuisbarApp() {
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             logboek={logboek} recipes={allRecipes} allIngredients={allIngredients} active={tab === "home"}
             onOpenRecipe={openRecipeDetail} onOpenCheckin={openCheckin} onSound={chime}
-            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} />
+            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} />
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
@@ -2801,7 +2824,7 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
           <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
-            onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress}
+            onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress} courseRank={courseRank}
             onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} />
         </TabPanel>
 
@@ -3357,6 +3380,7 @@ function useFriendsFeed(session, active) {
   const myId = session?.user?.id;
   const [friendProfiles, setFriendProfiles] = useState({});
   const [feed, setFeed] = useState([]);
+  const [milestones, setMilestones] = useState([]);
   // Bumpt de effect-dependency zodat reload() dezelfde fetch opnieuw
   // triggert zonder active zelf aan/uit te hoeven zetten — nodig voor
   // "verversen terwijl je al op Home staat" (active wisselt dan niet vanzelf).
@@ -3371,6 +3395,16 @@ function useFriendsFeed(session, active) {
         if (cancelled) return;
         const rows = data || [];
         const friendIds = [...new Set(rows.map(f => (f.requester_id === myId ? f.addressee_id : f.requester_id)))];
+        // Cursusmomenten (nieuwe rang, diploma) van jezelf en je vrienden.
+        // Faalt stil zolang de migratie er nog niet is.
+        supabase.from("course_milestones").select("*").in("user_id", [myId, ...friendIds]).order("created_at", { ascending: false }).limit(20)
+          .then(({ data: ms, error }) => {
+            if (cancelled) return;
+            setMilestones(error ? [] : (ms || []).map(m => ({
+              kind: "rank", id: m.id, createdAt: m.created_at, date: (m.created_at || "").slice(0, 10),
+              rankId: m.rank, partsDone: m.parts_done, mine: m.user_id === myId, friendId: m.user_id === myId ? null : m.user_id,
+            })));
+          });
         if (friendIds.length === 0) { setFeed([]); setFriendProfiles({}); return; }
         const { data: profs } = await supabase.from("profiles").select("*").in("id", friendIds);
         if (cancelled) return;
@@ -3384,7 +3418,7 @@ function useFriendsFeed(session, active) {
     return () => { cancelled = true; };
   }, [myId, active, reloadTick]);
 
-  return { feed, friendProfiles, reload };
+  return { feed, milestones, friendProfiles, reload };
 }
 
 // Zelfde reacties/reacties-tellers als VriendenTab (checkin_reactions /
@@ -3487,16 +3521,46 @@ function usePullToRefresh(onRefresh) {
   return { indicatorRef, refreshing, handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: onTouchEnd } };
 }
 
-function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active }) {
+function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank }) {
   const [photoViewer, setPhotoViewer] = useState(null);
   const myId = session?.user?.id;
-  const { feed: friendFeed, friendProfiles, reload: reloadFriendFeed } = useFriendsFeed(session, active);
+  const { feed: friendFeed, milestones, friendProfiles, reload: reloadFriendFeed } = useFriendsFeed(session, active);
   const combinedFeed = useMemo(() => {
     const mine = logboek.map(e => ({ ...e, mine: true }));
     const theirs = friendFeed.map(e => ({ ...e, mine: false }));
-    return [...mine, ...theirs].sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()).slice(0, 20);
-  }, [logboek, friendFeed]);
-  const feedIds = useMemo(() => combinedFeed.map(e => e.id), [combinedFeed]);
+    return [...mine, ...theirs, ...milestones].sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()).slice(0, 20);
+  }, [logboek, friendFeed, milestones]);
+  const feedIds = useMemo(() => combinedFeed.filter(e => e.kind !== "rank").map(e => e.id), [combinedFeed]);
+  const milestoneIds = useMemo(() => combinedFeed.filter(e => e.kind === "rank").map(e => e.id), [combinedFeed]);
+  const [rankCheers, setRankCheers] = useState({});
+  const milestoneKey = milestoneIds.join(",");
+  useEffect(() => {
+    if (!active || !myId || milestoneIds.length === 0) { setRankCheers({}); return; }
+    let cancelled = false;
+    supabase.from("course_milestone_reactions").select("milestone_id, user_id").in("milestone_id", milestoneIds).then(({ data }) => {
+      if (cancelled) return;
+      const map = {};
+      (data || []).forEach(r => {
+        if (!map[r.milestone_id]) map[r.milestone_id] = { count: 0, mine: false };
+        map[r.milestone_id].count += 1;
+        if (r.user_id === myId) map[r.milestone_id].mine = true;
+      });
+      setRankCheers(map);
+    });
+    return () => { cancelled = true; };
+  }, [myId, milestoneKey, active]); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggleRankCheer = async (milestoneId) => {
+    if (!myId) return;
+    const current = rankCheers[milestoneId] || { count: 0, mine: false };
+    onSound(current.mine ? "remove" : "pop");
+    setRankCheers(r => ({ ...r, [milestoneId]: { count: current.count + (current.mine ? -1 : 1), mine: !current.mine } }));
+    if (current.mine) {
+      await supabase.from("course_milestone_reactions").delete().eq("milestone_id", milestoneId).eq("user_id", myId);
+    } else {
+      await supabase.from("course_milestone_reactions").insert({ milestone_id: milestoneId, user_id: myId });
+    }
+  };
+  const rankOf = (entry) => entry.mine ? courseRank : profileCourseRank(friendProfiles[entry.friendId]);
   const handleRefresh = async () => {
     onSound("pop");
     await Promise.all([onReloadLogboek(), Promise.resolve(reloadFriendFeed())]);
@@ -3627,6 +3691,51 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {combinedFeed.map(entry => {
+            if (entry.kind === "rank") {
+              const who = entry.mine ? (profile?.name || "Jij") : (friendProfiles[entry.friendId]?.name || "Vriend");
+              const whoAvatar = entry.mine ? profile?.avatar_url : friendProfiles[entry.friendId]?.avatar_url;
+              const rankDef = COURSE_RANKS.find(r => r.id === entry.rankId);
+              if (!rankDef) return null;
+              const isMaster = entry.rankId === "meester";
+              const lastPart = COURSE_PARTS[Math.max(0, Math.min(COURSE_PART_COUNT, entry.partsDone) - 1)];
+              const cheer = rankCheers[entry.id] || { count: 0, mine: false };
+              return (
+                <div key={`r-${entry.id}`} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 18, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px 10px" }}>
+                    <CourseRing name={who} photo={whoAvatar} size={38} partsDone={isMaster ? COURSE_PART_COUNT : entry.partsDone} master={isMaster} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, color: INK }}>
+                        {entry.mine ? <strong>{who}</strong> : (
+                          <button onClick={() => setOpenFriendId(entry.friendId)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, fontSize: 13.5, color: INK }}>{who}</button>
+                        )}{isMaster ? " heeft het diploma gehaald" : <> is nu <strong>{rankDef.name}</strong></>}
+                      </div>
+                      <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>Cursus · {entry.date}</div>
+                    </div>
+                  </div>
+                  <div style={{ margin: "0 14px 12px", padding: 18, borderRadius: 14, background: BOTTLE_DARK, color: CREAM, display: "flex", alignItems: "center", gap: 16 }}>
+                    <span style={{ width: 56, height: 56, borderRadius: "50%", border: `2px solid ${BRASS}`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", color: "#DDB877", flexShrink: 0, background: isMaster ? "rgba(184,134,46,0.18)" : "none" }}>
+                      {isMaster ? <GraduationCap size={26} strokeWidth={1.7} /> : <Martini size={26} strokeWidth={1.7} />}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#DDB877" }}>{isMaster ? "Diploma" : "Nieuwe rang"}</div>
+                      <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, marginTop: 2 }}>{isMaster ? "Meester" : rankDef.name}</div>
+                      <div style={{ fontSize: 12.5, color: "#C9D2CB", marginTop: 3 }}>
+                        {isMaster ? "Alle 6 delen en de eindtoets gehaald" : `${lastPart ? `${lastPart.title} afgerond · ` : ""}${entry.partsDone} van ${COURSE_PART_COUNT} delen`}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px 12px" }}>
+                    <button onClick={() => toggleRankCheer(entry.id)} className="press-scale" style={{
+                      display: "flex", alignItems: "center", gap: 6, border: `1px solid ${cheer.mine ? BRASS : BORDER}`, cursor: "pointer",
+                      background: cheer.mine ? "rgba(184,134,46,0.1)" : "none", color: cheer.mine ? BRASS : MUTED,
+                      borderRadius: 100, padding: "7px 12px", fontSize: 12, fontWeight: 700,
+                    }}>
+                      <Wine size={13} /> {cheer.count > 0 ? cheer.count : ""} Proost
+                    </button>
+                  </div>
+                </div>
+              );
+            }
             const matched = findMatch(entry);
             const tint = matched ? recipeTint(matched, allIngredients) : [PAPER_DEEP, BORDER];
             const who = entry.mine ? (profile?.name || "Jij") : (friendProfiles[entry.friendId]?.name || "Vriend");
@@ -3637,7 +3746,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             return (
               <div key={key} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 18, overflow: "hidden", boxShadow: SHADOW_CARD }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px 10px" }}>
-                  <Avatar name={who} photo={whoAvatar} size={34} />
+                  <RankAvatar name={who} photo={whoAvatar} size={38} courseRank={rankOf(entry)} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {entry.mine ? (
                       <span style={{ fontWeight: 700, fontSize: 13.5, color: INK }}>{who}</span>
@@ -3646,6 +3755,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                         {who}
                       </button>
                     )}
+                    {rankOf(entry)?.rank && <span style={{ marginLeft: 6 }}><CourseRankLabel courseRank={rankOf(entry)} /></span>}
                     <div style={{ fontSize: 11, color: MUTED, marginTop: 1, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                       <MapPin size={11} style={{ flexShrink: 0 }} /> {entry.location} · {entry.date}
                     </div>
@@ -3690,7 +3800,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                       background: cheer.mine ? "rgba(184,134,46,0.1)" : "none", color: cheer.mine ? BRASS : MUTED,
                       borderRadius: 100, padding: "7px 12px", fontSize: 12, fontWeight: 700,
                     }}>
-                      🥂 {cheer.count > 0 ? cheer.count : ""} Proost
+                      <Wine size={13} /> {cheer.count > 0 ? cheer.count : ""} Proost
                     </button>
                     <button onClick={() => toggleComments(entry.id)} className="press-scale" style={{
                       display: "flex", alignItems: "center", gap: 6, border: `1px solid ${openComments === entry.id ? BOTTLE : BORDER}`, cursor: "pointer",
@@ -7367,13 +7477,26 @@ function FinalExamView({ progress, onBack, onComplete }) {
   );
 }
 
+// Leestijd van een les, op ~200 woorden per minuut.
+function lessonMinutes(lesson) {
+  const text = [lesson.intro, ...(lesson.blocks || []).map(b => [b.text, b.label, ...(b.rows || []).flat()].filter(Boolean).join(" ")), ...(lesson.takeaways || [])].join(" ");
+  return Math.max(2, Math.round(text.split(/\s+/).length / 200));
+}
+
 function CursusTab({ progress, setProgress, onSound }) {
   const [selectedId, setSelectedId] = useState(null);
   const [examOpen, setExamOpen] = useState(false);
   // Een les of toets openen begint bovenaan, niet halverwege de lessenlijst.
   useEffect(() => { window.scrollTo(0, 0); }, [selectedId, examOpen]);
   const [activeBadgeId, setActiveBadgeId] = useState(null);
+  const [expandedParts, setExpandedParts] = useState({});
   const lesson = COURSE_LESSONS.find(l => l.id === selectedId) || null;
+  const rank = useMemo(() => computeCourseRank(progress), [progress]);
+  // Een les openen = gestart (rang Leerling), ook als de toets nog niet af is.
+  const openLesson = (id) => {
+    if (!progress._gestart) setProgress({ ...progress, _gestart: true });
+    setSelectedId(id);
+  };
   const totalLessons = COURSE_LESSONS.length;
   const completedCount = COURSE_LESSONS.filter(l => progress[l.id]?.completed).length;
   const allLessonsDone = completedCount === totalLessons;
@@ -7420,12 +7543,32 @@ function CursusTab({ progress, setProgress, onSound }) {
     setTimeout(() => setJustCompleted(false), 3000);
   };
 
-  const diplomaCelebration = showDiplomaCelebration && (
-    <ConfirmDialog title="🎓 Gefeliciteerd, je bent gediplomeerd!"
-      message={`Je hebt alle ${totalLessons} lessen en de eindtoets gehaald. Je diploma "Gediplomeerd thuisbartender" staat nu op je profiel, en je vrienden zien het ook.`}
-      confirmLabel="Proost!" confirmColor={BOTTLE} cancelLabel="Sluiten"
+  // Nieuwe rang (Barback t/m Bartender): één keer vieren. Meester heeft
+  // het diploma-moment hieronder.
+  const prevRankRef = useRef(rank.index);
+  const [rankCelebration, setRankCelebration] = useState(null);
+  useEffect(() => {
+    if (rank.index > prevRankRef.current && rank.index >= 1 && !rank.master) {
+      setRankCelebration(rank.rank);
+      setTimeout(() => onSound("levelup"), 300);
+    }
+    prevRankRef.current = rank.index;
+  }, [rank.index]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const diplomaCelebration = (<>
+    {rankCelebration && (
+      <ConfirmDialog title={`Je bent nu ${rankCelebration.name}`}
+        message={`${rankCelebration.rule}. Je ring op je profiel is voller geworden, en je vrienden zien je nieuwe rang in hun feed.`}
+        confirmLabel="Proost" confirmColor={BOTTLE} cancelLabel="Sluiten"
+        onCancel={() => setRankCelebration(null)} onConfirm={() => setRankCelebration(null)} />
+    )}
+    {showDiplomaCelebration && (
+    <ConfirmDialog title="Gefeliciteerd, je bent Meester"
+      message={`Je hebt alle ${totalLessons} lessen en de eindtoets gehaald. Je ring is nu massief goud, je diploma staat op je profiel en je vrienden zien het in hun feed.`}
+      confirmLabel="Proost" confirmColor={BOTTLE} cancelLabel="Sluiten"
       onCancel={() => setShowDiplomaCelebration(false)} onConfirm={() => setShowDiplomaCelebration(false)} />
-  );
+    )}
+  </>);
 
   if (examOpen) {
     return (<>
@@ -7445,129 +7588,142 @@ function CursusTab({ progress, setProgress, onSound }) {
         onBack={() => setSelectedId(null)}
         onComplete={(score, total) => complete(lesson.id, score, total)}
         nextLesson={nextLesson}
-        onGoToLesson={(id) => { if (isLessonOpen(COURSE_LESSONS.find(l => l.id === id))) setSelectedId(id); }}
+        onGoToLesson={(id) => { if (isLessonOpen(COURSE_LESSONS.find(l => l.id === id))) openLesson(id); }}
         onGoToExam={() => { if (!allLessonsDone) return; setSelectedId(null); setExamOpen(true); }} />
     );
   }
 
+  const nextUp = COURSE_LESSONS.find(l => !progress[l.id]?.completed && isLessonOpen(l)) || null;
+  const currentPartId = nextUp?.part || null;
+  const isPartExpanded = (id) => (expandedParts[id] ?? id === currentPartId);
+  const activeBadge = courseInsights.badges.find(b => b.id === activeBadgeId) || null;
+
   return (
     <div>
-      <p style={{ color: MUTED, fontSize: 14, marginBottom: 20, maxWidth: 600, lineHeight: 1.55 }}>
-        Van basis tot pro in vierentwintig lessen: geschiedenis, ingrediënten, techniek, smaak, het vak van bartender en geavanceerde technieken.
-        Elke les sluit af met een korte toets om te checken of de kennis blijft hangen.
-      </p>
-
       <div style={{
-        marginBottom: 20, borderRadius: RADIUS + 4, padding: "18px 20px", position: "relative", overflow: "hidden",
-        background: `radial-gradient(ellipse 500px 220px at 15% -20%, #2A4B42, ${BOTTLE_DARK} 75%)`, boxShadow: SHADOW_HERO,
+        display: "flex", alignItems: "center", gap: 16, marginBottom: 14, borderRadius: RADIUS + 4, padding: 16,
+        background: `radial-gradient(ellipse 500px 220px at 15% -20%, #2A4B42, ${BOTTLE_DARK} 75%)`, boxShadow: SHADOW_HERO, color: CREAM,
       }}>
-        <div style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS, marginBottom: 4 }}>
-          Niveau {courseInsights.level.level}
-        </div>
-        <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: CREAM, marginBottom: 10 }}>
-          {courseInsights.level.title}
-        </div>
-        <div style={{ height: 8, background: "rgba(255,255,255,0.18)", borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ width: `${courseInsights.level.progress * 100}%`, height: "100%", background: `linear-gradient(90deg, ${BRASS}, #D8AF5C)`, transition: "width 0.6s ease" }} />
-        </div>
-        <div style={{ fontSize: 11, color: "#B9C4B9", marginTop: 6 }}>
-          {courseInsights.level.to ? `${courseInsights.xp} / ${courseInsights.level.to} XP` : `${courseInsights.xp} XP · hoogste niveau bereikt`}
+        <CourseRing size={72} partsDone={rank.partsDone} master={rank.master} dark seal={false}>
+          <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#2A4B42", display: "flex", alignItems: "center", justifyContent: "center", color: "#F1D9A6" }}>
+            {rank.master ? <GraduationCap size={24} strokeWidth={1.8} /> : <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16 }}>{rank.partsDone}/{COURSE_PART_COUNT}</span>}
+          </div>
+        </CourseRing>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#DDB877" }}>Jouw rang</div>
+          <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 22, marginTop: 2 }}>{rank.rank ? rank.rank.name : "Nog geen rang"}</div>
+          <div style={{ fontSize: 12.5, color: "#C9D2CB", marginTop: 3, lineHeight: 1.35 }}>
+            {rank.index < 0 ? "Start je eerste les en word Leerling" : courseRankHint(rank)}
+          </div>
+          <div style={{ height: 5, background: "rgba(255,255,255,0.15)", borderRadius: 3, overflow: "hidden", marginTop: 9 }}>
+            <div style={{ width: `${courseInsights.level.progress * 100}%`, height: "100%", background: BRASS, transition: "width 0.6s ease" }} />
+          </div>
+          <div style={{ fontSize: 11.5, color: "#C9D2CB", marginTop: 4 }}><AnimatedNumber value={courseInsights.xp} /> XP</div>
         </div>
       </div>
 
-      <div style={{ marginBottom: 24 }}>
+      {nextUp && (
+        <button onClick={() => openLesson(nextUp.id)} className="press-scale" style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 12, padding: 14, marginBottom: 18, boxSizing: "border-box", textAlign: "left",
+          background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, cursor: "pointer", fontFamily: sans, color: INK,
+        }}>
+          <LessonArt lesson={nextUp} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>
+              {completedCount === 0 ? "Eerste les" : "Volgende les"} · {lessonMinutes(nextUp)} min
+            </span>
+            <span style={{ display: "block", fontFamily: systemFont, fontSize: 16, fontWeight: 700, marginTop: 2 }}>{nextUp.title}</span>
+          </span>
+          <ChevronRight size={18} color={MUTED} style={{ flexShrink: 0 }} />
+        </button>
+      )}
+
+      <div style={{ marginBottom: 22 }}>
         <SectionLabel>Badges</SectionLabel>
         <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
-          {courseInsights.badges.map(b => (
-            <button key={b.id} onClick={() => setActiveBadgeId(b.id)} style={{
-              border: "none", background: "none", padding: 0, margin: 0, cursor: "pointer", width: 68, flexShrink: 0,
-              color: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-            }}>
-              <div style={{
-                position: "relative", width: 52, height: 52, borderRadius: "50%",
-                background: b.unlocked ? BOTTLE_DARK : PAPER_DEEP,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: b.unlocked ? SHADOW_CARD : "none",
-                border: b.unlocked ? `2px solid ${BRASS}` : `1.5px dashed ${BORDER}`,
+          {courseInsights.badges.map(b => {
+            const Icon = b.icon;
+            const selected = activeBadgeId === b.id;
+            return (
+              <button key={b.id} onClick={() => setActiveBadgeId(selected ? null : b.id)} aria-pressed={selected} style={{
+                border: "none", background: "none", padding: 0, margin: 0, cursor: "pointer", width: 78, flexShrink: 0,
+                color: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, fontFamily: sans,
               }}>
-                <span style={{ fontSize: 20, opacity: b.unlocked ? 1 : 0.4, filter: b.unlocked ? "none" : "grayscale(1)" }}>{b.emoji}</span>
-                {!b.unlocked && (
-                  <div style={{ position: "absolute", bottom: -2, right: -2, width: 17, height: 17, borderRadius: "50%", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Lock size={8} color={MUTED} strokeWidth={2.6} />
-                  </div>
-                )}
-              </div>
-              <span style={{ fontSize: 9.5, textAlign: "center", lineHeight: 1.2, color: b.unlocked ? "#5C5548" : "#ABA18F", fontWeight: 600 }}>{b.label}</span>
-            </button>
-          ))}
+                <span style={{
+                  width: 48, height: 48, borderRadius: "50%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
+                  background: b.unlocked ? BOTTLE_DARK : PAPER_DEEP, color: b.unlocked ? "#DDB877" : "#B8A98A",
+                  border: b.unlocked ? `${selected ? 2.5 : 1.5}px solid ${BRASS}` : `1.5px ${selected ? "solid" : "dashed"} ${selected ? BRASS : BORDER}`,
+                }}><Icon size={20} strokeWidth={1.8} /></span>
+                <span style={{ fontSize: 11, textAlign: "center", lineHeight: 1.2, color: b.unlocked ? INK : MUTED, fontWeight: 600 }}>{b.label}</span>
+              </button>
+            );
+          })}
         </div>
-        {(() => {
-          const activeBadge = courseInsights.badges.find(b => b.id === activeBadgeId) || courseInsights.badges.find(b => b.unlocked) || courseInsights.badges[0];
+        {activeBadge && (
+          <div className="accordion-reveal" style={{ marginTop: 10, padding: "11px 13px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: INK }}>{activeBadge.label}{activeBadge.unlocked ? "" : " · nog niet behaald"}</div>
+            <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{activeBadge.text}</div>
+          </div>
+        )}
+      </div>
+
+      <SectionLabel>Delen</SectionLabel>
+      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", marginBottom: 22 }}>
+        {COURSE_PARTS.map((part, partIndex) => {
+          const lessons = COURSE_LESSONS.filter(l => l.part === part.id);
+          const doneInPart = lessons.filter(l => progress[l.id]?.completed).length;
+          const full = doneInPart === lessons.length;
+          const partOpen = unlockedParts.has(part.id);
+          const prevPart = COURSE_PARTS[partIndex - 1];
+          const expanded = isPartExpanded(part.id);
           return (
-            <div style={{ marginTop: 12, padding: "11px 13px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 10, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 16 }}>{activeBadge.emoji}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: INK }}>{activeBadge.label}{!activeBadge.unlocked && " (nog niet ontgrendeld)"}</div>
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{activeBadge.text}</div>
-              </div>
+            <div key={part.id} style={{ borderTop: partIndex > 0 ? `1px solid ${BORDER}` : "none" }}>
+              <button onClick={() => setExpandedParts(e => ({ ...e, [part.id]: !expanded }))} aria-expanded={expanded} style={{
+                width: "100%", display: "flex", alignItems: "center", gap: 12, minHeight: 60, padding: "8px 14px", boxSizing: "border-box",
+                background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+              }}>
+                <span style={{
+                  width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                  background: full ? BRASS : PAPER_DEEP, color: full ? CREAM : MUTED, fontSize: 13, fontWeight: 700, fontFamily: systemFont,
+                }}>{full ? <Check size={15} strokeWidth={3} /> : !partOpen ? <Lock size={13} strokeWidth={2.4} /> : partIndex + 1}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 15, fontWeight: 700 }}>{part.title}</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>
+                    {!partOpen && prevPart ? `Na ${prevPart.title}` : `${doneInPart} van ${lessons.length} lessen`}
+                  </span>
+                </span>
+                <ChevronDown size={16} color={MUTED} style={{ flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }} />
+              </button>
+              {expanded && (
+                <div className="accordion-reveal" style={{ padding: "0 14px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+                  {lessons.map(l => {
+                    const p = progress[l.id];
+                    const open = isLessonOpen(l);
+                    return (
+                      <button key={l.id} onClick={() => open && openLesson(l.id)} disabled={!open} aria-label={open ? undefined : `${l.title} (vergrendeld)`} style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left", minHeight: 52, padding: "6px 10px", boxSizing: "border-box",
+                        background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 12, cursor: open ? "pointer" : "default", opacity: open ? 1 : 0.6, fontFamily: sans, color: INK,
+                      }}>
+                        <span style={{
+                          width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                          background: p?.completed ? SAGE : "transparent", border: `1.5px solid ${p?.completed ? SAGE : BORDER}`,
+                        }}>
+                          {p?.completed ? <Check size={13} color={CREAM} strokeWidth={3} /> : !open ? <Lock size={12} color={MUTED} strokeWidth={2.4} /> : <span style={{ fontSize: 11.5, fontWeight: 700, color: MUTED, fontFamily: systemFont }}>{l.number}</span>}
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{l.title}</span>
+                          <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{lessonMinutes(l)} min{p ? ` · beste score ${p.bestScore}/${p.total}` : ""}</span>
+                        </span>
+                        {open && <ChevronRight size={15} color={MUTED} style={{ flexShrink: 0 }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
-        })()}
+        })}
       </div>
-
-      <div style={{ marginBottom: 24, padding: "16px 18px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS }}>Jouw voortgang</span>
-          <span style={{ fontSize: 13, color: INK, fontWeight: 700, fontFamily: systemFont }}><AnimatedNumber value={completedCount} /> / {totalLessons} lessen</span>
-        </div>
-        <div style={{ height: 8, background: BORDER, borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ width: `${(completedCount / totalLessons) * 100}%`, height: "100%", background: BOTTLE, transition: "width 0.3s ease" }} />
-        </div>
-      </div>
-
-      {COURSE_PARTS.map((part, partIndex) => {
-        const lessons = COURSE_LESSONS.filter(l => l.part === part.id);
-        const partOpen = unlockedParts.has(part.id);
-        const prevPart = COURSE_PARTS[partIndex - 1];
-        return (
-          <div key={part.id} style={{ marginBottom: 26 }}>
-            <SectionLabel>{part.subtitle} &middot; {part.title}</SectionLabel>
-            {!partOpen && prevPart && (
-              <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: MUTED, margin: "-4px 0 10px" }}>
-                <Lock size={13} /> Rond eerst {prevPart.subtitle} ({prevPart.title}) af
-              </div>
-            )}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {lessons.map(l => {
-              const p = progress[l.id];
-              const open = isLessonOpen(l);
-              return (
-                <button key={l.id} onClick={() => open && setSelectedId(l.id)} disabled={!open} aria-label={open ? undefined : `${l.title} (vergrendeld)`} style={{
-                  width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left",
-                  background: open ? CREAM : PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: open ? SHADOW_CARD : "none",
-                  cursor: open ? "pointer" : "default", padding: "12px 14px", boxSizing: "border-box", opacity: open ? 1 : 0.6,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                    <LessonArt lesson={l} />
-                    <div style={{
-                      width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                      background: p?.completed ? SAGE : "transparent", border: `1.5px solid ${p?.completed ? SAGE : BORDER}`,
-                    }}>
-                      {p?.completed ? <Check size={14} color="#FBF6EA" strokeWidth={3} /> : !open ? <Lock size={13} color={MUTED} strokeWidth={2.4} /> : <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, fontFamily: systemFont }}>{l.number}</span>}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontFamily: systemFont, fontWeight: 700, color: INK, fontSize: 15.5 }}>{l.title}</div>
-                      {p && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>Beste score: {p.bestScore}/{p.total}</div>}
-                    </div>
-                  </div>
-                  {open ? <ChevronDown size={16} color={MUTED} style={{ transform: "rotate(-90deg)", flexShrink: 0 }} /> : <Lock size={15} color={MUTED} style={{ flexShrink: 0 }} />}
-                </button>
-              );
-            })}
-            </div>
-          </div>
-        );
-      })}
 
       <div style={{
         marginTop: 10, padding: "20px 22px", borderRadius: RADIUS + 2, boxShadow: SHADOW_HERO,
@@ -10690,15 +10846,15 @@ function computeCourseLevel(xp) {
 // mijlpalen — allemaal afgeleid uit `progress` (per les + eindtoets), niets
 // apart bijgehouden.
 const COURSE_BADGE_DEFS = [
-  { id: "fundamenten", emoji: "🏛️", label: "Fundamenten Meester", text: "Alle lessen van Deel I (Fundamenten) voltooid.", partId: "fundamenten" },
-  { id: "ingredienten", emoji: "🍋", label: "Ingrediënten Kenner", text: "Alle lessen van Deel II (De ingrediënten) voltooid.", partId: "ingredienten" },
-  { id: "techniek", emoji: "🥃", label: "Techniek Vakman", text: "Alle lessen van Deel III (Techniek) voltooid.", partId: "techniek" },
-  { id: "smaak", emoji: "🎨", label: "Smaakarchitect", text: "Alle lessen van Deel IV (Smaak & compositie) voltooid.", partId: "smaak" },
-  { id: "vak", emoji: "🍸", label: "Bartender Pro", text: "Alle lessen van Deel V (Het vak van bartender) voltooid.", partId: "vak" },
-  { id: "geavanceerd", emoji: "🔬", label: "Meester-mixoloog", text: "Alle lessen van Deel VI (Geavanceerde technieken) voltooid.", partId: "geavanceerd" },
-  { id: "halverwege", emoji: "📖", label: "Halverwege", text: "12 van de 24 lessen voltooid." },
-  { id: "eindtoets-gehaald", emoji: "🎓", label: "Geslaagd", text: "De eindtoets gehaald met minstens 80%." },
-  { id: "perfecte-score", emoji: "💯", label: "Perfecte Score", text: "De eindtoets met een perfecte score afgerond." },
+  { id: "fundamenten", icon: Landmark, label: "Fundamenten", text: "Alle lessen van Deel I (Fundamenten) voltooid.", partId: "fundamenten" },
+  { id: "ingredienten", icon: Citrus, label: "Ingrediënten", text: "Alle lessen van Deel II (De ingrediënten) voltooid.", partId: "ingredienten" },
+  { id: "techniek", icon: GlassWater, label: "Techniek", text: "Alle lessen van Deel III (Techniek) voltooid.", partId: "techniek" },
+  { id: "smaak", icon: Scale, label: "Smaak", text: "Alle lessen van Deel IV (Smaak & compositie) voltooid.", partId: "smaak" },
+  { id: "vak", icon: Martini, label: "Het vak", text: "Alle lessen van Deel V (Het vak van bartender) voltooid.", partId: "vak" },
+  { id: "geavanceerd", icon: FlaskConical, label: "Geavanceerd", text: "Alle lessen van Deel VI (Geavanceerde technieken) voltooid.", partId: "geavanceerd" },
+  { id: "halverwege", icon: BookOpen, label: "Halverwege", text: "12 van de 24 lessen voltooid." },
+  { id: "eindtoets-gehaald", icon: GraduationCap, label: "Geslaagd", text: "De eindtoets gehaald met minstens 80%." },
+  { id: "perfecte-score", icon: Award, label: "Foutloos", text: "De eindtoets zonder fouten afgerond." },
 ];
 // Deel N gaat pas open als alle lessen van de delen ervóór af zijn. Een les
 // die je al eerder afrondde blijft altijd te openen (oude voortgang).
@@ -10719,18 +10875,175 @@ function computeCourseMastery(progress) {
   return allLessons && passed ? { scorePct: Math.round((exam.bestScore / exam.total) * 100) } : null;
 }
 
+// Cursusrang: het statussymbool op je profiel, bij vrienden en in de feed.
+// Hoe verder je bent, hoe voller de gouden ring om je profielfoto.
+const COURSE_RANKS = [
+  { id: "leerling", name: "Leerling", rule: "Eerste les gestart" },
+  { id: "barback", name: "Barback", rule: "1 deel afgerond" },
+  { id: "thuisbartender", name: "Thuisbartender", rule: "3 delen afgerond" },
+  { id: "bartender", name: "Bartender", rule: "Alle 6 delen afgerond" },
+  { id: "meester", name: "Meester", rule: "Eindtoets gehaald: diploma" },
+];
+const COURSE_PART_COUNT = COURSE_PARTS.length;
+function coursePartsDone(progress) {
+  return COURSE_PARTS.filter(part => {
+    const lessons = COURSE_LESSONS.filter(l => l.part === part.id);
+    return lessons.length > 0 && lessons.every(l => progress?.[l.id]?.completed);
+  }).length;
+}
+function courseRankIndex({ partsDone = 0, started = false, master = false }) {
+  if (master) return 4;
+  if (partsDone >= COURSE_PART_COUNT) return 3;
+  if (partsDone >= 3) return 2;
+  if (partsDone >= 1) return 1;
+  return started ? 0 : -1;
+}
+function withRank(index, partsDone, master) {
+  return { index, rank: COURSE_RANKS[index] || null, next: COURSE_RANKS[index + 1] || null, partsDone, master };
+}
+// Eigen rang, uit de lokale voortgang.
+function computeCourseRank(progress) {
+  const partsDone = coursePartsDone(progress);
+  const started = !!progress?._gestart || COURSE_LESSONS.some(l => progress?.[l.id]);
+  const master = !!computeCourseMastery(progress);
+  return withRank(courseRankIndex({ partsDone, started, master }), partsDone, master);
+}
+// Rang van iemand anders (of jezelf op een nieuw toestel), uit profiles.
+function profileCourseRank(p) {
+  if (!p) return withRank(-1, 0, false);
+  const master = !!p.course_completed_at;
+  const partsDone = master ? COURSE_PART_COUNT : Math.min(COURSE_PART_COUNT, p.course_parts_done || 0);
+  const stored = COURSE_RANKS.findIndex(r => r.id === p.course_rank);
+  return withRank(Math.max(stored, courseRankIndex({ partsDone, master })), partsDone, master);
+}
+// Lokaal en opgeslagen samenvoegen: wat het verst is, telt.
+function mergeCourseRank(a, b) {
+  const best = a.index >= b.index ? a : b;
+  return withRank(best.index, Math.max(a.partsDone, b.partsDone), a.master || b.master);
+}
+function courseRankHint(r) {
+  if (r.master) return "Gediplomeerd: alle delen en de eindtoets";
+  if (r.index === 3) return "Haal de eindtoets voor Meester";
+  const target = r.index < 1 ? 1 : r.index === 1 ? 3 : COURSE_PART_COUNT;
+  const left = target - r.partsDone;
+  return `Nog ${left} ${left === 1 ? "deel" : "delen"} tot ${COURSE_RANKS[r.index < 1 ? 1 : r.index + 1].name}`;
+}
+
+// Profielfoto met de cursusring: zes stukken, één per afgerond deel. Met
+// het diploma wordt de ring massief goud, met een zegel rechtsonder.
+// size = totale buitenmaat, zodat hij overal 1-op-1 een Avatar vervangt.
+function CourseRing({ name, photo, size = 84, partsDone = 0, master = false, dark = false, seal = true, children }) {
+  const big = size >= 60;
+  const stroke = big ? 4 : 2.2;
+  const gap = big ? 7 : 3.5;
+  const r = size / 2 - stroke / 2;
+  const c = 2 * Math.PI * r;
+  const segGap = big ? stroke + 6 : stroke + 3.5;
+  const dash = c / 6 - segGap;
+  const offColor = dark ? "rgba(255,255,255,0.18)" : BORDER;
+  const startDeg = -90 + (segGap / 2 / c) * 360;
+  const inner = size - gap * 2;
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ position: "absolute", inset: 0 }} aria-hidden>
+        {master ? (
+          <>
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={BRASS} strokeWidth={stroke} />
+            {big && <circle cx={size / 2} cy={size / 2} r={r - stroke - 1} fill="none" stroke="#DDB877" strokeWidth={1} />}
+          </>
+        ) : [0, 1, 2, 3, 4, 5].map(i => {
+          const on = i < partsDone;
+          return (
+            <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={on ? BRASS : offColor}
+              strokeWidth={on ? stroke : Math.max(1.4, stroke / 2)} strokeLinecap="round"
+              strokeDasharray={`${dash} ${c - dash}`} transform={`rotate(${startDeg + i * 60} ${size / 2} ${size / 2})`} />
+          );
+        })}
+      </svg>
+      <div style={{ position: "absolute", inset: gap }}>{children || <Avatar name={name} photo={photo} size={inner} />}</div>
+      {master && seal && size >= 44 && (
+        <span style={{
+          position: "absolute", right: big ? -2 : -3, bottom: big ? 0 : -2, width: big ? 30 : 18, height: big ? 30 : 18, borderRadius: "50%",
+          background: BOTTLE_DARK, border: `${big ? 2 : 1.5}px solid ${BRASS}`, boxSizing: "border-box", color: "#DDB877",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}><GraduationCap size={big ? 15 : 10} strokeWidth={2} /></span>
+      )}
+    </div>
+  );
+}
+// Avatar die de ring alleen toont als iemand met de cursus bezig is.
+function RankAvatar({ name, photo, size, courseRank }) {
+  if (!courseRank || courseRank.index < 0) return <Avatar name={name} photo={photo} size={size} />;
+  return <CourseRing name={name} photo={photo} size={size} partsDone={courseRank.partsDone} master={courseRank.master} />;
+}
+// Rangnaam naast een naam (feed, vriendenlijst) of als chip onder je naam.
+function CourseRankLabel({ courseRank, chip = false }) {
+  if (!courseRank?.rank) return null;
+  if (!chip) {
+    return <span style={{ fontSize: 11.5, fontWeight: 700, color: "#8F6A21", whiteSpace: "nowrap" }}>{courseRank.rank.name}</span>;
+  }
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, whiteSpace: "nowrap",
+      background: courseRank.master ? BRASS : BOTTLE_DARK, color: courseRank.master ? BOTTLE_DARK : "#F1D9A6", fontSize: 12, fontWeight: 700,
+    }}><GraduationCap size={13} strokeWidth={2} /> {courseRank.rank.name}</span>
+  );
+}
+// De vijf rangen als ladder, met je huidige rang aangestipt.
+function CourseRankLadder({ courseRank }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+      {COURSE_RANKS.map((r, i) => {
+        const reached = i <= courseRank.index;
+        const current = i === courseRank.index;
+        const d = current ? 16 : 12;
+        return (
+          <div key={r.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+            <span style={{ height: 16, display: "flex", alignItems: "center" }}>
+              <span style={{ width: d, height: d, borderRadius: "50%", boxSizing: "border-box", background: reached ? BRASS : "transparent", border: reached ? "none" : "1.5px solid #B8A98A" }} />
+            </span>
+            <span style={{ fontSize: 11, textAlign: "center", lineHeight: 1.2, fontWeight: current ? 700 : 500, color: current ? INK : MUTED }}>{r.name}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Cursuskaart op je eigen profiel: delen, XP, de rangladder en de badges.
+function CourseProgressCard({ courseProgress, courseRank }) {
+  const ci = computeCourseInsights(courseProgress || {});
+  const r = courseRank || withRank(-1, 0, false);
+  return (
+    <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14, gap: 8 }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: INK }}>Cursus</span>
+        <span style={{ fontSize: 12.5, color: MUTED }}>{r.partsDone} van {COURSE_PART_COUNT} delen · {ci.xp} XP</span>
+      </div>
+      <CourseRankLadder courseRank={r} />
+      <div style={{ fontSize: 13, color: INK, marginTop: 14, lineHeight: 1.45 }}>
+        {r.index < 0 ? "Start de cursus onder Bar en word Leerling." : courseRankHint(r) + "."}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+        {ci.badges.map(b => {
+          const Icon = b.icon;
+          return (
+            <span key={b.id} title={b.label} aria-label={`${b.label}${b.unlocked ? "" : " (nog niet behaald)"}`} style={{
+              width: 36, height: 36, borderRadius: "50%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
+              background: b.unlocked ? BOTTLE_DARK : PAPER_DEEP, color: b.unlocked ? "#DDB877" : "#B8A98A",
+              border: b.unlocked ? `1.5px solid ${BRASS}` : `1.5px dashed ${BORDER}`,
+            }}><Icon size={16} strokeWidth={1.8} /></span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Beloning voor het uitspelen van de cursus: een diploma op je profiel, dat
 // je vrienden ook zien (profiles.course_completed_at). compact = het kleine
 // label naast je naam; anders de volledige diploma-kaart.
-function CourseDiploma({ date, scorePct, compact, isOwn = true }) {
-  if (compact) {
-    return (
-      <span style={{
-        display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: "#8F6A21",
-        background: "rgba(184,134,46,0.14)", border: "1px solid rgba(184,134,46,0.35)", borderRadius: 100, padding: "2px 8px", whiteSpace: "nowrap",
-      }}>🎓 Gediplomeerd</span>
-    );
-  }
+function CourseDiploma({ date, scorePct, isOwn = true }) {
   const when = date ? new Date(date).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) : null;
   return (
     <div style={{
@@ -10738,9 +11051,8 @@ function CourseDiploma({ date, scorePct, compact, isOwn = true }) {
       background: `radial-gradient(ellipse 140% 120% at 20% 0%, #2A4B42, ${BOTTLE_DARK} 75%)`, color: CREAM,
       border: `1.5px solid ${BRASS}`, boxShadow: SHADOW_CARD,
     }}>
-      <GraduationCap size={120} color={BRASS} strokeWidth={1} style={{ position: "absolute", right: -18, top: -16, opacity: 0.12 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
-        <div style={{ width: 52, height: 52, borderRadius: "50%", border: "1.5px solid rgba(221,184,119,0.7)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>🎓</div>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", border: "1.5px solid rgba(221,184,119,0.7)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#DDB877" }}><GraduationCap size={24} strokeWidth={1.7} /></div>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: "#DDB877" }}>Diploma</div>
           <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 18, lineHeight: 1.2, marginTop: 2 }}>Gediplomeerd thuisbartender</div>
@@ -11300,21 +11612,6 @@ function MapFullscreenSheet({ locations, coords, onClose }) {
   ), document.body);
 }
 
-// Profielfoto met een gouden voortgangsring (XP naar het volgende niveau).
-function AvatarProgressRing({ name, photo, size = 66, progress = 0 }) {
-  const ring = size + 12, r = ring / 2 - 2.5, c = 2 * Math.PI * r;
-  return (
-    <div style={{ position: "relative", width: ring, height: ring, flexShrink: 0 }}>
-      <svg width={ring} height={ring} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
-        <circle cx={ring / 2} cy={ring / 2} r={r} fill="none" stroke={BORDER} strokeWidth={3} />
-        <circle cx={ring / 2} cy={ring / 2} r={r} fill="none" stroke={BRASS} strokeWidth={3} strokeLinecap="round"
-          strokeDasharray={c} strokeDashoffset={c * (1 - Math.max(0, Math.min(1, progress)))} style={{ transition: "stroke-dashoffset 1s cubic-bezier(.22,.9,.3,1)" }} />
-      </svg>
-      <div style={{ position: "absolute", inset: 6 }}><Avatar name={name} photo={photo} size={size} /></div>
-    </div>
-  );
-}
-
 // Webdiagram van het smaakprofiel (5 assen), in goud op de groene kaart.
 const RADAR_AXES = [["fruitig", "Fruitig"], ["zuur", "Zuur"], ["zoet", "Zoet"], ["sterk", "Sterk"], ["bitter", "Bitter"]];
 function TasteRadar({ taste, size = 230 }) {
@@ -11415,7 +11712,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress}) {
+function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -11612,7 +11909,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <input ref={photoInputRef} type="file" accept="image/*" onChange={handleProfilePhotoFile} style={{ display: "none" }} />
         <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" aria-label="Profielfoto wijzigen" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
-          <AvatarProgressRing name={profile?.name || "Jij"} photo={profile?.avatar_url} progress={insights.level.progress} />
+          <CourseRing name={profile?.name || "Jij"} photo={profile?.avatar_url} size={84} partsDone={courseRank?.partsDone || 0} master={!!courseRank?.master} />
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           {editingName ? (
@@ -11628,12 +11925,12 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
             </button>
           )}
+          {courseRank?.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={courseRank} chip /></div>}
           <div style={{ fontSize: 14, fontWeight: 600, color: BRASS, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             Niveau {insights.level.level} · {insights.level.title}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 3 }}>
             <span style={{ fontSize: 12, color: MUTED }}>{insights.level.to ? `${insights.level.to - insights.level.xp} XP tot niveau ${insights.level.level + 1}` : "Hoogste niveau bereikt"}</span>
-            {courseDiploma && <CourseDiploma compact />}
           </div>
         </div>
       </div>
@@ -11827,7 +12124,6 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       {profileTab === "prestaties" && (() => {
         const achieved = insights.achievements.filter(a => a.unlocked).length;
         const activeAch = insights.achievements.find(a => a.id === activeAchievementId) || null;
-        const lessonsDone = COURSE_LESSONS.filter(l => courseProgress?.[l.id]?.completed).length;
         const mapLocations = insights.locations.filter(l => l.name.trim().toLowerCase() !== "thuis");
         return (
           <>
@@ -11876,20 +12172,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               </div>
             )}
 
-            {courseDiploma ? (
-              <CourseDiploma date={courseDiploma.date} scorePct={courseDiploma.scorePct} />
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "14px", marginBottom: 12 }}>
-                <span style={{ width: 40, height: 40, borderRadius: 12, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><GraduationCap size={19} color={BOTTLE} strokeWidth={1.8} /></span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>Cocktailcursus</div>
-                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{lessonsDone} van {COURSE_LESSONS.length} lessen · diploma na de eindtoets</div>
-                  <div style={{ height: 4, borderRadius: 2, background: PAPER_DEEP, overflow: "hidden", marginTop: 8 }}>
-                    <div style={{ height: "100%", width: `${(lessonsDone / COURSE_LESSONS.length) * 100}%`, background: BRASS }} />
-                  </div>
-                </div>
-              </div>
-            )}
+            {courseDiploma && <CourseDiploma date={courseDiploma.date} scorePct={courseDiploma.scorePct} />}
+            <CourseProgressCard courseProgress={courseProgress} courseRank={courseRank} />
 
             {insights.locations.length >= 2 && mapLocations.length > 0 ? (
               <div style={{ marginBottom: 12 }}>
@@ -12244,6 +12528,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
     [logboek, stats, recipes, allIngredients]
   );
   const name = friendProfile?.name || "Vriend";
+  const friendRank = profileCourseRank(friendProfile);
 
   return createPortal((
     <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
@@ -12255,11 +12540,11 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
       }}>
         <SheetGrabber {...dragHandlers} />
         <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
-          <Avatar name={name} photo={friendProfile?.avatar_url} size={44} />
+          <RankAvatar name={name} photo={friendProfile?.avatar_url} size={52} courseRank={friendRank} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: INK }}>{name}</span>
-              {friendProfile?.course_completed_at && <CourseDiploma compact />}
+              <CourseRankLabel courseRank={friendRank} chip />
             </div>
             {insights && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{insights.level.title} · niveau {insights.level.level}</div>}
           </div>
@@ -12597,7 +12882,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
               <div style={{ ...rowStyle, background: CREAM, borderBottom: i < accepted.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                 <button onClick={() => setOpenFriendId(otherId)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
                   <Avatar name={profilesById[otherId]?.name} photo={profilesById[otherId]?.avatar_url} size={32} />
-                  <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: INK }}>{profilesById[otherId]?.name || "…"}{profilesById[otherId]?.course_completed_at ? " 🎓" : ""}</span>
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: INK }}>{profilesById[otherId]?.name || "…"} <CourseRankLabel courseRank={profileCourseRank(profilesById[otherId])} /></span>
                 </button>
                 <button onClick={() => removeFriendship(f.id)} disabled={busyId === f.id} className="press-scale tap-target-44" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", flexShrink: 0 }}>
                   <Trash2 size={15} color={MUTED} />

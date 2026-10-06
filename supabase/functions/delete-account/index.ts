@@ -30,6 +30,8 @@ Deno.serve(async (req) => {
     // hebben ingesteld), dan pas het auth-account zelf.
     await admin.from("push_subscriptions").delete().eq("user_id", userId);
     await admin.from("checkin_reactions").delete().eq("user_id", userId);
+    await admin.from("course_milestone_reactions").delete().eq("user_id", userId);
+    await admin.from("course_milestones").delete().eq("user_id", userId);
     await admin.from("checkin_comments").delete().eq("user_id", userId);
     await admin.from("checkins").delete().eq("user_id", userId);
     await admin.from("friendships").delete().or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
