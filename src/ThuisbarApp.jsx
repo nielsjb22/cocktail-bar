@@ -4,6 +4,8 @@ import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { PushNotifications } from "@capacitor/push-notifications";
+import { Capacitor } from "@capacitor/core";
 import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -1856,6 +1858,105 @@ function usePushNotifications(session) {
   return { supported, enabled, busy, error, enable, disable };
 }
 
+// Native pushmeldingen (iPhone, via Apple). De server kant staat in
+// supabase/functions/push: database-triggers sturen daar elke tag, proost,
+// reactie, rang en vriendschapsverzoek heen. Hier: toestemming vragen, het
+// apparaat-token opslaan, voorkeuren per soort melding, en bij tikken op een
+// melding naar de juiste plek in de app gaan.
+// Android volgt later (heeft Firebase nodig), dus voorlopig alleen iOS.
+const PUSH_VOORKEUREN_STANDAARD = { tags: true, reacties: true, vriendschap: true, rangen: true, checkins: false };
+const PUSH_SOORTEN = [
+  { key: "tags", label: "Getagd worden", sub: "Als een vriend je tagt bij een check-in" },
+  { key: "reacties", label: "Proost en reacties", sub: "Op je check-ins en je cursusrang" },
+  { key: "vriendschap", label: "Vriendschapsverzoeken", sub: "Nieuwe verzoeken en geaccepteerde verzoeken" },
+  { key: "rangen", label: "Rangen van vrienden", sub: "Als een vriend een nieuwe cursusrang haalt" },
+  { key: "checkins", label: "Check-ins van vrienden", sub: "Bij elke cocktail die een vriend incheckt" },
+];
+function useNativePush(session, onOpen) {
+  const supported = isNativeShell && Capacitor.getPlatform() === "ios";
+  // "prompt" = nog nooit gevraagd, "granted" = aan, "denied" = uitgezet in iOS.
+  const [permission, setPermission] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [prefs, setPrefs] = useState(PUSH_VOORKEUREN_STANDAARD);
+  const tokenRef = useRef(null);
+  const onOpenRef = useRef(onOpen);
+  onOpenRef.current = onOpen;
+  const userId = session?.user?.id || null;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+
+  // Luisteraars één keer neerzetten.
+  useEffect(() => {
+    if (!supported) return;
+    const handles = [];
+    const add = (event, fn) => PushNotifications.addListener(event, fn).then(h => handles.push(h)).catch(() => {});
+    add("registration", ({ value }) => {
+      tokenRef.current = value;
+      if (!userIdRef.current) return;
+      supabase.rpc("registreer_push_token", { p_token: value, p_platform: "ios" }).then(({ error: e }) => {
+        if (e) setError("Meldingen konden niet worden ingesteld: " + e.message);
+      });
+    });
+    add("registrationError", (e) => setError("Apple gaf geen toestemming voor meldingen: " + (e?.error || "onbekende fout")));
+    add("pushNotificationActionPerformed", ({ notification }) => {
+      onOpenRef.current?.(notification?.data?.doel || "feed");
+    });
+    return () => { handles.forEach(h => h.remove()); };
+  }, [supported]);
+
+  // Bij inloggen: toestemming bekijken, en als die er al is het token
+  // vernieuwen (Apple kan het token wijzigen). Voorkeuren ophalen.
+  useEffect(() => {
+    if (!supported || !userId) return;
+    let cancelled = false;
+    PushNotifications.checkPermissions().then(({ receive }) => {
+      if (cancelled) return;
+      setPermission(receive === "granted" ? "granted" : receive === "denied" ? "denied" : "prompt");
+      if (receive === "granted") PushNotifications.register().catch(() => {});
+    }).catch(() => {});
+    supabase.from("push_voorkeuren").select("*").eq("user_id", userId).maybeSingle().then(({ data }) => {
+      if (!cancelled && data) setPrefs({ ...PUSH_VOORKEUREN_STANDAARD, ...Object.fromEntries(Object.keys(PUSH_VOORKEUREN_STANDAARD).map(k => [k, data[k]])) });
+    });
+    return () => { cancelled = true; };
+  }, [supported, userId]);
+
+  const enable = async () => {
+    if (!supported || !userId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { receive } = await PushNotifications.requestPermissions();
+      if (receive !== "granted") {
+        setPermission("denied");
+        return;
+      }
+      setPermission("granted");
+      await PushNotifications.register();
+    } catch (e) {
+      setError(e?.message || "Aanzetten van meldingen is niet gelukt.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setPref = async (key, value) => {
+    if (!userId) return;
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    const { error: e } = await supabase.from("push_voorkeuren").upsert({ user_id: userId, ...next, updated_at: new Date().toISOString() });
+    if (e) { setPrefs(prefs); setError("Opslaan is niet gelukt: " + e.message); }
+  };
+
+  // Bij uitloggen: dit toestel niet meer aan dit account koppelen.
+  const forget = async () => {
+    if (!supported || !tokenRef.current) return;
+    await supabase.from("push_tokens").delete().eq("token", tokenRef.current).then(() => {}, () => {});
+  };
+
+  return { supported, permission, busy, error, prefs, enable, setPref, forget };
+}
+
 function checkinRowToEntry(row) {
   return {
     id: row.id, date: (row.created_at || "").slice(0, 10), createdAt: row.created_at || null, recipeId: row.recipe_id, name: row.name,
@@ -2404,6 +2505,17 @@ export default function ThuisbarApp() {
   const [logboek, setLogboekState] = useState([]);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
   const push = usePushNotifications(session);
+  const nativePush = useNativePush(session, (doel) => {
+    // Naar de feed (ververst meteen, zodat de tag of reactie er staat) of
+    // naar Vrienden voor een vriendschapsverzoek.
+    if (doel === "vrienden") navigateTo("vrienden");
+    else if (tab === "home") navigateTo("home");
+    else { navigateTo("home"); setHomeTapTick(t => t + 1); }
+  });
+  const signOut = async () => {
+    await nativePush.forget();
+    await supabase.auth.signOut();
+  };
   const parties = useParties(session);
   const upcomingParties = useMemo(
     () => parties.parties.filter(isPartyUpcoming).sort(compareUpcomingParties),
@@ -2553,6 +2665,7 @@ export default function ThuisbarApp() {
     const { error } = await supabase.functions.invoke("delete-account", {});
     setDeletingAccount(false);
     if (error) { setDeleteAccountError("Verwijderen is niet gelukt. Probeer het nog eens."); return; }
+    await nativePush.forget();
     await supabase.auth.signOut();
   };
 
@@ -2828,7 +2941,7 @@ export default function ThuisbarApp() {
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             logboek={logboek} recipes={allRecipes} allIngredients={allIngredients} active={tab === "home"}
             onOpenRecipe={openRecipeDetail} onOpenCheckin={openCheckin} onSound={chime}
-            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} />
+            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} nativePush={nativePush} />
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
@@ -2932,7 +3045,7 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel", { restore: true })}>
-            <InstellingenTab soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={() => supabase.auth.signOut()} push={push} onNavigate={navigateTo} />
+            <InstellingenTab soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={signOut} push={push} nativePush={nativePush} onNavigate={navigateTo} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="privacybeleid" active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
@@ -2972,7 +3085,7 @@ function Switch({ checked, onChange, disabled }) {
 // UX-herindeling (v2): Profiel IS nu het check-ins/inzichten-scherm zelf
 // (zoals Untappd) i.p.v. een lijstje dat er naar doorverwijst — de kaart en
 // instellingen hieronder wonen nu in LogboekTab resp. InstellingenTab.
-function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, onNavigate }) {
+function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, nativePush, onNavigate }) {
   return (
     <div>
       <SectionLabel>Instellingen</SectionLabel>
@@ -3002,6 +3115,46 @@ function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, onNavig
             {push.error && (
               <div style={{ marginTop: 10, fontSize: 12, color: BURGUNDY, background: "rgba(122,46,42,0.08)", border: "1px solid rgba(122,46,42,0.25)", borderRadius: 10, padding: "8px 11px", lineHeight: 1.4 }}>
                 {push.error}
+              </div>
+            )}
+          </div>
+        )}
+        {nativePush?.supported && (
+          <div style={{ padding: "14px 16px", borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+                <Bell size={16} strokeWidth={1.8} />
+              </span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14.5, color: INK }}>Meldingen</div>
+                <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>
+                  {nativePush.permission === "granted" ? "Staan aan. Kies hieronder welke je wilt krijgen."
+                    : nativePush.permission === "denied" ? "Staan uit in je iPhone. Zet ze aan via Instellingen > Meldingen > Mijn Thuisbar."
+                    : "Hoor het als een vriend je tagt, proost of reageert."}
+                </div>
+              </div>
+              {nativePush.permission !== "granted" && nativePush.permission !== "denied" && (
+                <button onClick={nativePush.enable} disabled={nativePush.busy} style={{ minHeight: 34, padding: "0 14px", borderRadius: 100, border: "none", background: BOTTLE, color: CREAM, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: sans, flexShrink: 0 }}>
+                  Aanzetten
+                </button>
+              )}
+            </div>
+            {nativePush.permission === "granted" && (
+              <div style={{ marginTop: 10, marginLeft: 46 }}>
+                {PUSH_SOORTEN.map(({ key, label, sub }, i) => (
+                  <div key={key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, color: INK }}>{label}</div>
+                      <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{sub}</div>
+                    </div>
+                    <Switch checked={!!nativePush.prefs[key]} onChange={(v) => nativePush.setPref(key, v)} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {nativePush.error && (
+              <div style={{ marginTop: 10, fontSize: 12, color: BURGUNDY, background: "rgba(122,46,42,0.08)", border: "1px solid rgba(122,46,42,0.25)", borderRadius: 10, padding: "8px 11px", lineHeight: 1.4 }}>
+                {nativePush.error}
               </div>
             )}
           </div>
@@ -3622,7 +3775,8 @@ function usePullToRefresh(onRefresh) {
   return { indicatorRef, refreshing, handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: onTouchEnd } };
 }
 
-function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank }) {
+function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush }) {
+  const [pushPromptHidden, setPushPromptHidden] = useStorage("thuisbar-push-prompt-weg", false);
   const [photoViewer, setPhotoViewer] = useState(null);
   const myId = session?.user?.id;
   const { feed: friendFeed, milestones, friendProfiles, reload: reloadFriendFeed } = useFriendsFeed(session, active);
@@ -3850,6 +4004,28 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
               </div>
             );
           })}
+        </div>
+      )}
+
+      {nativePush?.supported && nativePush.permission === "prompt" && !pushPromptHidden && (
+        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 14, marginBottom: 22 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <span style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(184,134,46,0.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Bell size={17} color={BRASS} strokeWidth={2} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: INK }}>Meldingen aanzetten?</div>
+              <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.45, marginTop: 2 }}>Dan hoor je het als een vriend je tagt, op je check-in proost of reageert. Per soort aan of uit te zetten in Instellingen.</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button onClick={nativePush.enable} disabled={nativePush.busy} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: BOTTLE_DARK, color: CREAM, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
+              Aanzetten
+            </button>
+            <button onClick={() => setPushPromptHidden(true)} style={{ minHeight: 42, padding: "0 16px", borderRadius: 12, border: `1px solid ${BORDER}`, background: "none", color: INK, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: sans }}>
+              Niet nu
+            </button>
+          </div>
         </div>
       )}
 

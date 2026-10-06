@@ -13,6 +13,12 @@
     },
     "Keyboard": {
       "resizeOnFullScreen": true
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "sound",
+        "alert"
+      ]
     }
   }
 }

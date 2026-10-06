@@ -29,6 +29,9 @@ Deno.serve(async (req) => {
     // Eigen data eerst opruimen (voor het geval foreign keys geen cascade
     // hebben ingesteld), dan pas het auth-account zelf.
     await admin.from("push_subscriptions").delete().eq("user_id", userId);
+    await admin.from("push_tokens").delete().eq("user_id", userId);
+    await admin.from("push_voorkeuren").delete().eq("user_id", userId);
+    await admin.from("push_log").delete().eq("ontvanger", userId);
     await admin.from("checkin_reactions").delete().eq("user_id", userId);
     await admin.from("checkin_tags").delete().or(`tagger_id.eq.${userId},tagged_user_id.eq.${userId}`);
     await admin.from("course_milestone_comments").delete().eq("user_id", userId);
