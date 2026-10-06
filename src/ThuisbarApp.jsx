@@ -1629,8 +1629,10 @@ function publicAppUrl(query = "") {
 // (@capacitor/share — navigator.share is in WKWebView niet betrouwbaar), op
 // het web navigator.share met klembord als terugval.
 // Geeft "shared" | "copied" | "cancelled" | "failed" | "no-url" terug.
-async function shareLink({ title, text, url }) {
-  if (!url) return "no-url";
+// Zonder openbaar webadres (VITE_PUBLIC_WEB_URL niet ingesteld) valt hij terug
+// op `fallbackText` — bv. het menu als lijstje — zodat delen niet stil mislukt.
+async function shareLink({ title, text, url, fallbackText }) {
+  if (!url) return fallbackText ? shareText({ title, text: fallbackText }) : "no-url";
   if (isNativeShell) {
     try { await Share.share({ title, text, url, dialogTitle: title }); return "shared"; }
     catch (e) { return /cancel/i.test(e?.message || "") ? "cancelled" : "failed"; }
@@ -1641,6 +1643,16 @@ async function shareLink({ title, text, url }) {
   } catch (e) {
     if (e?.name === "AbortError") return "cancelled";
     try { await navigator.clipboard.writeText(url); return "copied"; } catch { return "failed"; }
+  }
+}
+
+async function shareText({ title, text }) {
+  try {
+    if (isNativeShell) { await Share.share({ title, text, dialogTitle: title }); return "shared"; }
+    if (navigator.share) { await navigator.share({ title, text }); return "shared"; }
+    await navigator.clipboard.writeText(text); return "copied";
+  } catch (e) {
+    return /cancel|abort/i.test(`${e?.name} ${e?.message}`) ? "cancelled" : "failed";
   }
 }
 
@@ -8119,7 +8131,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
     onSound("share");
     const result = await shareLink({ title: "Mijn Thuisbar: smaaktest", text: "Vul even je cocktailvoorkeuren in voor het feest!", url: publicAppUrl(`smaaktest=${survey.id}`) });
     if (result === "cancelled") return;
-    setSurveyShareState(result === "no-url" ? "failed" : result);
+    setSurveyShareState(result);
     setTimeout(() => setSurveyShareState(null), 2500);
   };
 
@@ -8192,7 +8204,11 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
 
   const shareMenu = async (ids) => {
     onSound("share");
-    const result = await shareLink({ title: "Mijn Thuisbar: menu", text: "Bekijk het cocktailmenu voor vanavond!", url: publicAppUrl(`menu=${ids.join(",")}`) });
+    const names = ids.map(id => recipes.find(r => r.id === id)?.name).filter(Boolean);
+    const result = await shareLink({
+      title: "Mijn Thuisbar: menu", text: "Bekijk het cocktailmenu voor vanavond!", url: publicAppUrl(`menu=${ids.join(",")}`),
+      fallbackText: `Het cocktailmenu voor vanavond:\n${names.map(n => `• ${n}`).join("\n")}`,
+    });
     if (result === "cancelled") return;
     setShareState(result === "no-url" ? "failed" : result);
     setTimeout(() => setShareState(null), 2500);
@@ -8443,7 +8459,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
               </span>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <button onClick={shareSurvey} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 3, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                  <Share2 size={13} /> {surveyShareState === "shared" ? "Gedeeld!" : surveyShareState === "copied" ? "Link gekopieerd!" : surveyShareState === "failed" ? "Delen mislukt" : "Deel de link"}
+                  <Share2 size={13} /> {surveyShareState === "shared" ? "Gedeeld!" : surveyShareState === "copied" ? "Link gekopieerd!" : surveyShareState === "failed" ? "Delen mislukt" : surveyShareState === "no-url" ? "Webadres nog niet ingesteld" : "Deel de link"}
                 </button>
                 <button onClick={() => setConfirmDeleteSurvey(true)} title="Verwijder smaaktest" className="press-scale" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, background: "none", border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 3, cursor: "pointer", flexShrink: 0 }}>
                   <Trash2 size={15} />
@@ -9261,19 +9277,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
     const title = "Mijn Thuisbar: menu";
     const text = `Het cocktailmenu voor vanavond:\n${names.map(n => `• ${n}`).join("\n")}`;
     const url = publicAppUrl(`menu=${picked.map(m => m.f.recipe.id).join(",")}`);
-    let result;
-    if (url) {
-      result = await shareLink({ title, text: "Bekijk het cocktailmenu voor vanavond!", url });
-    } else {
-      // Nog geen openbare webversie ingesteld: deel het menu dan als tekst.
-      try {
-        if (isNativeShell) { await Share.share({ title, text, dialogTitle: title }); result = "shared"; }
-        else if (navigator.share) { await navigator.share({ title, text }); result = "shared"; }
-        else { await navigator.clipboard.writeText(text); result = "copied"; }
-      } catch (e) {
-        result = /cancel|abort/i.test(`${e?.name} ${e?.message}`) ? "cancelled" : "failed";
-      }
-    }
+    const result = await shareLink({ title, text: "Bekijk het cocktailmenu voor vanavond!", url, fallbackText: text });
     if (result === "cancelled") return;
     setShareState(result === "no-url" ? "failed" : result);
     setTimeout(() => setShareState(null), 2500);
