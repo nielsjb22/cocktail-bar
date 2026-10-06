@@ -3633,8 +3633,44 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
       });
       setRankCheers(map);
     });
+    supabase.from("course_milestone_comments").select("milestone_id").in("milestone_id", milestoneIds).then(({ data, error }) => {
+      if (cancelled || error) return;
+      const counts = {};
+      (data || []).forEach(c => { counts[c.milestone_id] = (counts[c.milestone_id] || 0) + 1; });
+      setRankCommentCounts(counts);
+    });
     return () => { cancelled = true; };
   }, [myId, milestoneKey, active]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [rankComments, setRankComments] = useState({});
+  const [rankCommentCounts, setRankCommentCounts] = useState({});
+  const [openRankComments, setOpenRankComments] = useState(null);
+  const toggleRankComments = async (milestoneId) => {
+    if (openRankComments === milestoneId) { setOpenRankComments(null); return; }
+    setOpenRankComments(milestoneId);
+    setOpenComments(null);
+    setCommentDraft("");
+    if (!rankComments[milestoneId]) {
+      const { data } = await supabase.from("course_milestone_comments").select("*").eq("milestone_id", milestoneId).order("created_at", { ascending: true });
+      setRankComments(c => ({ ...c, [milestoneId]: data || [] }));
+    }
+  };
+  const postRankComment = async (milestoneId) => {
+    const text = commentDraft.trim();
+    if (!text || postingComment || !myId) return;
+    setPostingComment(true);
+    const { data, error } = await supabase.from("course_milestone_comments").insert({ milestone_id: milestoneId, user_id: myId, text }).select().single();
+    setPostingComment(false);
+    if (error) return;
+    onSound("pop");
+    setRankComments(c => ({ ...c, [milestoneId]: [...(c[milestoneId] || []), data] }));
+    setRankCommentCounts(c => ({ ...c, [milestoneId]: (c[milestoneId] || 0) + 1 }));
+    setCommentDraft("");
+  };
+  const deleteRankComment = async (milestoneId, commentId) => {
+    setRankComments(c => ({ ...c, [milestoneId]: (c[milestoneId] || []).filter(x => x.id !== commentId) }));
+    setRankCommentCounts(c => ({ ...c, [milestoneId]: Math.max(0, (c[milestoneId] || 1) - 1) }));
+    await supabase.from("course_milestone_comments").delete().eq("id", commentId).eq("user_id", myId);
+  };
   const toggleRankCheer = async (milestoneId) => {
     if (!myId) return;
     const current = rankCheers[milestoneId] || { count: 0, mine: false };
@@ -3681,6 +3717,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
   const toggleComments = async (checkinId) => {
     if (openComments === checkinId) { setOpenComments(null); return; }
     setOpenComments(checkinId);
+    setOpenRankComments(null);
     setCommentDraft("");
     if (!commentsByCheckin[checkinId]) {
       const { data } = await supabase.from("checkin_comments").select("*").eq("checkin_id", checkinId).order("created_at", { ascending: true });
@@ -3851,7 +3888,47 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                     }}>
                       <Wine size={13} /> {cheer.count > 0 ? cheer.count : ""} Proost
                     </button>
+                    <button onClick={() => toggleRankComments(entry.id)} className="press-scale" style={{
+                      display: "flex", alignItems: "center", gap: 6, border: `1px solid ${openRankComments === entry.id ? BOTTLE : BORDER}`, cursor: "pointer",
+                      background: openRankComments === entry.id ? BOTTLE : "none", color: openRankComments === entry.id ? CREAM : MUTED,
+                      borderRadius: 100, padding: "7px 12px", fontSize: 12, fontWeight: 700,
+                    }}>
+                      <MessageCircle size={13} /> {rankCommentCounts[entry.id] > 0 ? rankCommentCounts[entry.id] : ""} Reageren
+                    </button>
                   </div>
+                  {openRankComments === entry.id && (
+                    <div style={{ borderTop: `1px dashed ${BORDER}`, margin: "0 14px 12px", paddingTop: 10 }}>
+                      {(rankComments[entry.id] || []).map(c => (
+                        <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
+                          <Avatar name={commenterName(c.user_id)} photo={commenterPhoto(c.user_id)} size={24} />
+                          <div style={{ flex: 1, minWidth: 0, background: PAPER_DEEP, borderRadius: 12, padding: "6px 10px" }}>
+                            <span style={{ fontWeight: 700, fontSize: 12 }}>{commenterName(c.user_id)}</span>{" "}
+                            <span style={{ fontSize: 12.5, color: INK }}>{c.text}</span>
+                          </div>
+                          {c.user_id === myId && (
+                            <button onClick={() => deleteRankComment(entry.id, c.id)} aria-label="Reactie verwijderen" style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, padding: 4, flexShrink: 0 }}>
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {(rankComments[entry.id] || []).length === 0 && (
+                        <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>{entry.mine ? "Nog geen reacties." : `Nog geen reacties. Feliciteer ${who.split(" ")[0]}!`}</div>
+                      )}
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <input value={commentDraft} onChange={e => setCommentDraft(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") postRankComment(entry.id); }}
+                          placeholder="Schrijf een reactie…" maxLength={500}
+                          style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "8px 14px", fontSize: 16, fontFamily: sans, background: PAPER, color: INK }} />
+                        <button onClick={() => postRankComment(entry.id)} disabled={!commentDraft.trim() || postingComment} aria-label="Versturen" style={{
+                          border: "none", cursor: commentDraft.trim() ? "pointer" : "default", background: commentDraft.trim() ? BOTTLE : BORDER,
+                          color: CREAM, borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        }}>
+                          <Send size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             }
