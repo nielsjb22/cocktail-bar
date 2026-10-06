@@ -4006,7 +4006,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 11 }}>
                       {entry.tasteTags.map(k => CHECKIN_TASTE_META[k] && (
                         <span key={k} style={{ fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 100, background: PAPER_DEEP, color: INK, border: `1px solid ${BORDER}` }}>
-                          {CHECKIN_TASTE_META[k].emoji} {CHECKIN_TASTE_META[k].label}
+                          {CHECKIN_TASTE_META[k].label}
                         </span>
                       ))}
                     </div>
