@@ -4,7 +4,7 @@ import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
@@ -1672,7 +1672,8 @@ function GuestBrowseShell({
             }}
           />
         ) : (
-          <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={onSound} />
+          <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={onSound}
+            recipes={recipes} allIngredients={allIngredients} onOpenRecipe={(id) => { setPendingRecipeId(id); setTab("ontdekken"); }} />
         )}
       </div>
 
@@ -2867,7 +2868,8 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="cursus" active={tab === "cursus"} visited={visitedTabs.has("cursus")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.cursus} onBack={() => navigateTo("bar", { restore: true })}>
-            <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={chime} />
+            <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={chime}
+              recipes={allRecipes} allIngredients={allIngredients} onOpenRecipe={openRecipeDetail} onCheckin={openCheckin} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="feest" active={tab === "feest"} visited={visitedTabs.has("feest")} panelRef={panelRefs}>
@@ -7269,75 +7271,91 @@ function shuffledIndexes(n) {
   return idx;
 }
 
+// Eén vraag per scherm: kies, zie meteen of het klopt en waarom, door naar
+// de volgende. Aan het eind de score, met opnieuw proberen.
 function QuizBlock({ quiz, onFinish }) {
+  const [attempt, setAttempt] = useState(0);
+  const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [checked, setChecked] = useState(false);
+  const [done, setDone] = useState(false);
   // Antwoordvolgorde per poging opnieuw gehusseld: de plek van het goede
   // antwoord verraadt niets, ook niet bij een tweede poging.
-  const [attempt, setAttempt] = useState(0);
   const orders = useMemo(() => quiz.map(q => shuffledIndexes(q.options.length)), [quiz, attempt]);
+  const topRef = useRef(null);
 
   const score = quiz.reduce((acc, q, i) => acc + (answers[i] === q.correct ? 1 : 0), 0);
-  const allAnswered = quiz.every((_, i) => answers[i] !== undefined);
   const passed = score / quiz.length >= QUIZ_PASS_RATIO;
+  const q = quiz[idx];
+  const picked = answers[idx];
+  const answered = picked !== undefined;
+  const isLast = idx === quiz.length - 1;
 
-  const check = () => { setChecked(true); onFinish(score); };
-  const retry = () => { setAnswers({}); setChecked(false); setAttempt(n => n + 1); };
+  const next = () => {
+    if (isLast) { setDone(true); onFinish(score); }
+    else setIdx(i => i + 1);
+    requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+  const retry = () => { setAnswers({}); setIdx(0); setDone(false); setAttempt(n => n + 1); };
+
+  if (done) {
+    return (
+      <div ref={topRef} className="success-pop" style={{ marginTop: 8, fontFamily: sans, padding: 18, borderRadius: 16, background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${passed ? SAGE : BURGUNDY}` }}>
+        <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: passed ? SAGE : BURGUNDY }}>{score} van {quiz.length} goed</div>
+        <p style={{ fontSize: 14, color: INK, margin: "6px 0 14px", lineHeight: 1.5 }}>
+          {passed ? "Geslaagd. Deze les telt mee voor je rang." : `Je hebt er ${Math.ceil(quiz.length * QUIZ_PASS_RATIO)} goed nodig. Lees de les nog eens door en probeer het opnieuw.`}
+        </p>
+        <button onClick={retry} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BORDER}`, color: INK, borderRadius: 100, minHeight: 40, padding: "0 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
+          <RotateCcw size={14} /> Opnieuw
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ marginTop: 8 }}>
-      {quiz.map((q, i) => (
-        <div key={i} style={{ marginBottom: 22 }}>
-          <p style={{ fontWeight: 700, fontFamily: systemFont, fontSize: 15, color: INK, margin: "0 0 10px" }}>{i + 1}. {q.q}</p>
-          {orders[i].map(oi => {
-            const opt = q.options[oi];
-            const isSelected = answers[i] === oi;
-            const isCorrect = oi === q.correct;
-            let border = BORDER, bg = "transparent";
-            if (checked) {
-              if (isCorrect) { border = SAGE; bg = "rgba(92,122,82,0.14)"; }
-              else if (isSelected) { border = BURGUNDY; bg = "rgba(122,46,42,0.08)"; }
-            } else if (isSelected) { border = BRASS; bg = "rgba(184,134,46,0.08)"; }
-            return (
-              <button key={oi} disabled={checked} onClick={() => setAnswers(prev => ({ ...prev, [i]: oi }))}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "10px 13px", marginBottom: 7,
-                  borderRadius: RADIUS, border: `1.5px solid ${border}`, background: bg, cursor: checked ? "default" : "pointer",
-                  fontSize: 13.5, fontFamily: sans, color: INK, boxSizing: "border-box",
-                }}>
-                {checked && isCorrect && <Check size={14} color={SAGE} strokeWidth={3} />}
-                {checked && isSelected && !isCorrect && <X size={14} color={BURGUNDY} strokeWidth={3} />}
-                {opt}
-              </button>
-            );
-          })}
-          {checked && <p className="accordion-reveal" style={{ fontSize: 12.5, color: MUTED, marginTop: 6, lineHeight: 1.5, fontStyle: "italic" }}>{q.explain}</p>}
-        </div>
-      ))}
-
-      {!checked ? (
-        <button onClick={check} disabled={!allAnswered}
-          style={{
-            display: "flex", alignItems: "center", gap: 6, background: allAnswered ? BOTTLE : BORDER, color: allAnswered ? CREAM : MUTED,
-            border: "none", borderRadius: RADIUS, padding: "11px 18px", fontSize: 14, fontWeight: 700,
-            cursor: allAnswered ? "pointer" : "default", boxShadow: allAnswered ? SHADOW_CTA : "none",
-          }}>
-          <Check size={15} /> Controleer antwoorden
-        </button>
-      ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <div className={passed ? "success-pop" : undefined} style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: RADIUS,
-            background: passed ? "rgba(92,122,82,0.14)" : "rgba(122,46,42,0.08)", border: `1px solid ${passed ? SAGE : BURGUNDY}`,
-          }}>
-            <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: passed ? SAGE : BURGUNDY }}>{score}/{quiz.length}</span>
-            <span style={{ fontSize: 12.5, color: INK }}>{passed ? "Geslaagd, mooi gedaan!" : `Nog niet geslaagd: je hebt er ${Math.ceil(quiz.length * QUIZ_PASS_RATIO)} goed nodig. Lees de uitleg en probeer het opnieuw.`}</span>
-          </div>
-          <button onClick={retry} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${MUTED}`, color: MUTED, borderRadius: RADIUS, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-            <RotateCcw size={13} /> Opnieuw proberen
-          </button>
+    <div ref={topRef} style={{ marginTop: 8, scrollMarginTop: 80, fontFamily: sans }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "#8F6A21" }}>In de praktijk</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: MUTED }}>Vraag {idx + 1} van {quiz.length}</span>
+      </div>
+      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+        {quiz.map((_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < idx || (i === idx && answered) ? BRASS : BORDER }} />)}
+      </div>
+      <p style={{ fontFamily: serif, fontWeight: 700, fontSize: 20, lineHeight: 1.3, color: INK, margin: "0 0 16px" }}>{q.q}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {orders[idx].map((oi, n) => {
+          const isSelected = picked === oi;
+          const isCorrect = oi === q.correct;
+          const showRight = answered && isCorrect;
+          const showWrong = answered && isSelected && !isCorrect;
+          return (
+            <button key={`${attempt}-${idx}-${oi}`} disabled={answered} onClick={() => setAnswers(prev => ({ ...prev, [idx]: oi }))} style={{
+              display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 54, textAlign: "left", padding: "10px 14px", boxSizing: "border-box",
+              borderRadius: 14, cursor: answered ? "default" : "pointer", fontSize: 14.5, lineHeight: 1.4, fontFamily: sans, color: INK,
+              background: showRight ? "rgba(92,122,82,0.14)" : showWrong ? "rgba(122,46,42,0.08)" : CREAM,
+              border: showRight ? `1.5px solid ${SAGE}` : showWrong ? `1.5px solid ${BURGUNDY}` : `1px solid ${BORDER}`,
+              opacity: answered && !showRight && !showWrong ? 0.65 : 1,
+            }}>
+              <span style={{
+                width: 28, height: 28, borderRadius: "50%", flexShrink: 0, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12.5, fontWeight: 700, fontFamily: systemFont,
+                background: showRight ? SAGE : showWrong ? BURGUNDY : "transparent", color: showRight || showWrong ? CREAM : MUTED,
+                border: showRight || showWrong ? "none" : `1.5px solid ${BORDER}`,
+              }}>{showRight ? <Check size={14} strokeWidth={3} /> : showWrong ? <X size={14} strokeWidth={3} /> : "ABCD"[n]}</span>
+              <span style={{ flex: 1 }}>{q.options[oi]}</span>
+            </button>
+          );
+        })}
+      </div>
+      {answered && (
+        <div className="accordion-reveal" style={{ marginTop: 14, padding: "13px 15px", borderRadius: 14, background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${picked === q.correct ? SAGE : BURGUNDY}` }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: picked === q.correct ? SAGE : BURGUNDY, marginBottom: 3 }}>{picked === q.correct ? "Goed" : "Niet helemaal"}</div>
+          <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0, color: INK }}>{q.explain}</p>
         </div>
       )}
+      <button onClick={next} disabled={!answered} style={{
+        width: "100%", minHeight: 50, marginTop: 16, borderRadius: 14, border: "none", fontFamily: sans, fontSize: 15.5, fontWeight: 700,
+        background: answered ? BOTTLE_DARK : BORDER, color: answered ? CREAM : MUTED, cursor: answered ? "pointer" : "default",
+      }}>{isLast ? "Bekijk je score" : "Volgende vraag"}</button>
     </div>
   );
 }
@@ -7349,7 +7367,7 @@ const LESSON_ICONS = {
   geschiedenis: Landmark, uitrusting: Wrench, glaswerk: Wine, ijs: Snowflake,
   gedistilleerd: FlaskRound, "likeuren-bitters": Droplets, vers: Citrus, garnering: Cherry,
   basistechnieken: Martini, "verdunning-temperatuur": Thermometer, "sour-formule": Scale, finesse: Layers,
-  families: Shapes, smaakcombinatie: Puzzle, ontwerpen: PenTool, menu: ClipboardList,
+  families: Scale, smaakcombinatie: FlaskRound, ontwerpen: PenTool, menu: ClipboardList,
   "mise-en-place": ListChecks, "batchen-groepen": Users, gastvrijheid: HeartHandshake, signature: Award,
   infusies: Leaf, "fat-washing": Droplet, clarificatie: Sparkles, "carbonatie-rook": CloudFog,
 };
@@ -7375,7 +7393,83 @@ function LessonArt({ lesson, variant = "thumb" }) {
   );
 }
 
-function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLesson, onGoToExam }) {
+// Les in de praktijkopbouw: waarom, de kern, wat je proeft, zo doe je het,
+// een veelgemaakte fout en iets om zelf te maken (met recept en check-in).
+const PRACTICE_TONES = { rood: BURGUNDY, bruin: "#8A6A4A", groen: "#4F6B46" };
+function PracticeLessonBody({ lesson, recipes, allIngredients, onOpenRecipe, onCheckin }) {
+  const label = (text, color = "#8F6A21") => (
+    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color, marginBottom: 8, fontFamily: sans }}>{text}</div>
+  );
+  const recipe = lesson.tryIt?.recipeId ? (recipes || []).find(r => r.id === lesson.tryIt.recipeId) : null;
+  return (
+    <div style={{ fontFamily: sans }}>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>
+        {lessonMinutes(lesson)} min lezen
+      </div>
+      <h2 style={{ fontFamily: serif, fontSize: 28, fontWeight: 700, lineHeight: 1.2, color: INK, margin: "6px 0 20px" }}>{lesson.title}</h2>
+
+      {label("Waarom dit ertoe doet")}
+      <p style={{ fontSize: 16, lineHeight: 1.6, color: INK, margin: "0 0 24px" }}>{lesson.intro}</p>
+
+      {label("De kern")}
+      {lesson.core.map((t, i) => <p key={i} style={{ fontSize: 15.5, lineHeight: 1.65, color: INK, margin: i === lesson.core.length - 1 ? "0 0 24px" : "0 0 10px" }}>{t}</p>)}
+
+      {lesson.taste && (
+        <>
+          {label(lesson.taste.title)}
+          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "0 14px", marginBottom: 24 }}>
+            {lesson.taste.rows.map((r, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "12px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none" }}>
+                <span style={{ flexShrink: 0, width: 78, fontSize: 13.5, fontWeight: 700, color: PRACTICE_TONES[r.tone] || INK }}>{r.label}</span>
+                <span style={{ fontSize: 14.5, lineHeight: 1.45, color: INK }}>{r.text}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {label("Zo doe je het")}
+      <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 24 }}>
+        {lesson.steps.map((t, i) => (
+          <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span style={{ width: 26, height: 26, borderRadius: "50%", background: BOTTLE, color: CREAM, fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: systemFont }}>{i + 1}</span>
+            <span style={{ fontSize: 15, lineHeight: 1.55, paddingTop: 2, color: INK }}>{t}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ padding: "14px 16px", borderRadius: 14, background: PAPER_DEEP, marginBottom: 24 }}>
+        {label("Veelgemaakte fout", BURGUNDY)}
+        <p style={{ fontSize: 14.5, lineHeight: 1.55, margin: 0, color: INK }}>{lesson.mistake}</p>
+      </div>
+
+      {lesson.tryIt && (
+        <>
+          {label("Probeer het zelf")}
+          <div style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 16, padding: 16, marginBottom: 24 }}>
+            <p style={{ fontSize: 15, lineHeight: 1.55, margin: recipe ? "0 0 14px" : 0 }}>{lesson.tryIt.text}</p>
+            {recipe && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.06)", marginBottom: onCheckin ? 12 : 0 }}>
+                <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} />
+                <span style={{ flex: 1, minWidth: 0, fontFamily: serif, fontSize: 16, fontWeight: 700 }}>{recipe.name}</span>
+                {onOpenRecipe && (
+                  <button onClick={() => onOpenRecipe(recipe.id)} style={{ minHeight: 44, padding: "0 6px", background: "none", border: "none", color: "#DDB877", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>Recept</button>
+                )}
+              </div>
+            )}
+            {recipe && onCheckin && (
+              <button onClick={() => onCheckin(recipe.name)} className="press-scale" style={{ width: "100%", minHeight: 48, borderRadius: 12, border: "none", background: BRASS, color: BOTTLE_DARK, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
+                Gemaakt: check in
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLesson, onGoToExam, recipes, allIngredients, onOpenRecipe, onCheckin }) {
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizDone, setQuizDone] = useState(false);
 
@@ -7405,22 +7499,30 @@ function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLe
           Les {lesson.number} &middot; {COURSE_PARTS.find(p => p.id === lesson.part)?.title}
         </div>
       </div>
-      <h2 style={{ fontFamily: systemFont, fontSize: 27, fontWeight: 700, color: INK, margin: "0 0 14px" }}>{lesson.title}</h2>
-      <p style={{ fontStyle: "italic", color: MUTED, fontSize: 14, borderLeft: `3px solid ${BRASS}`, paddingLeft: 14, margin: "0 0 22px", lineHeight: 1.55 }}>{lesson.intro}</p>
+      {lesson.format === "praktijk" ? (
+        <PracticeLessonBody lesson={lesson} recipes={recipes} allIngredients={allIngredients} onOpenRecipe={onOpenRecipe} onCheckin={onCheckin} />
+      ) : (
+        <>
+          <h2 style={{ fontFamily: systemFont, fontSize: 27, fontWeight: 700, color: INK, margin: "0 0 14px" }}>{lesson.title}</h2>
+          <p style={{ fontStyle: "italic", color: MUTED, fontSize: 14, borderLeft: `3px solid ${BRASS}`, paddingLeft: 14, margin: "0 0 22px", lineHeight: 1.55 }}>{lesson.intro}</p>
 
-      {lesson.blocks.map((b, i) => <LessonBlock key={i} block={b} />)}
+          {lesson.blocks.map((b, i) => <LessonBlock key={i} block={b} />)}
 
-      <div style={{ marginTop: 24, marginBottom: 24, background: BOTTLE, color: CREAM, borderRadius: RADIUS, padding: "16px 18px", boxShadow: SHADOW_CARD }}>
-        <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#D8CFA0", marginBottom: 8 }}>Kernpunten van deze les</div>
-        <ul style={{ margin: 0, paddingLeft: 18 }}>
-          {lesson.takeaways.map((t, i) => <li key={i} style={{ fontSize: 13.5, marginBottom: 5, lineHeight: 1.5 }}>{t}</li>)}
-        </ul>
-      </div>
+          <div style={{ marginTop: 24, marginBottom: 24, background: BOTTLE, color: CREAM, borderRadius: RADIUS, padding: "16px 18px", boxShadow: SHADOW_CARD }}>
+            <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#D8CFA0", marginBottom: 8 }}>Kernpunten van deze les</div>
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {lesson.takeaways.map((t, i) => <li key={i} style={{ fontSize: 13.5, marginBottom: 5, lineHeight: 1.5 }}>{t}</li>)}
+            </ul>
+          </div>
+        </>
+      )}
 
-      <SectionLabel>Toets &middot; {lesson.quiz.length} vragen</SectionLabel>
       {!showQuiz ? (
-        <button onClick={() => setShowQuiz(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: BOTTLE, color: CREAM, border: "none", borderRadius: RADIUS, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA }}>
-          <GraduationCap size={16} /> Start de toets
+        <button onClick={() => setShowQuiz(true)} className="press-scale" style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 8,
+          background: BOTTLE_DARK, color: CREAM, border: "none", borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: sans,
+        }}>
+          Naar de vragen <ChevronRight size={17} />
         </button>
       ) : (
         <QuizBlock quiz={lesson.quiz} onFinish={(score) => { onComplete(score, lesson.quiz.length); setQuizDone(score / lesson.quiz.length >= QUIZ_PASS_RATIO); }} />
@@ -7483,7 +7585,7 @@ function lessonMinutes(lesson) {
   return Math.max(2, Math.round(text.split(/\s+/).length / 200));
 }
 
-function CursusTab({ progress, setProgress, onSound }) {
+function CursusTab({ progress, setProgress, onSound, recipes, allIngredients, onOpenRecipe, onCheckin }) {
   const [selectedId, setSelectedId] = useState(null);
   const [examOpen, setExamOpen] = useState(false);
   // Een les of toets openen begint bovenaan, niet halverwege de lessenlijst.
@@ -7585,6 +7687,7 @@ function CursusTab({ progress, setProgress, onSound }) {
     const nextLesson = isLessonOpen(nextCandidate) ? nextCandidate : null;
     return (
       <LessonView key={lesson.id} lesson={lesson} progress={progress[lesson.id]}
+        recipes={recipes} allIngredients={allIngredients} onOpenRecipe={onOpenRecipe} onCheckin={onCheckin}
         onBack={() => setSelectedId(null)}
         onComplete={(score, total) => complete(lesson.id, score, total)}
         nextLesson={nextLesson}

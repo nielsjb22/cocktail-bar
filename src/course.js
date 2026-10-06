@@ -4,6 +4,8 @@
 // overgenomen uit een bestaand boek of bestaande cursus.
 //
 // Elk lesson-object: { id, part, number, title, intro, blocks[], takeaways[], quiz[] }
+// Praktijkopbouw (format: "praktijk"): intro = waarom, core[], taste { title, rows[] },
+// steps[], mistake, tryIt { text, recipeId }; blocks/takeaways blijven leeg.
 // blocks: { type: "p" } | { type: "h3", text } | { type: "box", kind, label, text } | { type: "table", headers, rows }
 // quiz: { q, options[4], correct (index), explain } — zie courseQuiz.js
 
@@ -307,83 +309,126 @@ export const COURSE_LESSONS = [
     ],
   },
 
+  // Deel IV in de praktijkopbouw: waarom, de kern, wat je proeft, zo doe je
+  // het, een veelgemaakte fout en iets om zelf te maken. Kort en toepasbaar.
   {
     id: "families",
     part: "smaak",
     number: 13,
-    title: "De negen cocktailfamilies",
-    intro: "In plaats van honderden losse recepten te onthouden, leer je negen families herkennen. Elke cocktail past vrijwel altijd in (of combineert elementen van) een van deze categorieën.",
-    blocks: [
-      { type: "h3", text: "De negen families" },
-      { type: "p", text: "Sours (sterk-zuur-zoet, zoals Whiskey Sour), highballs (sterk + veel mixer, zoals Gin Tonic), spirit-forward/Old Fashioned-stijl (sterk met suiker/bitters, zoals Negroni), stirred-down/Martini-familie (sterk + vermout, zonder citrus), fizz & flip (sours + koolzuur of ei, zoals Tom Collins), tiki & tropisch (meerdere rums + exotische siropen), moderne klassiekers (na 2000, zoals Paper Plane), zuivel & dessert (room/eidooier, zoals White Russian), en warme cocktails (zoals Irish Coffee)." },
-      { type: "box", kind: "history", label: "Waarom dit indelingssysteem werkt", text: "Elke familie lost een ander \"probleem\" op dat teruggaat op de geschiedenis: sours ontstonden om ruwe drank drinkbaar te maken, highballs om drank te strekken en verfrissend te houden, stirred-down-cocktails om puur, sterk karakter te tonen zonder verdunning door sap. Ken je het probleem, dan onthoud je de familie moeiteloos." },
+    format: "praktijk",
+    title: "Zoet en zuur in balans",
+    intro: "Bijna elke cocktail die \"net niet\" smaakt, is uit balans tussen zoet en zuur. Snap je dit, dan kun je elk recept zelf bijsturen.",
+    core: [
+      "Zuur, van citroen of limoen, maakt een drankje fris en levendig. Zoet, van siroop of likeur, maakt het rond en zacht en dempt de scherpte van de alcohol.",
+      "Ze houden elkaar in evenwicht: meer zuur vraagt om meer zoet, en andersom. In balans proef je allebei, maar springt geen van de twee eruit.",
     ],
-    takeaways: [
-      "Negen families dekken vrijwel de complete cocktailwereld, je hoeft geen honderden losse recepten uit je hoofd te leren.",
-      "Elke familie heeft een eigen technische logica (shaken vs. roeren, wel/geen citrus, wel/geen koolzuur).",
-      "Een nieuwe cocktail leren gaat sneller zodra je 'm eerst indeelt in een familie.",
+    taste: {
+      title: "Wat je proeft",
+      rows: [
+        { label: "Te zuur", tone: "rood", text: "Prikt en trekt je wangen samen. De drank smaakt dun." },
+        { label: "Te zoet", tone: "bruin", text: "Plakkerig. De alcohol valt weg en de laatste slok is zwaar." },
+        { label: "In balans", tone: "groen", text: "Fris begin, zachte afdronk, en je hebt zin in nog een slok." },
+      ],
+    },
+    steps: [
+      "Begin met ongeveer 2 delen sterke drank, 1 deel citroen of limoen en ¾ deel siroop.",
+      "Proef met een rietje voordat je inschenkt.",
+      "Stuur bij in kleine stapjes van 5 ml: te zuur, wat siroop erbij; te zoet, wat citroen.",
     ],
+    mistake: "Alles tegelijk aanpassen. Verander één ding en proef opnieuw. En citroenen verschillen per stuk: proeven gaat altijd boven het recept.",
+    tryIt: { text: "Maak twee Daiquiri's: één volgens het recept en één met 5 ml extra siroop. Proef ze naast elkaar. Welke vind jij lekkerder?", recipeId: "daiquiri" },
+    blocks: [],
+    takeaways: [],
   },
   {
     id: "smaakcombinatie",
     part: "smaak",
     number: 14,
-    title: "Smaakcombinatie: hoe klassiekers zijn opgebouwd",
-    intro: "Waarom werkt gin met citrus, campari met sinaasappel, mezcal met ananas? Dit hoofdstuk legt de onderliggende principes bloot.",
-    blocks: [
-      { type: "h3", text: "Complementair versus contrasterend" },
-      { type: "p", text: "Complementaire smaken versterken elkaar: citroen en citroenschil-likeur, munt en groene Chartreuse. Dit is de veiligste manier om een cocktail te ontwerpen. Contrasterende smaken creëren juist spanning: bitter tegenover zoet (Campari en sinaasappelsap), rokerig tegenover fruitig (mezcal en ananas), romig tegenover scherp (room en koffie). Contrast houdt een cocktail interessant over meerdere slokken." },
-      { type: "h3", text: "Aromatische bruggen en textuurcontrast" },
-      { type: "p", text: "Sommige ingrediënten werken als \"brug\" tussen twee smaken die normaal niet vanzelfsprekend samengaan: Angostura bitters bevat bijvoorbeeld noten die zowel bij fruitige als bij houtige sterkedranken passen. Balans gaat ook over textuur: het schuim van eiwit, de prik van koolzuur, de gladheid van room. Een cocktail die zowel qua smaak als textuur precies één ding doet, voelt al snel eendimensionaal aan." },
-      { type: "h3", text: "Een klassieker \"lezen\"" },
-      { type: "p", text: "Bij de Penicillin vormen honing en gember een warme, complementaire basis, citroen brengt zuur-contrast, en een drijflaag rokerige whisky levert een scherp contrast met de zoete basis eronder. Bijna elke goede klassieker laat zich zo \"uit elkaar halen\" in complementaire en contrasterende elementen." },
+    format: "praktijk",
+    title: "Bitter, zout en sterk: wat ze doen",
+    intro: "Zoet en zuur zijn de basis. Bitter, zout en de alcohol zelf bepalen of een drankje vlak blijft of diepte krijgt.",
+    core: [
+      "Bitter remt zoet af en maakt een drankje droger. Een paar dashes bitters of een scheut Campari zorgen dat de smaak blijft hangen na het slikken.",
+      "Zout proef je niet als zout, maar alles wordt voller: bitter wordt zachter, fruit en citrus springen meer naar voren.",
+      "Alcohol geeft warmte en draagt de geuren. Te weinig en het drankje voelt waterig, te veel en het brandt. Kou en water van het ijs temperen dat.",
     ],
-    takeaways: [
-      "Complementaire combinaties versterken een thema; contrasterende combinaties creëren spanning. Beide zijn legitieme strategieën.",
-      "Sommige ingrediënten (zoals bitters) werken als aromatische brug tussen smaken die anders niet vanzelfsprekend samengaan.",
-      "Textuur is een even belangrijke smaakdimensie als zoet/zuur/bitter, en wordt vaak over het hoofd gezien.",
+    taste: {
+      title: "Wat je proeft",
+      rows: [
+        { label: "Bitter", tone: "rood", text: "Droog en lang op de tong. Te veel: hard en medicinaal." },
+        { label: "Zout", tone: "bruin", text: "Alles smaakt voller. Te veel: dan proef je het wél." },
+        { label: "Sterk", tone: "groen", text: "Warmte in je keel. Te veel: het brandt en overstemt de rest." },
+      ],
+    },
+    steps: [
+      "Te zoet, maar wordt hij met meer citroen te zuur? Voeg 1 of 2 dashes bitters toe.",
+      "Smaakt hij vlak of te bitter? Probeer een paar korrels zout. Dat merk je meteen.",
+      "Brandt hij? Roer of shake iets langer, zodat er meer water bij komt, in plaats van meer siroop.",
     ],
+    mistake: "Bitter of alcohol wegpoetsen met suiker. Dan wordt het drankje zwaar en plakkerig. Een beetje zout of wat meer verdunning doet vaak meer.",
+    tryIt: { text: "Maak een Negroni volgens het recept en proef. Doe er dan een paar korrels zout bij en proef opnieuw. Merk hoe het bitter zachter wordt.", recipeId: "negroni" },
+    blocks: [],
+    takeaways: [],
   },
   {
     id: "ontwerpen",
     part: "smaak",
     number: 15,
-    title: "Zelf een cocktail ontwerpen: de bouwstenen-methode",
-    intro: "Dit is het moment waarop je van \"recepten volgen\" naar \"recepten bedenken\" gaat: een gestructureerde methode, geen willekeurig experimenteren.",
-    blocks: [
-      { type: "h3", text: "Stap 1 & 2: familie en basisspirit" },
-      { type: "p", text: "Begin niet met een compleet nieuw idee, maar met een van de negen families als startpunt, dat geeft je meteen een werkende structuur. Kies daarna een basisspirit die past bij wat je wilt bereiken: rokerige mezcal vraagt om iets zoets en fruitigs als contrast, kruidige rye combineert van nature met andere kruidige tonen, neutrale wodka geeft je maximale vrijheid." },
-      { type: "h3", text: "Stap 3 & 4: kernformule, dan proeven en herhalen" },
-      { type: "p", text: "Werk eerst de basisverhouding uit volgens de gekozen familie en proef die simpelste versie eerst. Pas als die basis al lekker is, voeg je een tweede laag toe (een likeur, wat bitters, garnering). Proef kritisch, benoem specifiek wát niet klopt, en pas telkens één variabele tegelijk aan, nooit meerdere tegelijk." },
-      { type: "h3", text: "Stap 5: het verhaal" },
-      { type: "p", text: "Een cocktail die je aan gasten voorzet, wint bij een kort verhaal of duidelijke identiteit: een goede naam en een zin uitleg verhoogt de waardering van gasten voor exact dezelfde vloeistof in het glas." },
-      { type: "box", kind: "tip", label: "Pro-tip", text: "Verander bij het bijstellen van een recept telkens in stappen van 5 ml of minder. Grotere sprongen laten je gemakkelijk van \"te weinig\" naar \"te veel\" schieten." },
+    format: "praktijk",
+    title: "Je eigen twist: één ding tegelijk",
+    intro: "Je hoeft geen nieuwe cocktail te verzinnen om iets eigens te maken. Veel bekende cocktails zijn een klassieker waarin één ding is gewisseld.",
+    core: [
+      "Een klassieker is een skelet dat al werkt. Wissel je één onderdeel voor iets dat dezelfde rol speelt, dan blijft de balans grotendeels kloppen en verandert alleen het karakter.",
+      "Twijfel je of twee smaken samengaan? Proef ze los na elkaar. Smaken die op elkaar lijken versterken elkaar (gin en citroen). Smaken die tegen elkaar ingaan maken het spannend (rokerig met fruit, bitter met sinaasappel).",
     ],
-    takeaways: [
-      "Begin bij een bekende familie-structuur, niet bij een blanco vel, dat voorkomt onbalans van meet af aan.",
-      "Bouw eerst een simpele, werkende kernformule op voordat je finesse-lagen toevoegt.",
-      "Pas telkens één variabele per keer aan tijdens het proeven, en noteer wat je verandert.",
+    taste: {
+      title: "Wat je kunt wisselen",
+      rows: [
+        { label: "Sterk", tone: "groen", text: "Rum, tequila, gin of whisky. De balans blijft, het karakter verandert." },
+        { label: "Zoet", tone: "bruin", text: "Siroop, honing, agave of een likeur. Een likeur is minder zoet: neem er iets meer van." },
+        { label: "Zuur", tone: "rood", text: "Citroen, limoen of grapefruit. Grapefruit is milder en iets bitter." },
+      ],
+    },
+    steps: [
+      "Kies een klassieker die je al lekker vindt.",
+      "Wissel één onderdeel voor iets met dezelfde rol.",
+      "Proef, stuur bij in stapjes van 5 ml en schrijf op wat je deed.",
     ],
+    mistake: "Drie dingen tegelijk wisselen. Smaakt het niet, dan weet je niet waardoor. Smaakt het wel, dan weet je niet waarom.",
+    tryIt: { text: "Maak een Whiskey Sour, maar met honingsiroop (honing en warm water, half om half) in plaats van suikersiroop. Wat verandert er? Zo ontstond de Gold Rush.", recipeId: "whiskey_sour" },
+    blocks: [],
+    takeaways: [],
   },
   {
     id: "menu",
     part: "smaak",
     number: 16,
-    title: "Een menu samenstellen als een pro",
-    intro: "Eén goede cocktail maken is één vaardigheid; een compleet, uitgebalanceerd menu voor gasten samenstellen is een andere.",
-    blocks: [
-      { type: "h3", text: "De smaakmatrix: vier hoeken plus één" },
-      { type: "p", text: "De meeste doordachte menu's dekken vier smaakhoeken ongeveer gelijkmatig: fris & verfrissend, sterk & aromatisch, avontuurlijk, en comfort, aangevuld met altijd minstens één volwaardige alcoholvrije optie. Een menu dat op één hoek leunt voelt al snel eendimensionaal voor een gemengd gezelschap." },
-      { type: "h3", text: "Hoeveel opties en batchbaarheid" },
-      { type: "p", text: "Een bar biedt 10-12 cocktails voor een breed publiek; voor een housefeest zijn 3-6 goed gekozen opties ruim genoeg. Gestirde cocktails zonder vers sap, eiwit of zuivel kun je uren van tevoren mixen (zonder ijs) en gekoeld bewaren. Kies bewust minstens één of twee batchbare opties zodat je tijdens het feest niet overbelast raakt." },
-      { type: "h3", text: "Pour cost en gedeelde ingrediënten" },
-      { type: "p", text: "Professionele bars rekenen met \"pour cost\" (kostprijs als percentage van verkoopprijs, doorgaans 18-24%). Voor thuisgebruik: een fles van 700 ml levert bij 45 ml per cocktail ongeveer 15-16 cocktails op. Kies bewust cocktails die ingrediënten delen, dat scheelt inkoopkosten zonder dat het menu minder gevarieerd aanvoelt." },
+    format: "praktijk",
+    title: "Een menu dat voor iedereen werkt",
+    intro: "Je gasten hebben allemaal een andere smaak. Een goed menu geeft iedereen iets, en laat jou ook nog van de avond genieten.",
+    core: [
+      "Denk in smaken, niet in favorieten: iets fris en lichts, iets sterks of bitters, iets zachts of zoets, en altijd een volwaardige optie zonder alcohol.",
+      "Drie tot vijf cocktails is genoeg. Meer keuze betekent meer flessen, meer werk en langer wachten aan de bar.",
+      "Kies cocktails die ingrediënten delen, en minstens één die je vooraf kunt mengen. Alles zonder sap, ei of room, zoals een Negroni, kan uren eerder in een fles in de koelkast.",
     ],
-    takeaways: [
-      "Een uitgebalanceerd menu dekt meerdere smaakhoeken, niet alleen wat de gastheer zelf het lekkerst vindt.",
-      "Batchbaarheid is een net zo belangrijke planningsfactor als smaak wanneer je zelf ook van het feest wilt genieten.",
-      "Een fles van 700 ml levert ongeveer 15-16 cocktails: een simpele, bruikbare inkoopvuistregel.",
+    taste: {
+      title: "Zo dek je de smaken",
+      rows: [
+        { label: "Fris", tone: "groen", text: "Paloma, Gin Tonic, Mojito." },
+        { label: "Sterk", tone: "rood", text: "Negroni, Old Fashioned." },
+        { label: "Zacht", tone: "bruin", text: "Espresso Martini, Whiskey Sour." },
+        { label: "Zonder", tone: "groen", text: "Een eigen limonade of een Shirley Temple." },
+      ],
+    },
+    steps: [
+      "Kies één cocktail per smaak, plus een alcoholvrije.",
+      "Vraagt een cocktail een fles die je verder nergens voor gebruikt? Kies dan iets met wat je al hebt.",
+      "Zet één cocktail vooraf klaar, zodat je niet de hele avond aan het shaken bent.",
     ],
+    mistake: "Alleen kiezen wat je zelf lekker vindt. Jij drinkt er één van, je gasten de rest.",
+    tryIt: { text: "Kies vier cocktails voor je volgende avond: een frisse, een sterke, een zachte en een zonder alcohol. Maak de sterke vooraf klaar en proef hem voordat de gasten komen.", recipeId: "negroni" },
+    blocks: [],
+    takeaways: [],
   },
 
   {
