@@ -4,7 +4,7 @@ import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
@@ -7625,6 +7625,8 @@ function computeGroupRecommendations(responses, recipes, excludeIds, isOwned) {
 
   const mentionedIds = new Set(responses.flatMap(r => r.favorite_cocktail_ids || []));
   const excluded = new Set(excludeIds || []);
+  // Nieuwe smaaktest: per ingrediënt hoeveel gasten het lekker / liever niet vinden.
+  const prefs = ingredientPreferenceCounts(responses);
 
   return recipes
     .filter(r => !excluded.has(r.id))
@@ -7644,7 +7646,11 @@ function computeGroupRecommendations(responses, recipes, excludeIds, isOwned) {
       const ownedCount = missingCount != null ? required.length - missingCount : null;
       const matchPct = isOwned && required.length > 0 ? Math.round((ownedCount / required.length) * 100) : null;
 
-      const score = Math.round(tasteScore * 0.55 + (matchPct != null ? matchPct * 0.25 : 0) + (spiritMatch ? 15 : 0) + (mentioned ? 20 : 0));
+      const ingIds = r.ingredients.map(i => i.id);
+      const likeHits = ingIds.reduce((n, id) => n + (prefs.like[id] || 0), 0);
+      const dislikeHits = ingIds.reduce((n, id) => n + (prefs.dislike[id] || 0), 0);
+      const prefScore = Math.min(20, (likeHits / responses.length) * 12) - Math.min(35, (dislikeHits / responses.length) * 25);
+      const score = Math.round(tasteScore * 0.55 + (matchPct != null ? matchPct * 0.25 : 0) + (spiritMatch ? 15 : 0) + (mentioned ? 20 : 0) + prefScore);
       return { recipe: r, score, matchPct, ownedCount, requiredCount: required.length, mentioned, spiritMatch };
     })
     .filter(x => x.score > 0 || x.mentioned)
@@ -7661,6 +7667,7 @@ const DIET_CONFLICT_INGREDIENTS = {
   noten: ["orgeat", "amaretto", "frangelico", "creme_de_noyaux"],
   lactose: ["heavy_cream", "whipped_cream", "milk", "irish_cream"],
   vegan: ["heavy_cream", "whipped_cream", "milk", "irish_cream", "egg_white", "egg_yolk", "honey_syrup", "honey_ginger_syrup"],
+  rauw_ei: ["egg_white", "egg_yolk"],
 };
 function getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals) {
   const ids = new Set(recipe.ingredients.map(i => i.id));
@@ -8264,7 +8271,36 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
   // meerdere feesten (en dus meerdere smaaktests) tegelijk hebben.
   const myId = session?.user?.id;
   const [survey, setSurvey] = useState(undefined); // undefined = laden, null = nog geen
-  const [surveyResponses, setSurveyResponses] = useState([]);
+  const [rawSurveyResponses, setSurveyResponses] = useState([]);
+  // Een gast die "Antwoorden aanpassen" gebruikt, stuurt een nieuwe reactie;
+  // per naam telt alleen de nieuwste (de lijst staat al nieuwste-eerst).
+  const surveyResponses = useMemo(() => {
+    const seen = new Set();
+    return rawSurveyResponses.filter(r => {
+      const name = (r.guest_name || "").trim().toLowerCase();
+      if (!name) return true;
+      if (seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    });
+  }, [rawSurveyResponses]);
+  const [mixersAdded, setMixersAdded] = useState(false);
+  const surveyHasAnswers = surveyResponses.some(r => r.answers);
+  const surveySpiritTally = useMemo(() => tallyChoices(surveyResponses, "spirits"), [surveyResponses]);
+  const surveyLiqueurTally = useMemo(() => tallyChoices(surveyResponses, "liqueurs"), [surveyResponses]);
+  const surveyMixerTally = useMemo(() => tallyChoices(surveyResponses, "mixers"), [surveyResponses]);
+  const surveyNotes = useMemo(() => surveyResponses.filter(r => r.answers?.note?.trim()).map(r => ({ id: r.id, name: r.guest_name || "Gast", text: r.answers.note.trim() })), [surveyResponses]);
+  const addSurveyMixersToList = () => {
+    const entries = surveyMixerTally
+      .filter(m => m.like > 0 && !m.key.startsWith(CUSTOM_PREFIX))
+      .map(m => SURVEY_MIXERS.find(o => o.key === m.key)?.ids[0]).filter(Boolean)
+      .map(id => ({ ref: { id }, recipeNames: [] }));
+    if (entries.length === 0) return;
+    onAddToShoppingList(entries);
+    onSound("tick");
+    setMixersAdded(true);
+    setTimeout(() => setMixersAdded(false), 2000);
+  };
   const [surveyShareState, setSurveyShareState] = useState(null);
   const [creatingSurvey, setCreatingSurvey] = useState(false);
 
@@ -8724,13 +8760,6 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
 
             {surveyResponses.length > 0 && (
               <>
-                {surveyGroupPersonalityKey && GROUP_PERSONALITY[surveyGroupPersonalityKey] && (
-                  <div style={{ background: PAPER, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "12px 14px", marginBottom: 16 }}>
-                    <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 14.5, color: INK }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].title}</div>
-                    <div style={{ fontSize: 12, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{GROUP_PERSONALITY[surveyGroupPersonalityKey].text}</div>
-                  </div>
-                )}
-
                 <div style={{ marginBottom: 16 }}>
                   {SURVEY_TASTE_KEYS.map(key => {
                     const meta = TASTE_META[key];
@@ -8764,6 +8793,65 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
                   )}
                 </div>
 
+                {surveySpiritTally.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Sterke drank</div>
+                    {surveySpiritTally.slice(0, 8).map(t => (
+                      <div key={t.key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}>
+                        <span style={{ fontSize: 12, color: INK, width: 84, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.label}</span>
+                        <div style={{ flex: 1, height: 6, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
+                          <div style={{ height: "100%", borderRadius: 3, background: BRASS, width: `${Math.round((t.like / surveyResponses.length) * 100)}%` }} />
+                        </div>
+                        <span style={{ fontSize: 11, color: MUTED, width: 92, textAlign: "right", flexShrink: 0 }}>{t.like} lekker{t.dislike ? ` · ${t.dislike} niet` : ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {surveyLiqueurTally.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Likeuren en aperitieven</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {surveyLiqueurTally.map(t => (
+                        <span key={t.key} style={{ display: "inline-flex", alignItems: "center", background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: INK, fontWeight: 600 }}>
+                          {t.label}{t.like ? ` ${t.like}` : ""}{t.dislike ? <span style={{ color: BURGUNDY, marginLeft: 4 }}>({t.dislike} niet)</span> : null}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {surveyMixerTally.length > 0 && (
+                  <div style={{ background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "12px 14px", marginBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: INK }}>Mixers die gasten willen</div>
+                        <div style={{ fontSize: 12, color: MUTED, marginTop: 3, lineHeight: 1.45 }}>
+                          {surveyMixerTally.filter(t => t.like > 0).map(t => `${t.label.toLowerCase()} (${t.like})`).join(", ") || "nog geen"}
+                          {surveyMixerTally.some(t => t.dislike > 0) && <span style={{ color: BURGUNDY }}> · liever niet: {surveyMixerTally.filter(t => t.dislike > 0).map(t => t.label.toLowerCase()).join(", ")}</span>}
+                        </div>
+                      </div>
+                      {surveyMixerTally.some(t => t.like > 0 && !t.key.startsWith(CUSTOM_PREFIX)) && (
+                        <button onClick={addSurveyMixersToList} className="press-scale" style={{ flexShrink: 0, minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: BOTTLE_DARK, color: CREAM, fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                          {mixersAdded ? "Toegevoegd" : "Op inkooplijst"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {surveyNotes.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 4 }}>Opmerkingen voor jou</div>
+                    {surveyNotes.map(n => (
+                      <div key={n.id} style={{ padding: "8px 0", borderTop: `1px solid ${BORDER}` }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: INK }}>{n.name}</div>
+                        <div style={{ fontSize: 13, color: INK, lineHeight: 1.45, marginTop: 1, whiteSpace: "pre-wrap" }}>{n.text}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {SURVEY_TASTE_KEYS.some(k => surveyDislikeTotals[k] > 0) && (
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 11.5, fontWeight: 700, color: BURGUNDY, marginBottom: 8 }}>Waar gasten niet van houden</div>
@@ -8783,14 +8871,14 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {Object.entries(surveyDietaryTotals).map(([k, count]) => (
                         <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: INK, fontWeight: 600 }}>
-                          {DIETARY_META[k]?.emoji || "•"} {DIETARY_META[k]?.label || k} ({count})
+                          {DIETARY_META[k]?.label || k} ({count})
                         </span>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {surveySpiritTotals.length > 0 && (
+                {surveySpiritTotals.length > 0 && !surveyHasAnswers && (
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Favoriete sterkedrank</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -8842,7 +8930,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
                           )}
                           {warnings.length > 0 && (
                             <div title={warnings.join(", ")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 5, fontSize: 9.5, color: BURGUNDY, fontWeight: 700 }}>
-                              ⚠️ {warnings[0]}
+                              <AlertTriangle size={11} strokeWidth={2} aria-hidden="true" /> {warnings[0]}
                             </div>
                           )}
                           <div
@@ -8877,6 +8965,17 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
                             {(r.favorite_cocktail_ids || []).length > 0 && ` · favorieten: ${r.favorite_cocktail_ids.map(id => recipes.find(x => x.id === id)?.name).filter(Boolean).join(", ")}`}
                             {(r.dietary || []).length > 0 && ` · ${r.dietary.map(k => DIETARY_META[k]?.label || k).join(", ")}`}
                           </div>
+                          {r.answers && (() => {
+                            const groups = ["spirits", "liqueurs", "mixers"];
+                            const like = groups.flatMap(g => (r.answers[g]?.like || []).map(k => choiceLabel(g, k)));
+                            const dislike = groups.flatMap(g => (r.answers[g]?.dislike || []).map(k => choiceLabel(g, k)));
+                            return (
+                              <>
+                                {like.length > 0 && <div style={{ color: INK, marginTop: 3 }}>Lekker: {like.join(", ")}</div>}
+                                {dislike.length > 0 && <div style={{ color: BURGUNDY, marginTop: 2 }}>Liever niet: {dislike.join(", ")}</div>}
+                              </>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
@@ -8940,7 +9039,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
                         </div>
                         {warnings.length > 0 && (
                           <div title={warnings.join(", ")} style={{ fontSize: 10.5, color: BURGUNDY, fontWeight: 700, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            ⚠️ {warnings.join(" · ")}
+                            <AlertTriangle size={11} strokeWidth={2} style={{ verticalAlign: "-1px" }} aria-hidden="true" /> {warnings.join(" · ")}
                           </div>
                         )}
                       </div>
@@ -10090,6 +10189,7 @@ const DIETARY_META = {
   lactose: { emoji: "🥛", label: "Lactose-intolerant" },
   vegan: { emoji: "🌱", label: "Veganistisch" },
   glutenvrij: { emoji: "🌾", label: "Glutenvrij" },
+  rauw_ei: { emoji: "", label: "Geen rauw ei" },
 };
 
 // Gastvriendelijke, korte lijst i.p.v. de volledige, lange sterkedrank-lijst
