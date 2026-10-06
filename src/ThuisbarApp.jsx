@@ -10,7 +10,8 @@ import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { supabase } from "./supabaseClient";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
-import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf } from "./menuCard";
+import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, partyInfoQuery, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf, formatMenuDate } from "./menuCard";
+import { SURVEY_SPIRITS, SURVEY_LIQUEURS, SURVEY_MIXERS, SURVEY_TASTES, SURVEY_STYLES, SURVEY_STRENGTHS, SURVEY_ALLERGIES, CUSTOM_PREFIX, choiceLabel, emptyAnswers, legacyFieldsFromAnswers, ingredientPreferenceCounts, tallyChoices } from "./surveyOptions";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor } from "./native";
 import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
@@ -1242,288 +1243,369 @@ function GuestMenuView({ recipeIds }) {
   );
 }
 
-// Gastenkant van de smaaktest: geen account nodig (zelfde opzet als
-// GuestMenuView hierboven), zoekt de smaaktest op via het niet-raadbare id
-// in de link en schrijft één antwoord weg naar party_survey_responses.
+// Gastenkant van de smaaktest: geen account nodig. Eén vraag per scherm, in
+// dezelfde donkere stijl als de gedeelde menukaart, zonder emoji of
+// "persoonlijkheidstype". Eerst de naam, dan zeven korte vragen (elk over te
+// slaan). Zoekt de smaaktest op via het niet-raadbare id in de link en schrijft
+// één antwoord weg naar party_survey_responses: de nieuwe antwoorden in
+// `answers`, plus de oude velden zodat bestaande suggesties blijven werken.
+const SURVEY_GLASS_PATHS = {
+  rocks: ["M12 14h24l-2.5 26h-19z", "M18 24h10v10H18z"],
+  coupe: ["M8 12c0 9 7 14 16 14s16-5 16-14z", "M24 26v14", "M16 40h16"],
+  highball: ["M15 6h18l-2 36H17z", "M22 20h.01", "M26 28h.01", "M23 34h.01"],
+  martini: ["M7 8h34L24 26z", "M12 13h24", "M24 26v14", "M16 40h16"],
+  tiki: ["M16 6h16c0 6-4 8-4 14s5 8 5 14c0 4-4 8-9 8s-9-4-9-8c0-6 5-8 5-14s-4-8-4-14z", "M30 4l6-2"],
+  flute: ["M19 4h10l-1 20c0 3-2 5-4 5s-4-2-4-5z", "M24 29v11", "M18 40h12"],
+};
+function SurveyGlass({ kind, color }) {
+  return (
+    <svg width="44" height="44" viewBox="0 0 48 48" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {(SURVEY_GLASS_PATHS[kind] || []).map((d, i) => <path key={i} d={d} />)}
+    </svg>
+  );
+}
+
 function GuestSurveyView({ surveyId }) {
+  const C = MENU_COLORS;
+  useMatchBodyBackground(C.bg);
+  const party = useMemo(() => readPartyFromSearch(window.location.search), []);
   const [survey, setSurvey] = useState(undefined); // undefined = laden, null = niet gevonden
-  const [step, setStep] = useState(0); // 0..3, per vraag-groep
-  const [tags, setTags] = useState([]);
-  const [dislikeTags, setDislikeTags] = useState([]);
-  const [strength, setStrength] = useState(3);
-  const [alcoholFree, setAlcoholFree] = useState(false);
-  const [favoriteSpirit, setFavoriteSpirit] = useState(null);
-  const [favoriteCocktailIds, setFavoriteCocktailIds] = useState([]);
-  const [cocktailQuery, setCocktailQuery] = useState("");
-  const [dietary, setDietary] = useState([]);
+  const [step, setStep] = useState(0); // 0 = naam, 1..7 = vragen, 8 = bedankt
   const [guestName, setGuestName] = useState("");
+  const [answers, setAnswers] = useState(emptyAnswers);
+  const [customDrafts, setCustomDrafts] = useState({});
+  const [cocktailQuery, setCocktailQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
-  // Social proof: hoeveel gasten al vóór jou hebben ingevuld — puur om het
-  // invullen aantrekkelijker te maken, telt verder nergens in mee.
-  const [existingCount, setExistingCount] = useState(0);
+  const scrollTop = () => window.scrollTo(0, 0);
 
   useEffect(() => {
     let cancelled = false;
     supabase.from("party_surveys").select("id, title").eq("id", surveyId).maybeSingle()
       .then(({ data }) => { if (!cancelled) setSurvey(data || null); })
       .catch(() => { if (!cancelled) setSurvey(null); });
-    supabase.from("party_survey_responses").select("id", { count: "exact", head: true }).eq("survey_id", surveyId)
-      .then(({ count }) => { if (!cancelled && count != null) setExistingCount(count); })
-      .catch(() => {});
     return () => { cancelled = true; };
   }, [surveyId]);
 
-  const cocktailSuggestions = cocktailQuery.trim().length > 0
-    ? RECIPES.filter(r => r.name.toLowerCase().includes(cocktailQuery.trim().toLowerCase()) && !favoriteCocktailIds.includes(r.id)).slice(0, 6)
-    : [];
-  const addFavoriteCocktail = (id) => { setFavoriteCocktailIds(ids => [...ids, id]); setCocktailQuery(""); };
-  const removeFavoriteCocktail = (id) => setFavoriteCocktailIds(ids => ids.filter(x => x !== id));
+  const QUESTIONS = 7;
+  const go = (n) => { setStep(n); scrollTop(); };
 
-  const toggle = (setter) => (key) => setter(t => t.includes(key) ? t.filter(k => k !== key) : [...t, key]);
-  const toggleTag = toggle(setTags);
-  const toggleDislike = toggle(setDislikeTags);
-  const toggleDietary = toggle(setDietary);
-
-  const STEPS = 4;
-  const goNext = () => setStep(s => Math.min(STEPS - 1, s + 1));
-  const goBack = () => setStep(s => Math.max(0, s - 1));
+  // Drie standen per keuze: neutraal → lekker → liever niet → neutraal.
+  // Een zelf toegevoegde keuze verdwijnt bij de derde tik.
+  const stateOf = (group, key) => answers[group].like.includes(key) ? "like" : answers[group].dislike.includes(key) ? "dislike" : null;
+  const cycle = (group, key) => setAnswers(a => {
+    const g = a[group];
+    const like = g.like.filter(k => k !== key), dislike = g.dislike.filter(k => k !== key);
+    if (g.like.includes(key)) dislike.push(key);
+    else if (!g.dislike.includes(key)) like.push(key);
+    return { ...a, [group]: { like, dislike } };
+  });
+  const addCustom = (group) => {
+    const text = (customDrafts[group] || "").trim().slice(0, 40);
+    if (!text) return;
+    const key = CUSTOM_PREFIX + text;
+    setAnswers(a => a[group].like.includes(key) || a[group].dislike.includes(key) ? a
+      : { ...a, [group]: { like: [...a[group].like, key], dislike: a[group].dislike } });
+    setCustomDrafts(d => ({ ...d, [group]: "" }));
+  };
+  const toggleList = (field, key) => setAnswers(a => ({ ...a, [field]: a[field].includes(key) ? a[field].filter(k => k !== key) : [...a[field], key] }));
 
   const submit = async () => {
     if (submitting) return;
     setSubmitting(true);
     setError(null);
-    const { error: err } = await supabase.from("party_survey_responses").insert({
-      survey_id: surveyId,
-      guest_name: guestName.trim() || null,
-      taste_tags: tags,
-      dislike_tags: dislikeTags,
-      strength,
-      alcohol_free: alcoholFree,
-      favorite_spirit: favoriteSpirit,
-      favorite_cocktail_ids: favoriteCocktailIds,
-      dietary,
-    });
+    const base = { survey_id: surveyId, guest_name: guestName.trim() || null, ...legacyFieldsFromAnswers(answers) };
+    let { error: err } = await supabase.from("party_survey_responses").insert({ ...base, answers });
+    // Zolang de migratie voor `answers` niet gedraaid is: dan alleen de oude velden.
+    if (err && /answers/i.test(err.message || "")) ({ error: err } = await supabase.from("party_survey_responses").insert(base));
     setSubmitting(false);
     if (err) { setError("Versturen is niet gelukt. Probeer het nog eens."); return; }
-    setSubmitted(true);
+    go(QUESTIONS + 1);
   };
 
-  // Klein bedankje-op-maat: dezelfde persoonlijkheidstypering die ingelogde
-  // gebruikers over hun eigen check-ins krijgen, hier voor de gast zelf op
-  // basis van hun eigen keuzes — puur leuk, telt niet mee in de resultaten.
-  const myPersonalityKey = tags[0] || (strength >= 4 ? "sterk" : null);
-  const myPersonality = myPersonalityKey ? PERSONALITY[myPersonalityKey] : null;
-
-  const progressDots = (
-    <div style={{ display: "flex", gap: 6, marginBottom: 22 }}>
-      {Array.from({ length: STEPS }).map((_, i) => (
-        <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= step ? BRASS : BORDER }} />
-      ))}
-    </div>
-  );
-
-  const NavButtons = ({ onSubmitStep }) => (
-    <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
-      {step > 0 && (
-        <button onClick={goBack} style={{
-          padding: "13px 18px", borderRadius: 14, border: `1px solid ${BORDER}`, background: "none",
-          color: INK, fontSize: 14, fontWeight: 700, cursor: "pointer",
-        }}>
-          Terug
-        </button>
-      )}
-      <button onClick={onSubmitStep} disabled={submitting} className="press-scale" style={{
-        flex: 1, padding: "13px 18px", borderRadius: 14, border: "none",
-        background: BOTTLE_DARK,
-        color: CREAM, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
-      }}>
-        {step < STEPS - 1 ? "Volgende" : submitting ? "Bezig…" : "Versturen"}
+  const serifH = (size) => ({ fontFamily: MENU_SERIF, fontWeight: 500, fontSize: size, lineHeight: 1.2, color: C.text, margin: 0 });
+  const chipStyle = (state) => ({
+    display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44, padding: "0 16px", borderRadius: 100,
+    fontFamily: MENU_SANS, fontSize: 15, cursor: "pointer",
+    ...(state === "like" ? { background: "rgba(198,161,91,0.16)", border: `1px solid ${C.gold}`, color: C.text }
+      : state === "dislike" ? { background: "transparent", border: "1px dashed #4A5C56", color: C.subtle }
+      : { background: "transparent", border: "1px solid #2E423C", color: C.body }),
+  });
+  const choiceChip = (group, k, label) => {
+    const state = stateOf(group, k);
+    return (
+      <button key={group + k} type="button" onClick={() => cycle(group, k)} aria-pressed={state === "like"} style={chipStyle(state)}
+        aria-label={`${label}${state === "like" ? ", lekker" : state === "dislike" ? ", liever niet" : ""}`}>
+        {state === "like" && <Check size={15} color={C.gold} strokeWidth={2.4} />}
+        {state === "dislike" && <X size={14} color={C.subtle} strokeWidth={2} />}
+        <span style={{ textDecoration: state === "dislike" ? "line-through" : "none" }}>{label}</span>
       </button>
-    </div>
-  );
-
-  return (
-    <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
-      <div style={{ background: `radial-gradient(ellipse 900px 300px at 15% -40%, #2A4B42, ${BOTTLE_DARK} 70%)`, borderBottom: `3px solid ${BRASS}`, padding: "calc(env(safe-area-inset-top) + 26px) 20px 24px" }}>
-        <div style={{ maxWidth: 560, margin: "0 auto", display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", flexShrink: 0 }}>
-            <Martini color={BRASS} size={24} strokeWidth={1.5} />
-          </div>
-          <div>
-            <h1 style={{ fontFamily: systemFont, fontSize: 22, fontWeight: 700, color: CREAM, margin: 0 }}>Smaaktest</h1>
-            <p style={{ margin: "3px 0 0", fontSize: 12, color: "#B9C4B9" }}>{survey?.title ? `Voor ${survey.title}` : "Gedeeld vanuit Mijn Thuisbar"}</p>
-          </div>
+    );
+  };
+  const choiceGroup = (group, options) => {
+    const customs = [...answers[group].like, ...answers[group].dislike].filter(k => k.startsWith(CUSTOM_PREFIX));
+    return (
+      <>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {options.map(o => choiceChip(group, o.key, o.label))}
+          {customs.map(k => choiceChip(group, k, k.slice(CUSTOM_PREFIX.length)))}
         </div>
+      </>
+    );
+  };
+  const customInput = (group, label) => (
+    <>
+      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <input value={customDrafts[group] || ""} onChange={e => setCustomDrafts(d => ({ ...d, [group]: e.target.value }))}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(group); } }}
+          placeholder="Iets anders? Typ het hier" aria-label={label} maxLength={40} enterKeyHint="done"
+          style={{ flex: 1, minWidth: 0, height: 46, boxSizing: "border-box", padding: "0 16px", borderRadius: 100, border: "1px solid #2E423C", background: "#142A24", color: C.text, fontSize: 16, fontFamily: MENU_SANS, outline: "none" }} />
+        <button type="button" onClick={() => addCustom(group)} aria-label="Toevoegen" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, flexShrink: 0, borderRadius: "50%", border: `1px solid ${C.gold}`, background: "transparent", color: C.gold, cursor: "pointer" }}>
+          <Plus size={18} />
+        </button>
       </div>
+      <p style={{ fontSize: 12.5, color: C.subtle, margin: "8px 0 0" }}>Wat je toevoegt, verschijnt als keuze en staat meteen op lekker.</p>
+    </>
+  );
+  const intro = (title, text) => (
+    <>
+      <h2 style={{ ...serifH(30), marginBottom: 8 }}>{title}</h2>
+      {text && <p style={{ fontSize: 14.5, lineHeight: 1.5, color: C.body, margin: "0 0 22px" }}>{text}</p>}
+    </>
+  );
+  const TAP_HINT = "Tik één keer voor lekker, twee keer voor liever niet.";
+  const subLabel = { fontSize: 12, letterSpacing: 1, color: C.subtle, margin: "0 0 10px" };
 
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "26px 20px calc(env(safe-area-inset-bottom) + 50px)" }}>
-        {survey === undefined ? (
-          <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "40px 0" }}>Bezig met laden…</p>
-        ) : survey === null ? (
-          <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "40px 0" }}>Dit linkje lijkt niet (meer) geldig.</p>
-        ) : submitted ? (
-          <div style={{ textAlign: "center", padding: "40px 20px" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🥂</div>
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, marginBottom: 8 }}>Bedankt!</div>
-            <p style={{ color: MUTED, fontSize: 13.5, lineHeight: 1.5, marginBottom: myPersonality ? 22 : 0 }}>Je voorkeuren zijn doorgegeven. De gastheer stelt hiermee het menu samen.</p>
-            {myPersonality && (
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: 18, textAlign: "left" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
-                  <span style={{ fontSize: 22 }}>{myPersonality.emoji}</span>
-                  <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 15, color: "#8F6A21" }}>{myPersonality.title}</span>
-                </div>
-                <p style={{ margin: 0, fontSize: 12.5, color: "#5C5548", fontStyle: "italic", lineHeight: 1.5 }}>Jouw type voor vanavond, gebaseerd op wat je net invulde.</p>
-              </div>
-            )}
-          </div>
-        ) : (
+  const cocktailSuggestions = cocktailQuery.trim().length > 0
+    ? RECIPES.filter(r => r.name.toLowerCase().includes(cocktailQuery.trim().toLowerCase()) && !answers.favorites.includes(r.id)).slice(0, 6)
+    : [];
+
+  const partyTitle = party.title || survey?.title || "Smaaktest";
+  const partyLine = partySubtitle(party);
+
+  // Samenvatting voor het bedankscherm.
+  const summaryRows = [
+    ["Lekker", ["spirits", "liqueurs", "mixers"].flatMap(g => answers[g].like.map(k => choiceLabel(g, k)))],
+    ["Liever niet", ["spirits", "liqueurs", "mixers"].flatMap(g => answers[g].dislike.map(k => choiceLabel(g, k)))],
+    ["Smaken", answers.tastes.like.map(k => choiceLabel("tastes", k))],
+    ["Soort", answers.styles.map(k => SURVEY_STYLES.find(s => s.key === k)?.label.toLowerCase()).filter(Boolean)],
+    ["Sterkte", answers.strength ? [SURVEY_STRENGTHS.find(s => s.key === answers.strength)?.label] : []],
+    ["Allergie", answers.allergies.map(k => SURVEY_ALLERGIES.find(s => s.key === k)?.label.toLowerCase())],
+    ["Favorieten", answers.favorites.map(id => RECIPES.find(r => r.id === id)?.name).filter(Boolean)],
+  ].filter(([, v]) => v.length > 0);
+
+  const primaryBtn = { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 54, borderRadius: 100, border: "none", background: C.gold, color: C.bg, fontFamily: MENU_SANS, fontSize: 16, fontWeight: 700, cursor: "pointer" };
+  const page = { background: C.bg, minHeight: "100vh", color: C.text, fontFamily: MENU_SANS };
+  const column = { maxWidth: 480, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 40px) 24px calc(env(safe-area-inset-bottom) + 28px)", minHeight: "100vh", boxSizing: "border-box", display: "flex", flexDirection: "column" };
+
+  if (survey === undefined || survey === null) {
+    return (
+      <div style={page}><div style={{ ...column, justifyContent: "center", textAlign: "center" }}>
+        <p style={{ color: C.subtle, fontSize: 15 }}>{survey === undefined ? "Bezig met laden…" : "Dit linkje lijkt niet (meer) geldig."}</p>
+      </div></div>
+    );
+  }
+
+  // ---------- Stap 0: naam ----------
+  if (step === 0) {
+    const canStart = guestName.trim().length > 0;
+    return (
+      <div style={page}><div style={{ ...column, textAlign: "center", paddingTop: "calc(env(safe-area-inset-top) + 60px)" }}>
+        <Martini size={26} color={C.gold} strokeWidth={1.5} style={{ display: "block", margin: "0 auto 18px" }} aria-hidden="true" />
+        <h1 style={{ ...serifH(40), lineHeight: 1.12, marginBottom: 10, overflowWrap: "anywhere" }}>{partyTitle}</h1>
+        {partyLine && <p style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.body, margin: 0 }}>{partyLine}</p>}
+        <div style={{ height: 1, background: C.gold, opacity: 0.45, margin: "30px 0 22px" }} />
+        <div style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.gold, marginBottom: 10 }}>Smaaktest</div>
+        <p style={{ fontSize: 15.5, lineHeight: 1.55, color: C.body, margin: "0 0 34px" }}>Een paar korte vragen over wat je graag drinkt. Duurt ongeveer een minuut, en je kunt elke vraag overslaan.</p>
+        <label htmlFor="survey-naam" style={{ ...serifH(26), marginBottom: 14 }}>Hoe heet je?</label>
+        <input id="survey-naam" value={guestName} onChange={e => setGuestName(e.target.value)} autoComplete="given-name" maxLength={40}
+          onKeyDown={e => { if (e.key === "Enter" && canStart) go(1); }} enterKeyHint="next"
+          style={{ boxSizing: "border-box", width: "100%", height: 56, borderRadius: 14, border: `1px solid ${canStart ? C.gold : "#2E423C"}`, background: "#142A24", color: C.text, fontSize: 19, textAlign: "center", fontFamily: MENU_SANS, outline: "none" }} />
+        <p style={{ fontSize: 13, color: C.subtle, margin: "10px 0 0" }}>Zo weet de host wie wat heeft ingevuld.</p>
+        <div style={{ flex: 1, minHeight: 30 }} />
+        <button onClick={() => go(1)} disabled={!canStart} style={{ ...primaryBtn, opacity: canStart ? 1 : 0.4, cursor: canStart ? "pointer" : "default" }}>Beginnen</button>
+      </div></div>
+    );
+  }
+
+  // ---------- Bedankt ----------
+  if (step > QUESTIONS) {
+    return (
+      <div style={page}><div style={{ ...column, textAlign: "center", paddingTop: "calc(env(safe-area-inset-top) + 70px)" }}>
+        <Martini size={26} color={C.gold} strokeWidth={1.5} style={{ display: "block", margin: "0 auto 18px" }} aria-hidden="true" />
+        <h1 style={{ ...serifH(38), lineHeight: 1.15, marginBottom: 10 }}>Bedankt, {guestName.trim()}</h1>
+        <p style={{ fontSize: 15.5, lineHeight: 1.55, color: C.body, margin: 0 }}>
+          Je antwoorden zijn naar de host gestuurd.{party.startsAt ? ` Tot ${formatMenuDate(party.startsAt)}.` : ""}
+        </p>
+        {summaryRows.length > 0 && (
           <>
-            {progressDots}
-
-            {step === 0 && (
-              <>
-                <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 20px" }}>
-                  Kost je hooguit een minuutje. De gastheer gebruikt dit om een cocktailmenu samen te stellen dat bij de groep past.
-                  {existingCount > 0 && ` ${existingCount} ${existingCount === 1 ? "gast vulde" : "gasten vulden"} 'm al in.`}
-                </p>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Waar houd je van?</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
-                  {SURVEY_TASTE_KEYS.map(key => {
-                    const meta = TASTE_META[key];
-                    const active = tags.includes(key);
-                    return (
-                      <button key={key} onClick={() => toggleTag(key)} className="press-scale" style={{
-                        display: "flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 100,
-                        border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
-                        background: active ? BRASS : CREAM,
-                        color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
-                      }}>
-                        {meta.emoji} {meta.label}
-                      </button>
-                    );
-                  })}
+            <div style={{ height: 1, background: C.gold, opacity: 0.45, margin: "30px 0 20px" }} />
+            <div style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.gold, marginBottom: 16 }}>Wat je hebt ingevuld</div>
+            <div style={{ textAlign: "left" }}>
+              {summaryRows.map(([label, values]) => (
+                <div key={label} style={{ display: "flex", gap: 14, padding: "11px 0", borderTop: `1px solid ${C.divider}` }}>
+                  <span style={{ width: 96, flexShrink: 0, fontSize: 13.5, color: C.subtle }}>{label}</span>
+                  <span style={{ fontSize: 14.5, lineHeight: 1.45, color: C.text }}>{values.join(", ")}</span>
                 </div>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Hoe sterk mag het zijn?</div>
-                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "16px 18px" }}>
-                  <input type="range" min="1" max="5" value={strength} onChange={e => setStrength(Number(e.target.value))}
-                    style={{ width: "100%", accentColor: BRASS }} />
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: MUTED, marginTop: 4 }}>
-                    <span>Licht</span><span>Sterk</span>
-                  </div>
-                </div>
-                <NavButtons onSubmitStep={goNext} />
-              </>
-            )}
-
-            {step === 1 && (
-              <>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Waar houd je liever niet van?</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
-                  {SURVEY_TASTE_KEYS.map(key => {
-                    const meta = TASTE_META[key];
-                    const active = dislikeTags.includes(key);
-                    return (
-                      <button key={key} onClick={() => toggleDislike(key)} className="press-scale" style={{
-                        display: "flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 100,
-                        border: active ? `1.5px solid ${BURGUNDY}` : `1.5px solid ${BORDER}`,
-                        background: active ? BURGUNDY : CREAM,
-                        color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
-                      }}>
-                        {meta.emoji} {meta.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <label style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, padding: "14px 16px", cursor: "pointer" }}>
-                  <Switch checked={alcoholFree} onChange={setAlcoholFree} />
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>Ik drink liever alcoholvrij</span>
-                </label>
-                <NavButtons onSubmitStep={goNext} />
-              </>
-            )}
-
-            {step === 2 && (
-              <>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Favoriete drank?</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
-                  {FAVORITE_SPIRIT_OPTIONS.map(opt => {
-                    const active = favoriteSpirit === opt.key;
-                    return (
-                      <button key={opt.key} onClick={() => setFavoriteSpirit(active ? null : opt.key)} className="press-scale" style={{
-                        padding: "9px 15px", borderRadius: 100,
-                        border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
-                        background: active ? BRASS : CREAM,
-                        color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
-                      }}>
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Cocktails die je lekker vindt?</div>
-                {favoriteCocktailIds.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-                    {favoriteCocktailIds.map(id => {
-                      const r = RECIPES.find(x => x.id === id);
-                      if (!r) return null;
-                      return (
-                        <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: BRASS, color: CREAM, borderRadius: 100, padding: "6px 8px 6px 13px", fontSize: 12.5, fontWeight: 600 }}>
-                          {r.name}
-                          <button onClick={() => removeFavoriteCocktail(id)} aria-label="Verwijderen" style={{ background: "rgba(255,255,255,0.25)", border: "none", borderRadius: "50%", width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: CREAM, padding: 0 }}>
-                            <X size={10} strokeWidth={3} />
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-                <div style={{ position: "relative" }}>
-                  <input value={cocktailQuery} onChange={e => setCocktailQuery(e.target.value)} placeholder="Typ om te zoeken, tik meerdere aan" style={fieldStyle()} />
-                  {cocktailSuggestions.length > 0 && (
-                    <div style={{ position: "absolute", left: 0, right: 0, top: "calc(100% + 4px)", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 12, boxShadow: SHADOW_CARD, zIndex: 5, overflow: "hidden" }}>
-                      {cocktailSuggestions.map(r => (
-                        <button key={r.id} onClick={() => addFavoriteCocktail(r.id)} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", borderTop: `1px solid ${BORDER}`, fontSize: 13.5, color: INK, cursor: "pointer", fontFamily: sans }}>
-                          {r.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <NavButtons onSubmitStep={goNext} />
-              </>
-            )}
-
-            {step === 3 && (
-              <>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 10 }}>Dieetwensen of allergieën?</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
-                  {Object.keys(DIETARY_META).map(key => {
-                    const meta = DIETARY_META[key];
-                    const active = dietary.includes(key);
-                    return (
-                      <button key={key} onClick={() => toggleDietary(key)} className="press-scale" style={{
-                        display: "flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 100,
-                        border: active ? `1.5px solid ${BRASS}` : `1.5px solid ${BORDER}`,
-                        background: active ? BRASS : CREAM,
-                        color: active ? CREAM : INK, fontSize: 13.5, fontFamily: sans, fontWeight: 600, cursor: "pointer",
-                      }}>
-                        {meta.emoji} {meta.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <label style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 6 }}>Je naam (optioneel)</label>
-                <input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Zodat de gastheer weet wie er reageerde" autoCapitalize="words" style={fieldStyle()} />
-                {error && <p style={{ color: BURGUNDY, fontSize: 13, marginTop: 14, marginBottom: 0 }}>{error}</p>}
-                <NavButtons onSubmitStep={submit} />
-              </>
-            )}
+              ))}
+            </div>
           </>
         )}
+        <div style={{ flex: 1, minHeight: 30 }} />
+        <button onClick={() => go(1)} style={{ ...primaryBtn, background: "transparent", border: `1.5px solid ${C.gold}`, color: C.gold, height: 50, fontWeight: 600 }}>Antwoorden aanpassen</button>
+      </div></div>
+    );
+  }
+
+  // ---------- Vragen 1..7 ----------
+  const isLast = step === QUESTIONS;
+  return (
+    <div style={page}><div style={column}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 44, marginBottom: 22 }}>
+        <button onClick={() => go(step - 1)} aria-label="Terug" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginLeft: -10, background: "none", border: "none", color: C.body, cursor: "pointer" }}>
+          <ChevronLeft size={22} strokeWidth={1.8} />
+        </button>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }} aria-hidden="true">
+          {Array.from({ length: QUESTIONS }).map((_, i) => (
+            <span key={i} style={i + 1 === step ? { width: 18, height: 6, borderRadius: 3, background: C.gold }
+              : { width: 6, height: 6, borderRadius: "50%", background: i + 1 < step ? C.gold : "#2E423C", opacity: i + 1 < step ? 0.55 : 1 }} />
+          ))}
+        </div>
+        <span style={{ width: 44, fontSize: 13, color: C.subtle, textAlign: "right" }}>{step}/{QUESTIONS}</span>
       </div>
-    </div>
+
+      {step === 1 && (<>
+        {intro("Welke sterke drank vind je lekker?", TAP_HINT)}
+        {choiceGroup("spirits", SURVEY_SPIRITS)}
+        {customInput("spirits", "Zelf een sterke drank toevoegen")}
+      </>)}
+
+      {step === 2 && (<>
+        {intro("En likeuren of aperitieven?", TAP_HINT)}
+        {choiceGroup("liqueurs", SURVEY_LIQUEURS)}
+        {customInput("liqueurs", "Zelf een likeur toevoegen")}
+      </>)}
+
+      {step === 3 && (<>
+        {intro("Waar drink je het graag mee?", `Frisdranken, sappen en bubbels. ${TAP_HINT}`)}
+        <div style={subLabel}>BRUISEND</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
+          {SURVEY_MIXERS.filter(m => m.group === "bruisend").map(o => choiceChip("mixers", o.key, o.label))}
+        </div>
+        <div style={subLabel}>SAP EN OVERIG</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {SURVEY_MIXERS.filter(m => m.group === "sap").map(o => choiceChip("mixers", o.key, o.label))}
+          {[...answers.mixers.like, ...answers.mixers.dislike].filter(k => k.startsWith(CUSTOM_PREFIX)).map(k => choiceChip("mixers", k, k.slice(1)))}
+        </div>
+        {customInput("mixers", "Zelf een mixer toevoegen")}
+      </>)}
+
+      {step === 4 && (<>
+        {intro("Welke smaken spreken je aan?", TAP_HINT)}
+        {choiceGroup("tastes", SURVEY_TASTES)}
+        {customInput("tastes", "Zelf een smaak toevoegen")}
+      </>)}
+
+      {step === 5 && (<>
+        {intro("Wat voor drankje past bij jou?", "Kies er zoveel als je wilt.")}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+          {SURVEY_STYLES.map(s => {
+            const on = answers.styles.includes(s.key);
+            return (
+              <button key={s.key} type="button" onClick={() => toggleList("styles", s.key)} aria-pressed={on} style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "18px 10px 14px", borderRadius: 16,
+                border: `1px solid ${on ? C.gold : "#2E423C"}`, background: on ? "rgba(198,161,91,0.12)" : "transparent",
+                color: C.body, fontFamily: MENU_SANS, cursor: "pointer",
+              }}>
+                <SurveyGlass kind={s.glass} color={on ? C.gold : C.body} />
+                <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{s.label}</span>
+                <span style={{ fontSize: 12.5 }}>{s.example}</span>
+              </button>
+            );
+          })}
+        </div>
+      </>)}
+
+      {step === 6 && (<>
+        <h2 style={{ ...serifH(30), marginBottom: 18 }}>Hoe sterk mag het zijn?</h2>
+        {SURVEY_STRENGTHS.map(s => {
+          const on = answers.strength === s.key;
+          return (
+            <button key={s.key} type="button" onClick={() => setAnswers(a => ({ ...a, strength: on ? null : s.key }))} aria-pressed={on} style={{
+              display: "flex", alignItems: "center", gap: 12, minHeight: 54, padding: "0 16px", marginBottom: 8, borderRadius: 14,
+              border: `1px solid ${on ? C.gold : "#2E423C"}`, background: on ? "rgba(198,161,91,0.12)" : "transparent",
+              color: C.text, fontFamily: MENU_SANS, cursor: "pointer", width: "100%",
+            }}>
+              <span style={{ display: "inline-flex", gap: 4, width: 34 }} aria-hidden="true">
+                {[1, 2, 3].map(n => <span key={n} style={{ width: 7, height: 7, borderRadius: "50%", background: n <= s.level ? C.gold : "#2E423C" }} />)}
+              </span>
+              <span style={{ flex: 1, textAlign: "left", fontSize: 16 }}>{s.label}</span>
+              <span style={{ fontSize: 13, color: C.subtle }}>{s.hint}</span>
+            </button>
+          );
+        })}
+        <h3 style={{ ...serifH(22), margin: "30px 0 6px" }}>Allergieën of liever niet?</h3>
+        <p style={{ fontSize: 14, lineHeight: 1.5, color: C.body, margin: "0 0 14px" }}>De host houdt er rekening mee bij het menu.</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {SURVEY_ALLERGIES.map(o => {
+            const on = answers.allergies.includes(o.key);
+            return (
+              <button key={o.key} type="button" onClick={() => toggleList("allergies", o.key)} aria-pressed={on} style={chipStyle(on ? "like" : null)}>
+                {on && <Check size={15} color={C.gold} strokeWidth={2.4} />}{o.label}
+              </button>
+            );
+          })}
+        </div>
+      </>)}
+
+      {step === 7 && (<>
+        {intro("Heb je favoriete cocktails?", "Zoek en tik aan. Hoeft niet.")}
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, height: 50, padding: "0 14px", borderRadius: 14, border: "1px solid #2E423C", background: "#142A24" }}>
+            <Search size={18} color={C.subtle} />
+            <input value={cocktailQuery} onChange={e => setCocktailQuery(e.target.value)} placeholder="Zoek een cocktail" aria-label="Zoek een cocktail"
+              style={{ flex: 1, minWidth: 0, border: "none", background: "transparent", color: C.text, fontSize: 16, fontFamily: MENU_SANS, outline: "none" }} />
+          </div>
+          {cocktailSuggestions.length > 0 && (
+            <div style={{ marginTop: 6, borderRadius: 14, border: "1px solid #2E423C", background: "#142A24", overflow: "hidden" }}>
+              {cocktailSuggestions.map(r => (
+                <button key={r.id} type="button" onClick={() => { setAnswers(a => ({ ...a, favorites: [...a.favorites, r.id] })); setCocktailQuery(""); }} style={{
+                  display: "block", width: "100%", minHeight: 44, padding: "10px 14px", textAlign: "left", background: "none", border: "none",
+                  borderBottom: `1px solid ${C.divider}`, color: C.text, fontFamily: MENU_SERIF, fontSize: 16, cursor: "pointer",
+                }}>{r.name}</button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 30 }}>
+          {answers.favorites.map(id => (
+            <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: 40, padding: "0 4px 0 14px", borderRadius: 100, border: `1px solid ${C.gold}`, background: "rgba(198,161,91,0.16)", fontSize: 15 }}>
+              <span style={{ fontFamily: MENU_SERIF, fontWeight: 500 }}>{RECIPES.find(r => r.id === id)?.name}</span>
+              <button type="button" aria-label="Verwijderen" onClick={() => setAnswers(a => ({ ...a, favorites: a.favorites.filter(x => x !== id) }))} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, border: "none", background: "transparent", color: C.body, cursor: "pointer" }}>
+                <X size={14} />
+              </button>
+            </span>
+          ))}
+        </div>
+        <label htmlFor="survey-opmerking" style={{ ...serifH(22), marginBottom: 6 }}>Nog iets wat de host moet weten?</label>
+        <p style={{ fontSize: 14, lineHeight: 1.5, color: C.body, margin: "0 0 12px" }}>Bijvoorbeeld dat je zwanger bent, rijdt of iets echt niet lust.</p>
+        <textarea id="survey-opmerking" rows={4} maxLength={300} value={answers.note} onChange={e => setAnswers(a => ({ ...a, note: e.target.value }))} style={{
+          boxSizing: "border-box", width: "100%", padding: 14, borderRadius: 14, border: "1px solid #2E423C", background: "#142A24",
+          color: C.text, fontSize: 16, lineHeight: 1.5, fontFamily: MENU_SANS, resize: "none", outline: "none",
+        }} />
+        {error && <p style={{ color: "#E8A49C", fontSize: 14, margin: "12px 0 0" }}>{error}</p>}
+      </>)}
+
+      <div style={{ flex: 1, minHeight: 28 }} />
+      {isLast ? (
+        <button onClick={submit} disabled={submitting} style={primaryBtn}>{submitting ? "Bezig…" : "Versturen"}</button>
+      ) : (
+        <>
+          <button onClick={() => go(step + 1)} style={primaryBtn}>Volgende</button>
+          <button onClick={() => go(step + 1)} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 44, marginTop: 6, background: "none", border: "none", color: C.subtle, fontFamily: MENU_SANS, fontSize: 14.5, cursor: "pointer" }}>Overslaan</button>
+        </>
+      )}
+    </div></div>
   );
 }
 
@@ -8244,7 +8326,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
   const shareSurvey = async () => {
     if (!survey) return;
     onSound("share");
-    const result = await shareLink({ title: "Mijn Thuisbar: smaaktest", text: "Vul even je cocktailvoorkeuren in voor het feest!", url: publicAppUrl(`smaaktest=${survey.id}`) });
+    const result = await shareLink({ title: "Mijn Thuisbar: smaaktest", text: "Vul even je cocktailvoorkeuren in voor het feest!", url: publicAppUrl(`smaaktest=${survey.id}&${partyInfoQuery({ title: party.name, host: (hostName || "").split(" ")[0], startsAt: party.starts_at })}`.replace(/&$/, "")) });
     if (result === "cancelled") return;
     setSurveyShareState(result);
     setTimeout(() => setSurveyShareState(null), result === "failed" ? 8000 : 2500);

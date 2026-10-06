@@ -240,6 +240,14 @@ export function partyMenuQuery({ ids, title, host, startsAt, address, image }) {
   if (image) p.set("i", image); // linkvoorbeeld-afbeelding (zie netlify/edge-functions/menu-og.js)
   return p.toString().replace(/%2C/g, ",");
 }
+// Alleen de feestgegevens (voor de smaaktestlink: ?smaaktest=…&t=…&h=…&d=…).
+export function partyInfoQuery({ title, host, startsAt }) {
+  const p = new URLSearchParams();
+  if (title) p.set("t", title);
+  if (host) p.set("h", host);
+  if (startsAt) p.set("d", startsAt);
+  return p.toString();
+}
 export function readPartyFromSearch(search) {
   const p = new URLSearchParams(search);
   const d = p.get("d");
