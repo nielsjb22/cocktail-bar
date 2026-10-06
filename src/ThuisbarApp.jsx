@@ -4,11 +4,13 @@ import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
+import { CalendarDays, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { supabase } from "./supabaseClient";
+import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
+import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, formatMenuDate, formatMenuTime } from "./menuCard";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor } from "./native";
 import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
@@ -1141,96 +1143,100 @@ function SplashScreen({ onDone }) {
   );
 }
 
-// Alleen ingebouwde recepten kunnen worden gedeeld: een gedeelde link heeft geen
-// toegang tot de custom recepten die in de localStorage van de gastheer staan
-// (die leven alleen op dat ene apparaat), dus we vallen terug op de statische lijst.
+// Gedeelde menukaart (de link die gasten krijgen): donker, gecentreerd, zonder
+// kaders. Het menu ligt vast; gasten kiezen niets. Feestnaam, host, datum en
+// (optioneel) adres staan in de link zelf — zie partyMenuQuery in menuCard.js.
+// Alleen ingebouwde recepten kunnen worden gedeeld: eigen recepten van de host
+// leven alleen op diens toestel, dus die vallen hier weg.
 function GuestMenuView({ recipeIds }) {
-  const menuRecipes = recipeIds.map(id => RECIPES.find(r => r.id === id)).filter(Boolean);
-  const skipped = recipeIds.length - menuRecipes.length;
+  const C = MENU_COLORS;
+  useMatchBodyBackground(C.bg);
+  const party = useMemo(() => readPartyFromSearch(window.location.search), []);
+  const items = useMemo(() => recipeIds
+    .map(id => RECIPES.find(r => r.id === id)).filter(Boolean)
+    .map(r => menuCocktailInfo(r, INGREDIENTS, getTasteProfile(r, INGREDIENTS))), [recipeIds]);
+  const skipped = recipeIds.length - items.length;
+  const subtitle = partySubtitle(party);
+
+  const addToCalendar = async () => {
+    const ics = buildIcs({
+      title: party.title || "Cocktailavond", startsAt: party.startsAt, address: party.address,
+      description: items.length ? `Op de kaart: ${items.map(i => i.name).join(", ")}` : "", url: window.location.href,
+    });
+    const filename = `${(party.title || "feest").replace(/[^\w-]+/g, "-").toLowerCase()}.ics`;
+    if (isNativeShell) {
+      try {
+        const { uri } = await Filesystem.writeFile({ path: filename, data: ics, directory: Directory.Cache, encoding: Encoding.UTF8 });
+        await Share.share({ title: party.title, files: [uri] });
+      } catch { /* geannuleerd of niet beschikbaar */ }
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
 
   return (
-    <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
-      <div style={{ background: `radial-gradient(ellipse 900px 300px at 15% -40%, #2A4B42, ${BOTTLE_DARK} 70%)`, borderBottom: `3px solid ${BRASS}`, padding: "calc(env(safe-area-inset-top) + 26px) 20px 24px" }}>
-        <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", flexShrink: 0 }}>
-            <Martini color={BRASS} size={24} strokeWidth={1.5} />
-          </div>
-          <div>
-            <h1 style={{ fontFamily: systemFont, fontSize: 24, fontWeight: 700, color: CREAM, margin: 0 }}>Het menu van vanavond</h1>
-            <p style={{ margin: "3px 0 0", fontSize: 12, color: "#B9C4B9" }}>Gedeeld vanuit Mijn Thuisbar</p>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "26px 20px calc(env(safe-area-inset-bottom) + 50px)" }}>
-        {menuRecipes.length === 0 && (
-          <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "40px 0" }}>Dit menu-linkje lijkt niet (meer) geldig.</p>
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: MENU_SANS, textAlign: "center" }}>
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 48px) 24px calc(env(safe-area-inset-bottom) + 48px)" }}>
+        <Martini size={26} color={C.gold} strokeWidth={1.5} style={{ display: "block", margin: "0 auto 18px" }} aria-hidden="true" />
+        <h1 style={{ fontFamily: MENU_SERIF, fontWeight: 500, fontSize: 42, lineHeight: 1.12, margin: "0 0 10px", color: C.text, overflowWrap: "anywhere" }}>
+          {party.title || "Het menu van vanavond"}
+        </h1>
+        {subtitle && (
+          <p style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.body, margin: "0 0 6px" }}>{subtitle}</p>
         )}
-        {menuRecipes.map((r, idx) => {
-          const role = getMenuRole(r);
-          const roleInfo = MENU_ROLES[role];
-          const garnishes = inferGarnishes(r, INGREDIENTS);
-          const funFact = getFunFact(r);
-          const profile = getTasteProfile(r, INGREDIENTS);
-          return (
-            <div key={r.id} style={{
-              borderRadius: RADIUS + 4, padding: "20px 22px", marginBottom: 16, position: "relative",
-              background: PAPER_DEEP, border: `1px solid ${BORDER}`, boxShadow: SHADOW_CARD,
-            }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
-                <div style={{ flex: "0 0 auto" }}>
-                  <ItemImage id={r.id} type="cocktail" photoUrl={r.image} size={72} radius={14} filter={RECIPE_PHOTO_FILTER} fallback={
-                    <GlassArt glass={r.glass} colors={getLiquidColor(r, INGREDIENTS)} garnishes={garnishes} rim={inferRim(r, INGREDIENTS)} foam={inferFoam(r, INGREDIENTS)} iceStyle={inferIceStyle(r)} plinth size={72} />
-                  } />
-                </div>
-                <div style={{ minWidth: 0, paddingTop: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontFamily: systemFont, fontSize: 12, color: BRASS }}>No. {String(idx + 1).padStart(2, "0")}</span>
-                    <span style={{ width: 3, height: 3, borderRadius: "50%", background: roleInfo.gradient[0] }} />
-                    <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: MUTED }}>{roleInfo.label}</span>
-                  </div>
-                  <h2 style={{ fontFamily: serif, fontSize: 24, fontWeight: 700, color: INK, margin: "0 0 3px" }}>{r.name}</h2>
-                  <div style={{ fontSize: 12.5, color: MUTED }}>{r.family} · {r.glass}</div>
-                </div>
-              </div>
+        {party.address && (
+          <p style={{ fontSize: 14, color: C.subtle, margin: "0 0 6px" }}>{party.address}</p>
+        )}
+        {party.startsAt && (
+          <button onClick={addToCalendar} style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, minHeight: 44, marginTop: 18,
+            padding: "0 22px", borderRadius: 100, border: `1.5px solid ${C.gold}`, background: "transparent",
+            color: C.gold, fontFamily: MENU_SANS, fontSize: 15, fontWeight: 600, cursor: "pointer",
+          }}>
+            <CalendarDays size={17} strokeWidth={1.8} aria-hidden="true" /> Zet in agenda
+          </button>
+        )}
 
-              <p style={{ fontFamily: systemFont, fontSize: 14, color: INK, margin: "0 0 10px", lineHeight: 1.5, opacity: 0.85 }}>"{getSfeerQuote(r, role)}"</p>
+        <div style={{ height: 1, background: C.gold, opacity: 0.45, margin: "34px 0 16px" }} />
+        <div style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.gold, marginBottom: 6 }}>Op de kaart vanavond</div>
 
-              {funFact && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 3 }}>Wist je dat</div>
-                  <p style={{ fontFamily: systemFont, fontSize: 13, color: INK, margin: 0, lineHeight: 1.55, opacity: 0.9 }}>{funFact}</p>
-                </div>
-              )}
-
-              <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 9, marginBottom: 14 }}>
-                <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.6 }}>
-                  {r.ingredients.map((ing, i) => {
-                    const meta = INGREDIENTS.find(x => x.id === ing.id);
-                    return <span key={i}>{meta?.name || ing.name || ing.id}{i < r.ingredients.length - 1 ? " · " : ""}</span>;
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: BRASS, marginBottom: 8 }}>Smaakprofiel</div>
-                {[["Zoet", profile.zoet], ["Zuur", profile.zuur], ["Bitter", profile.bitter], ["Sterk", profile.sterk]].map(([label, score]) => (
-                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED, width: 44, flexShrink: 0 }}>{label}</span>
-                    <div style={{ flex: 1, height: 5, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
-                      <div style={{ width: `${score * 20}%`, height: "100%", borderRadius: 3, background: `linear-gradient(90deg, ${BRASS}, #D8AF5C)` }} />
-                    </div>
-                  </div>
+        {items.length === 0 && (
+          <p style={{ color: C.subtle, fontSize: 15, padding: "28px 0" }}>Dit menu-linkje lijkt niet (meer) geldig.</p>
+        )}
+        {items.map((it, i) => (
+          <div key={it.id} style={{ padding: "26px 0", borderTop: i === 0 ? "none" : `1px solid ${C.divider}` }}>
+            <h2 style={{ fontFamily: MENU_SERIF, fontWeight: 500, fontSize: 28, lineHeight: 1.2, color: C.text, margin: "0 0 6px" }}>{it.name}</h2>
+            {it.ingredientsLine && (
+              <div style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 15.5, color: C.gold, lineHeight: 1.45, margin: "0 0 12px" }}>{it.ingredientsLine}</div>
+            )}
+            <p style={{ fontSize: 15.5, lineHeight: 1.55, color: C.body, margin: "0 auto 12px", maxWidth: 400 }}>{it.description}</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: 13.5, color: C.subtle, flexWrap: "wrap" }}>
+              <span style={{ display: "inline-flex", gap: 4 }} aria-hidden="true">
+                {[1, 2, 3].map(n => (
+                  <span key={n} style={{ width: 7, height: 7, borderRadius: "50%", background: n <= it.strength.level ? C.gold : "#2E423C" }} />
                 ))}
-              </div>
+              </span>
+              <span>{it.strength.label}{it.notes.map(n => ` · ${n}`).join("")}</span>
             </div>
-          );
-        })}
+          </div>
+        ))}
         {skipped > 0 && (
-          <p style={{ color: MUTED, fontSize: 12.5, textAlign: "center", marginTop: 10 }}>
-            {skipped} eigen creatie{skipped === 1 ? "" : "s"} van de gastheer {skipped === 1 ? "kon" : "konden"} hier niet getoond worden.
+          <p style={{ color: C.subtle, fontSize: 13, margin: "0 0 10px" }}>
+            {skipped} eigen creatie{skipped === 1 ? "" : "s"} van de host {skipped === 1 ? "staat" : "staan"} hier niet bij.
           </p>
         )}
+
+        <div style={{ borderTop: `1px solid ${C.divider}`, paddingTop: 30, marginTop: 4 }}>
+          <div style={{ fontSize: 13.5, color: C.subtle }}>Proef je iets lekkers? Check in met</div>
+          <a href={APP_STORE_URL || PUBLIC_WEB_URL || "/"} target="_blank" rel="noreferrer" style={{
+            display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 12px",
+            fontSize: 14.5, fontWeight: 700, color: C.text, textDecoration: "none",
+          }}>Mijn Thuisbar</a>
+        </div>
       </div>
     </div>
   );
@@ -1621,6 +1627,8 @@ function GuestBrowseShell({
 // Let op: die webversie moet de gastweergaven (?menu=, ?smaaktest=) kennen,
 // dus na grote wijzigingen ook Netlify bijwerken.
 const DEFAULT_PUBLIC_WEB_URL = "https://beautiful-pasca-793e77.netlify.app";
+// Nog geen App Store-pagina: de footer van de menukaart linkt dan naar de webversie.
+const APP_STORE_URL = "";
 const PUBLIC_WEB_URL = (import.meta.env.VITE_PUBLIC_WEB_URL || DEFAULT_PUBLIC_WEB_URL).replace(/\/+$/, "");
 function publicAppUrl(query = "") {
   const base = isNativeShell ? PUBLIC_WEB_URL : `${window.location.origin}${window.location.pathname}`.replace(/\/+$/, "");
