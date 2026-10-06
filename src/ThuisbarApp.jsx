@@ -1634,11 +1634,26 @@ function publicAppUrl(query = "") {
 // Geeft "shared" | "copied" | "cancelled" | "failed" | "no-url" terug.
 // Zonder openbaar webadres (VITE_PUBLIC_WEB_URL niet ingesteld) valt hij terug
 // op `fallbackText` — bv. het menu als lijstje — zodat delen niet stil mislukt.
+// Laatste foutmelding van het native deelmenu, zodat een "mislukt"-melding
+// kan laten zien wát er misging (bv. "not implemented" als de Share-plugin
+// niet in de iOS-build zit) i.p.v. alleen dat het misging.
+let lastShareError = "";
 async function shareLink({ title, text, url, fallbackText }) {
   if (!url) return fallbackText ? shareText({ title, text: fallbackText }) : "no-url";
   if (isNativeShell) {
-    try { await Share.share({ title, text, url, dialogTitle: title }); return "shared"; }
-    catch (e) { return /cancel/i.test(e?.message || "") ? "cancelled" : "failed"; }
+    try { lastShareError = ""; await Share.share({ title, text, url, dialogTitle: title }); return "shared"; }
+    catch (e) {
+      if (/cancel/i.test(e?.message || "")) return "cancelled";
+      lastShareError = e?.message || String(e);
+      // Terugval: probeer de Web Share API van de WebView, anders klembord.
+      try {
+        if (navigator.share) { await navigator.share({ title, text, url }); return "shared"; }
+        await navigator.clipboard.writeText(url); return "copied";
+      } catch (e2) {
+        if (e2?.name === "AbortError") return "cancelled";
+        return "failed";
+      }
+    }
   }
   try {
     if (navigator.share) { await navigator.share({ title, text, url }); return "shared"; }
@@ -8135,7 +8150,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
     const result = await shareLink({ title: "Mijn Thuisbar: smaaktest", text: "Vul even je cocktailvoorkeuren in voor het feest!", url: publicAppUrl(`smaaktest=${survey.id}`) });
     if (result === "cancelled") return;
     setSurveyShareState(result);
-    setTimeout(() => setSurveyShareState(null), 2500);
+    setTimeout(() => setSurveyShareState(null), result === "failed" ? 8000 : 2500);
   };
 
   const [suggestionSheetId, setSuggestionSheetId] = useState(null);
@@ -8214,7 +8229,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
     });
     if (result === "cancelled") return;
     setShareState(result === "no-url" ? "failed" : result);
-    setTimeout(() => setShareState(null), 2500);
+    setTimeout(() => setShareState(null), result === "shared" || result === "copied" ? 2500 : 8000);
   };
 
   const maakbaar = useMemo(() => recipes.filter(r => r.ingredients.filter(i => !i.optional).every(i => isOwned(i))), [recipes, isOwned]);
@@ -8372,7 +8387,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
 
       {shareState && (
         <p style={{ fontSize: 11.5, color: SAGE, textAlign: "right", margin: "-8px 0 8px" }}>
-          {shareState === "shared" ? "Gedeeld!" : shareState === "copied" ? "Link gekopieerd!" : "Delen mislukt"}
+          {shareState === "shared" ? "Gedeeld!" : shareState === "copied" ? "Link gekopieerd!" : `Delen mislukt${lastShareError ? ` (${lastShareError})` : ""}`}
         </p>
       )}
 
@@ -8462,7 +8477,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
               </span>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <button onClick={shareSurvey} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 3, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                  <Share2 size={13} /> {surveyShareState === "shared" ? "Gedeeld!" : surveyShareState === "copied" ? "Link gekopieerd!" : surveyShareState === "failed" ? "Delen mislukt" : surveyShareState === "no-url" ? "Webadres nog niet ingesteld" : "Deel de link"}
+                  <Share2 size={13} /> {surveyShareState === "shared" ? "Gedeeld!" : surveyShareState === "copied" ? "Link gekopieerd!" : surveyShareState === "failed" ? `Delen mislukt${lastShareError ? ` (${lastShareError})` : ""}` : surveyShareState === "no-url" ? "Webadres nog niet ingesteld" : "Deel de link"}
                 </button>
                 <button onClick={() => setConfirmDeleteSurvey(true)} title="Verwijder smaaktest" className="press-scale" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, background: "none", border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 3, cursor: "pointer", flexShrink: 0 }}>
                   <Trash2 size={15} />
