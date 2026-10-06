@@ -2616,7 +2616,15 @@ export default function ThuisbarApp() {
   const feestChosen = upcomingParties[0]?.cocktail_ids || [];
 
   const voorraad = useMemo(() => new Set(voorraadArr), [voorraadArr]);
-  const allIngredients = useMemo(() => [...INGREDIENTS, ...customIngredients], [customIngredients]);
+  // Flessen met winkelprijzen (wekelijks gecontroleerd). Waar die er zijn,
+  // vervangt de prijs van de voordeligste fles de vaste richtprijs, zodat
+  // Feestplanner, menu-assistent en boodschappenlijst overal met echte
+  // prijzen rekenen.
+  const bottleOptions = useFlessen();
+  const allIngredients = useMemo(() => [...INGREDIENTS, ...customIngredients].map(i => {
+    const best = bottleOptions.get(i.id)?.[0]?.best;
+    return best?.prijs != null ? { ...i, bottlePrice: best.prijs, bottleMl: best.inhoud_ml || i.bottleMl, livePrice: best.fresh } : i;
+  }), [customIngredients, bottleOptions]);
   const allRecipes = useMemo(() => [...RECIPES, ...customRecipes], [customRecipes]);
   // Eerste, eenvoudige opzet voor Home's uitgelichte cocktail — een stabiele
   // dagelijkse keuze i.p.v. de uitgebreide seizoens-/voorraadlogica die
@@ -2741,9 +2749,8 @@ export default function ThuisbarApp() {
     if (item.id && !wasOwned) setVoorraad(voorraadArr.filter(id => id !== item.id));
     setShoppingList(shoppingList.some(i => i.key === item.key) ? shoppingList : [...shoppingList, item]);
   };
-  // Per drank de gekozen fles uit "Fles kiezen" (product-id uit `producten`).
+  // Per drank de gekozen fles uit "Fles kiezen" (id uit de tabel `flessen`).
   const [chosenBottles, setChosenBottles] = useStorage("thuisbar-gekozen-flessen", {});
-  const producten = useProducten(visitedTabs.has("mandje"));
 
   // De native splash (launchAutoHide: false) ging voorheen alleen weg via de
   // in-app SplashScreen, en die draait enkel voor ingelogde gebruikers — bij
@@ -2853,7 +2860,7 @@ export default function ThuisbarApp() {
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.mandje} onBack={() => navigateTo("bar", { restore: true })}>
             <WinkelmandjeTab shoppingList={shoppingList} recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
               onRemove={removeFromShoppingList} onBuy={buyShoppingItem} onUndoBuy={undoBuyShoppingItem} onClear={clearShoppingList} onAdd={addToShoppingList} onSound={chime}
-              producten={producten} chosenBottles={chosenBottles} onChooseBottle={(ingredientId, productId) => setChosenBottles({ ...chosenBottles, [ingredientId]: productId })} />
+              bottleOptions={bottleOptions} chosenBottles={chosenBottles} onChooseBottle={(ingredientId, flesId) => setChosenBottles({ ...chosenBottles, [ingredientId]: flesId })} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="schaler" active={tab === "schaler"} visited={visitedTabs.has("schaler")} panelRef={panelRefs}>
@@ -3259,23 +3266,6 @@ function formatPartyWhen(party) {
   if (days === 0) return "Vandaag";
   if (days > 0) return `Over ${days} dag${days === 1 ? "" : "en"}`;
   return `${Math.abs(days)} dag${Math.abs(days) === 1 ? "" : "en"} geleden`;
-}
-
-// Goedgekeurde flessen (Supabase-tabel `producten`, RLS: alleen status
-// 'goedgekeurd' is leesbaar). Pas geladen zodra de boodschappenlijst open
-// gaat; lukt het niet (offline, migratie nog niet gedraaid), dan blijft de
-// lijst leeg en toont "Fles kiezen" gewoon dat er nog niets gecontroleerd is.
-function useProducten(enabled) {
-  const [producten, setProducten] = useState([]);
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    supabase.from("producten").select("*").eq("status", "goedgekeurd").then(({ data, error }) => {
-      if (!cancelled && !error && Array.isArray(data)) setProducten(data);
-    });
-    return () => { cancelled = true; };
-  }, [enabled]);
-  return producten;
 }
 
 function useParties(session) {
@@ -6476,8 +6466,6 @@ const FRESH_FRUIT = {
   lime_juice: { ml: 25, label: "Limoenen", one: "limoen", price: 0.35 },
   lemon_juice: { ml: 35, label: "Citroenen", one: "citroen", price: 0.4 },
 };
-// Een prijs die ouder is dan 30 dagen tonen we niet meer als actueel.
-const PRICE_MAX_AGE_DAYS = 30;
 const MONTHS_NL = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
 function formatDateNl(value) {
   if (!value) return "";
@@ -6491,44 +6479,93 @@ function formatInhoud(ml) {
   if (ml >= 1000) return `${String(ml / 1000).replace(".", ",")} L`;
   return `${Math.round(ml / 10 * 10) / 10} cl`.replace(".", ",");
 }
-function isPriceFresh(product) {
-  if (product?.prijs == null || !product.prijs_gecontroleerd_op) return false;
-  const age = (Date.now() - new Date(product.prijs_gecontroleerd_op).getTime()) / 86400000;
-  return age >= 0 && age <= PRICE_MAX_AGE_DAYS;
+// Winkels waar je flessen koopt. Mitra, Dirck III en Drankgigant worden
+// wekelijks automatisch gecontroleerd (Edge Function `prijscheck`).
+// Drankdozijn en Gall & Gall blokkeren dat; daar zoeken we via Google
+// binnen hun site, zodat een link altijd werkt.
+const WINKELS = {
+  drankgigant: { naam: "Drankgigant", sub: "Webshop", zoek: (q) => `https://www.drankgigant.nl/catalogsearch/result/?q=${encodeURIComponent(q)}` },
+  dirckiii: { naam: "Dirck III", sub: "Bezorgen vanaf 6 flessen, of ophalen in de winkel", zoek: (q) => `https://www.dirckiii.nl/catalogsearch/result/?q=${encodeURIComponent(q)}` },
+  mitra: { naam: "Mitra", sub: "Webshop of ophalen in de winkel", zoek: (q) => `https://www.mitra.nl/zoeken?q=${encodeURIComponent(q)}` },
+  drankdozijn: { naam: "Drankdozijn", sub: "Webshop", zoek: (q) => `https://www.google.com/search?q=${encodeURIComponent(`site:drankdozijn.nl ${q}`)}` },
+  gall: { naam: "Gall & Gall", sub: "Webshop of ophalen in de winkel", zoek: (q) => `https://www.google.com/search?q=${encodeURIComponent(`site:gall.nl ${q}`)}` },
+};
+const WINKEL_HOSTS = /(^|\.)(drankgigant\.nl|dirckiii\.nl|mitra\.nl|drankdozijn\.nl|gall\.nl|google\.com)$/;
+// Alleen links naar deze winkels (of de Google-zoekopdracht) openen.
+function isShopUrl(url) {
+  try { const u = new URL(url); return u.protocol === "https:" && WINKEL_HOSTS.test(u.hostname); } catch { return false; }
 }
-// Alleen echte productpagina's op drankdozijn.nl openen — nooit iets anders.
-function isDrankdozijnUrl(url) {
-  try { const u = new URL(url); return u.protocol === "https:" && /(^|\.)drankdozijn\.nl$/.test(u.hostname); } catch { return false; }
-}
-// Goedgekeurde flessen voor één ingrediënt, met de labels
-// "Goedkoopste geschikte" (laagste prijs) en "Voordeligst per liter".
-function rankProducts(products) {
-  const withMeta = products.map(p => {
-    const fresh = isPriceFresh(p);
-    const usable = fresh && p.op_voorraad !== false;
-    return { ...p, fresh, usable, perLiter: fresh && p.inhoud_ml ? p.prijs / (p.inhoud_ml / 1000) : null };
-  });
-  const usable = withMeta.filter(p => p.usable);
-  const cheapest = usable.slice().sort((a, b) => a.prijs - b.prijs)[0] || null;
-  const bestPerLiter = usable.filter(p => p.perLiter != null).sort((a, b) => a.perLiter - b.perLiter)[0] || null;
-  return withMeta
-    .map(p => ({ ...p, isCheapest: cheapest?.id === p.id, isBestPerLiter: bestPerLiter?.id === p.id && bestPerLiter?.id !== cheapest?.id }))
-    .sort((a, b) => (b.usable - a.usable) || ((a.prijs ?? 1e9) - (b.prijs ?? 1e9)));
+function openShopUrl(url) { if (isShopUrl(url)) Browser.open({ url }); }
+const NIVEAUS = [["voordelig", "Voordelig"], ["goed", "Goed"], ["klassieker", "Klassieker"]];
+// Ouder dan dit en niet meer bijgewerkt: dan tonen we het als richtprijs.
+const OFFER_MAX_AGE_DAYS = 45;
+function offerIsFresh(o) {
+  if (o?.prijs == null || !o.prijs_gecontroleerd_op) return false;
+  const age = (Date.now() - new Date(o.prijs_gecontroleerd_op).getTime()) / 86400000;
+  return age >= -2 && age <= OFFER_MAX_AGE_DAYS; // -2: kleine klokafwijking op het toestel
 }
 
-function FlesKiezenSheet({ item, meta, products, chosenId, recipeNames, onChoose, onClose }) {
+// Flessen en waar ze te koop zijn (tabellen flessen + fles_aanbiedingen).
+// Geladen bij de start: klein, en de prijzen worden overal gebruikt (ook in
+// Feestplanner en menu-assistent). Lukt het niet, dan blijven de
+// richtprijzen uit recipes.js staan.
+function useFlessen() {
+  const [data, setData] = useState({ flessen: [], aanbiedingen: [] });
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      supabase.from("flessen").select("*").eq("status", "goedgekeurd"),
+      supabase.from("fles_aanbiedingen").select("*").eq("actief", true),
+    ]).then(([f, a]) => {
+      if (cancelled || f.error || a.error) return;
+      setData({ flessen: f.data || [], aanbiedingen: a.data || [] });
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  return useMemo(() => buildBottleOptions(data.flessen, data.aanbiedingen), [data]);
+}
+// Map ingredient_id → [{ fles, niveau, label, offers (beste eerst), best, from }]
+function buildBottleOptions(flessen, aanbiedingen) {
+  const byFles = new Map();
+  aanbiedingen.forEach(a => { if (!byFles.has(a.fles_id)) byFles.set(a.fles_id, []); byFles.get(a.fles_id).push(a); });
+  const map = new Map();
+  flessen.forEach(f => {
+    const offers = (byFles.get(f.id) || []).map(o => ({
+      ...o, prijs: o.prijs != null ? Number(o.prijs) : null, fresh: offerIsFresh(o),
+      perLiter: o.prijs != null && o.inhoud_ml ? Number(o.prijs) / (o.inhoud_ml / 1000) : null,
+    })).sort((x, y) => (Number(y.op_voorraad && y.fresh) - Number(x.op_voorraad && x.fresh)) || ((x.prijs ?? 1e9) - (y.prijs ?? 1e9)));
+    const best = offers.find(o => o.op_voorraad && o.fresh) || offers.find(o => o.prijs != null) || null;
+    const entry = { fles: f, niveau: f.niveau, label: (NIVEAUS.find(n => n[0] === f.niveau) || [])[1] || f.niveau, offers, best, from: best?.prijs ?? null };
+    if (!map.has(f.ingredient_id)) map.set(f.ingredient_id, []);
+    map.get(f.ingredient_id).push(entry);
+  });
+  map.forEach(list => list.sort((a, b) => NIVEAUS.findIndex(n => n[0] === a.niveau) - NIVEAUS.findIndex(n => n[0] === b.niveau)));
+  return map;
+}
+// Welke fles telt voor een ingrediënt: je eigen keuze, anders de voordeligste.
+function chosenOption(options, chosenId) {
+  if (!options?.length) return null;
+  return options.find(o => o.fles.id === chosenId) || options[0];
+}
+const NIVEAU_TAG = {
+  voordelig: { color: SAGE, bg: "rgba(92,122,82,0.16)" },
+  goed: { color: BOTTLE, bg: "rgba(31,61,54,0.10)" },
+  klassieker: { color: "#8F6A21", bg: "rgba(184,134,46,0.16)" },
+};
+
+function FlesKiezenSheet({ item, meta, options = [], chosenId, recipeNames, onChoose, onClose }) {
   useBodyScrollLock();
   const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
-  const ranked = useMemo(() => rankProducts(products), [products]);
-  const defaultId = ranked.find(p => p.isCheapest)?.id || ranked[0]?.id || null;
-  const [selected, setSelected] = useState(chosenId && ranked.some(p => p.id === chosenId) ? chosenId : defaultId);
-  const current = ranked.find(p => p.id === selected) || null;
+  const [selected, setSelected] = useState(() => chosenOption(options, chosenId)?.fles.id || null);
+  const current = options.find(o => o.fles.id === selected) || null;
   const spec = DRANK_SPECS[meta?.id] || null;
   const forText = recipeNames.length ? recipeNames.slice(0, 2).join(" en ") + (recipeNames.length > 2 ? ` en ${recipeNames.length - 2} meer` : "") : null;
-  const checkedDates = ranked.map(p => p.prijs_gecontroleerd_op).filter(Boolean).sort();
+  const checkedDates = options.flatMap(o => o.offers.map(x => x.prijs_gecontroleerd_op)).filter(Boolean).sort();
   const lastChecked = checkedDates[checkedDates.length - 1];
   const pick = (id) => { setSelected(id); onChoose(id); };
-  const openShop = () => { if (current && isDrankdozijnUrl(current.url)) Browser.open({ url: current.url }); };
+  const searchName = current?.fles.naam || meta?.name || item.label;
+  const richtprijs = meta?.bottlePrice && !options.length ? meta.bottlePrice : null;
+  const shopLabel = (key) => WINKELS[key]?.naam || key;
 
   return createPortal((
     <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
@@ -6551,72 +6588,123 @@ function FlesKiezenSheet({ item, meta, products, chosenId, recipeNames, onChoose
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
+          {richtprijs && (
+            <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16, marginBottom: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>Richtprijs</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
+                <span style={{ fontSize: 26, fontWeight: 800 }}>± {euro(richtprijs)}</span>
+                {meta.bottleMl && <span style={{ fontSize: 13, color: MUTED }}>voor {formatInhoud(meta.bottleMl)}</span>}
+              </div>
+              <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.45, marginTop: 6 }}>Een schatting op basis van eerdere winkelprijzen. Voor deze drank zijn de drie vaste flessen nog niet gekozen; tot die tijd rekent de app met dit bedrag.</div>
+            </div>
+          )}
+
           {spec && (
             <div style={{ display: "flex", gap: 10, padding: "12px 14px", borderRadius: 14, background: "rgba(92,122,82,0.14)", marginBottom: 16 }}>
               <ShieldCheck size={17} color={SAGE} style={{ flexShrink: 0, marginTop: 1 }} />
               <div style={{ fontSize: 13.5, lineHeight: 1.5, color: INK }}>
-                <strong>{forText ? `Juiste fles voor ${forText}.` : "Waar de fles aan moet voldoen."}</strong> {spec.eis}
+                <strong>{options.length ? (forText ? `Alle opties passen bij ${forText}.` : "Alle opties passen bij je recepten.") : "Let op bij het kopen:"}</strong> {spec.eis}
               </div>
             </div>
           )}
 
-          {ranked.length > 0 ? (
+          {options.length > 0 ? (
             <>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Kies je fles</div>
-              <div role="radiogroup" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {ranked.map(p => {
-                  const on = p.id === selected;
+              <div role="radiogroup" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {options.map(o => {
+                  const on = o.fles.id === selected;
+                  const tag = NIVEAU_TAG[o.niveau] || NIVEAU_TAG.goed;
+                  const minPrice = o.offers.reduce((m, x) => (x.prijs != null && x.op_voorraad && (m == null || x.prijs < m) ? x.prijs : m), null);
                   return (
-                    <button key={p.id} role="radio" aria-checked={on} onClick={() => pick(p.id)} style={{
-                      display: "flex", alignItems: "center", gap: 12, minHeight: 64, padding: "10px 14px", borderRadius: 14, cursor: "pointer", textAlign: "left",
-                      background: CREAM, border: `1.5px solid ${on ? BOTTLE : BORDER}`, fontFamily: sans, color: INK, opacity: p.usable ? 1 : 0.7,
-                    }}>
-                      <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${on ? BOTTLE : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxSizing: "border-box" }}>
-                        {on && <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOTTLE }} />}
-                      </span>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>{[p.variant || p.productnaam, formatInhoud(p.inhoud_ml)].filter(Boolean).join(" · ")}</span>
-                        {p.isCheapest && <span style={{ display: "inline-block", marginTop: 4, fontSize: 11.5, fontWeight: 700, color: SAGE, background: "rgba(92,122,82,0.16)", borderRadius: 100, padding: "2px 8px" }}>Goedkoopste geschikte</span>}
-                        {p.isBestPerLiter && <span style={{ display: "inline-block", marginTop: 4, fontSize: 11.5, fontWeight: 700, color: BRASS, background: "rgba(184,134,46,0.16)", borderRadius: 100, padding: "2px 8px" }}>Voordeligst per liter</span>}
-                        {p.op_voorraad === false && <span style={{ display: "block", marginTop: 3, fontSize: 12, color: BURGUNDY }}>Niet op voorraad</span>}
-                      </span>
-                      <span style={{ textAlign: "right", flexShrink: 0 }}>
-                        {p.fresh ? (
-                          <>
-                            <span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>{euro(p.prijs)}</span>
-                            {p.perLiter != null && <span style={{ display: "block", fontSize: 11.5, color: MUTED, marginTop: 1 }}>{euro(p.perLiter)} / L</span>}
-                          </>
-                        ) : (
-                          <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: MUTED }}>Prijs onbekend</span>
-                        )}
-                      </span>
-                    </button>
+                    <div key={o.fles.id} style={{ borderRadius: 16, background: CREAM, overflow: "hidden", border: on ? `1.5px solid ${BOTTLE}` : `1px solid ${BORDER}` }}>
+                      <button role="radio" aria-checked={on} onClick={() => pick(o.fles.id)} style={{
+                        display: "flex", alignItems: "flex-start", gap: 12, width: "100%", padding: 14, background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+                      }}>
+                        <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${on ? BOTTLE : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxSizing: "border-box", marginTop: 2 }}>
+                          {on && <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOTTLE }} />}
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: "inline-block", fontSize: 11.5, fontWeight: 700, borderRadius: 100, padding: "2px 8px", color: tag.color, background: tag.bg }}>{o.label}</span>
+                          <span style={{ display: "block", fontSize: 16, fontWeight: 700, marginTop: 5 }}>{o.fles.naam}</span>
+                          {o.fles.notitie && <span style={{ display: "block", fontSize: 13, color: MUTED, lineHeight: 1.4, marginTop: 2 }}>{o.fles.notitie}</span>}
+                        </span>
+                        <span style={{ textAlign: "right", flexShrink: 0 }}>
+                          {minPrice != null ? (
+                            <>
+                              <span style={{ display: "block", fontSize: 12, color: MUTED }}>vanaf</span>
+                              <span style={{ display: "block", fontSize: 17, fontWeight: 800 }}>{euro(minPrice)}</span>
+                            </>
+                          ) : <span style={{ display: "block", fontSize: 12.5, color: BURGUNDY, fontWeight: 700 }}>Uitverkocht</span>}
+                        </span>
+                      </button>
+                      {on && (
+                        <div className="accordion-reveal" style={{ borderTop: `1px solid ${BORDER}`, padding: "2px 14px 4px" }}>
+                          {o.offers.map((x, i) => (
+                            <button key={x.id} onClick={() => openShopUrl(x.url)} style={{
+                              display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 54, padding: 0, background: "none", border: "none",
+                              borderTop: i > 0 ? `1px solid ${PAPER_DEEP}` : "none", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+                            }}>
+                              <span style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{shopLabel(x.winkel)}</span>
+                                <span style={{ display: "block", fontSize: 12, color: x.op_voorraad ? MUTED : BURGUNDY, marginTop: 1 }}>
+                                  {formatInhoud(x.inhoud_ml)} · {x.op_voorraad ? "op voorraad" : "niet op voorraad"}{!x.fresh ? " · richtprijs" : ""}
+                                </span>
+                              </span>
+                              <span style={{ textAlign: "right" }}>
+                                <span style={{ display: "block", fontSize: 15, fontWeight: 800, color: x === o.best ? "#4F6B46" : INK }}>{x.prijs != null ? euro(x.prijs) : "–"}</span>
+                                {x.perLiter != null && <span style={{ display: "block", fontSize: 11.5, color: MUTED }}>{euro(x.perLiter)} / L</span>}
+                              </span>
+                              <ExternalLink size={15} color={MUTED} style={{ marginLeft: 6, flexShrink: 0 }} />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
               {lastChecked && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: MUTED, marginTop: 12 }}>
-                  <Clock size={13} /> Prijs gecontroleerd op {formatDateNl(lastChecked)} bij Drankdozijn
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: MUTED, marginTop: 14 }}>
+                  <Clock size={13} /> Prijzen gecontroleerd op {formatDateNl(lastChecked)} · elke week opnieuw
                 </div>
               )}
+              <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginTop: 8 }}>
+                Ook zoeken bij{" "}
+                <button onClick={() => openShopUrl(WINKELS.drankdozijn.zoek(searchName))} style={{ background: "none", border: "none", padding: 0, color: "#8F6A21", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: sans }}>Drankdozijn</button>
+                {" of "}
+                <button onClick={() => openShopUrl(WINKELS.gall.zoek(searchName))} style={{ background: "none", border: "none", padding: 0, color: "#8F6A21", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: sans }}>Gall &amp; Gall</button>
+              </div>
             </>
           ) : (
-            <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 16px" }}>
-              <div style={{ fontSize: 14.5, fontWeight: 700 }}>Nog geen gecontroleerde fles</div>
-              <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.5, marginTop: 4 }}>
-                Voor deze drank hebben we nog geen fles bij Drankdozijn nagekeken. Tot die tijd tonen we geen link, zodat je nooit bij een verkeerde fles uitkomt. Let bij het kopen op de eis hierboven.
+            <>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Zoek bij</div>
+              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "0 14px" }}>
+                {["drankgigant", "dirckiii", "mitra", "drankdozijn", "gall"].map((k, i) => (
+                  <button key={k} onClick={() => openShopUrl(WINKELS[k].zoek(searchName))} style={{
+                    display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 56, padding: 0, background: "none", border: "none",
+                    borderTop: i > 0 ? `1px solid ${PAPER_DEEP}` : "none", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+                  }}>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ display: "block", fontSize: 15, fontWeight: 600 }}>{WINKELS[k].naam}</span>
+                      <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{WINKELS[k].sub}</span>
+                    </span>
+                    <ExternalLink size={15} color={MUTED} />
+                  </button>
+                ))}
               </div>
-            </div>
+              <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.45, marginTop: 10 }}>Opent de zoekresultaten voor "{searchName}" in de webshop.</div>
+            </>
           )}
         </div>
 
-        {current && (
+        {current?.best && (
           <div style={{ padding: "12px 20px calc(env(safe-area-inset-bottom) + 14px)", borderTop: `1px solid ${BORDER}`, background: PAPER }}>
-            <button onClick={openShop} disabled={!isDrankdozijnUrl(current.url)} className="press-scale" style={{
+            <button onClick={() => openShopUrl(current.best.url)} className="press-scale" style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14, border: "none",
               background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer",
             }}>
-              Bekijk bij Drankdozijn <ExternalLink size={16} />
+              Bekijk bij {shopLabel(current.best.winkel)}{current.best.prijs != null ? ` · ${euro(current.best.prijs)}` : ""} <ExternalLink size={16} />
             </button>
             <div style={{ fontSize: 12, color: MUTED, textAlign: "center", marginTop: 8 }}>Opent de productpagina van precies deze fles</div>
           </div>
@@ -6626,7 +6714,7 @@ function FlesKiezenSheet({ item, meta, products, chosenId, recipeNames, onChoose
   ), document.body);
 }
 
-function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBuy, onUndoBuy, onClear, onAdd, onSound, isOwned, producten = [], chosenBottles = {}, onChooseBottle }) {
+function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBuy, onUndoBuy, onClear, onAdd, onSound, isOwned, bottleOptions = new Map(), chosenBottles = {}, onChooseBottle }) {
   const [customName, setCustomName] = useState("");
   const [bought, setBought] = useState([]); // [{ item, wasOwned }] — alleen deze sessie, doorgestreept
   const [toast, setToast] = useState(null);
@@ -6637,14 +6725,10 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
   const ingredientNames = allIngredients.map(i => i.name);
   const metaById = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
   const recipesByName = useMemo(() => new Map(recipes.map(r => [r.name, r])), [recipes]);
-  const productsByIngredient = useMemo(() => {
-    const map = new Map();
-    producten.filter(p => p.status === "goedgekeurd").forEach(p => {
-      if (!map.has(p.ingredient_id)) map.set(p.ingredient_id, []);
-      map.get(p.ingredient_id).push(p);
-    });
-    return map;
-  }, [producten]);
+  // Weergave van de drankwinkel-flessen: per drank, of gegroepeerd per winkel.
+  const [shopView, setShopView] = useState("drank");
+  // Welke productpagina's je al hebt geopend via "Bestellen bij …".
+  const [openedLinks, setOpenedLinks] = useState(() => new Set());
 
   // …-menu rechts in de navigatiebalk (Leegmaken).
   const setNavOverride = useContext(NavOverrideContext);
@@ -6712,16 +6796,19 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
     }
     if (meta?.id === "sugar_syrup") note = "Of zelf maken: suiker + water";
     const group = shopGroupFor(meta);
-    const products = meta ? productsByIngredient.get(meta.id) || [] : [];
-    // Is er voor deze drank een goedgekeurde fles gekozen (of de goedkoopste)?
-    let bottle = null;
-    if (group === "drankwinkel" && products.length) {
-      const ranked = rankProducts(products);
-      bottle = ranked.find(p => p.id === chosenBottles[meta.id]) || ranked.find(p => p.isCheapest) || null;
-      if (bottle) { price = bottle.fresh ? bottle.prijs : null; inhoud = formatInhoud(bottle.inhoud_ml); }
+    const options = meta && group === "drankwinkel" ? bottleOptions.get(meta.id) || [] : [];
+    // Gekozen fles (of de voordeligste) met de beste winkelprijs. Zonder
+    // vaste fles blijft de richtprijs staan, nooit "onbekend".
+    const option = chosenOption(options, chosenBottles[meta?.id]);
+    const bottle = option?.best || null;
+    let estimated = group === "drankwinkel" && !bottle && price != null;
+    if (bottle) {
+      price = bottle.prijs; inhoud = formatInhoud(bottle.inhoud_ml);
+      note = `${option.fles.naam} · ${WINKELS[bottle.winkel]?.naam || bottle.winkel}`;
+      estimated = !bottle.fresh;
     }
     const sub = names.length ? `Voor ${names[0]}${names.length > 1 ? ` · +${names.length - 1} cocktail${names.length > 2 ? "s" : ""}` : ""}` : "Zelf toegevoegd";
-    return { item, meta, label, price, inhoud, note, group, products, bottle, sub };
+    return { item, meta, label, price, inhoud, note, group, options, option, bottle, estimated, sub };
   };
 
   const rows = shoppingList.map(describe);
@@ -6737,9 +6824,109 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
   const total = groups.reduce((s, g) => s + g.subtotal, 0);
   const allNames = [...new Set(shoppingList.flatMap(i => i.recipes || []))];
   const hasFruit = rows.some(r => r.meta && FRESH_FRUIT[r.meta.id]);
-  const usedDates = rows.map(r => r.bottle?.fresh ? r.bottle.prijs_gecontroleerd_op : null).filter(Boolean).sort();
+  const usedDates = rows.map(r => r.bottle?.fresh ? String(r.bottle.prijs_gecontroleerd_op).slice(0, 10) : null).filter(Boolean).sort();
   const priceDate = usedDates.length ? formatDateNl(usedDates[0]) : formatDateNl(PRICES_UPDATED);
   const sheetRow = sheetKey ? rows.find(r => r.item.key === sheetKey) : null;
+
+  // Per winkel: wat kost jouw gekozen flessen daar, en is alles er te koop?
+  // Alleen voor dranken met vaste flessen (anders valt er niets te vergelijken).
+  const shopPlan = useMemo(() => {
+    const items = rows.filter(r => r.group === "drankwinkel" && r.option);
+    if (items.length === 0) return null;
+    const shops = Object.keys(WINKELS).map(key => {
+      const lines = items.map(r => {
+        const offer = r.option.offers.find(o => o.winkel === key && o.op_voorraad && o.prijs != null) || null;
+        return { r, offer };
+      });
+      const have = lines.filter(l => l.offer);
+      return { key, naam: WINKELS[key].naam, sub: WINKELS[key].sub, lines, count: have.length, total: have.reduce((t, l) => t + l.offer.prijs, 0) };
+    }).filter(sh => sh.count > 0)
+      .sort((a, b) => (b.count - a.count) || (a.total - b.total));
+    const complete = shops.filter(sh => sh.count === items.length).sort((a, b) => a.total - b.total);
+    const best = complete[0] || null;
+    const next = complete[1] || null;
+    return { items, shops, best, saving: best && next ? next.total - best.total : 0, nextName: next?.naam || null };
+  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const renderShopPlan = () => {
+    const { shops, best, saving, nextName, items } = shopPlan;
+    const openNext = (sh) => {
+      const todo = sh.lines.filter(l => l.offer && !openedLinks.has(l.offer.id));
+      const target = todo[0] || sh.lines.find(l => l.offer);
+      if (!target) return;
+      setOpenedLinks(prev => new Set(prev).add(target.offer.id));
+      openShopUrl(target.offer.url);
+    };
+    return (
+      <div style={{ marginBottom: 18 }}>
+        {best && (
+          <div style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 16, padding: 16, marginBottom: 14 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#DDB877" }}>Goedkoopst in één keer</div>
+            <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, marginTop: 4 }}>Alles bij {best.naam} · {euro(best.total)}</div>
+            <div style={{ fontSize: 13, color: "#C9D2CB", marginTop: 4, lineHeight: 1.45 }}>
+              {saving > 0.01 ? `Scheelt ${euro(saving)} ten opzichte van ${nextName}. ` : ""}Verzendkosten zie je bij de winkel.
+            </div>
+          </div>
+        )}
+        {rows.filter(r => r.group === "drankwinkel" && !r.option).map(r => (
+          <button key={r.item.key} onClick={() => setSheetKey(r.item.key)} style={{
+            display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 14px", marginBottom: 10, boxSizing: "border-box",
+            background: CREAM, border: `1px dashed ${BORDER}`, borderRadius: 16, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+          }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>{r.label}</span>
+              <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>Nog geen vaste fles · tik om te zoeken in de webshops</span>
+            </span>
+            <span style={{ fontSize: 14.5, fontWeight: 800 }}>{r.price != null ? `± ${euro(r.price)}` : ""}</span>
+            <ChevronRight size={16} color={MUTED} />
+          </button>
+        ))}
+        {shops.map((sh, n) => {
+          const isBest = best && sh.key === best.key;
+          const opened = sh.lines.filter(l => l.offer && openedLinks.has(l.offer.id)).length;
+          const todo = sh.lines.filter(l => l.offer && !openedLinks.has(l.offer.id));
+          return (
+            <div key={sh.key} style={{ background: CREAM, borderRadius: 16, marginBottom: 10, overflow: "hidden", border: isBest ? `1.5px solid ${BOTTLE}` : `1px solid ${BORDER}` }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "14px 14px 2px" }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: INK }}>{sh.naam}</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: INK }}>{euro(sh.total)}</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: MUTED, padding: "0 14px 6px" }}>
+                {sh.count < items.length ? `${sh.count} van ${items.length} flessen · ` : ""}{sh.sub}
+              </div>
+              <div style={{ padding: "0 14px" }}>
+                {sh.lines.map(({ r, offer }) => (
+                  <button key={r.item.key} onClick={() => { if (!offer) return; setOpenedLinks(prev => new Set(prev).add(offer.id)); openShopUrl(offer.url); }} disabled={!offer} style={{
+                    display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 44, padding: 0, background: "none", border: "none",
+                    borderTop: `1px solid ${PAPER_DEEP}`, cursor: offer ? "pointer" : "default", textAlign: "left", fontFamily: sans, color: offer ? INK : MUTED,
+                  }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.option.fles.naam}</span>
+                    {offer ? (
+                      <>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: offer.prijs <= Math.min(...shops.map(s2 => s2.lines.find(l => l.r === r)?.offer?.prijs ?? 1e9)) ? "#4F6B46" : INK }}>{euro(offer.prijs)}</span>
+                        {openedLinks.has(offer.id) ? <Check size={14} color={SAGE} strokeWidth={3} /> : <ExternalLink size={14} color={MUTED} />}
+                      </>
+                    ) : <span style={{ fontSize: 12.5 }}>niet bij {sh.naam}</span>}
+                  </button>
+                ))}
+              </div>
+              {(isBest || n === 0) ? (
+                <div style={{ padding: "10px 14px 14px" }}>
+                  <button onClick={() => openNext(sh)} className="press-scale" style={{
+                    width: "100%", minHeight: 46, borderRadius: 12, border: "none", background: BRASS, color: BOTTLE_DARK,
+                    fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer",
+                  }}>
+                    {opened === 0 ? `Bestellen bij ${sh.naam}` : todo.length ? `Volgende: ${todo[0].r.option.fles.naam} (${opened + 1} van ${sh.count})` : "Alles geopend"}
+                  </button>
+                  <div style={{ fontSize: 11.5, color: MUTED, textAlign: "center", marginTop: 6 }}>Opent de flessen één voor één in de webshop, zodat je ze in je mandje legt</div>
+                </div>
+              ) : <div style={{ height: 8 }} />}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const renderRow = (r, i) => {
     const content = (
@@ -6759,12 +6946,12 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
             <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.done ? "Gekocht · in je voorraad" : (r.note || r.sub)}</div>
             {!r.done && r.group === "drankwinkel" && r.meta && (
               <button onClick={() => setSheetKey(r.item.key)} style={{ display: "inline-flex", alignItems: "center", gap: 2, minHeight: 32, padding: 0, marginTop: 1, background: "none", border: "none", cursor: "pointer", color: BOTTLE, fontFamily: sans, fontSize: 12.5, fontWeight: 700 }}>
-                {r.products.length ? `Kies fles · ${r.products.length} ${r.products.length === 1 ? "optie" : "opties"}` : "Fles kiezen"} <ChevronRight size={14} />
+                {r.options.length ? `Kies fles · ${r.options.length} ${r.options.length === 1 ? "optie" : "opties"}` : "Waar te koop"} <ChevronRight size={14} />
               </button>
             )}
           </div>
           <div style={{ textAlign: "right", flexShrink: 0, opacity: r.done ? 0.5 : 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: INK }}>{r.price != null ? euro(r.price) : r.bottle ? "Prijs onbekend" : ""}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: INK }}>{r.price != null ? `${r.estimated ? "± " : ""}${euro(r.price)}` : ""}</div>
             {r.inhoud && <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{r.inhoud}</div>}
           </div>
         </div>
@@ -6808,6 +6995,18 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
         <IngredientAutocomplete value={customName} onChange={setCustomName} options={ingredientNames} placeholder="Iets toevoegen, bijv. ijsblokjes" style={{ flex: 1 }} variant="bare" />
       </form>
 
+      {shopPlan && (
+        <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12, marginBottom: 16 }}>
+          {[["drank", "Per drank"], ["winkel", "Per winkel"]].map(([id, lbl]) => (
+            <button key={id} role="tab" aria-selected={shopView === id} onClick={() => setShopView(id)} style={{
+              flex: 1, height: 34, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 600,
+              background: shopView === id ? CREAM : "transparent", color: shopView === id ? INK : MUTED,
+              boxShadow: shopView === id ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
+            }}>{lbl}</button>
+          ))}
+        </div>
+      )}
+
       {shoppingList.length === 0 && bought.length === 0 && (
         <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "40px 0", lineHeight: 1.6 }}>
           Je boodschappenlijst is leeg.<br />Voeg ontbrekende ingrediënten toe vanuit "Wat kan ik maken", een recept of de Feestplanner.
@@ -6816,6 +7015,7 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
 
       {groups.filter(g => g.open.length || g.done.length).map(g => {
         const Icon = g.icon;
+        if (g.key === "drankwinkel" && shopView === "winkel" && shopPlan) return <div key={g.key}>{renderShopPlan()}</div>;
         return (
           <div key={g.key} style={{ marginBottom: 18 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 4px 8px" }}>
@@ -6841,7 +7041,9 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
             <span style={{ fontFamily: serif, fontSize: 28, fontWeight: 700 }}><AnimatedNumber value={total} format={euro} /></span>
           </div>
           <div style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 6, color: "rgba(243,236,221,0.82)" }}>
-            Richtprijzen, gecontroleerd {usedDates.length ? "op" : "in"} {priceDate}. Prijzen in de winkel kunnen afwijken.
+            {usedDates.length
+              ? `Winkelprijzen van ${formatDateNl(usedDates[0])}${usedDates[usedDates.length - 1] !== usedDates[0] ? ` tot ${formatDateNl(usedDates[usedDates.length - 1])}` : ""}; met ± is een richtprijs. Acties en verzendkosten kunnen het verschil maken.`
+              : `Richtprijzen (${priceDate}). Kies bij een drank een fles voor de echte winkelprijs.`}
           </div>
         </div>
       )}
@@ -6867,7 +7069,7 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
       )}
 
       {sheetRow && (
-        <FlesKiezenSheet item={sheetRow.item} meta={sheetRow.meta} products={sheetRow.products} chosenId={chosenBottles[sheetRow.meta?.id]}
+        <FlesKiezenSheet item={sheetRow.item} meta={sheetRow.meta} options={sheetRow.options} chosenId={chosenBottles[sheetRow.meta?.id]}
           recipeNames={sheetRow.item.recipes || []} onChoose={(id) => onChooseBottle?.(sheetRow.meta.id, id)} onClose={() => setSheetKey(null)} />
       )}
     </div>
@@ -9578,7 +9780,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
               </button>
               {showPriceInfo && (
                 <p style={{ fontSize: 11.5, color: MUTED, margin: "6px 0 0", lineHeight: 1.5 }}>
-                  Richtprijzen o.b.v. drankdozijn.nl ({PRICES_UPDATED}), geen live koppeling, zie dit als indicatie, niet als actuele winkelprijs. Wat je al in voorraad hebt, telt mee volgens het aantal flessen dat je bij Voorraad instelt. Is dat te weinig voor dit feest, dan berekent de app hoeveel je moet bijkopen.
+                  Prijzen van de voordeligste geschikte fles bij Mitra, Dirck III of Drankgigant (wekelijks gecontroleerd); waar die nog ontbreekt, een richtprijs ({PRICES_UPDATED}). Acties en verzendkosten kunnen het verschil maken. Wat je al in voorraad hebt, telt mee volgens het aantal flessen dat je bij Voorraad instelt. Is dat te weinig voor dit feest, dan berekent de app hoeveel je moet bijkopen.
                 </p>
               )}
             </div>
