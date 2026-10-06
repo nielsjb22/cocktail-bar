@@ -2474,6 +2474,21 @@ export default function ThuisbarApp() {
     })();
     return () => { cancelled = true; };
   }, [session, profile, courseMastery, localCourseRank]);
+  // Wie al een rang had voordat feedmomenten bestonden (of op een ander
+  // toestel), krijgt eenmalig een moment voor de huidige rang, zodat die
+  // ook in je eigen feed en die van je vrienden staat.
+  const backfillCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!session || !profile || backfillCheckedRef.current) return;
+    const current = profileCourseRank(profile);
+    if (current.index < 1) return;
+    backfillCheckedRef.current = true;
+    supabase.from("course_milestones").select("id").eq("user_id", session.user.id).limit(1).then(({ data, error }) => {
+      if (error || (data && data.length > 0)) return;
+      // .then() is nodig: een Supabase-query wordt pas uitgevoerd als je erop wacht.
+      supabase.from("course_milestones").insert({ user_id: session.user.id, rank: current.rank.id, parts_done: current.partsDone }).then(() => {});
+    });
+  }, [session, profile]);
   const courseDiploma = profile?.course_completed_at
     ? { date: profile.course_completed_at, scorePct: profile.course_exam_score ?? courseMastery?.scorePct }
     : (courseMastery ? { date: null, scorePct: courseMastery.scorePct } : null);
