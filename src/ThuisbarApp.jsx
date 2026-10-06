@@ -2771,6 +2771,7 @@ export default function ThuisbarApp() {
               onAddToShoppingList={addToShoppingList} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail}
               parties={parties.parties} onCreateParty={parties.createParty} onUpdateParty={parties.updateParty} onDeleteParty={parties.deleteParty}
               openPartyId={openPartyId} onOpenPartyHandled={() => setOpenPartyId(null)}
+              hostName={profile?.name || ""}
               active={tab === "feest"} />
           </SecondaryTabScreen>
         </TabPanel>
@@ -3199,15 +3200,25 @@ function useParties(session) {
     return () => { cancelled = true; };
   }, [myId]);
 
+  // Zolang de adres-migratie (20261006120000_party_address.sql) niet gedraaid
+  // is, bestaan address/show_address nog niet: dan opnieuw proberen zonder,
+  // zodat aanmaken en opslaan van een feest gewoon blijft werken.
+  const withoutAddress = ({ address, show_address, ...rest }) => rest;
+  const isAddressColumnError = (error) => /address/i.test(error?.message || "");
   const createParty = async (fields) => {
-    const { data, error } = await supabase.from("parties").insert({ user_id: myId, ...fields }).select().single();
+    let { data, error } = await supabase.from("parties").insert({ user_id: myId, ...fields }).select().single();
+    if (error && isAddressColumnError(error)) ({ data, error } = await supabase.from("parties").insert({ user_id: myId, ...withoutAddress(fields) }).select().single());
     if (error) return null;
     setParties(prev => [...prev, data]);
     return data;
   };
   const updateParty = async (id, patch) => {
     setParties(prev => prev.map(p => (p.id === id ? { ...p, ...patch } : p)));
-    const { data } = await supabase.from("parties").update(patch).eq("id", id).select().single();
+    let { data, error } = await supabase.from("parties").update(patch).eq("id", id).select().single();
+    if (error && isAddressColumnError(error) && Object.keys(withoutAddress(patch)).length > 0) {
+      ({ data } = await supabase.from("parties").update(withoutAddress(patch)).eq("id", id).select().single());
+      if (data) data = { ...data, address: patch.address, show_address: patch.show_address };
+    }
     if (data) setParties(prev => prev.map(p => (p.id === id ? data : p)));
   };
   const deleteParty = async (id) => {
@@ -7814,7 +7825,7 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
 }
 
 function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active,
-  parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled }) {
+  parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled, hostName }) {
   const [selectedPartyId, setSelectedPartyId] = useState(null);
   // Een feest openen (of terug naar de lijst) begint bovenaan.
   useEffect(() => { window.scrollTo(0, 0); }, [selectedPartyId]);
@@ -7854,7 +7865,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
         onBack={() => setSelectedPartyId(null)} onDelete={() => setConfirmDeletePartyId(selectedParty.id)}
         recipes={recipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
         onAddToShoppingList={onAddToShoppingList} voorraadAantal={voorraadAantal} onSound={onSound} onOpenRecipe={onOpenRecipe}
-        active={active} />
+        hostName={hostName} active={active} />
       {confirmDeletePartyId && (
         <ConfirmDialog title="Feest verwijderen?" message="Het menu, de inkooplijst en de voorbereiding van dit feest gaan verloren."
           confirmLabel="Verwijder" onCancel={() => setConfirmDeletePartyId(null)} onConfirm={deleteParty} />
@@ -7981,11 +7992,13 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
   const [time, setTime] = useState(initial?.starts_at ? formatTimeShort(new Date(initial.starts_at)) : "20:00");
   const [guests, setGuests] = useState(initial?.guests || 8);
   const [drinksPerGuest, setDrinksPerGuest] = useState(initial?.drinks_per_guest || 2);
+  const [address, setAddress] = useState(initial?.address || "");
+  const [showAddress, setShowAddress] = useState(!!initial?.show_address);
 
   const submit = () => {
     if (!name.trim()) return;
     const starts_at = date ? new Date(`${date}T${time || "20:00"}:00`).toISOString() : null;
-    onSubmit({ name: name.trim(), starts_at, guests, drinks_per_guest: drinksPerGuest });
+    onSubmit({ name: name.trim(), starts_at, guests, drinks_per_guest: drinksPerGuest, address: address.trim() || null, show_address: showAddress && !!address.trim() });
   };
 
   const inputStyle = { width: "100%", boxSizing: "border-box", padding: "12px 14px", minHeight: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, fontSize: 15, fontFamily: sans, color: INK };
@@ -8020,6 +8033,13 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
             </div>
           </div>
 
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Adres (optioneel)</label>
+          <input value={address} onChange={e => setAddress(e.target.value)} placeholder="bijv. Herengracht 12, Amsterdam" autoComplete="street-address" style={inputStyle} />
+          <div style={{ marginBottom: 16 }}>
+            <MenuToggleRow title="Adres tonen aan gasten" subtitle="Op de gedeelde menukaart en in de agenda-uitnodiging."
+              checked={showAddress && !!address.trim()} onChange={v => setShowAddress(v)} />
+          </div>
+
           <div style={{ display: "flex", gap: 24, marginBottom: 22, flexWrap: "wrap" }}>
             <div>
               <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Aantal gasten</label>
@@ -8051,7 +8071,7 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
   ), document.body);
 }
 
-function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active }) {
+function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, hostName, active }) {
   const [activeTab, setActiveTab] = useState("menu");
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [shareState, setShareState] = useState(null);
@@ -8231,8 +8251,12 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
   const shareMenu = async (ids) => {
     onSound("share");
     const names = ids.map(id => recipes.find(r => r.id === id)?.name).filter(Boolean);
+    const query = partyMenuQuery({
+      ids, title: party.name, host: (hostName || "").split(" ")[0], startsAt: party.starts_at,
+      address: party.show_address ? party.address : "",
+    });
     const result = await shareLink({
-      title: "Mijn Thuisbar: menu", text: "Bekijk het cocktailmenu voor vanavond!", url: publicAppUrl(`menu=${ids.join(",")}`),
+      title: party.name || "Mijn Thuisbar: menu", text: "Bekijk het cocktailmenu!", url: publicAppUrl(query),
       fallbackText: `Het cocktailmenu voor vanavond:\n${names.map(n => `• ${n}`).join("\n")}`,
     });
     if (result === "cancelled") return;
