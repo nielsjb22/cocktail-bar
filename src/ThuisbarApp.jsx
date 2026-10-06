@@ -7608,9 +7608,12 @@ function shuffledIndexes(n) {
   return idx;
 }
 
-// Eén vraag per scherm: kies, zie meteen of het klopt en waarom, door naar
-// de volgende. Aan het eind de score, met opnieuw proberen.
-function QuizBlock({ quiz, onFinish }) {
+// Toets als vast, schermvullend scherm: bovenaan voortgang en sluiten,
+// in het midden één vraag, onderaan altijd op dezelfde plek de knop. Je
+// kunt niet per ongeluk terugscrollen in de les. Na de laatste vraag de
+// score, met opnieuw, terug naar de les of door naar de volgende stap.
+function QuizBlock({ quiz, title = "Vragen", onFinish, onClose, nextAction = null }) {
+  useBodyScrollLock();
   const [attempt, setAttempt] = useState(0);
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -7618,7 +7621,13 @@ function QuizBlock({ quiz, onFinish }) {
   // Antwoordvolgorde per poging opnieuw gehusseld: de plek van het goede
   // antwoord verraadt niets, ook niet bij een tweede poging.
   const orders = useMemo(() => quiz.map(q => shuffledIndexes(q.options.length)), [quiz, attempt]);
-  const topRef = useRef(null);
+  const bodyRef = useRef(null);
+  useEffect(() => { bodyRef.current?.scrollTo(0, 0); }, [idx, done]);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const score = quiz.reduce((acc, q, i) => acc + (answers[i] === q.correct ? 1 : 0), 0);
   const passed = score / quiz.length >= QUIZ_PASS_RATIO;
@@ -7630,71 +7639,99 @@ function QuizBlock({ quiz, onFinish }) {
   const next = () => {
     if (isLast) { setDone(true); onFinish(score); }
     else setIdx(i => i + 1);
-    requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
   const retry = () => { setAnswers({}); setIdx(0); setDone(false); setAttempt(n => n + 1); };
 
-  if (done) {
-    return (
-      <div ref={topRef} className="success-pop" style={{ marginTop: 8, fontFamily: sans, padding: 18, borderRadius: 16, background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${passed ? SAGE : BURGUNDY}` }}>
-        <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: passed ? SAGE : BURGUNDY }}>{score} van {quiz.length} goed</div>
-        <p style={{ fontSize: 14, color: INK, margin: "6px 0 14px", lineHeight: 1.5 }}>
-          {passed ? "Geslaagd. Deze les telt mee voor je rang." : `Je hebt er ${Math.ceil(quiz.length * QUIZ_PASS_RATIO)} goed nodig. Lees de les nog eens door en probeer het opnieuw.`}
-        </p>
-        <button onClick={retry} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BORDER}`, color: INK, borderRadius: 100, minHeight: 40, padding: "0 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
-          <RotateCcw size={14} /> Opnieuw
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={topRef} style={{ marginTop: 8, scrollMarginTop: 80, fontFamily: sans }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "#8F6A21" }}>In de praktijk</span>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: MUTED }}>Vraag {idx + 1} van {quiz.length}</span>
-      </div>
-      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-        {quiz.map((_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < idx || (i === idx && answered) ? BRASS : BORDER }} />)}
-      </div>
-      <p style={{ fontFamily: serif, fontWeight: 700, fontSize: 20, lineHeight: 1.3, color: INK, margin: "0 0 16px" }}>{q.q}</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-        {orders[idx].map((oi, n) => {
-          const isSelected = picked === oi;
-          const isCorrect = oi === q.correct;
-          const showRight = answered && isCorrect;
-          const showWrong = answered && isSelected && !isCorrect;
-          return (
-            <button key={`${attempt}-${idx}-${oi}`} disabled={answered} onClick={() => setAnswers(prev => ({ ...prev, [idx]: oi }))} style={{
-              display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 54, textAlign: "left", padding: "10px 14px", boxSizing: "border-box",
-              borderRadius: 14, cursor: answered ? "default" : "pointer", fontSize: 14.5, lineHeight: 1.4, fontFamily: sans, color: INK,
-              background: showRight ? "rgba(92,122,82,0.14)" : showWrong ? "rgba(122,46,42,0.08)" : CREAM,
-              border: showRight ? `1.5px solid ${SAGE}` : showWrong ? `1.5px solid ${BURGUNDY}` : `1px solid ${BORDER}`,
-              opacity: answered && !showRight && !showWrong ? 0.65 : 1,
-            }}>
-              <span style={{
-                width: 28, height: 28, borderRadius: "50%", flexShrink: 0, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 12.5, fontWeight: 700, fontFamily: systemFont,
-                background: showRight ? SAGE : showWrong ? BURGUNDY : "transparent", color: showRight || showWrong ? CREAM : MUTED,
-                border: showRight || showWrong ? "none" : `1.5px solid ${BORDER}`,
-              }}>{showRight ? <Check size={14} strokeWidth={3} /> : showWrong ? <X size={14} strokeWidth={3} /> : "ABCD"[n]}</span>
-              <span style={{ flex: 1 }}>{q.options[oi]}</span>
-            </button>
-          );
-        })}
-      </div>
-      {answered && (
-        <div className="accordion-reveal" style={{ marginTop: 14, padding: "13px 15px", borderRadius: 14, background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${picked === q.correct ? SAGE : BURGUNDY}` }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: picked === q.correct ? SAGE : BURGUNDY, marginBottom: 3 }}>{picked === q.correct ? "Goed" : "Niet helemaal"}</div>
-          <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0, color: INK }}>{q.explain}</p>
-        </div>
-      )}
-      <button onClick={next} disabled={!answered} style={{
-        width: "100%", minHeight: 50, marginTop: 16, borderRadius: 14, border: "none", fontFamily: sans, fontSize: 15.5, fontWeight: 700,
-        background: answered ? BOTTLE_DARK : BORDER, color: answered ? CREAM : MUTED, cursor: answered ? "pointer" : "default",
-      }}>{isLast ? "Bekijk je score" : "Volgende vraag"}</button>
-    </div>
+  const footerBtn = (label, onClick, { primary = true, disabled = false } = {}) => (
+    <button onClick={onClick} disabled={disabled} className="press-scale" style={{
+      width: "100%", minHeight: 52, borderRadius: 14, fontFamily: sans, fontSize: 16, fontWeight: 700, cursor: disabled ? "default" : "pointer",
+      border: primary ? "none" : `1px solid ${BORDER}`,
+      background: disabled ? BORDER : primary ? BOTTLE_DARK : "transparent", color: disabled ? MUTED : primary ? CREAM : INK,
+    }}>{label}</button>
   );
+
+  return createPortal((
+    <div className="push-slide-in" style={{ position: "fixed", inset: 0, zIndex: 45, background: PAPER, color: INK, fontFamily: sans, display: "flex", flexDirection: "column" }}>
+      <div style={{ flexShrink: 0, padding: "calc(env(safe-area-inset-top) + 8px) 20px 10px", maxWidth: 720, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 44 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: MUTED }}>{done ? title : `${title} · vraag ${idx + 1} van ${quiz.length}`}</span>
+          <button onClick={onClose} aria-label="Sluiten" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <X size={18} />
+          </button>
+        </div>
+        <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+          {quiz.map((_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: done || i < idx || (i === idx && answered) ? BRASS : BORDER }} />)}
+        </div>
+      </div>
+
+      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "18px 20px 20px", boxSizing: "border-box" }}>
+          {done ? (
+            <div className="success-pop" style={{ padding: 18, borderRadius: 16, background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${passed ? SAGE : BURGUNDY}`, marginTop: 20 }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: passed ? SAGE : BURGUNDY }}>{score} van {quiz.length} goed</div>
+              <p style={{ fontSize: 15, color: INK, margin: "8px 0 0", lineHeight: 1.5 }}>
+                {passed ? "Geslaagd. Dit telt mee voor je rang." : `Je hebt er ${Math.ceil(quiz.length * QUIZ_PASS_RATIO)} goed nodig. Lees de les nog eens en probeer het opnieuw.`}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "#8F6A21", marginBottom: 8 }}>In de praktijk</div>
+              <p style={{ fontFamily: serif, fontWeight: 700, fontSize: 21, lineHeight: 1.3, color: INK, margin: "0 0 18px" }}>{q.q}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                {orders[idx].map((oi, n) => {
+                  const isSelected = picked === oi;
+                  const isCorrect = oi === q.correct;
+                  const showRight = answered && isCorrect;
+                  const showWrong = answered && isSelected && !isCorrect;
+                  return (
+                    <button key={`${attempt}-${idx}-${oi}`} disabled={answered} onClick={() => setAnswers(prev => ({ ...prev, [idx]: oi }))} style={{
+                      display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 56, textAlign: "left", padding: "10px 14px", boxSizing: "border-box",
+                      borderRadius: 14, cursor: answered ? "default" : "pointer", fontSize: 15, lineHeight: 1.4, fontFamily: sans, color: INK,
+                      background: showRight ? "rgba(92,122,82,0.14)" : showWrong ? "rgba(122,46,42,0.08)" : CREAM,
+                      border: showRight ? `1.5px solid ${SAGE}` : showWrong ? `1.5px solid ${BURGUNDY}` : `1px solid ${BORDER}`,
+                      opacity: answered && !showRight && !showWrong ? 0.6 : 1,
+                    }}>
+                      <span style={{
+                        width: 28, height: 28, borderRadius: "50%", flexShrink: 0, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 12.5, fontWeight: 700, fontFamily: systemFont,
+                        background: showRight ? SAGE : showWrong ? BURGUNDY : "transparent", color: showRight || showWrong ? CREAM : MUTED,
+                        border: showRight || showWrong ? "none" : `1.5px solid ${BORDER}`,
+                      }}>{showRight ? <Check size={14} strokeWidth={3} /> : showWrong ? <X size={14} strokeWidth={3} /> : "ABCD"[n]}</span>
+                      <span style={{ flex: 1 }}>{q.options[oi]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {answered && (
+                <div className="accordion-reveal" style={{ marginTop: 14, padding: "13px 15px", borderRadius: 14, background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${picked === q.correct ? SAGE : BURGUNDY}` }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: picked === q.correct ? SAGE : BURGUNDY, marginBottom: 3 }}>{picked === q.correct ? "Goed" : "Niet helemaal"}</div>
+                  <p style={{ fontSize: 14.5, lineHeight: 1.5, margin: 0, color: INK }}>{q.explain}</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0, borderTop: `1px solid ${BORDER}`, background: PAPER, padding: "12px 20px calc(env(safe-area-inset-bottom) + 12px)" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
+          {!done ? (
+            footerBtn(isLast ? "Bekijk je score" : "Volgende vraag", next, { disabled: !answered })
+          ) : passed && nextAction ? (
+            <>
+              {footerBtn(nextAction.label, nextAction.onClick)}
+              {footerBtn("Terug naar de les", onClose, { primary: false })}
+            </>
+          ) : (
+            <>
+              {footerBtn(passed ? "Klaar" : "Opnieuw proberen", passed ? onClose : retry)}
+              {footerBtn(passed ? "Nog een keer" : "Terug naar de les", passed ? retry : onClose, { primary: false })}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  ), document.body);
 }
 
 // Eigen illustratie per les in de app-stijl (goud op donkergroen, zelfde
@@ -7854,15 +7891,21 @@ function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLe
         </>
       )}
 
-      {!showQuiz ? (
+      {showQuiz && (
+        <QuizBlock quiz={lesson.quiz} title={`Les ${lesson.number}`}
+          onClose={() => setShowQuiz(false)}
+          onFinish={(score) => { onComplete(score, lesson.quiz.length); setQuizDone(score / lesson.quiz.length >= QUIZ_PASS_RATIO); }}
+          nextAction={nextLesson
+            ? { label: `Volgende les: ${nextLesson.title}`, onClick: () => { setShowQuiz(false); onGoToLesson(nextLesson.id); } }
+            : { label: "Naar de eindtoets", onClick: () => { setShowQuiz(false); onGoToExam(); } }} />
+      )}
+      {(
         <button onClick={() => setShowQuiz(true)} className="press-scale" style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 8,
           background: BOTTLE_DARK, color: CREAM, border: "none", borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: sans,
         }}>
-          Naar de vragen <ChevronRight size={17} />
+          {quizDone || progress?.completed ? "Vragen nog een keer" : "Naar de vragen"} <ChevronRight size={17} />
         </button>
-      ) : (
-        <QuizBlock quiz={lesson.quiz} onFinish={(score) => { onComplete(score, lesson.quiz.length); setQuizDone(score / lesson.quiz.length >= QUIZ_PASS_RATIO); }} />
       )}
 
       {quizDone && (
@@ -7910,7 +7953,7 @@ function FinalExamView({ progress, onBack, onComplete }) {
           <GraduationCap size={16} /> {progress?.completed ? "Nog een keer proberen" : "Start de eindtoets"}
         </button>
       ) : (
-        <QuizBlock quiz={FINAL_EXAM} onFinish={(score) => onComplete(score, FINAL_EXAM.length)} />
+        <QuizBlock quiz={FINAL_EXAM} title="Eindtoets" onClose={() => setStarted(false)} onFinish={(score) => onComplete(score, FINAL_EXAM.length)} />
       )}
     </EdgeSwipeBackArea>
   );
