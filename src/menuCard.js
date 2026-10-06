@@ -289,3 +289,168 @@ export function buildIcs({ title, startsAt, address, description, url }) {
   ].filter(Boolean);
   return lines.join("\r\n") + "\r\n";
 }
+
+// ---------- Menukaart als afbeelding (canvas) ----------
+// Tekent dezelfde kaart als de gastenpagina op een canvas van willekeurige
+// maat: 1080×1920 voor een WhatsApp-status/Instagram-story, 1748×2480 voor
+// A5 op 300 dpi. Alles schaalt mee met de breedte; past het niet, dan wordt
+// alles stapsgewijs kleiner tot het wel past, en daarna verticaal gecentreerd.
+const MARTINI_PATHS = ["M8 22h8", "M12 11v11", "m19 3-7 8-7-8Z"]; // lucide "martini", 24×24
+
+async function ensureMenuFonts() {
+  if (!document.fonts?.load) return;
+  await Promise.all([
+    document.fonts.load('500 40px "Playfair Display"'),
+    document.fonts.load('italic 500 40px "Playfair Display"'),
+  ]).catch(() => {});
+}
+
+function wrapLines(ctx, text, maxWidth) {
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function layoutMenu(ctx, { width, party, items, k }) {
+  const C = MENU_COLORS;
+  const margin = 56 * k;
+  const maxW = width - margin * 2;
+  const ops = []; // [type, payload] — eerst meten, dan tekenen
+  let y = 0;
+  const text = (str, { font, color, size, lh = 1.3, gapAfter = 0, maxWidth = maxW }) => {
+    ctx.font = font;
+    for (const l of wrapLines(ctx, str, maxWidth)) {
+      ops.push(["text", { str: l, font, color, y: y + size }]);
+      y += size * lh;
+    }
+    y += gapAfter;
+  };
+  const serif = (px, italic = false) => `${italic ? "italic " : ""}500 ${px}px ${MENU_SERIF}`;
+  const sans = (px, weight = 400) => `${weight} ${px}px ${MENU_SANS}`;
+
+  ops.push(["icon", { y, size: 30 * k }]); y += 30 * k + 22 * k;
+  text(party.title || "Het menu van vanavond", { font: serif(48 * k), color: C.text, size: 48 * k, lh: 1.15, gapAfter: 12 * k });
+  const sub = partySubtitle(party);
+  if (sub) text(sub, { font: serif(20 * k, true), color: C.body, size: 20 * k, lh: 1.35, gapAfter: 4 * k });
+  if (party.address) text(party.address, { font: sans(16 * k), color: C.subtle, size: 16 * k, lh: 1.4 });
+  y += 30 * k;
+  ops.push(["rule", { y, color: C.gold, alpha: 0.45, x0: margin, x1: width - margin }]); y += 20 * k;
+  text("Op de kaart vanavond", { font: serif(20 * k, true), color: C.gold, size: 20 * k, gapAfter: 8 * k });
+
+  items.forEach((it, i) => {
+    if (i > 0) ops.push(["rule", { y, color: C.divider, alpha: 1, x0: margin, x1: width - margin }]);
+    y += 30 * k;
+    text(it.name, { font: serif(32 * k), color: C.text, size: 32 * k, lh: 1.2, gapAfter: 6 * k });
+    if (it.ingredientsLine) text(it.ingredientsLine, { font: serif(18 * k, true), color: C.gold, size: 18 * k, lh: 1.4, gapAfter: 10 * k });
+    text(it.description, { font: sans(18 * k), color: C.body, size: 18 * k, lh: 1.5, gapAfter: 10 * k, maxWidth: Math.min(maxW, 470 * k) });
+    const label = `${it.strength.label}${it.notes.map(n => ` · ${n}`).join("")}`;
+    ops.push(["strength", { y, level: it.strength.level, label, font: sans(15 * k), size: 15 * k, k }]);
+    y += 15 * k * 1.4 + 26 * k;
+  });
+
+  ops.push(["rule", { y, color: C.divider, alpha: 1, x0: margin, x1: width - margin }]); y += 30 * k;
+  text("Proef je iets lekkers? Check in met", { font: sans(15 * k), color: C.subtle, size: 15 * k, lh: 1.4, gapAfter: 2 * k });
+  text("Mijn Thuisbar", { font: sans(16 * k, 700), color: C.text, size: 16 * k, lh: 1.4 });
+  return { ops, height: y };
+}
+
+export async function renderMenuCanvas({ width, height, party, items }) {
+  await ensureMenuFonts();
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  const C = MENU_COLORS;
+
+  // Schaal zoeken waarbij alles past (met ruimte boven en onder).
+  const padY = height * 0.07;
+  let k = width / 430, layout;
+  for (let tries = 0; tries < 30; tries++) {
+    layout = layoutMenu(ctx, { width, party, items, k });
+    if (layout.height <= height - padY * 2) break;
+    k *= 0.93;
+  }
+  const offsetY = Math.max(padY, (height - layout.height) / 2);
+
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, width, height);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  const cx = width / 2;
+
+  for (const [type, o] of layout.ops) {
+    const y = o.y + offsetY;
+    if (type === "text") {
+      ctx.font = o.font; ctx.fillStyle = o.color;
+      ctx.fillText(o.str, cx, y);
+    } else if (type === "rule") {
+      ctx.save(); ctx.globalAlpha = o.alpha; ctx.fillStyle = o.color;
+      ctx.fillRect(o.x0, y, o.x1 - o.x0, Math.max(1, width / 1080 * 2)); ctx.restore();
+    } else if (type === "icon") {
+      ctx.save();
+      const s = o.size / 24;
+      ctx.translate(cx - o.size / 2, y); ctx.scale(s, s);
+      ctx.strokeStyle = C.gold; ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      MARTINI_PATHS.forEach(d => ctx.stroke(new Path2D(d)));
+      ctx.restore();
+    } else if (type === "strength") {
+      ctx.font = o.font;
+      const r = 4 * o.k, gap = 5 * o.k, dotsW = 3 * r * 2 + 2 * gap, space = 9 * o.k;
+      const labelW = ctx.measureText(o.label).width;
+      let x = cx - (dotsW + space + labelW) / 2;
+      const midY = y + o.size * 0.62;
+      for (let n = 1; n <= 3; n++) {
+        ctx.beginPath(); ctx.arc(x + r, midY, r, 0, Math.PI * 2);
+        ctx.fillStyle = n <= o.level ? C.gold : "#2E423C"; ctx.fill();
+        x += r * 2 + gap;
+      }
+      ctx.textAlign = "left"; ctx.fillStyle = C.subtle;
+      ctx.fillText(o.label, x - gap + space, y + o.size);
+      ctx.textAlign = "center";
+    }
+  }
+  return canvas;
+}
+
+// ---------- Minimale PDF met één JPEG-pagina (geen extra library) ----------
+function dataUrlToBytes(dataUrl) {
+  const bin = atob(dataUrl.split(",")[1]);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+export function canvasToPdf(canvas, { widthPt = 419.53, heightPt = 595.28 } = {}) { // standaard A5
+  const jpeg = dataUrlToBytes(canvas.toDataURL("image/jpeg", 0.92));
+  const enc = new TextEncoder();
+  const parts = [];
+  const offsets = [];
+  let length = 0;
+  const push = (chunk) => { const b = typeof chunk === "string" ? enc.encode(chunk) : chunk; parts.push(b); length += b.length; };
+  const obj = (n, body) => { offsets[n] = length; push(`${n} 0 obj\n`); body(); push("\nendobj\n"); };
+
+  push("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+  obj(1, () => push("<< /Type /Catalog /Pages 2 0 R >>"));
+  obj(2, () => push("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"));
+  obj(3, () => push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${widthPt} ${heightPt}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`));
+  obj(4, () => {
+    push(`<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`);
+    push(jpeg);
+    push("\nendstream");
+  });
+  const content = `q ${widthPt} 0 0 ${heightPt} 0 0 cm /Im0 Do Q`;
+  obj(5, () => push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+  const xref = length;
+  push(`xref\n0 6\n0000000000 65535 f \n${[1, 2, 3, 4, 5].map(n => `${String(offsets[n]).padStart(10, "0")} 00000 n \n`).join("")}`);
+  push(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+
+  const out = new Uint8Array(length);
+  let pos = 0;
+  for (const p of parts) { out.set(p, pos); pos += p.length; }
+  return out;
+}

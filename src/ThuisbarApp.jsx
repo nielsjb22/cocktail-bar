@@ -4,13 +4,13 @@ import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { CalendarDays, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
+import { CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, Shapes, Puzzle, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { supabase } from "./supabaseClient";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
-import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, formatMenuDate, formatMenuTime } from "./menuCard";
+import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, renderMenuCanvas, canvasToPdf } from "./menuCard";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor } from "./native";
 import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
@@ -7714,6 +7714,75 @@ function formatTimeShort(date) {
 // Kleine herbruikbare bevestigingsdialoog voor destructieve acties binnen de
 // Feestplanner (smaaktest verwijderen, menu vervangen) — één component i.p.v.
 // 'm twee keer los uit te schrijven.
+// Deelt een gegenereerd bestand (menukaart-afbeelding of -PDF): in de app via
+// het iOS-deelmenu (bestand eerst naar de cache), op het web via de Web Share
+// API met bestanden, anders als download.
+async function shareGeneratedFile({ filename, mime, base64, title }) {
+  try {
+    if (isNativeShell) {
+      const { uri } = await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
+      await Share.share({ title, files: [uri], dialogTitle: title });
+      return "shared";
+    }
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const file = new File([bytes], filename, { type: mime });
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title }); return "shared"; }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return "downloaded";
+  } catch (e) {
+    return /cancel|abort/i.test(`${e?.name} ${e?.message}`) ? "cancelled" : "failed";
+  }
+}
+function bytesToBase64(bytes) {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+// Keuze hoe de host het menu deelt: als link, als afbeelding voor een
+// status/story, of als printbare A5-PDF.
+function MenuShareSheet({ busy, onClose, onLink, onStory, onPdf }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const row = (Icon, title, subtitle, onClick) => (
+    <button onClick={onClick} disabled={!!busy} style={{
+      display: "flex", alignItems: "center", gap: 14, width: "100%", minHeight: 60, padding: "10px 4px",
+      background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, textAlign: "left", cursor: busy ? "default" : "pointer", fontFamily: sans, color: INK,
+      opacity: busy && busy !== title ? 0.45 : 1,
+    }}>
+      <span style={{ width: 40, height: 40, borderRadius: "50%", background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: BOTTLE }}>
+        <Icon size={18} />
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 15.5, fontWeight: 700 }}>{busy === title ? "Bezig…" : title}</span>
+        <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 2 }}>{subtitle}</span>
+      </span>
+    </button>
+  );
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in" style={{
+        position: "relative", maxWidth: 560, width: "100%", margin: "0 auto", background: PAPER,
+        borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)", fontFamily: sans,
+        padding: "0 20px calc(env(safe-area-inset-bottom) + 18px)",
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ fontSize: 17, fontWeight: 800, color: INK, padding: "2px 4px 8px", touchAction: "none" }}>Menu delen</div>
+        {row(Share2, "Link delen", "Gasten openen de menukaart in hun browser.", onLink)}
+        {row(ImageIcon, "Als afbeelding", "Staand 1080×1920, voor WhatsApp-status of Instagram-story.", onStory)}
+        {row(Printer, "Printversie (A5)", "PDF om te printen en op tafel te zetten.", onPdf)}
+      </div>
+    </div>
+  ), document.body);
+}
+
 function ConfirmDialog({ title, message, cancelLabel = "Annuleer", confirmLabel, confirmColor = BURGUNDY, busy, onCancel, onConfirm }) {
   return createPortal(
     <div role="dialog" aria-modal="true" style={{
@@ -8387,7 +8456,36 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
   const onBackRef = useRef(onBack);
   onBackRef.current = onBack;
   const shareRef = useRef(null);
-  shareRef.current = () => shareMenu(chosen);
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [shareBusy, setShareBusy] = useState(null);
+  shareRef.current = () => setShowShareSheet(true);
+  const menuCardData = () => {
+    const party_ = { title: party.name, host: (hostName || "").split(" ")[0], startsAt: party.starts_at ? new Date(party.starts_at) : null, address: party.show_address ? party.address : "" };
+    const items = chosenRecipes.map(r => menuCocktailInfo(r, allIngredients, getTasteProfile(r, allIngredients)));
+    return { party: party_, items };
+  };
+  const shareMenuFile = async (kind) => {
+    const label = kind === "story" ? "Als afbeelding" : "Printversie (A5)";
+    setShareBusy(label);
+    onSound("share");
+    let result;
+    try {
+      const { party: p, items } = menuCardData();
+      const base = (party.name || "menu").replace(/[^\w-]+/g, "-").toLowerCase();
+      if (kind === "story") {
+        const canvas = await renderMenuCanvas({ width: 1080, height: 1920, party: p, items });
+        result = await shareGeneratedFile({ filename: `${base}-menukaart.png`, mime: "image/png", base64: canvas.toDataURL("image/png").split(",")[1], title: party.name });
+      } else {
+        const canvas = await renderMenuCanvas({ width: 1748, height: 2480, party: p, items }); // A5 op 300 dpi
+        result = await shareGeneratedFile({ filename: `${base}-menukaart-a5.pdf`, mime: "application/pdf", base64: bytesToBase64(canvasToPdf(canvas)), title: party.name });
+      }
+    } catch { result = "failed"; }
+    setShareBusy(null);
+    if (result === "cancelled") return;
+    setShowShareSheet(false);
+    setShareState(result === "downloaded" ? "copied" : result);
+    setTimeout(() => setShareState(null), result === "failed" ? 8000 : 2500);
+  };
   useEffect(() => {
     if (!setNavOverride) return;
     setNavOverride({
@@ -8758,6 +8856,20 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
               );
             })}
           </div>
+
+          {chosenRecipes.length > 0 && (
+            <button onClick={() => setShowShareSheet(true)} className="press-scale" style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 48, marginTop: 12,
+              background: BOTTLE_DARK, color: CREAM, border: "none", borderRadius: RADIUS, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+            }}>
+              <ImageIcon size={17} /> Deel als afbeelding
+            </button>
+          )}
+          {showShareSheet && (
+            <MenuShareSheet busy={shareBusy} onClose={() => setShowShareSheet(false)}
+              onLink={() => { setShowShareSheet(false); shareMenu(chosen); }}
+              onStory={() => shareMenuFile("story")} onPdf={() => shareMenuFile("pdf")} />
+          )}
 
           {chosenRecipes.length > guestTiers.target && (
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(184,134,46,0.08)", border: `1px solid ${BRASS}`, borderRadius: RADIUS, padding: "12px 14px", marginTop: 12 }}>
