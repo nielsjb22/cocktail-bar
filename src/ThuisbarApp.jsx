@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext } from "react";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext, useId } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
@@ -3728,6 +3728,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
 
   const commenterName = (uid) => (uid === myId ? (profile?.name || "Jij") : (friendProfiles[uid]?.name || "Vriend"));
   const commenterPhoto = (uid) => (uid === myId ? profile?.avatar_url : friendProfiles[uid]?.avatar_url);
+  const commenterIsMaster = (uid) => (uid === myId ? !!courseRank?.master : profileCourseRank(friendProfiles[uid]).master);
 
   const toggleComments = async (checkinId) => {
     if (openComments === checkinId) { setOpenComments(null); return; }
@@ -3871,7 +3872,8 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
               const lastPart = COURSE_PARTS[Math.max(0, Math.min(COURSE_PART_COUNT, entry.partsDone) - 1)];
               const cheer = rankCheers[entry.id] || { count: 0, mine: false };
               return (
-                <div key={`r-${entry.id}`} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 18, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+                <div key={`r-${entry.id}`} style={{ background: CREAM, border: `1px solid ${isMaster ? "rgba(184,134,46,0.55)" : BORDER}`, borderRadius: 18, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+                  {isMaster && <div aria-hidden style={{ height: 3, background: MASTER_GOLD }} />}
                   <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px 10px" }}>
                     <CourseRing name={who} photo={whoAvatar} size={38} partsDone={isMaster ? COURSE_PART_COUNT : entry.partsDone} master={isMaster} />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -3884,12 +3886,12 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                     </div>
                   </div>
                   <div style={{ margin: "0 14px 12px", padding: 18, borderRadius: 14, background: BOTTLE_DARK, color: CREAM, display: "flex", alignItems: "center", gap: 16 }}>
-                    <span style={{ width: 56, height: 56, borderRadius: "50%", border: `2px solid ${BRASS}`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", color: "#DDB877", flexShrink: 0, background: isMaster ? "rgba(184,134,46,0.18)" : "none" }}>
-                      {isMaster ? <GraduationCap size={26} strokeWidth={1.7} /> : <Martini size={26} strokeWidth={1.7} />}
+                    <span style={{ width: 56, height: 56, borderRadius: "50%", border: isMaster ? "none" : `2px solid ${BRASS}`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", color: isMaster ? BOTTLE_DARK : "#DDB877", flexShrink: 0, background: isMaster ? MASTER_GOLD : "none" }}>
+                      {isMaster ? <GraduationCap size={26} strokeWidth={1.9} /> : <Martini size={26} strokeWidth={1.7} />}
                     </span>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#DDB877" }}>{isMaster ? "Diploma" : "Nieuwe rang"}</div>
-                      <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, marginTop: 2 }}>{isMaster ? "Meester" : rankDef.name}</div>
+                      <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, marginTop: 2, ...(isMaster ? masterTextStyleLight : {}) }}>{isMaster ? "Meester" : rankDef.name}</div>
                       <div style={{ fontSize: 12.5, color: "#C9D2CB", marginTop: 3 }}>
                         {isMaster ? "Alle 6 delen en de eindtoets gehaald" : `${lastPart ? `${lastPart.title} afgerond · ` : ""}${entry.partsDone} van ${COURSE_PART_COUNT} delen`}
                       </div>
@@ -3917,7 +3919,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                         <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
                           <Avatar name={commenterName(c.user_id)} photo={commenterPhoto(c.user_id)} size={24} />
                           <div style={{ flex: 1, minWidth: 0, background: PAPER_DEEP, borderRadius: 12, padding: "6px 10px" }}>
-                            <span style={{ fontWeight: 700, fontSize: 12 }}>{commenterName(c.user_id)}</span>{" "}
+                            <span style={{ fontWeight: 700, fontSize: 12, ...(commenterIsMaster(c.user_id) ? masterTextStyle : {}) }}>{commenterName(c.user_id)}</span>{commenterIsMaster(c.user_id) && <span style={{ display: "inline-flex", verticalAlign: "-2px", marginLeft: 3 }}><MasterSeal size={12} border={1} /></span>}{" "}
                             <span style={{ fontSize: 12.5, color: INK }}>{c.text}</span>
                           </div>
                           {c.user_id === myId && (
@@ -3955,15 +3957,16 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             const key = `${entry.mine ? "m" : "f"}-${entry.id}`;
             const cheer = reactions[entry.id] || { count: 0, mine: false };
             return (
-              <div key={key} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 18, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+              <div key={key} style={{ background: CREAM, border: `1px solid ${rankOf(entry)?.master ? "rgba(184,134,46,0.55)" : BORDER}`, borderRadius: 18, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+                {rankOf(entry)?.master && <div aria-hidden style={{ height: 3, background: MASTER_GOLD }} />}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px 10px" }}>
                   <RankAvatar name={who} photo={whoAvatar} size={38} courseRank={rankOf(entry)} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {entry.mine ? (
-                      <span style={{ fontWeight: 700, fontSize: 13.5, color: INK }}>{who}</span>
+                      <span style={{ fontWeight: 700, fontSize: 13.5, color: INK, ...(rankOf(entry)?.master ? masterTextStyle : {}) }}>{who}</span>
                     ) : (
                       <button onClick={() => setOpenFriendId(entry.friendId)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, fontSize: 13.5, color: INK }}>
-                        {who}
+                        <span style={rankOf(entry)?.master ? masterTextStyle : undefined}>{who}</span>
                       </button>
                     )}
                     {rankOf(entry)?.rank && <span style={{ marginLeft: 6 }}><CourseRankLabel courseRank={rankOf(entry)} /></span>}
@@ -4040,7 +4043,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                         <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
                           <Avatar name={commenterName(c.user_id)} photo={commenterPhoto(c.user_id)} size={24} />
                           <div style={{ flex: 1, minWidth: 0, background: PAPER_DEEP, borderRadius: 12, padding: "6px 10px" }}>
-                            <span style={{ fontWeight: 700, fontSize: 12 }}>{commenterName(c.user_id)}</span>{" "}
+                            <span style={{ fontWeight: 700, fontSize: 12, ...(commenterIsMaster(c.user_id) ? masterTextStyle : {}) }}>{commenterName(c.user_id)}</span>{commenterIsMaster(c.user_id) && <span style={{ display: "inline-flex", verticalAlign: "-2px", marginLeft: 3 }}><MasterSeal size={12} border={1} /></span>}{" "}
                             <span style={{ fontSize: 12.5, color: INK }}>{c.text}</span>
                           </div>
                           {c.user_id === myId && (
@@ -11517,6 +11520,54 @@ function courseRankHint(r) {
   return `Nog ${left} ${left === 1 ? "deel" : "delen"} tot ${COURSE_RANKS[r.index < 1 ? 1 : r.index + 1].name}`;
 }
 
+// Meestergoud: alleen voor wie de eindtoets heeft gehaald. Een metaalachtig
+// verloop (geborsteld goud) i.p.v. het vlakke BRASS van de rest van de app.
+const MASTER_GOLD = "linear-gradient(135deg, #7A5414 0%, #C8963A 26%, #F3DC9B 50%, #C8963A 74%, #8A6118 100%)";
+const MASTER_GOLD_STOPS = [["0%", "#7A5414"], ["26%", "#C8963A"], ["50%", "#F3DC9B"], ["74%", "#C8963A"], ["100%", "#8A6118"]];
+// Lichtere variant voor op donkergroen (anders valt het donkere begin weg).
+const MASTER_GOLD_LIGHT = "linear-gradient(135deg, #C8963A 0%, #F6E3A8 45%, #E2B85E 70%, #F3DC9B 100%)";
+const masterTextStyleLight = { background: MASTER_GOLD_LIGHT, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", WebkitTextFillColor: "transparent" };
+const masterTextStyle = { background: MASTER_GOLD, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", WebkitTextFillColor: "transparent" };
+function MasterSeal({ size = 18, border = 1.5 }) {
+  return (
+    <span aria-label="Meester" style={{
+      width: size, height: size, borderRadius: "50%", background: MASTER_GOLD, border: `${border}px solid ${BOTTLE_DARK}`, boxSizing: "border-box",
+      display: "inline-flex", alignItems: "center", justifyContent: "center", color: BOTTLE_DARK, flexShrink: 0,
+    }}><GraduationCap size={Math.round(size * 0.55)} strokeWidth={2.2} /></span>
+  );
+}
+
+// "Meester nr. 12": het hoeveelste diploma ooit in de app, op volgorde van
+// course_completed_at. Faalt stil (dan tonen we geen nummer).
+function useMasterNumber(completedAt) {
+  const [n, setN] = useState(null);
+  useEffect(() => {
+    if (!completedAt) { setN(null); return; }
+    let cancelled = false;
+    supabase.from("profiles").select("id", { count: "exact", head: true })
+      .not("course_completed_at", "is", null).lte("course_completed_at", completedAt)
+      .then(({ count, error }) => { if (!cancelled && !error && count) setN(count); });
+    return () => { cancelled = true; };
+  }, [completedAt]);
+  return n;
+}
+// Donkere "ledenkaart" achter de profielkop van een Meester.
+const MASTER_HEADER_STYLE = {
+  position: "relative", overflow: "hidden", borderRadius: 22, padding: "20px 16px 14px", marginBottom: 18,
+  background: `radial-gradient(ellipse 120% 90% at 15% 0%, #2A4B42, ${BOTTLE_DARK} 72%)`,
+  border: "1px solid rgba(221,184,119,0.45)", boxShadow: "0 10px 28px -12px rgba(19,38,34,0.55)",
+};
+function MasterHeaderTitle({ number }) {
+  return (
+    <>
+      <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: 3, background: MASTER_GOLD }} />
+      <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", marginBottom: 12, ...masterTextStyleLight }}>
+        Meester{number ? ` · nr. ${number}` : ""}
+      </div>
+    </>
+  );
+}
+
 // Profielfoto met de cursusring: zes stukken, één per afgerond deel. Met
 // het diploma wordt de ring massief goud, met een zegel rechtsonder.
 // size = totale buitenmaat, zodat hij overal 1-op-1 een Avatar vervangt.
@@ -11531,13 +11582,19 @@ function CourseRing({ name, photo, size = 84, partsDone = 0, master = false, dar
   const offColor = dark ? "rgba(255,255,255,0.18)" : BORDER;
   const startDeg = -90 + (segGap / 2 / c) * 360;
   const inner = size - gap * 2;
+  const gid = useId().replace(/:/g, "");
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ position: "absolute", inset: 0 }} aria-hidden>
         {master ? (
           <>
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={BRASS} strokeWidth={stroke} />
-            {big && <circle cx={size / 2} cy={size / 2} r={r - stroke - 1} fill="none" stroke="#DDB877" strokeWidth={1} />}
+            <defs>
+              <linearGradient id={`mg${gid}`} x1="0" y1="0" x2="1" y2="1">
+                {MASTER_GOLD_STOPS.map(([o, c]) => <stop key={o} offset={o} stopColor={c} />)}
+              </linearGradient>
+            </defs>
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#mg${gid})`} strokeWidth={big ? stroke + 1.5 : stroke + 0.8} />
+            {big && <circle cx={size / 2} cy={size / 2} r={r - stroke - 1.5} fill="none" stroke={`url(#mg${gid})`} strokeWidth={1} opacity={0.8} />}
           </>
         ) : [0, 1, 2, 3, 4, 5].map(i => {
           const on = i < partsDone;
@@ -11550,11 +11607,9 @@ function CourseRing({ name, photo, size = 84, partsDone = 0, master = false, dar
       </svg>
       <div style={{ position: "absolute", inset: gap }}>{children || <Avatar name={name} photo={photo} size={inner} />}</div>
       {master && seal && size >= 44 && (
-        <span style={{
-          position: "absolute", right: big ? -2 : -3, bottom: big ? 0 : -2, width: big ? 30 : 18, height: big ? 30 : 18, borderRadius: "50%",
-          background: BOTTLE_DARK, border: `${big ? 2 : 1.5}px solid ${BRASS}`, boxSizing: "border-box", color: "#DDB877",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}><GraduationCap size={big ? 15 : 10} strokeWidth={2} /></span>
+        <span style={{ position: "absolute", right: big ? -2 : -3, bottom: big ? 0 : -2, display: "flex" }}>
+          <MasterSeal size={big ? 30 : 18} border={big ? 2 : 1.5} />
+        </span>
       )}
     </div>
   );
@@ -11568,12 +11623,21 @@ function RankAvatar({ name, photo, size, courseRank }) {
 function CourseRankLabel({ courseRank, chip = false }) {
   if (!courseRank?.rank) return null;
   if (!chip) {
+    if (courseRank.master) {
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", verticalAlign: "middle" }}>
+          <MasterSeal size={14} border={1} />
+          <span style={{ fontSize: 11.5, fontWeight: 800, ...masterTextStyle }}>Meester</span>
+        </span>
+      );
+    }
     return <span style={{ fontSize: 11.5, fontWeight: 700, color: "#8F6A21", whiteSpace: "nowrap" }}>{courseRank.rank.name}</span>;
   }
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, whiteSpace: "nowrap",
-      background: courseRank.master ? BRASS : BOTTLE_DARK, color: courseRank.master ? BOTTLE_DARK : "#F1D9A6", fontSize: 12, fontWeight: 700,
+      background: courseRank.master ? MASTER_GOLD : BOTTLE_DARK, color: courseRank.master ? BOTTLE_DARK : "#F1D9A6", fontSize: 12, fontWeight: 800,
+      boxShadow: courseRank.master ? "0 2px 8px rgba(138,97,24,0.35)" : "none",
     }}><GraduationCap size={13} strokeWidth={2} /> {courseRank.rank.name}</span>
   );
 }
@@ -11634,6 +11698,7 @@ function CourseProgressCard({ courseProgress, courseRank, firstName = null }) {
 // je vrienden ook zien (profiles.course_completed_at). compact = het kleine
 // label naast je naam; anders de volledige diploma-kaart.
 function CourseDiploma({ date, scorePct, isOwn = true }) {
+  const number = useMasterNumber(date || null);
   const when = date ? new Date(date).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) : null;
   return (
     <div style={{
@@ -11642,9 +11707,9 @@ function CourseDiploma({ date, scorePct, isOwn = true }) {
       border: `1.5px solid ${BRASS}`, boxShadow: SHADOW_CARD,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
-        <div style={{ width: 52, height: 52, borderRadius: "50%", border: "1.5px solid rgba(221,184,119,0.7)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#DDB877" }}><GraduationCap size={24} strokeWidth={1.7} /></div>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", background: MASTER_GOLD, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: BOTTLE_DARK, boxShadow: "0 3px 10px rgba(0,0,0,0.25)" }}><GraduationCap size={24} strokeWidth={1.9} /></div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase", color: "#DDB877" }}>Diploma</div>
+          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.3, textTransform: "uppercase", ...masterTextStyleLight }}>Diploma{number ? ` · Meester nr. ${number}` : ""}</div>
           <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 18, lineHeight: 1.2, marginTop: 2 }}>Gediplomeerd thuisbartender</div>
           <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 4, lineHeight: 1.4 }}>
             {isOwn ? "Je hebt" : "Heeft"} de cursus "Van Basis tot Pro" uitgespeeld{scorePct ? ` · eindtoets ${scorePct}%` : ""}{when ? ` · ${when}` : ""}
@@ -12555,6 +12620,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   // Profiel in drie tabbladen (Check-ins · Smaak · Prestaties); bewust niet
   // onthouden over sessies heen — altijd beginnen bij Check-ins.
   const [profileTab, setProfileTab] = useState("checkins");
+  const isMaster = !!courseRank?.master;
+  const masterNumber = useMasterNumber(isMaster ? (profile?.course_completed_at || null) : null);
   const [openEntryId, setOpenEntryId] = useState(null);
   const openEntry = logboek.find(e => e.id === openEntryId) || null;
   const monthKey = new Date().toISOString().slice(0, 7);
@@ -12593,7 +12660,10 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
         </div>
       </div>
 
-      {/* Identiteit: foto met XP-ring, naam (tik = wijzigen), niveau */}
+      {/* Identiteit: foto met XP-ring, naam (tik = wijzigen), niveau.
+          Voor een Meester in een donkere ledenkaart met Meestergoud. */}
+      <div style={isMaster ? MASTER_HEADER_STYLE : undefined}>
+      {isMaster && <MasterHeaderTitle number={masterNumber} />}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <input ref={photoInputRef} type="file" accept="image/*" onChange={handleProfilePhotoFile} style={{ display: "none" }} />
         <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" aria-label="Profielfoto wijzigen" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
@@ -12610,31 +12680,32 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             </div>
           ) : (
             <button onClick={startEditName} aria-label="Naam wijzigen" style={{ display: "block", maxWidth: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: isMaster ? CREAM : INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
             </button>
           )}
           {courseRank?.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={courseRank} chip /></div>}
-          <div style={{ fontSize: 14, fontWeight: 600, color: BRASS, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: isMaster ? "#DDB877" : BRASS, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             Niveau {insights.level.level} · {insights.level.title}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 3 }}>
-            <span style={{ fontSize: 12, color: MUTED }}>{insights.level.to ? `${insights.level.to - insights.level.xp} XP tot niveau ${insights.level.level + 1}` : "Hoogste niveau bereikt"}</span>
+            <span style={{ fontSize: 12, color: isMaster ? "#C9D2CB" : MUTED }}>{insights.level.to ? `${insights.level.to - insights.level.xp} XP tot niveau ${insights.level.level + 1}` : "Hoogste niveau bereikt"}</span>
           </div>
         </div>
       </div>
 
       {/* Kerncijfers */}
-      <div style={{ display: "flex", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 0", marginBottom: 16 }}>
+      <div style={{ display: "flex", background: isMaster ? "rgba(255,255,255,0.06)" : CREAM, border: `1px solid ${isMaster ? "rgba(221,184,119,0.25)" : BORDER}`, borderRadius: 16, padding: "12px 0", marginBottom: isMaster ? 0 : 16 }}>
         {[
           { value: <AnimatedNumber value={stats.total} />, label: "check-ins" },
           { value: <AnimatedNumber value={stats.uniques} />, label: "uniek" },
           { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill={BRASS} color={BRASS} /></span>, label: "gemiddeld" },
         ].map((c, i) => (
-          <div key={c.label} style={{ flex: 1, textAlign: "center", borderLeft: i === 0 ? "none" : `1px solid ${BORDER}` }}>
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: INK }}>{c.value}</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{c.label}</div>
+          <div key={c.label} style={{ flex: 1, textAlign: "center", borderLeft: i === 0 ? "none" : `1px solid ${isMaster ? "rgba(221,184,119,0.25)" : BORDER}` }}>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: isMaster ? CREAM : INK }}>{c.value}</div>
+            <div style={{ fontSize: 12, color: isMaster ? "#C9D2CB" : MUTED, marginTop: 1 }}>{c.label}</div>
           </div>
         ))}
+      </div>
       </div>
 
       {/* Tabbladen */}
@@ -13272,6 +13343,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
   const name = friendProfile?.name || "Vriend";
   const firstName = name.split(" ")[0];
   const friendRank = profileCourseRank(friendProfile);
+  const friendMasterNumber = useMasterNumber(friendRank.master ? friendProfile?.course_completed_at : null);
   const findMatch = (e) => e.recipeId ? recipes.find(r => r.id === e.recipeId) : recipes.find(r => r.name.toLowerCase() === e.name.toLowerCase());
   const withMeIds = useMemo(() => new Set((together?.events || []).map(ev => ev.herEntryId).filter(x => x != null).map(String)), [together]);
   const monthName = (iso) => iso ? new Date(iso).toLocaleDateString("nl-NL", { month: "long" }) : "";
@@ -13394,31 +13466,36 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
   const showSamenStrip = together && (together.events.length > 0 || together.both.length > 0 || together.tryOne);
   const lastEvent = together?.events[0];
 
+  const fm = friendRank.master;
   const profielView = (
     <>
+      <div style={fm ? MASTER_HEADER_STYLE : undefined}>
+      {fm && <MasterHeaderTitle number={friendMasterNumber} />}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <CourseRing name={name} photo={friendProfile?.avatar_url} size={84} partsDone={friendRank.partsDone} master={friendRank.master} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: fm ? CREAM : INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
           {friendRank.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={friendRank} chip /></div>}
-          {insights && <div style={{ fontSize: 14, fontWeight: 600, color: BRASS, marginTop: 2 }}>Niveau {insights.level.level} · {insights.level.title}</div>}
+          {insights && <div style={{ fontSize: 14, fontWeight: 600, color: fm ? "#DDB877" : BRASS, marginTop: 2 }}>Niveau {insights.level.level} · {insights.level.title}</div>}
         </div>
       </div>
 
       {stats && (
-        <div style={{ display: "flex", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 0", marginBottom: 12 }}>
+        <div style={{ display: "flex", background: fm ? "rgba(255,255,255,0.06)" : CREAM, border: `1px solid ${fm ? "rgba(221,184,119,0.25)" : BORDER}`, borderRadius: 16, padding: "12px 0", marginBottom: fm ? 0 : 12 }}>
           {[
             { value: stats.total, label: "check-ins" },
             { value: stats.uniques, label: "uniek" },
             { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill={BRASS} color={BRASS} /></span>, label: "gemiddeld" },
           ].map((c, i) => (
-            <div key={c.label} style={{ flex: 1, textAlign: "center", borderLeft: i === 0 ? "none" : `1px solid ${BORDER}` }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: INK }}>{c.value}</div>
-              <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>{c.label}</div>
+            <div key={c.label} style={{ flex: 1, textAlign: "center", borderLeft: i === 0 ? "none" : `1px solid ${fm ? "rgba(221,184,119,0.25)" : BORDER}` }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: fm ? CREAM : INK }}>{c.value}</div>
+              <div style={{ fontSize: 12, color: fm ? "#C9D2CB" : MUTED, marginTop: 1 }}>{c.label}</div>
             </div>
           ))}
         </div>
       )}
+      </div>
+      {fm && <div style={{ height: 12 }} />}
 
       {showSamenStrip && (
         <button onClick={() => setView("samen")} className="press-scale" style={{
