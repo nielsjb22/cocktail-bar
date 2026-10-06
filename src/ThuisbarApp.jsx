@@ -1616,9 +1616,12 @@ function GuestBrowseShell({
 // Deellinks (menu, smaaktest, vrienduitnodiging, wachtwoord-reset) moeten
 // naar de openbare webversie wijzen. In de iOS-app is window.location.origin
 // "capacitor://localhost" — een link waar een ontvanger niets mee kan. Daar
-// gebruiken we dus VITE_PUBLIC_WEB_URL (bv. https://mijnthuisbar.netlify.app);
-// op het web gewoon het eigen adres.
-const PUBLIC_WEB_URL = (import.meta.env.VITE_PUBLIC_WEB_URL || "").replace(/\/+$/, "");
+// gebruiken we dus het adres van de Netlify-webversie (te overschrijven met
+// VITE_PUBLIC_WEB_URL in .env); op het web gewoon het eigen adres.
+// Let op: die webversie moet de gastweergaven (?menu=, ?smaaktest=) kennen,
+// dus na grote wijzigingen ook Netlify bijwerken.
+const DEFAULT_PUBLIC_WEB_URL = "https://beautiful-pasca-793e77.netlify.app";
+const PUBLIC_WEB_URL = (import.meta.env.VITE_PUBLIC_WEB_URL || DEFAULT_PUBLIC_WEB_URL).replace(/\/+$/, "");
 function publicAppUrl(query = "") {
   const base = isNativeShell ? PUBLIC_WEB_URL : `${window.location.origin}${window.location.pathname}`.replace(/\/+$/, "");
   if (!base) return null;
