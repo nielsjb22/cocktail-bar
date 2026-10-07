@@ -243,7 +243,7 @@ export const RECIPES = [
   { id: "amaretto_sour", name: "Amaretto Sour", family: "Sours", glass: "Rocks", ingredients: [{ id: "amaretto", amount: 60, unit: "ml" }, { id: "lemon_juice", amount: 25, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "egg_white", amount: 1, unit: "stuk", optional: true }], garnish: "Een schijfje sinaasappel en een cocktailkers.", method: "Dry shake zonder ijs voor het schuim, dan met ijs shaken en over vers ijs zeven." },
   { id: "cosmopolitan", name: "Cosmopolitan", family: "Sours", glass: "Coupe", ingredients: [{ id: "vodka", amount: 40, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "cranberry_juice", amount: 30, unit: "ml" }], garnish: "Een flinter sinaasappelschil, uitgeknepen boven het glas en op de rand gelegd.", method: "Shake stevig met ijs (dit moet goed koud en licht schuimig zijn) en dubbel zeven in een gekoelde coupe." },
   { id: "sidecar", name: "Sidecar", family: "Sours", glass: "Coupe", ingredients: [{ id: "cognac", amount: 50, unit: "ml" }, { id: "triple_sec", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }], garnish: "Een lange sliert sinaasappelschil, of niets: de suikerrand is de garnering.", method: "Wrijf de rand van het glas met citroen en draai in kristalsuiker voor de klassieke suikerrand. Shake de rest met ijs en zeef erin." },
-  { id: "ward_8", name: "Ward 8", family: "Sours", glass: "Coupe", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "orange_juice", amount: 15, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }], garnish: "Een schijfje sinaasappel en een cocktailkers.", method: "Shake stevig met ijs zodat de twee soorten citrus goed mengen, en zeef over vers ijs." },
+  { id: "ward_8", name: "Ward 8", family: "Sours", glass: "Coupe", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "orange_juice", amount: 15, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }], garnish: "Een schijfje sinaasappel en een cocktailkers.", method: "Shake stevig met ijs zodat de twee soorten citrus goed mengen, en zeef in een gekoelde coupe." },
   { id: "aviation", name: "Aviation", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "maraschino_liqueur", amount: 15, unit: "ml" }, { id: "creme_de_violette", amount: 7.5, unit: "ml", optional: true }, { id: "lemon_juice", amount: 15, unit: "ml" }], garnish: "Een cocktailkers op de bodem van het glas, zichtbaar door de lichtpaarse drank.", method: "Shake met ijs en dubbel zeven. De crème de violette is subtiel, dus meet 'm nauwkeurig af." },
   { id: "between_the_sheets", name: "Between the Sheets", family: "Sours", glass: "Coupe", ingredients: [{ id: "white_rum", amount: 20, unit: "ml" }, { id: "cognac", amount: 20, unit: "ml" }, { id: "triple_sec", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }], garnish: "Een sliertje citroenschil.", method: "Shake stevig met ijs (drie sterkedranken tegelijk vragen om goede koeling en verdunning) en zeef in een gekoelde coupe." },
   { id: "brandy_crusta", name: "Brandy Crusta", family: "Sours", glass: "Coupe (suikerrand)", ingredients: [{ id: "cognac", amount: 60, unit: "ml" }, { id: "maraschino_liqueur", amount: 7.5, unit: "ml" }, { id: "triple_sec", amount: 7.5, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "sugar_syrup", amount: 7.5, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "De lange citroenschil aan de binnenkant van het glas is zelf de garnering.", method: "Wrijf de rand met citroen en draai in kristalsuiker; leg een lange, aaneengesloten citroenschil binnenin het glas vóór het inschenken. Shake de rest met ijs en zeef erin." },
@@ -259,7 +259,7 @@ export const RECIPES = [
   { id: "dons_special_daiquiri", name: "Don's Special Daiquiri", family: "Sours", glass: "Coupe", ingredients: [{ id: "dark_rum", amount: 30, unit: "ml" }, { id: "white_rum", amount: 30, unit: "ml" }, { id: "passion_fruit_puree", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "honey_syrup", amount: 10, unit: "ml" }], garnish: "Een schijfje limoen.", method: "Shake stevig met ijs (de passievrucht en honing maken 'm dikker dan een gewone Daiquiri) en dubbel zeven in een gekoelde coupe." },
   { id: "new_york_sour", name: "New York Sour", family: "Sours", glass: "Rocks", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }, { id: "red_wine", amount: 15, unit: "ml" }], garnish: "Geen garnering: de wijnlaag zelf is het visuele hoogtepunt.", method: "Shake de eerste drie ingrediënten met ijs en zeef over vers ijs. Giet de rode wijn er tot slot voorzichtig over de achterkant van een lepel zodat hij als laag blijft drijven." },
   { id: "south_side", name: "South Side", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }, { id: "mint", amount: 6, unit: "stuk" }], garnish: "Een muntblaadje boven op het schuim.", method: "Kneus de munt zacht met een klap tussen je handen (niet pletten) voor je 'm toevoegt. Shake stevig met ijs en dubbel zeven." },
-  { id: "spicy_fifty", name: "Spicy Fifty", family: "Sours", glass: "Coupe", ingredients: [{ id: "vodka", amount: 40, unit: "ml" }, { id: "elderflower_cordial", amount: 15, unit: "ml" }, { id: "honey_syrup", amount: 10, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "chili", amount: 1, unit: "stuk" }], garnish: "Een dun chilipeperschijfje op de rand.", method: "Muddel de chilipeper licht, te hard geeft te veel hitte. Shake met de rest en ijs, dubbel zeven in een gekoelde coupe." },
+  { id: "spicy_fifty", name: "Spicy Fifty", family: "Sours", glass: "Coupe", ingredients: [{ id: "vanilla_vodka", amount: 50, unit: "ml" }, { id: "elderflower_cordial", amount: 15, unit: "ml" }, { id: "honey_syrup", amount: 10, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "chili", amount: 1, unit: "stuk" }], garnish: "Een dun chilipeperschijfje op de rand.", method: "Shake de plakjes peper mee met de rest en ijs, en dubbel zeef in een gekoelde coupe. Niet muddelen: de peper geeft tijdens het shaken genoeg pit af." },
   { id: "tommys_margarita", name: "Tommy's Margarita", family: "Sours", glass: "Rocks", ingredients: [{ id: "tequila_blanco", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 25, unit: "ml" }, { id: "agave_nectar", amount: 15, unit: "ml" }], garnish: "Limoenschijfje op de rand.", method: "Shake stevig met ijs en zeef over vers ijs. Zonder triple sec proef je de tequila zelf veel directer, dus gebruik een tequila die je apart ook lekker vindt." },
   { id: "trinidad_sour", name: "Trinidad Sour", family: "Sours", glass: "Coupe", ingredients: [{ id: "angostura", amount: 45, unit: "ml" }, { id: "orgeat", amount: 30, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "rye", amount: 15, unit: "ml" }], garnish: "Geen garnering nodig, de kleur spreekt voor zich.", method: "Shake met ijs (ja, écht met bitters als hoofdingrediënt) en dubbel zeven in een gekoelde coupe." },
   { id: "grand_margarita", name: "Grand Margarita", family: "Sours", glass: "Rocks", ingredients: [{ id: "tequila_blanco", amount: 50, unit: "ml" }, { id: "grand_marnier", amount: 20, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }], garnish: "Limoenschijfje op de rand, eventueel een zoutrand.", method: "Shake stevig met ijs en zeef over vers ijs." },
@@ -276,7 +276,7 @@ export const RECIPES = [
   { id: "algonquin", name: "Algonquin", family: "Sours", glass: "Coupe", ingredients: [{ id: "rye", amount: 45, unit: "ml" }, { id: "dry_vermouth", amount: 20, unit: "ml" }, { id: "pineapple_juice", amount: 20, unit: "ml" }], garnish: "Een schijfje ananas op de rand.", method: "Shake met ijs en zeef in een gekoeld coupeglas." },
   { id: "bacardi_cocktail", name: "Bacardi Cocktail", family: "Sours", glass: "Coupe", ingredients: [{ id: "white_rum", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }], garnish: "Een cocktailkers.", method: "Shake stevig met ijs en zeef in een gekoeld coupeglas. De grenadine geeft 'm een zachtroze kleur." },
   { id: "kamikaze", name: "Kamikaze", family: "Sours", glass: "Coupe", ingredients: [{ id: "vodka", amount: 30, unit: "ml" }, { id: "triple_sec", amount: 30, unit: "ml" }, { id: "lime_juice", amount: 30, unit: "ml" }], garnish: "Een schijfje limoen op de rand.", method: "Shake stevig met ijs en zeef in een gekoeld glas, vaak ook als shotje geserveerd." },
-  { id: "pink_lady", name: "Pink Lady", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "calvados", amount: 15, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }, { id: "egg_white", amount: 1, unit: "stuk" }], garnish: "Een cocktailkers.", method: "Dry shake zonder ijs voor het schuim, shake dan met ijs en zeef in een gekoeld coupeglas." },
+  { id: "pink_lady", name: "Pink Lady", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "calvados", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }, { id: "egg_white", amount: 1, unit: "stuk" }], garnish: "Een cocktailkers.", method: "Dry shake zonder ijs voor het schuim, shake dan met ijs en zeef in een gekoeld coupeglas." },
   { id: "scofflaw", name: "Scofflaw", family: "Sours", glass: "Coupe", ingredients: [{ id: "rye", amount: 45, unit: "ml" }, { id: "dry_vermouth", amount: 20, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "orange_bitters", amount: 2, unit: "dash" }], garnish: "Een sinaasappelschilletje en een cocktailkers.", method: "Shake met ijs en zeef in een gekoeld coupeglas." },
   { id: "twentieth_century", name: "Twentieth Century", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 40, unit: "ml" }, { id: "lillet_blanc", amount: 20, unit: "ml" }, { id: "creme_de_cacao", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }], garnish: "Een sinaasappelschilletje.", method: "Shake met ijs en zeef in een gekoeld coupeglas, een elegante, art-deco-achtige balans tussen citroen en cacao." },
   { id: "diamondback", name: "Diamondback", family: "Sours", glass: "Coupe", ingredients: [{ id: "rye", amount: 30, unit: "ml" }, { id: "calvados", amount: 20, unit: "ml" }, { id: "yellow_chartreuse", amount: 20, unit: "ml" }], garnish: "Geen garnering, puur de kleur en geur van de Chartreuse.", method: "Roer rustig met ijs (geen citrus, dus geen shaken nodig) en zeef in een gekoeld coupeglas." },
@@ -285,22 +285,22 @@ export const RECIPES = [
   { id: "ranch_water", name: "Ranch Water", family: "Highballs", glass: "Highball", ingredients: [{ id: "tequila_blanco", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "soda_water", amount: 100, unit: "ml" }], garnish: "Een schijfje limoen op de rand.", method: "Bouw direct in het glas over ijs, top met sodawater en roer één keer kort, niet te veel, dat laat het koolzuur ontsnappen." },
   { id: "kentucky_buck", name: "Kentucky Buck", family: "Highballs", glass: "Highball", ingredients: [{ id: "bourbon", amount: 45, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "strawberry", amount: 2, unit: "stuk" }, { id: "ginger_beer", amount: 90, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een schijfje aardbei op de rand.", method: "Muddel de aardbei goed in de shaker, shake met de rest (behalve het gemberbier) en ijs, zeef over vers ijs en top rustig met gemberbier." },
   { id: "jamaican_mule", name: "Jamaican Mule", family: "Highballs", glass: "Koperen beker", ingredients: [{ id: "dark_rum", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "ginger_beer", amount: 120, unit: "ml" }], garnish: "Een muntbosje en een schijfje limoen.", method: "Bouw over ijs in een koperen beker en top met gemberbier. Roer niet te veel, om de bubbels te sparen." },
-  { id: "shandy", name: "Shandy", family: "Highballs", glass: "Highball", ingredients: [{ id: "beer", amount: 150, unit: "ml" }, { id: "lemonade", amount: 150, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Giet voorzichtig gelijke delen bier en limonade over elkaar in een hoog glas met ijs, zodat het niet te veel schuimt." },
-  { id: "presbyterian", name: "Presbyterian", family: "Highballs", glass: "Highball", ingredients: [{ id: "rye", amount: 45, unit: "ml" }, { id: "ginger_ale", amount: 60, unit: "ml" }, { id: "soda_water", amount: 60, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Bouw over ijs en top met gelijke delen ginger ale en soda, roer één keer kort." },
+  { id: "shandy", name: "Shandy", family: "Highballs", glass: "Highball", ingredients: [{ id: "beer", amount: 150, unit: "ml" }, { id: "lemonade", amount: 150, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Giet voorzichtig gelijke delen goed gekoeld bier en limonade in een hoog glas, zonder ijs, zodat het niet te veel schuimt." },
+  { id: "presbyterian", name: "Presbyterian", family: "Highballs", glass: "Highball", ingredients: [{ id: "scotch", amount: 45, unit: "ml" }, { id: "ginger_ale", amount: 60, unit: "ml" }, { id: "soda_water", amount: 60, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Bouw over ijs en top met gelijke delen ginger ale en soda, roer één keer kort." },
   { id: "gin_buck", name: "Gin Buck", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 50, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "ginger_ale", amount: 100, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Bouw over ijs, top met ginger ale en roer kort." },
 
   // ===== SPIRIT-FORWARD (aanvulling) =====
   { id: "toronto", name: "Toronto", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "fernet_branca", amount: 8, unit: "ml" }, { id: "sugar_syrup", amount: 5, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een sinaasappelschilletje, uitgeknepen boven het glas.", method: "Roer rustig 20-30 sec met ijs in een mixing glass en zeef over een groot vers ijsblok." },
   { id: "black_manhattan", name: "Black Manhattan", family: "Spirit-forward", glass: "Coupe", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "amaro_nonino", amount: 30, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een cocktailkers.", method: "Roer 20-30 sec met ijs en zeef in een gekoeld coupeglas." },
   { id: "red_hook", name: "Red Hook", family: "Spirit-forward", glass: "Coupe", ingredients: [{ id: "rye", amount: 55, unit: "ml" }, { id: "sweet_vermouth", amount: 20, unit: "ml" }, { id: "maraschino_liqueur", amount: 8, unit: "ml" }], garnish: "Een cocktailkers.", method: "Roer 20-30 sec met ijs en zeef in een gekoeld coupeglas." },
-  { id: "greenpoint", name: "Greenpoint", family: "Spirit-forward", glass: "Coupe", ingredients: [{ id: "rye", amount: 55, unit: "ml" }, { id: "yellow_chartreuse", amount: 10, unit: "ml" }, { id: "sweet_vermouth", amount: 10, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }, { id: "peychauds", amount: 1, unit: "dash" }], garnish: "Een sinaasappelschilletje.", method: "Roer 20-30 sec met ijs en zeef in een gekoeld coupeglas. De twee soorten bitters geven 'm extra diepte." },
+  { id: "greenpoint", name: "Greenpoint", family: "Spirit-forward", glass: "Coupe", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "sweet_vermouth", amount: 15, unit: "ml" }, { id: "yellow_chartreuse", amount: 15, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }, { id: "orange_bitters", amount: 1, unit: "dash" }], garnish: "Een sinaasappelschilletje.", method: "Roer 20-30 sec met ijs en zeef in een gekoeld coupeglas. De twee soorten bitters geven 'm extra diepte." },
   { id: "old_pal", name: "Old Pal", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "rye", amount: 30, unit: "ml" }, { id: "campari", amount: 30, unit: "ml" }, { id: "dry_vermouth", amount: 30, unit: "ml" }], garnish: "Een sinaasappelschilletje.", method: "Roer met ijs en zeef over vers ijs." },
-  { id: "oaxaca_old_fashioned", name: "Oaxaca Old Fashioned", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "mezcal", amount: 50, unit: "ml" }, { id: "agave_nectar", amount: 8, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een uitgeknepen sinaasappelschil in het glas.", method: "Roer 20-30 sec met ijs en zeef over een groot vers ijsblok. Knijp een sinaasappelschil boven het glas uit en laat 'm erin vallen." },
+  { id: "oaxaca_old_fashioned", name: "Oaxaca Old Fashioned", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "tequila_blanco", amount: 45, unit: "ml" }, { id: "mezcal", amount: 15, unit: "ml" }, { id: "agave_nectar", amount: 7.5, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een uitgeknepen sinaasappelschil in het glas.", method: "Roer 20-30 sec met ijs en zeef over een groot vers ijsblok. Knijp een sinaasappelschil boven het glas uit en laat 'm erin vallen. Het origineel gebruikt reposado-tequila; blanco werkt ook." },
   { id: "improved_whiskey_cocktail", name: "Improved Whiskey Cocktail", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "sugar_syrup", amount: 5, unit: "ml" }, { id: "maraschino_liqueur", amount: 5, unit: "ml" }, { id: "absinthe", amount: 1, unit: "dash" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een sinaasappelschilletje of cocktailkers.", method: "Roer 20-30 sec met ijs en zeef over een groot vers ijsblok. De absint is maar een paar druppels, dus doseer voorzichtig." },
 
   // ===== STIRRED-DOWN (aanvulling) =====
   { id: "perfect_martini", name: "Perfect Martini", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 60, unit: "ml" }, { id: "dry_vermouth", amount: 10, unit: "ml" }, { id: "sweet_vermouth", amount: 10, unit: "ml" }], garnish: "Een schijfje citroen of een olijf.", method: "Roer 20-30 sec met ijs en zeef in een gekoeld coupeglas." },
-  { id: "metropolitan", name: "Metropolitan", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "cognac", amount: 45, unit: "ml" }, { id: "sweet_vermouth", amount: 20, unit: "ml" }, { id: "raspberry_syrup", amount: 8, unit: "ml" }, { id: "lemon_juice", amount: 8, unit: "ml" }], garnish: "Een cocktailkers.", method: "Roer met ijs en zeef in een gekoeld coupeglas." },
+  { id: "metropolitan", name: "Metropolitan", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "cognac", amount: 45, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "sugar_syrup", amount: 5, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een cocktailkers.", method: "Roer met ijs en zeef in een gekoeld coupeglas." },
   { id: "journalist", name: "Journalist", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "dry_vermouth", amount: 10, unit: "ml" }, { id: "sweet_vermouth", amount: 10, unit: "ml" }, { id: "triple_sec", amount: 5, unit: "ml" }, { id: "lemon_juice", amount: 5, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een sinaasappelschilletje.", method: "Roer met ijs en zeef in een gekoeld coupeglas." },
   { id: "satans_whiskers", name: "Satan's Whiskers", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 30, unit: "ml" }, { id: "dry_vermouth", amount: 15, unit: "ml" }, { id: "sweet_vermouth", amount: 15, unit: "ml" }, { id: "orange_juice", amount: 15, unit: "ml" }, { id: "triple_sec", amount: 8, unit: "ml" }, { id: "orange_bitters", amount: 2, unit: "dash" }], garnish: "Een sinaasappelschilletje.", method: "Shake met ijs (de sinaasappelsap maakt 'm iets voller dan een puur geroerde cocktail) en zeef in een gekoeld coupeglas." },
   { id: "income_tax_cocktail", name: "Income Tax Cocktail", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "dry_vermouth", amount: 15, unit: "ml" }, { id: "sweet_vermouth", amount: 15, unit: "ml" }, { id: "orange_juice", amount: 15, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een sinaasappelschilletje.", method: "Shake met ijs en zeef in een gekoeld coupeglas." },
@@ -336,7 +336,7 @@ export const RECIPES = [
   { id: "separator", name: "Separator", family: "Zuivel & dessert", glass: "Rocks", ingredients: [{ id: "cognac", amount: 30, unit: "ml" }, { id: "coffee_liqueur", amount: 30, unit: "ml" }, { id: "heavy_cream", amount: 20, unit: "ml" }], garnish: "Een paar koffiebonen bovenop.", method: "Shake met ijs en zeef over vers ijs." },
   { id: "b52", name: "B-52", family: "Zuivel & dessert", glass: "Rocks", ingredients: [{ id: "coffee_liqueur", amount: 20, unit: "ml" }, { id: "irish_cream", amount: 20, unit: "ml" }, { id: "grand_marnier", amount: 20, unit: "ml" }], garnish: "Geen garnering, de laagjes zijn zelf het effect.", method: "Giet de likeuren in volgorde van dichtheid, van zwaar naar licht, voorzichtig over de achterkant van een lepel zodat ze strak gescheiden blijven." },
   { id: "melon_ball", name: "Melon Ball", family: "Zuivel & dessert", glass: "Highball", ingredients: [{ id: "vodka", amount: 30, unit: "ml" }, { id: "melon_liqueur", amount: 30, unit: "ml" }, { id: "orange_juice", amount: 30, unit: "ml" }, { id: "pineapple_juice", amount: 30, unit: "ml" }], garnish: "Een schijfje meloen of sinaasappel.", method: "Shake met ijs en zeef over vers ijs." },
-  { id: "bushwacker", name: "Bushwacker", family: "Zuivel & dessert", glass: "Hurricane", ingredients: [{ id: "dark_rum", amount: 30, unit: "ml" }, { id: "coffee_liqueur", amount: 15, unit: "ml" }, { id: "coconut_cream", amount: 30, unit: "ml" }, { id: "heavy_cream", amount: 30, unit: "ml" }], garnish: "Geraspte nootmuskaat of chocolade bovenop.", method: "Blend alle ingrediënten met crushed ijs tot een gladde, dikke textuur." },
+  { id: "bushwacker", name: "Bushwacker", family: "Zuivel & dessert", glass: "Hurricane", ingredients: [{ id: "dark_rum", amount: 30, unit: "ml" }, { id: "coffee_liqueur", amount: 15, unit: "ml" }, { id: "creme_de_cacao", amount: 15, unit: "ml" }, { id: "coconut_cream", amount: 30, unit: "ml" }, { id: "heavy_cream", amount: 30, unit: "ml" }], garnish: "Geraspte nootmuskaat of chocolade bovenop.", method: "Blend alle ingrediënten met crushed ijs tot een gladde, dikke textuur." },
 
   // ===== WARME DRANKEN (aanvulling) =====
   { id: "hot_buttered_rum", name: "Hot Buttered Rum", family: "Warme dranken", glass: "Glazen mok", ingredients: [{ id: "dark_rum", amount: 60, unit: "ml" }, { id: "butter", amount: 1, unit: "stuk" }, { id: "brown_sugar", amount: 15, unit: "ml" }, { id: "cloves", amount: 2, unit: "stuk" }, { id: "hot_water", amount: 120, unit: "ml" }], garnish: "Een kaneelstokje in de mok.", method: "Los de boter en bruine suiker eerst op in het hete water, voeg dan rum en kruidnagel toe en roer goed door tot alles gemengd is." },
@@ -355,7 +355,7 @@ export const RECIPES = [
   { id: "paloma", name: "Paloma", family: "Highballs", glass: "Highball", ingredients: [{ id: "tequila_blanco", amount: 50, unit: "ml" }, { id: "grapefruit_soda", amount: 100, unit: "ml" }, { id: "lime_juice", amount: 10, unit: "ml" }], garnish: "Een schijfje grapefruit of limoen.", method: "Wrijf de rand met limoen en draai in zout. Bouw over ijs: tequila eerst, dan de grapefruitfrisdrank aanvullen." },
   { id: "dark_n_stormy", name: "Dark 'n' Stormy", family: "Highballs", glass: "Highball", ingredients: [{ id: "dark_rum", amount: 50, unit: "ml" }, { id: "ginger_beer", amount: 120, unit: "ml" }, { id: "lime_juice", amount: 10, unit: "ml" }], garnish: "Een schijfje limoen op de rand.", method: "Bouw eerst het limoensap en ijs in het glas, top met gemberbier, en giet de donkere rum er tot slot voorzichtig overheen zodat hij als donkere laag bovenop blijft drijven." },
   { id: "mojito", name: "Mojito", family: "Highballs", glass: "Highball", ingredients: [{ id: "white_rum", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 25, unit: "ml" }, { id: "sugar_syrup", amount: 20, unit: "ml" }, { id: "mint", amount: 8, unit: "stuk" }, { id: "soda_water", amount: 30, unit: "ml" }], garnish: "Een fris muntbosje, licht geklapt vlak voor het serveren.", method: "Kneus de munt zacht met een klap tussen je handen (niet fijnstampen, dat geeft een bittere smaak). Muddel kort met het limoensap en de suiker, vul aan met crushed ijs, giet de rum erover en top met soda. Roer eenmaal van onder naar boven." },
-  { id: "long_island", name: "Long Island Iced Tea", family: "Highballs", glass: "Highball", ingredients: [{ id: "vodka", amount: 15, unit: "ml" }, { id: "gin", amount: 15, unit: "ml" }, { id: "white_rum", amount: 15, unit: "ml" }, { id: "tequila_blanco", amount: 15, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 25, unit: "ml" }, { id: "cola", amount: 30, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Shake de vier sterkedranken met citroensap en ijs, zeef over vers ijs en top rustig met cola voor het bruisende laagje bovenop." },
+  { id: "long_island", name: "Long Island Iced Tea", family: "Highballs", glass: "Highball", ingredients: [{ id: "vodka", amount: 15, unit: "ml" }, { id: "gin", amount: 15, unit: "ml" }, { id: "white_rum", amount: 15, unit: "ml" }, { id: "tequila_blanco", amount: 15, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 25, unit: "ml" }, { id: "sugar_syrup", amount: 20, unit: "ml" }, { id: "cola", amount: 30, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Shake alles behalve de cola met ijs, zeef over vers ijs en top rustig met cola." },
   { id: "americano", name: "Americano", family: "Highballs", glass: "Highball", ingredients: [{ id: "campari", amount: 30, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "soda_water", amount: 30, unit: "ml" }], garnish: "Een schijfje sinaasappel.", method: "Bouw over ijs: Campari en zoete vermout eerst, dan aanvullen met soda en kort roeren." },
   { id: "garibaldi", name: "Garibaldi", family: "Highballs", glass: "Highball", ingredients: [{ id: "campari", amount: 40, unit: "ml" }, { id: "orange_juice", amount: 90, unit: "ml" }], garnish: "Een schijfje sinaasappel.", method: "Bouw over ijs en roer goed door. Gebruik het liefst vers geperst sinaasappelsap, dat maakt echt verschil." },
   { id: "horses_neck", name: "Horse's Neck", family: "Highballs", glass: "Highball", ingredients: [{ id: "cognac", amount: 45, unit: "ml" }, { id: "ginger_ale", amount: 120, unit: "ml" }], garnish: "De lange citroenschil-spiraal is zelf de garnering.", method: "Snijd één lange, aaneengesloten citroenschil in een spiraal en hang die over de rand van het glas de hele lengte in. Bouw de rest over ijs." },
@@ -372,16 +372,16 @@ export const RECIPES = [
   { id: "salty_dog", name: "Salty Dog", family: "Highballs", glass: "Highball (zoutrand)", ingredients: [{ id: "vodka", amount: 50, unit: "ml" }, { id: "grapefruit_juice", amount: 100, unit: "ml" }], garnish: "Een schijfje grapefruit.", method: "Wrijf de rand met citrus en draai in zout. Bouw de rest over ijs." },
   { id: "greyhound", name: "Greyhound", family: "Highballs", glass: "Highball", ingredients: [{ id: "vodka", amount: 50, unit: "ml" }, { id: "grapefruit_juice", amount: 120, unit: "ml" }], garnish: "Een schijfje grapefruit.", method: "Bouw over ijs en roer kort." },
   { id: "screwdriver", name: "Screwdriver", family: "Highballs", glass: "Highball", ingredients: [{ id: "vodka", amount: 50, unit: "ml" }, { id: "orange_juice", amount: 120, unit: "ml" }], garnish: "Een schijfje sinaasappel.", method: "Bouw over ijs en roer kort." },
-  { id: "lynchburg_lemonade", name: "Lynchburg Lemonade", family: "Highballs", glass: "Highball", ingredients: [{ id: "bourbon", amount: 45, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "cola", amount: 60, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Shake bourbon, triple sec en citroensap met ijs, zeef over vers ijs en top met cola." },
+  { id: "lynchburg_lemonade", name: "Lynchburg Lemonade", family: "Highballs", glass: "Highball", ingredients: [{ id: "bourbon", amount: 45, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "lemonade", amount: 90, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Shake bourbon, triple sec en citroensap met ijs, zeef over vers ijs en top met citroenlimonade." },
   { id: "michelada", name: "Michelada", family: "Highballs", glass: "Highball (zoutrand)", ingredients: [{ id: "beer", amount: 300, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "tabasco", amount: 2, unit: "dash" }], garnish: "Een schijfje limoen op de rand.", method: "Wrijf de rand met limoen en draai in zout/chilipoeder. Bouw limoensap en tabasco over ijs, top rustig met bier." },
-  { id: "snowball", name: "Snowball", family: "Highballs", glass: "Highball", ingredients: [{ id: "advocaat", amount: 50, unit: "ml" }, { id: "soda_water", amount: 100, unit: "ml" }, { id: "lime_juice", amount: 5, unit: "ml" }], garnish: "Een cocktailkers.", method: "Bouw over ijs en roer kort, een Nederlandse kerstborrel-klassieker." },
+  { id: "snowball", name: "Snowball", family: "Highballs", glass: "Highball", ingredients: [{ id: "advocaat", amount: 50, unit: "ml" }, { id: "lemonade", amount: 100, unit: "ml" }, { id: "lime_juice", amount: 5, unit: "ml" }], garnish: "Een cocktailkers.", method: "Bouw over ijs en roer kort: een Britse kerstklassieker." },
   { id: "pimms_cup", name: "Pimm's Cup", family: "Highballs", glass: "Highball", ingredients: [{ id: "pimms", amount: 45, unit: "ml" }, { id: "ginger_ale", amount: 90, unit: "ml" }], garnish: "Komkommerreep, muntblaadje en een schijfje sinaasappel.", method: "Bouw over ijs en top met ginger ale." },
   { id: "blue_lagoon", name: "Blue Lagoon", family: "Highballs", glass: "Highball", ingredients: [{ id: "vodka", amount: 40, unit: "ml" }, { id: "blue_curacao", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 10, unit: "ml" }, { id: "soda_water", amount: 60, unit: "ml" }], garnish: "Een schijfje citroen of sinaasappel.", method: "Bouw over ijs en roer kort." },
 
   // ===== SPIRIT-FORWARD =====
   { id: "old_fashioned", name: "Old Fashioned", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "bourbon", amount: 60, unit: "ml" }, { id: "sugar_syrup", amount: 5, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een uitgeknepen sinaasappelschil en eventueel een cocktailkers.", method: "Los de suiker(siroop) en bitters eerst op met een klein scheutje water, voeg de bourbon en een groot ijsblok toe, en roer 20-30 sec rustig in het glas zelf." },
   { id: "negroni", name: "Negroni", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "gin", amount: 30, unit: "ml" }, { id: "campari", amount: 30, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }], garnish: "Een schijfje sinaasappel.", method: "Roer alle drie gelijke delen 20-30 sec met ijs en zeef over een vers, groot ijsblok." },
-  { id: "sazerac", name: "Sazerac", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "sugar_syrup", amount: 5, unit: "ml" }, { id: "peychauds", amount: 3, unit: "dash" }, { id: "absinthe", amount: 1, unit: "dash", optional: true }], garnish: "Een sinaasappelschil, uitgeknepen boven het glas maar niet erin gelaten.", method: "Spoel een gekoeld glas om met absint en giet de rest uit. Roer de rye, suiker en bitters apart met ijs, en zeef in het absint-gespoelde glas." },
+  { id: "sazerac", name: "Sazerac", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "sugar_syrup", amount: 5, unit: "ml" }, { id: "peychauds", amount: 3, unit: "dash" }, { id: "absinthe", amount: 1, unit: "dash", optional: true }], garnish: "Een citroenschil, uitgeknepen boven het glas maar niet erin gelaten.", method: "Spoel een gekoeld glas om met absint en giet de rest uit. Roer de rye, suiker en bitters apart met ijs, en zeef in het absint-gespoelde glas." },
   { id: "boulevardier", name: "Boulevardier", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "bourbon", amount: 30, unit: "ml" }, { id: "campari", amount: 30, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }], garnish: "Een sinaasappelschilletje.", method: "Roer alle drie gelijke delen met ijs en zeef over vers ijs." },
   { id: "vieux_carre", name: "Vieux Carré", family: "Spirit-forward", glass: "Rocks", ingredients: [{ id: "rye", amount: 30, unit: "ml" }, { id: "cognac", amount: 30, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "benedictine", amount: 7.5, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }, { id: "peychauds", amount: 1, unit: "dash" }], garnish: "Een sinaasappelschilletje en een cocktailkers.", method: "Roer alle ingrediënten met ijs en zeef over vers ijs." },
   { id: "remember_the_maine", name: "Remember the Maine", family: "Spirit-forward", glass: "Coupe", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "cherry_brandy", amount: 7.5, unit: "ml" }, { id: "absinthe", amount: 1, unit: "dash" }], garnish: "Een sinaasappelschilletje.", method: "Roer met ijs en zeef in een gekoelde coupe." },
@@ -399,7 +399,7 @@ export const RECIPES = [
   // ===== STIRRED-DOWN =====
   { id: "martini", name: "Martini", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 60, unit: "ml" }, { id: "dry_vermouth", amount: 10, unit: "ml" }], garnish: "Een olijf of een uitgeknepen citroenschil, kies er één, niet beide.", method: "Roer 20-30 sec rustig met ijs in een mixing glass en zeef in een gekoeld glas." },
   { id: "manhattan", name: "Manhattan", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "rye", amount: 60, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een cocktailkers, liefst een echte Amarena- of Luxardo-kers.", method: "Roer 20-30 sec met ijs en zeef in een gekoeld glas." },
-  { id: "vesper", name: "Vesper", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "vodka", amount: 15, unit: "ml" }, { id: "lillet_blanc", amount: 7.5, unit: "ml" }], garnish: "Een lange sinaasappelschil.", method: "Roer (of shake voor de klassieke, iets troebelere versie) met ijs en zeef in een gekoeld glas." },
+  { id: "vesper", name: "Vesper", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "vodka", amount: 15, unit: "ml" }, { id: "lillet_blanc", amount: 7.5, unit: "ml" }], garnish: "Een lange, dunne citroenschil.", method: "Shake (zoals Bond het vraagt) of roer met ijs, en zeef in een gekoeld glas." },
   { id: "martinez", name: "Martinez", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "maraschino_liqueur", amount: 7.5, unit: "ml" }, { id: "orange_bitters", amount: 2, unit: "dash" }], garnish: "Een cocktailkers en een sinaasappelschilletje.", method: "Roer 20-30 sec met ijs en zeef in een gekoeld glas." },
   { id: "hanky_panky", name: "Hanky Panky", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 30, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "fernet_branca", amount: 5, unit: "ml" }], garnish: "Een sinaasappelschilletje, uitgeknepen boven het glas.", method: "Roer met ijs en zeef in een gekoeld glas." },
   { id: "tuxedo", name: "Tuxedo", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "dry_vermouth", amount: 45, unit: "ml" }, { id: "maraschino_liqueur", amount: 5, unit: "ml" }, { id: "orange_bitters", amount: 2, unit: "dash" }, { id: "absinthe", amount: 1, unit: "dash" }], garnish: "Een cocktailkers.", method: "Roer met ijs en zeef in een gekoeld glas." },
@@ -407,14 +407,14 @@ export const RECIPES = [
   { id: "bronx", name: "Bronx", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "sweet_vermouth", amount: 15, unit: "ml" }, { id: "dry_vermouth", amount: 15, unit: "ml" }, { id: "orange_juice", amount: 15, unit: "ml" }], garnish: "Een sinaasappelschilletje.", method: "Shake met ijs (de sinaasappelsap maakt 'm voller) en zeef in een gekoeld glas." },
   { id: "gibson", name: "Gibson", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 60, unit: "ml" }, { id: "dry_vermouth", amount: 10, unit: "ml" }], garnish: "Twee zilveruitjes op een prikker.", method: "Roer met ijs en zeef in een gekoeld glas." },
   { id: "dirty_martini", name: "Dirty Martini", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 60, unit: "ml" }, { id: "dry_vermouth", amount: 10, unit: "ml" }, { id: "olive_brine", amount: 10, unit: "ml" }], garnish: "Een of meer olijven op een prikker.", method: "Roer met ijs (de pekel maakt 'm licht troebel) en zeef in een gekoeld glas." },
-  { id: "corpse_reviver_1", name: "Corpse Reviver #1", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "cognac", amount: 20, unit: "ml" }, { id: "calvados", amount: 20, unit: "ml" }, { id: "sweet_vermouth", amount: 20, unit: "ml" }], garnish: "Een cocktailkers.", method: "Roer met ijs en zeef in een gekoeld glas." },
+  { id: "corpse_reviver_1", name: "Corpse Reviver #1", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "cognac", amount: 30, unit: "ml" }, { id: "calvados", amount: 15, unit: "ml" }, { id: "sweet_vermouth", amount: 15, unit: "ml" }], garnish: "Een cocktailkers.", method: "Roer met ijs en zeef in een gekoeld glas." },
   { id: "el_presidente", name: "El Presidente", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "white_rum", amount: 45, unit: "ml" }, { id: "dry_vermouth", amount: 15, unit: "ml" }, { id: "triple_sec", amount: 5, unit: "ml" }, { id: "grenadine", amount: 5, unit: "ml" }], garnish: "Een sinaasappelschilletje.", method: "Roer met ijs en zeef in een gekoeld glas." },
   { id: "bobby_burns", name: "Bobby Burns", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "scotch", amount: 45, unit: "ml" }, { id: "sweet_vermouth", amount: 20, unit: "ml" }, { id: "benedictine", amount: 5, unit: "ml" }], garnish: "Een sinaasappelschilletje.", method: "Roer met ijs en zeef in een gekoeld glas." },
   { id: "affinity", name: "Affinity", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "scotch", amount: 30, unit: "ml" }, { id: "dry_vermouth", amount: 30, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }], garnish: "Een cocktailkers.", method: "Roer met ijs en zeef in een gekoeld glas." },
   { id: "bamboo", name: "Bamboo", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "dry_vermouth", amount: 45, unit: "ml" }, { id: "sherry", amount: 45, unit: "ml" }, { id: "orange_bitters", amount: 2, unit: "dash" }], garnish: "Een sinaasappelschilletje.", method: "Roer rustig met ijs (sherry is delicaat) en zeef in een gekoeld glas." },
   { id: "bijou", name: "Bijou", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 30, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "green_chartreuse", amount: 30, unit: "ml" }, { id: "orange_bitters", amount: 1, unit: "dash" }], garnish: "Een cocktailkers.", method: "Roer met ijs en zeef in een gekoeld glas." },
   { id: "widows_kiss", name: "Widow's Kiss", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "calvados", amount: 45, unit: "ml" }, { id: "benedictine", amount: 15, unit: "ml" }, { id: "yellow_chartreuse", amount: 15, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }], garnish: "Een cocktailkers.", method: "Roer met ijs en zeef in een gekoeld glas." },
-  { id: "tipperary", name: "Tipperary", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "irish_whiskey", amount: 45, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "green_chartreuse", amount: 7.5, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }], garnish: "Een sinaasappelschilletje.", method: "Roer met ijs en zeef in een gekoeld glas." },
+  { id: "tipperary", name: "Tipperary", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "irish_whiskey", amount: 45, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }, { id: "green_chartreuse", amount: 15, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }], garnish: "Een sinaasappelschilletje.", method: "Roer met ijs en zeef in een gekoeld glas." },
   { id: "angel_face", name: "Angel Face", family: "Stirred-down", glass: "Coupe", ingredients: [{ id: "gin", amount: 20, unit: "ml" }, { id: "apricot_brandy", amount: 20, unit: "ml" }, { id: "calvados", amount: 20, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake met ijs (drie gelijke delen, dus goed mengen) en zeef in een gekoelde coupe." },
 
   // ===== FIZZ / FLIP =====
@@ -433,22 +433,22 @@ export const RECIPES = [
   { id: "french_martini", name: "French Martini", family: "Fizz / Flip", glass: "Coupe", ingredients: [{ id: "vodka", amount: 45, unit: "ml" }, { id: "chambord", amount: 15, unit: "ml" }, { id: "pineapple_juice", amount: 30, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake stevig met ijs en dubbel zeven in een gekoelde coupe." },
   { id: "old_cuban", name: "Old Cuban", family: "Fizz / Flip", glass: "Coupe", ingredients: [{ id: "dark_rum", amount: 45, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }, { id: "angostura", amount: 2, unit: "dash" }, { id: "mint", amount: 6, unit: "stuk" }, { id: "prosecco", amount: 30, unit: "ml" }], garnish: "Een muntblaadje.", method: "Shake de eerste vijf ingrediënten met ijs, dubbel zeven in een gekoeld glas en top rustig met prosecco." },
   { id: "porn_star_martini", name: "Porn Star Martini", family: "Fizz / Flip", glass: "Coupe (martiniglas)", ingredients: [{ id: "vanilla_vodka", amount: 45, unit: "ml" }, { id: "passion_fruit_liqueur", amount: 15, unit: "ml" }, { id: "passion_fruit_juice", amount: 60, unit: "ml" }, { id: "lime_juice", amount: 12.5, unit: "ml" }, { id: "egg_white", amount: 1, unit: "stuk" }, { id: "prosecco", amount: 40, unit: "ml", optional: true }], garnish: "Een halve passievrucht, drijvend op de cocktail met het vruchtvlees naar boven.", method: "Doe het limoensap, de vanillewodka, de passievruchtlikeur, het passievruchtsap en het eiwit in een met ijs gevulde shaker en shake tot de shaker beslaat. Schenk de cocktail door een zeefje, zonder ijs, in een martiniglas. Laat de halve passievrucht met het vruchtvlees naar boven op de cocktail drijven. Serveer er een shotglaasje prosecco naast." },
-  { id: "russian_spring_punch", name: "Russian Spring Punch", family: "Fizz / Flip", glass: "Highball", ingredients: [{ id: "vodka", amount: 30, unit: "ml" }, { id: "creme_de_cassis", amount: 15, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "soda_water", amount: 60, unit: "ml" }], garnish: "Een paar verse bosvruchten.", method: "Shake de eerste vier ingrediënten met ijs, zeef over vers ijs en top met soda." },
+  { id: "russian_spring_punch", name: "Russian Spring Punch", family: "Fizz / Flip", glass: "Highball", ingredients: [{ id: "vodka", amount: 30, unit: "ml" }, { id: "creme_de_cassis", amount: 15, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "prosecco", amount: 60, unit: "ml" }], garnish: "Een paar verse bosvruchten.", method: "Shake de eerste vier ingrediënten met ijs, zeef over vers ijs en top met bubbels." },
   { id: "sherry_cobbler", name: "Sherry Cobbler", family: "Fizz / Flip", glass: "Wijnglas", ingredients: [{ id: "sherry", amount: 90, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }], garnish: "Rijkelijk seizoensfruit bovenop, met een rietje ertussen.", method: "Shake met crushed ijs en giet ongezeefd in het glas, zodat het ijs mee in het glas komt." },
   { id: "sloe_gin_fizz", name: "Sloe Gin Fizz", family: "Fizz / Flip", glass: "Highball", ingredients: [{ id: "sloe_gin", amount: 45, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "soda_water", amount: 60, unit: "ml" }], garnish: "Een schijfje citroen en een cocktailkers.", method: "Shake de eerste drie met ijs, zeef en vul aan met soda." },
-  { id: "black_velvet", name: "Black Velvet", family: "Fizz / Flip", glass: "Champagneflute", ingredients: [{ id: "stout", amount: 75, unit: "ml" }, { id: "prosecco", amount: 75, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Giet de stout langzaam over de achterkant van een lepel, gevolgd door de prosecco, zodat de twee lagen zichtbaar blijven." },
+  { id: "black_velvet", name: "Black Velvet", family: "Fizz / Flip", glass: "Champagneflute", ingredients: [{ id: "stout", amount: 75, unit: "ml" }, { id: "prosecco", amount: 75, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Schenk eerst de prosecco of champagne en laat de stout er langzaam over de achterkant van een lepel op drijven, zodat de twee lagen zichtbaar blijven." },
 
   // ===== MODERN / TIKI =====
   { id: "aperol_spritz", name: "Aperol Spritz", family: "Modern / Tiki", glass: "Wijnglas", ingredients: [{ id: "aperol", amount: 60, unit: "ml" }, { id: "prosecco", amount: 90, unit: "ml" }, { id: "soda_water", amount: 20, unit: "ml" }], garnish: "Een schijfje sinaasappel.", method: "Bouw over ijs: eerst de Aperol, dan de prosecco, en top rustig met een klein scheutje soda." },
   { id: "pina_colada", name: "Piña Colada", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "white_rum", amount: 50, unit: "ml" }, { id: "pineapple_juice", amount: 60, unit: "ml" }, { id: "coconut_cream", amount: 30, unit: "ml" }], garnish: "Een schijfje ananas en een cocktailkers.", method: "Blend met crushed ijs tot glad, of shake stevig als je 'm liever niet bevroren wilt." },
-  { id: "mai_tai", name: "Mai Tai", family: "Modern / Tiki", glass: "Rocks", ingredients: [{ id: "white_rum", amount: 30, unit: "ml" }, { id: "dark_rum", amount: 30, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "orgeat", amount: 10, unit: "ml" }], garnish: "Een muntbosje en de uitgeperste limoenschil in het glas.", method: "Shake stevig met ijs en giet ongezeefd (inclusief het ijs) in het glas." },
+  { id: "mai_tai", name: "Mai Tai", family: "Modern / Tiki", glass: "Rocks", ingredients: [{ id: "dark_rum", amount: 45, unit: "ml" }, { id: "white_rum", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 30, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "orgeat", amount: 10, unit: "ml" }], garnish: "Een muntbosje en de uitgeperste limoenschil in het glas.", method: "Shake stevig met ijs en giet ongezeefd (inclusief het ijs) in het glas." },
   { id: "bramble", name: "Bramble", family: "Modern / Tiki", glass: "Rocks", ingredients: [{ id: "gin", amount: 50, unit: "ml" }, { id: "lemon_juice", amount: 25, unit: "ml" }, { id: "sugar_syrup", amount: 12, unit: "ml" }, { id: "creme_de_mure", amount: 15, unit: "ml" }], garnish: "Een braam of citroenschijfje.", method: "Shake de eerste drie ingrediënten met ijs en zeef over vers crushed ijs. Giet de braambessenlikeur er tot slot voorzichtig overheen zodat hij als een 'bloedende' streep naar beneden zakt." },
-  { id: "zombie", name: "Zombie", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "white_rum", amount: 30, unit: "ml" }, { id: "dark_rum", amount: 30, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "pineapple_juice", amount: 20, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }], garnish: "Een muntbosje en een schijfje ananas.", method: "Shake alle ingrediënten stevig met ijs en giet ongezeefd in het glas." },
+  { id: "zombie", name: "Zombie", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "white_rum", amount: 30, unit: "ml" }, { id: "dark_rum", amount: 30, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "falernum", amount: 15, unit: "ml" }, { id: "grapefruit_juice", amount: 15, unit: "ml" }, { id: "grenadine", amount: 5, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }, { id: "absinthe", amount: 1, unit: "dash" }], garnish: "Een muntbosje.", method: "Shake alle ingrediënten stevig met ijs en giet ongezeefd in het glas." },
   { id: "chartreuse_swizzle", name: "Chartreuse Swizzle", family: "Modern / Tiki", glass: "Highball", ingredients: [{ id: "green_chartreuse", amount: 60, unit: "ml" }, { id: "pineapple_juice", amount: 30, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "falernum", amount: 10, unit: "ml" }], garnish: "Een muntbosje.", method: "Vul het glas met crushed ijs, voeg alle ingrediënten toe en swizzel met een swizzle stick tot het glas van buiten beslaat." },
-  { id: "illegal", name: "Illegal", family: "Modern / Tiki", glass: "Rocks", ingredients: [{ id: "mezcal", amount: 45, unit: "ml" }, { id: "white_rum", amount: 15, unit: "ml" }, { id: "falernum", amount: 10, unit: "ml" }, { id: "maraschino_liqueur", amount: 5, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "sugar_syrup", amount: 5, unit: "ml" }], garnish: "Een schijfje limoen.", method: "Shake met ijs en zeef over vers ijs." },
-  { id: "jungle_bird", name: "Jungle Bird", family: "Modern / Tiki", glass: "Rocks", ingredients: [{ id: "dark_rum", amount: 45, unit: "ml" }, { id: "campari", amount: 15, unit: "ml" }, { id: "pineapple_juice", amount: 45, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }], garnish: "Een schijfje ananas.", method: "Shake met ijs en zeef over vers ijs." },
-  { id: "missionarys_downfall", name: "Missionary's Downfall", family: "Modern / Tiki", glass: "Highball", ingredients: [{ id: "white_rum", amount: 45, unit: "ml" }, { id: "apricot_brandy", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "honey_syrup", amount: 10, unit: "ml" }, { id: "mint", amount: 6, unit: "stuk" }, { id: "pineapple_juice", amount: 30, unit: "ml" }], garnish: "Een muntblaadje.", method: "Blend kort met crushed ijs tot een gladde, slushy textuur en giet ongezeefd in het glas." },
-  { id: "iba_tiki", name: "IBA Tiki", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "white_rum", amount: 20, unit: "ml" }, { id: "dark_rum", amount: 20, unit: "ml" }, { id: "amaretto", amount: 10, unit: "ml" }, { id: "frangelico", amount: 10, unit: "ml" }, { id: "maraschino_liqueur", amount: 5, unit: "ml" }, { id: "passion_fruit_puree", amount: 15, unit: "ml" }, { id: "pineapple_juice", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }], garnish: "Uitbundig: ananas, cocktailkers en een parasolletje.", method: "Shake stevig met ijs en giet ongezeefd in het glas." },
+  { id: "illegal", name: "Illegal", family: "Modern / Tiki", glass: "Rocks", ingredients: [{ id: "mezcal", amount: 30, unit: "ml" }, { id: "white_rum", amount: 15, unit: "ml" }, { id: "falernum", amount: 15, unit: "ml" }, { id: "maraschino_liqueur", amount: 5, unit: "ml" }, { id: "lime_juice", amount: 22.5, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }], garnish: "Een schijfje limoen.", method: "Shake met ijs en zeef over vers ijs." },
+  { id: "jungle_bird", name: "Jungle Bird", family: "Modern / Tiki", glass: "Rocks", ingredients: [{ id: "dark_rum", amount: 45, unit: "ml" }, { id: "campari", amount: 22.5, unit: "ml" }, { id: "pineapple_juice", amount: 45, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }], garnish: "Een schijfje ananas.", method: "Shake met ijs en zeef over vers ijs." },
+  { id: "missionarys_downfall", name: "Missionary's Downfall", family: "Modern / Tiki", glass: "Highball", ingredients: [{ id: "white_rum", amount: 45, unit: "ml" }, { id: "peach_schnapps", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "honey_syrup", amount: 10, unit: "ml" }, { id: "mint", amount: 6, unit: "stuk" }, { id: "pineapple_juice", amount: 30, unit: "ml" }], garnish: "Een muntblaadje.", method: "Blend kort met crushed ijs tot een gladde, slushy textuur en giet ongezeefd in het glas." },
+  { id: "iba_tiki", name: "IBA Tiki", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "white_rum", amount: 30, unit: "ml" }, { id: "dark_rum", amount: 30, unit: "ml" }, { id: "amaretto", amount: 15, unit: "ml" }, { id: "frangelico", amount: 5, unit: "ml" }, { id: "maraschino_liqueur", amount: 1, unit: "dash" }, { id: "passion_fruit_puree", amount: 30, unit: "ml" }, { id: "pineapple_juice", amount: 90, unit: "ml" }, { id: "lime_juice", amount: 30, unit: "ml" }, { id: "ginger_root", amount: 1, unit: "stuk" }], garnish: "Uitbundig: ananas, cocktailkers en een parasolletje.", method: "Muddel de gember, shake met de rest en ijs, en zeef over fijngestampt ijs." },
   { id: "three_dots_and_a_dash", name: "Three Dots and a Dash", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "dark_rum", amount: 30, unit: "ml" }, { id: "white_rum", amount: 30, unit: "ml" }, { id: "falernum", amount: 15, unit: "ml" }, { id: "allspice_liqueur", amount: 5, unit: "ml" }, { id: "honey_syrup", amount: 10, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "orange_juice", amount: 15, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }], garnish: "Drie cocktailkersen en een ananasreep op een prikker, in de vorm van morsecode voor de letter V.", method: "Shake stevig met ijs en giet ongezeefd in het glas." },
   { id: "blue_hawaiian", name: "Blue Hawaiian", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "white_rum", amount: 45, unit: "ml" }, { id: "blue_curacao", amount: 15, unit: "ml" }, { id: "pineapple_juice", amount: 60, unit: "ml" }, { id: "coconut_cream", amount: 30, unit: "ml" }], garnish: "Een schijfje ananas en een cocktailkers.", method: "Blend of shake stevig met ijs voor een felblauwe, romige cocktail." },
   { id: "hurricane", name: "Hurricane", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "white_rum", amount: 30, unit: "ml" }, { id: "dark_rum", amount: 30, unit: "ml" }, { id: "passion_fruit_puree", amount: 30, unit: "ml" }, { id: "orange_juice", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }], garnish: "Een schijfje sinaasappel en een cocktailkers.", method: "Shake stevig met ijs en giet ongezeefd in het glas." },
@@ -457,15 +457,15 @@ export const RECIPES = [
   { id: "navy_grog", name: "Navy Grog", family: "Modern / Tiki", glass: "Rocks", ingredients: [{ id: "white_rum", amount: 20, unit: "ml" }, { id: "dark_rum", amount: 20, unit: "ml" }, { id: "honey_syrup", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "grapefruit_juice", amount: 15, unit: "ml" }], garnish: "Een schijfje limoen.", method: "Shake stevig met ijs en giet ongezeefd in het glas." },
 
   // ===== MODERNE KLASSIEKERS =====
-  { id: "penicillin", name: "Penicillin", family: "Moderne klassiekers", glass: "Rocks", ingredients: [{ id: "scotch", amount: 60, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "honey_ginger_syrup", amount: 20, unit: "ml" }], garnish: "Een schijfje gekonfijte gember (optioneel).", method: "Shake de eerste drie met ijs en zeef over vers ijs. Giet de rokerige scotch er tot slot voorzichtig overheen als drijflaag." },
+  { id: "penicillin", name: "Penicillin", family: "Moderne klassiekers", glass: "Rocks", ingredients: [{ id: "scotch", amount: 60, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "honey_ginger_syrup", amount: 20, unit: "ml" }], garnish: "Een schijfje gekonfijte gember (optioneel).", method: "Shake de scotch, het citroensap en de siroop met ijs en zeef over vers ijs. Heb je een rokerige Islay-whisky, giet daar dan ongeveer 7 ml voorzichtig van over als drijflaag." },
   { id: "paper_plane", name: "Paper Plane", family: "Moderne klassiekers", glass: "Coupe", ingredients: [{ id: "bourbon", amount: 22.5, unit: "ml" }, { id: "aperol", amount: 22.5, unit: "ml" }, { id: "amaro_nonino", amount: 22.5, unit: "ml" }, { id: "lemon_juice", amount: 22.5, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake alle vier gelijke delen stevig met ijs en dubbel zeven in een gekoelde coupe." },
   { id: "naked_and_famous", name: "Naked and Famous", family: "Moderne klassiekers", glass: "Coupe", ingredients: [{ id: "mezcal", amount: 22.5, unit: "ml" }, { id: "aperol", amount: 22.5, unit: "ml" }, { id: "yellow_chartreuse", amount: 22.5, unit: "ml" }, { id: "lime_juice", amount: 22.5, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake alle vier gelijke delen stevig met ijs en dubbel zeven in een gekoelde coupe." },
   { id: "last_word", name: "Last Word", family: "Moderne klassiekers", glass: "Coupe", ingredients: [{ id: "gin", amount: 20, unit: "ml" }, { id: "maraschino_liqueur", amount: 20, unit: "ml" }, { id: "green_chartreuse", amount: 20, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }], garnish: "Een cocktailkers (optioneel).", method: "Shake alle vier gelijke delen stevig met ijs en dubbel zeven in een gekoelde coupe." },
   { id: "corpse_reviver_2", name: "Corpse Reviver No. 2", family: "Moderne klassiekers", glass: "Coupe", ingredients: [{ id: "gin", amount: 20, unit: "ml" }, { id: "triple_sec", amount: 20, unit: "ml" }, { id: "lillet_blanc", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "absinthe", amount: 1, unit: "dash", optional: true }], garnish: "Een sinaasappelschilletje.", method: "Shake alle ingrediënten met ijs en dubbel zeven in een gekoelde coupe." },
-  { id: "pisco_punch", name: "Pisco Punch", family: "Moderne klassiekers", glass: "Coupe", ingredients: [{ id: "pisco", amount: 60, unit: "ml" }, { id: "pineapple_juice", amount: 30, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "lemon_juice", amount: 10, unit: "ml" }, { id: "white_wine", amount: 15, unit: "ml" }], garnish: "Een schijfje ananas.", method: "Shake met ijs en dubbel zeven in een gekoelde coupe." },
+  { id: "pisco_punch", name: "Pisco Punch", family: "Moderne klassiekers", glass: "Coupe", ingredients: [{ id: "pisco", amount: 60, unit: "ml" }, { id: "pineapple_juice", amount: 30, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }], garnish: "Een schijfje ananas.", method: "Shake met ijs en dubbel zeven in een gekoelde coupe." },
 
   // ===== ZUIVEL & DESSERT =====
-  { id: "alexander", name: "Alexander", family: "Zuivel & dessert", glass: "Coupe", ingredients: [{ id: "cognac", amount: 30, unit: "ml" }, { id: "creme_de_cacao", amount: 30, unit: "ml" }, { id: "heavy_cream", amount: 30, unit: "ml" }], garnish: "Geraspte nootmuskaat bovenop.", method: "Shake met ijs en zeef in een gekoeld glas." },
+  { id: "alexander", name: "Alexander", family: "Zuivel & dessert", glass: "Coupe", ingredients: [{ id: "gin", amount: 30, unit: "ml" }, { id: "creme_de_cacao", amount: 30, unit: "ml" }, { id: "heavy_cream", amount: 30, unit: "ml" }], garnish: "Geraspte nootmuskaat bovenop.", method: "Shake met ijs en zeef in een gekoeld glas." },
   { id: "white_russian", name: "White Russian", family: "Zuivel & dessert", glass: "Rocks", ingredients: [{ id: "vodka", amount: 50, unit: "ml" }, { id: "coffee_liqueur", amount: 20, unit: "ml" }, { id: "heavy_cream", amount: 30, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Bouw wodka en koffielikeur over ijs, roer kort en giet de slagroom er als laatste voorzichtig overheen zodat hij bovenop blijft drijven." },
   { id: "black_russian", name: "Black Russian", family: "Zuivel & dessert", glass: "Rocks", ingredients: [{ id: "vodka", amount: 50, unit: "ml" }, { id: "coffee_liqueur", amount: 20, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Bouw over ijs en roer kort." },
   { id: "brandy_alexander", name: "Brandy Alexander", family: "Zuivel & dessert", glass: "Coupe", ingredients: [{ id: "cognac", amount: 30, unit: "ml" }, { id: "creme_de_cacao", amount: 30, unit: "ml" }, { id: "heavy_cream", amount: 30, unit: "ml" }], garnish: "Geraspte nootmuskaat bovenop.", method: "Shake met ijs en zeef in een gekoeld glas." },
@@ -506,7 +506,7 @@ export const RECIPES = [
   { id: "golden_sour", name: "Golden Sour", family: "Sours", glass: "Coupe", ingredients: [{ id: "bourbon", amount: 45, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "honey_syrup", amount: 15, unit: "ml" }, { id: "egg_white", amount: 1, unit: "stuk", optional: true }], garnish: "Geen garnering nodig.", method: "Dry shake zonder ijs, shake dan opnieuw met ijs en zeef in een gekoelde coupe." },
   { id: "harlequin", name: "Harlequin", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 30, unit: "ml" }, { id: "apricot_brandy", amount: 30, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake met ijs en zeef in een gekoelde coupe." },
   { id: "ivy_gimlet", name: "Ivy Gimlet", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 60, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "elderflower_cordial", amount: 15, unit: "ml" }], garnish: "Een schijfje limoen.", method: "Shake met ijs en dubbel zeven voor een heldere, gladde cocktail." },
-  { id: "kiwi_smash", name: "Kiwi Smash", family: "Sours", glass: "Rocks", ingredients: [{ id: "vodka", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "mint", amount: 6, unit: "stuk" }], garnish: "Een muntblaadje.", method: "Muddel de munt zacht met de siroop, shake met de rest en het ijs, en zeef over vers ijs." },
+  { id: "kiwi_smash", name: "Kiwi Smash", family: "Sours", glass: "Rocks", ingredients: [{ id: "vodka", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "mint", amount: 6, unit: "stuk" }], garnish: "Een muntblaadje.", method: "Muddel een halve geschilde kiwi en de munt zacht met de siroop, shake met de rest en ijs, en zeef over vers ijs." },
   { id: "machete", name: "Machete", family: "Sours", glass: "Rocks", ingredients: [{ id: "tequila_blanco", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "agave_nectar", amount: 15, unit: "ml" }, { id: "mint", amount: 6, unit: "stuk" }], garnish: "Een muntblaadje.", method: "Muddel de munt zacht, shake met de rest en het ijs, en zeef over vers ijs." },
   { id: "nevada_cocktail", name: "Nevada Cocktail", family: "Sours", glass: "Coupe", ingredients: [{ id: "white_rum", amount: 45, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "grapefruit_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }], garnish: "Geen garnering nodig.", method: "Shake met ijs en dubbel zeven in een gekoelde coupe." },
   { id: "orange_blossom", name: "Orange Blossom", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "orange_juice", amount: 30, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }], garnish: "Een schijfje sinaasappel.", method: "Shake met ijs en zeef in een gekoelde coupe." },
@@ -518,9 +518,9 @@ export const RECIPES = [
   { id: "sloe_gin_sour", name: "Sloe Gin Sour", family: "Sours", glass: "Coupe", ingredients: [{ id: "sloe_gin", amount: 60, unit: "ml" }, { id: "lemon_juice", amount: 25, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake met ijs en zeef in een gekoelde coupe." },
   { id: "southside", name: "Southside", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 60, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }, { id: "mint", amount: 8, unit: "stuk" }], garnish: "Een muntblaadje.", method: "Shake met ijs (inclusief de munt) en dubbel zeven in een gekoelde coupe." },
   { id: "strawberry_mint_daiquiri", name: "Strawberry and Mint Daiquiri", family: "Sours", glass: "Coupe", ingredients: [{ id: "white_rum", amount: 60, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "strawberry", amount: 3, unit: "stuk" }, { id: "mint", amount: 6, unit: "stuk" }], garnish: "Een aardbei op de rand.", method: "Muddel de aardbeien en munt zacht, shake met de rest en het ijs, en dubbel zeef in een gekoelde coupe." },
-  { id: "vanilla_fix", name: "Vanilla Fix", family: "Sours", glass: "Rocks", ingredients: [{ id: "bourbon", amount: 50, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Shake met ijs en zeef over vers crushed ijs." },
+  { id: "vanilla_fix", name: "Vanilla Fix", family: "Sours", glass: "Rocks", ingredients: [{ id: "bourbon", amount: 50, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Shake met ijs en zeef over vers crushed ijs. Maak de suikersiroop met een opengesneden vanillestokje, of gebruik vanillesiroop." },
   { id: "vodka_sour", name: "Vodka Sour", family: "Sours", glass: "Coupe", ingredients: [{ id: "vodka", amount: 60, unit: "ml" }, { id: "lemon_juice", amount: 25, unit: "ml" }, { id: "sugar_syrup", amount: 20, unit: "ml" }, { id: "egg_white", amount: 1, unit: "stuk", optional: true }], garnish: "Geen garnering nodig.", method: "Dry shake zonder ijs, shake dan opnieuw met ijs en zeef in een gekoelde coupe." },
-  { id: "xyz_cocktail", name: "XYZ Cocktail", family: "Sours", glass: "Coupe", ingredients: [{ id: "white_rum", amount: 45, unit: "ml" }, { id: "triple_sec", amount: 20, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake met ijs en zeef in een gekoelde coupe." },
+  { id: "xyz_cocktail", name: "XYZ Cocktail", family: "Sours", glass: "Coupe", ingredients: [{ id: "white_rum", amount: 45, unit: "ml" }, { id: "triple_sec", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake met ijs en zeef in een gekoelde coupe." },
   { id: "french_kiss", name: "French Kiss", family: "Sours", glass: "Coupe", ingredients: [{ id: "cognac", amount: 30, unit: "ml" }, { id: "peach_schnapps", amount: 15, unit: "ml" }, { id: "pineapple_juice", amount: 30, unit: "ml" }, { id: "lime_juice", amount: 10, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake met ijs en zeef in een gekoelde coupe." },
   { id: "honolulu", name: "Honolulu", family: "Sours", glass: "Coupe", ingredients: [{ id: "gin", amount: 50, unit: "ml" }, { id: "lemon_juice", amount: 10, unit: "ml" }, { id: "orange_juice", amount: 10, unit: "ml" }, { id: "pineapple_juice", amount: 10, unit: "ml" }, { id: "sugar_syrup", amount: 5, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake met ijs en zeef in een gekoelde coupe." },
   { id: "infante", name: "Infante", family: "Sours", glass: "Coupe", ingredients: [{ id: "tequila_blanco", amount: 45, unit: "ml" }, { id: "green_chartreuse", amount: 15, unit: "ml" }, { id: "grapefruit_juice", amount: 20, unit: "ml" }, { id: "lime_juice", amount: 10, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake met ijs en zeef in een gekoelde coupe." },
@@ -560,13 +560,13 @@ export const RECIPES = [
 
   // --- Highballs ---
   { id: "delft_donkey", name: "Delft Donkey", family: "Highballs", glass: "Koperen beker", ingredients: [{ id: "genever", amount: 45, unit: "ml" }, { id: "ginger_beer", amount: 120, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }], garnish: "Een schijfje limoen.", method: "Bouw over ijs in een koperen beker en roer kort, de Nederlandse variant op de Moscow Mule." },
-  { id: "east_side_cocktail", name: "East Side Cocktail", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 60, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "mint", amount: 6, unit: "stuk" }, { id: "soda_water", amount: 30, unit: "ml" }], garnish: "Een muntblaadje en een schijfje komkommer.", method: "Muddel de munt zacht, shake de rest met ijs, zeef over vers ijs en top met soda." },
+  { id: "east_side_cocktail", name: "East Side Cocktail", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 60, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }, { id: "mint", amount: 6, unit: "stuk" }, { id: "cucumber", amount: 3, unit: "stuk" }, { id: "soda_water", amount: 30, unit: "ml" }], garnish: "Een muntblaadje en een schijfje komkommer.", method: "Muddel de komkommer en munt zacht, shake de rest met ijs, zeef over vers ijs en top met soda." },
   { id: "hong_kong_sling", name: "Hong Kong Sling", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 45, unit: "ml" }, { id: "ginger_wine", amount: 15, unit: "ml" }, { id: "triple_sec", amount: 10, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "angostura", amount: 1, unit: "dash" }], garnish: "Een schijfje limoen.", method: "Shake met ijs en zeef over vers ijs." },
-  { id: "camomile_collins", name: "Camomile Collins", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 50, unit: "ml" }, { id: "honey_syrup", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "soda_water", amount: 90, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Shake de eerste drie ingrediënten met ijs, zeef over vers ijs en top met soda." },
-  { id: "lemongrass_collins", name: "Lemongrass Collins", family: "Highballs", glass: "Highball", ingredients: [{ id: "vodka", amount: 50, unit: "ml" }, { id: "sugar_syrup", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "soda_water", amount: 90, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Shake de eerste drie ingrediënten met ijs, zeef over vers ijs en top met soda." },
+  { id: "camomile_collins", name: "Camomile Collins", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 50, unit: "ml" }, { id: "honey_syrup", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "soda_water", amount: 90, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Laat een zakje kamillethee 10 minuten trekken in de warme honingsiroop. Shake de eerste drie ingrediënten met ijs, zeef over vers ijs en top met soda." },
+  { id: "lemongrass_collins", name: "Lemongrass Collins", family: "Highballs", glass: "Highball", ingredients: [{ id: "vodka", amount: 50, unit: "ml" }, { id: "sugar_syrup", amount: 20, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "soda_water", amount: 90, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Laat een gekneusde stengel citroengras een half uur trekken in de suikersiroop. Shake de eerste drie ingrediënten met ijs, zeef over vers ijs en top met soda." },
   { id: "cucumber_cooler", name: "Cucumber Cooler", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 50, unit: "ml" }, { id: "cucumber", amount: 4, unit: "stuk" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 15, unit: "ml" }, { id: "soda_water", amount: 90, unit: "ml" }], garnish: "Een lange reep komkommer.", method: "Muddel de komkommer zacht, shake met de rest en ijs, zeef over vers ijs en top met soda." },
   { id: "hedgerow_collins", name: "Hedgerow Collins", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 50, unit: "ml" }, { id: "creme_de_mure", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "soda_water", amount: 90, unit: "ml" }], garnish: "Een paar braambessen.", method: "Shake de eerste vier ingrediënten met ijs, zeef over vers ijs en top met soda." },
-  { id: "orchard_collins", name: "Orchard Collins", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 50, unit: "ml" }, { id: "elderflower_cordial", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "soda_water", amount: 90, unit: "ml" }], garnish: "Een schijfje appel.", method: "Shake de eerste drie ingrediënten met ijs, zeef over vers ijs en top met soda." },
+  { id: "orchard_collins", name: "Orchard Collins", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 40, unit: "ml" }, { id: "calvados", amount: 15, unit: "ml" }, { id: "elderflower_cordial", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 20, unit: "ml" }, { id: "soda_water", amount: 90, unit: "ml" }], garnish: "Een schijfje appel.", method: "Shake de eerste vier ingrediënten met ijs, zeef over vers ijs en top met soda." },
   { id: "fino_highball", name: "Fino Highball", family: "Highballs", glass: "Highball", ingredients: [{ id: "sherry", amount: 90, unit: "ml" }, { id: "tonic", amount: 120, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Bouw over ijs en roer kort, een lichte, drogere zus van de Gin Tonic." },
   { id: "texas_tea", name: "Texas Tea", family: "Highballs", glass: "Highball", ingredients: [{ id: "bourbon", amount: 15, unit: "ml" }, { id: "vodka", amount: 15, unit: "ml" }, { id: "gin", amount: 15, unit: "ml" }, { id: "white_rum", amount: 15, unit: "ml" }, { id: "tequila_blanco", amount: 15, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 25, unit: "ml" }, { id: "cola", amount: 60, unit: "ml" }], garnish: "Een schijfje citroen.", method: "Shake alles behalve de cola met ijs, zeef over vers ijs en top met cola, de bourbon-variant op de Long Island Iced Tea." },
   { id: "flora_dora", name: "Flora Dora", family: "Highballs", glass: "Highball", ingredients: [{ id: "gin", amount: 50, unit: "ml" }, { id: "raspberry_syrup", amount: 15, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "ginger_ale", amount: 90, unit: "ml" }], garnish: "Een paar frambozen.", method: "Shake de eerste drie ingrediënten met ijs, zeef over vers ijs en top met gemberbier." },
@@ -590,7 +590,7 @@ export const RECIPES = [
   { id: "le_mans", name: "Le Mans", family: "Fizz / Flip", glass: "Champagneflute", ingredients: [{ id: "cognac", amount: 30, unit: "ml" }, { id: "elderflower_cordial", amount: 15, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "prosecco", amount: 60, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake de eerste drie ingrediënten met ijs, zeef in een glas en top rustig aan met prosecco." },
   { id: "pink_sangria", name: "Pink Sangria", family: "Fizz / Flip", glass: "Wijnglas", ingredients: [{ id: "white_wine", amount: 90, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "orange_juice", amount: 30, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }, { id: "prosecco", amount: 30, unit: "ml" }], garnish: "Schijfjes seizoensfruit.", method: "Meng de eerste vier ingrediënten met ijs in een groot glas en top met prosecco." },
   { id: "sangria", name: "Sangria", family: "Fizz / Flip", glass: "Wijnglas", ingredients: [{ id: "red_wine", amount: 120, unit: "ml" }, { id: "triple_sec", amount: 15, unit: "ml" }, { id: "orange_juice", amount: 30, unit: "ml" }, { id: "sugar_syrup", amount: 10, unit: "ml" }, { id: "soda_water", amount: 30, unit: "ml" }], garnish: "Schijfjes sinaasappel, appel en citroen.", method: "Meng alles behalve de soda in een groot glas of kan met veel ijs, laat minstens een uur trekken en top met soda vlak voor het serveren." },
-  { id: "sbagliato", name: "Sbagliato", family: "Fizz / Flip", glass: "Wijnglas", ingredients: [{ id: "prosecco", amount: 90, unit: "ml" }, { id: "campari", amount: 30, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }], garnish: "Een sinaasappelschilletje.", method: "Bouw over ijs en roer kort, ooit ontstaan doordat een barman per ongeluk gin voor prosecco aanzag." },
+  { id: "sbagliato", name: "Sbagliato", family: "Fizz / Flip", glass: "Wijnglas", ingredients: [{ id: "prosecco", amount: 90, unit: "ml" }, { id: "campari", amount: 30, unit: "ml" }, { id: "sweet_vermouth", amount: 30, unit: "ml" }], garnish: "Een sinaasappelschilletje.", method: "Bouw over ijs en roer kort. Ontstaan doordat een barman per ongeluk naar mousserende wijn greep in plaats van gin." },
 
   // --- Modern / Tiki ---
   { id: "airmail", name: "Airmail", family: "Modern / Tiki", glass: "Champagneflute", ingredients: [{ id: "white_rum", amount: 45, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "honey_syrup", amount: 15, unit: "ml" }, { id: "prosecco", amount: 60, unit: "ml" }], garnish: "Geen garnering nodig.", method: "Shake de eerste drie ingrediënten met ijs, zeef in een glas en top rustig aan met prosecco." },
@@ -598,7 +598,7 @@ export const RECIPES = [
   { id: "bombay_punch", name: "Bombay Punch", family: "Modern / Tiki", glass: "Wijnglas", ingredients: [{ id: "cognac", amount: 30, unit: "ml" }, { id: "sherry", amount: 30, unit: "ml" }, { id: "triple_sec", amount: 10, unit: "ml" }, { id: "maraschino_liqueur", amount: 10, unit: "ml" }, { id: "lemon_juice", amount: 15, unit: "ml" }, { id: "prosecco", amount: 60, unit: "ml" }], garnish: "Verse munt en seizoensfruit.", method: "Shake de eerste vijf ingrediënten met ijs, zeef in een groot glas over vers ijs en top aan met prosecco." },
   { id: "haiti_punch", name: "Haiti Punch", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "dark_rum", amount: 60, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "orange_juice", amount: 20, unit: "ml" }, { id: "grenadine", amount: 10, unit: "ml" }], garnish: "Een schijfje sinaasappel.", method: "Shake met ijs en zeef over vers crushed ijs." },
   { id: "lolas_punch", name: "Lola's Punch", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "dark_rum", amount: 50, unit: "ml" }, { id: "passion_fruit_puree", amount: 30, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "honey_syrup", amount: 10, unit: "ml" }], garnish: "Een schijfje limoen.", method: "Shake met ijs en zeef over vers crushed ijs." },
-  { id: "watermelon_punch", name: "Watermelon Punch", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "white_rum", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "grenadine", amount: 15, unit: "ml" }, { id: "soda_water", amount: 60, unit: "ml" }], garnish: "Een schijfje limoen.", method: "Shake de eerste drie ingrediënten met ijs, zeef over vers ijs en top met soda." },
+  { id: "watermelon_punch", name: "Watermelon Punch", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "white_rum", amount: 50, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "grenadine", amount: 15, unit: "ml" }, { id: "soda_water", amount: 60, unit: "ml" }], garnish: "Een schijfje limoen.", method: "Muddel een paar blokjes watermeloen in de shaker, shake met de rum, limoen en grenadine en ijs, dubbel zeef over vers ijs en top met soda." },
   { id: "surface_to_air", name: "Surface to Air Cocktail", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "dark_rum", amount: 45, unit: "ml" }, { id: "lime_juice", amount: 20, unit: "ml" }, { id: "orgeat", amount: 10, unit: "ml" }, { id: "falernum", amount: 10, unit: "ml" }], garnish: "Een muntblaadje.", method: "Shake met ijs en zeef over vers crushed ijs." },
   { id: "loving_cup", name: "Loving Cup", family: "Modern / Tiki", glass: "Wijnglas", ingredients: [{ id: "cognac", amount: 30, unit: "ml" }, { id: "sherry", amount: 20, unit: "ml" }, { id: "prosecco", amount: 90, unit: "ml" }, { id: "mint", amount: 6, unit: "stuk" }], garnish: "Een uitbundig muntbosje.", method: "Giet de cognac en sherry in een groot glas met ijs, top met prosecco en garneer met munt." },
   { id: "june_bug", name: "June Bug", family: "Modern / Tiki", glass: "Hurricane", ingredients: [{ id: "banana_liqueur", amount: 20, unit: "ml" }, { id: "melon_liqueur", amount: 20, unit: "ml" }, { id: "pineapple_juice", amount: 30, unit: "ml" }, { id: "lime_juice", amount: 15, unit: "ml" }, { id: "coconut_cream", amount: 15, unit: "ml" }], garnish: "Een schijfje ananas.", method: "Shake stevig met ijs (de kokosroom is dik) en zeef over vers crushed ijs." },
@@ -1231,7 +1231,7 @@ export const STEPS = {
   ward_8: [
     "Doe 60 ml rye whisky, 15 ml citroensap, 15 ml sinaasappelsap en 10 ml grenadine met ijs in de shaker.",
     "Shake stevig zodat de twee soorten citrus goed mengen.",
-    "Zeef over vers ijs in het glas.",
+    "Zeef in een gekoelde coupe.",
     "Garneer met een schijfje sinaasappel en een cocktailkers.",
   ],
   aviation: [
@@ -1316,10 +1316,10 @@ export const STEPS = {
     "Garneer met een muntblaadje boven op het schuim.",
   ],
   spicy_fifty: [
-    "Muddel de chilipeper licht in de shaker, te hard geeft te veel hitte.",
-    "Voeg 40 ml wodka, 15 ml vlierbloesemsiroop, 10 ml honingsiroop en 15 ml limoensap toe, samen met ijs.",
+    "Doe 2 dunne plakjes rode peper in de shaker; muddel ze niet, dan wordt hij te heet.",
+    "Voeg 50 ml vanillewodka, 15 ml vlierbloesemsiroop, 10 ml honingsiroop en 15 ml limoensap toe, samen met ijs.",
     "Shake stevig en dubbel zeef in een gekoelde coupe.",
-    "Garneer met een dun chilipeperschijfje op de rand.",
+    "Garneer met een dun plakje rode peper op de rand.",
   ],
   tommys_margarita: [
     "Doe 50 ml tequila blanco, 25 ml limoensap en 15 ml agavesiroop met ijs in de shaker.",
@@ -1395,7 +1395,7 @@ export const STEPS = {
     "Garneer met een schijfje limoen op de rand.",
   ],
   pink_lady: [
-    "Doe het eiwit samen met 45 ml gin, 15 ml calvados en 10 ml grenadine zonder ijs in de shaker.",
+    "Doe het eiwit samen met 45 ml gin, 15 ml calvados, 15 ml citroensap en 10 ml grenadine zonder ijs in de shaker.",
     "Dry shake voor het schuim.",
     "Voeg ijs toe en shake opnieuw.",
     "Zeef in een gekoeld coupeglas.",
@@ -1436,11 +1436,11 @@ export const STEPS = {
     "Garneer met een muntbosje en een schijfje limoen.",
   ],
   shandy: [
-    "Vul een hoog glas met ijs.",
-    "Giet voorzichtig 150 ml bier en 150 ml limonade gelijktijdig over elkaar, zodat het niet te veel schuimt.",
+    "Zorg dat bier en limonade goed koud zijn; een shandy gaat zonder ijs.",
+    "Giet 150 ml bier schuin in een hoog glas en vul aan met 150 ml limonade.",
   ],
   presbyterian: [
-    "Vul het glas met ijs en giet er 45 ml rye whisky in.",
+    "Vul het glas met ijs en giet er 45 ml scotch in.",
     "Top met 60 ml ginger ale en 60 ml sodawater.",
     "Roer één keer kort.",
     "Garneer met een schijfje citroen.",
@@ -1469,7 +1469,7 @@ export const STEPS = {
     "Garneer met een cocktailkers.",
   ],
   greenpoint: [
-    "Doe 55 ml rye whisky, 10 ml gele Chartreuse, 10 ml zoete vermout, 1 dash Angostura en 1 dash Peychaud's met ijs in een mixing glass.",
+    "Doe 60 ml rye whisky, 15 ml zoete vermout, 15 ml gele Chartreuse, 1 dash Angostura en 1 dash orange bitters met ijs in een mixing glass.",
     "Roer 20-30 seconden.",
     "Zeef in een gekoeld coupeglas.",
     "Garneer met een sinaasappelschilletje.",
@@ -1480,7 +1480,7 @@ export const STEPS = {
     "Garneer met een sinaasappelschilletje.",
   ],
   oaxaca_old_fashioned: [
-    "Doe 50 ml mezcal, 8 ml agavesiroop en de Angostura met ijs in een mixing glass.",
+    "Doe 45 ml tequila, 15 ml mezcal, 7,5 ml agavesiroop en 2 dashes Angostura met ijs in een mixing glass.",
     "Roer 20-30 seconden.",
     "Zeef over een groot vers ijsblok.",
     "Knijp een sinaasappelschil uit boven het glas en laat 'm erin vallen.",
@@ -1498,8 +1498,8 @@ export const STEPS = {
     "Garneer met een schijfje citroen of een olijf.",
   ],
   metropolitan: [
-    "Doe 45 ml cognac, 20 ml zoete vermout, 8 ml frambozensiroop en 8 ml citroensap met ijs in een mixing glass.",
-    "Roer en zeef in een gekoeld coupeglas.",
+    "Doe 45 ml cognac, 30 ml zoete vermout, 5 ml suikersiroop en 2 dashes Angostura met ijs in een mixing glass.",
+    "Roer 20-30 seconden en zeef in een gekoeld coupeglas.",
     "Garneer met een cocktailkers.",
   ],
   journalist: [
@@ -1648,7 +1648,7 @@ export const STEPS = {
     "Garneer met een schijfje meloen of sinaasappel.",
   ],
   bushwacker: [
-    "Doe 30 ml donkere rum, 15 ml koffielikeur, 30 ml kokosroom en 30 ml slagroom met crushed ijs in de blender.",
+    "Doe 30 ml donkere rum, 15 ml koffielikeur, 15 ml crème de cacao, 30 ml kokosroom en 30 ml slagroom met crushed ijs in de blender.",
     "Blend tot een gladde, dikke textuur.",
     "Garneer met geraspte nootmuskaat of chocolade bovenop.",
   ],
@@ -1727,10 +1727,10 @@ export const STEPS = {
     "Roer eenmaal van onder naar boven.",
   ],
   long_island: [
-    "Doe 15 ml wodka, 15 ml gin, 15 ml witte rum, 15 ml tequila blanco, 15 ml triple sec en 25 ml citroensap met ijs in de shaker.",
+    "Doe 15 ml wodka, 15 ml gin, 15 ml witte rum, 15 ml tequila blanco, 15 ml triple sec, 25 ml citroensap en 20 ml suikersiroop met ijs in de shaker.",
     "Shake stevig.",
     "Zeef over vers ijs.",
-    "Top rustig met 30 ml cola voor het bruisende laagje bovenop.",
+    "Top rustig met 30 ml cola.",
     "Garneer met een schijfje citroen.",
   ],
   americano: [
@@ -1824,7 +1824,7 @@ export const STEPS = {
   lynchburg_lemonade: [
     "Doe 45 ml bourbon, 15 ml triple sec en 20 ml citroensap met ijs in de shaker.",
     "Shake en zeef over vers ijs.",
-    "Top met 60 ml cola.",
+    "Top met 90 ml citroenlimonade (zoals Sprite).",
     "Garneer met een schijfje citroen.",
   ],
   michelada: [
@@ -1835,7 +1835,7 @@ export const STEPS = {
   ],
   snowball: [
     "Vul het glas met ijs en giet er 50 ml advocaat en 5 ml limoensap in.",
-    "Top met 100 ml sodawater en roer kort.",
+    "Top met 100 ml citroenlimonade (zoals Sprite) en roer kort.",
     "Garneer met een cocktailkers.",
   ],
   pimms_cup: [
@@ -1864,7 +1864,7 @@ export const STEPS = {
     "Spoel een gekoeld glas om met absint en giet de rest uit.",
     "Roer de rye, suikersiroop en Peychaud's apart met ijs in een mixing glass.",
     "Zeef in het absint-gespoelde glas.",
-    "Garneer met een sinaasappelschil, uitgeknepen boven het glas maar niet erin gelaten.",
+    "Knijp een citroenschil uit boven het glas en laat hem er niet in.",
   ],
   boulevardier: [
     "Doe 30 ml bourbon, 30 ml Campari en 30 ml zoete vermout met ijs in een mixing glass.",
@@ -1941,10 +1941,10 @@ export const STEPS = {
     "Garneer met een cocktailkers, liefst een echte Amarena- of Luxardo-kers.",
   ],
   vesper: [
-    "Doe 45 ml gin, 15 ml wodka en 7,5 ml Lillet Blanc met ijs in een mixing glass (of de shaker voor de klassieke, iets troebelere versie).",
-    "Roer of shake.",
+    "Doe 45 ml gin, 15 ml wodka en 7,5 ml Lillet Blanc met ijs in de shaker (of roer voor een helderdere versie).",
+    "Shake tot hij ijskoud is.",
     "Zeef in een gekoeld glas.",
-    "Garneer met een lange sinaasappelschil.",
+    "Garneer met een lange, dunne citroenschil.",
   ],
   martinez: [
     "Doe 45 ml gin, 30 ml zoete vermout, 7,5 ml maraschino-likeur en 2 dashes orange bitters met ijs in een mixing glass.",
@@ -1985,7 +1985,7 @@ export const STEPS = {
     "Garneer met een of meer olijven op een prikker.",
   ],
   corpse_reviver_1: [
-    "Doe 20 ml cognac, 20 ml calvados en 20 ml zoete vermout met ijs in een mixing glass.",
+    "Doe 30 ml cognac, 15 ml calvados en 15 ml zoete vermout met ijs in een mixing glass.",
     "Roer en zeef in een gekoeld glas.",
     "Garneer met een cocktailkers.",
   ],
@@ -2021,7 +2021,7 @@ export const STEPS = {
     "Garneer met een cocktailkers.",
   ],
   tipperary: [
-    "Doe 45 ml Irish whiskey, 30 ml zoete vermout, 7,5 ml groene Chartreuse en 1 dash Angostura met ijs in een mixing glass.",
+    "Doe 45 ml Irish whiskey, 30 ml zoete vermout, 15 ml groene Chartreuse en 1 dash Angostura met ijs in een mixing glass.",
     "Roer en zeef in een gekoeld glas.",
     "Garneer met een sinaasappelschilletje.",
   ],
@@ -2117,7 +2117,7 @@ export const STEPS = {
   russian_spring_punch: [
     "Doe 30 ml wodka, 15 ml crème de cassis, 10 ml suikersiroop en 15 ml citroensap met ijs in de shaker.",
     "Shake en zeef over vers ijs.",
-    "Top met 60 ml sodawater.",
+    "Top met 60 ml prosecco of champagne.",
     "Garneer met een paar verse bosvruchten.",
   ],
   sherry_cobbler: [
@@ -2132,8 +2132,8 @@ export const STEPS = {
     "Garneer met een schijfje citroen en een cocktailkers.",
   ],
   black_velvet: [
-    "Giet 75 ml stout langzaam over de achterkant van een lepel in het glas.",
-    "Giet er zo ook 75 ml prosecco overheen, zodat de twee lagen zichtbaar blijven.",
+    "Giet 75 ml prosecco of champagne in het glas.",
+    "Laat er 75 ml stout langzaam over de achterkant van een lepel op lopen, zodat die bovenop blijft drijven.",
   ],
   aperol_spritz: [
     "Vul een groot wijnglas met ijs.",
@@ -2147,7 +2147,7 @@ export const STEPS = {
     "Garneer met een schijfje ananas en een cocktailkers.",
   ],
   mai_tai: [
-    "Doe 30 ml witte rum, 30 ml donkere rum, 15 ml triple sec, 15 ml limoensap en 10 ml amandelsiroop met ijs in de shaker.",
+    "Doe 45 ml donkere (gerijpte) rum, 15 ml witte rum, 30 ml limoensap, 15 ml triple sec en 10 ml amandelsiroop met ijs in de shaker.",
     "Shake stevig.",
     "Giet ongezeefd (inclusief het ijs) in het glas.",
     "Garneer met een muntbosje en de uitgeperste limoenschil in het glas.",
@@ -2159,10 +2159,10 @@ export const STEPS = {
     "Garneer met een braam of citroenschijfje.",
   ],
   zombie: [
-    "Doe 30 ml witte rum, 30 ml donkere rum, 15 ml triple sec, 20 ml limoensap, 20 ml ananassap, 10 ml grenadine en de Angostura met ijs in de shaker.",
+    "Doe 30 ml witte rum, 30 ml donkere rum, 20 ml limoensap, 15 ml falernum, 15 ml grapefruitsap, 5 ml grenadine, 1 dash Angostura en 1 dash absint met ijs in de shaker.",
     "Shake stevig.",
     "Giet ongezeefd in het glas.",
-    "Garneer met een muntbosje en een schijfje ananas.",
+    "Garneer met een muntbosje.",
   ],
   chartreuse_swizzle: [
     "Vul het glas met crushed ijs.",
@@ -2171,25 +2171,25 @@ export const STEPS = {
     "Garneer met een muntbosje.",
   ],
   illegal: [
-    "Doe 45 ml mezcal, 15 ml witte rum, 10 ml falernum, 5 ml maraschino-likeur, 15 ml limoensap en 5 ml suikersiroop met ijs in de shaker.",
+    "Doe 30 ml mezcal, 15 ml witte rum (overproof als je die hebt), 15 ml falernum, 5 ml maraschino-likeur, 22,5 ml limoensap en 15 ml suikersiroop met ijs in de shaker.",
     "Shake en zeef over vers ijs.",
     "Garneer met een schijfje limoen.",
   ],
   jungle_bird: [
-    "Doe 45 ml donkere rum, 15 ml Campari, 45 ml ananassap, 15 ml limoensap en 10 ml suikersiroop met ijs in de shaker.",
+    "Doe 45 ml donkere rum, 22,5 ml Campari, 45 ml ananassap, 15 ml limoensap en 15 ml suikersiroop met ijs in de shaker.",
     "Shake en zeef over vers ijs.",
     "Garneer met een schijfje ananas.",
   ],
   missionarys_downfall: [
-    "Doe 45 ml witte rum, 15 ml abrikozenlikeur, 15 ml limoensap, 10 ml honingsiroop, de munt en 30 ml ananassap met crushed ijs in de blender.",
+    "Doe 45 ml witte rum, 15 ml perziklikeur, 15 ml limoensap, 10 ml honingsiroop, de munt en 30 ml ananassap met crushed ijs in de blender.",
     "Blend kort tot een gladde, slushy textuur.",
     "Giet ongezeefd in het glas.",
     "Garneer met een muntblaadje.",
   ],
   iba_tiki: [
-    "Doe 20 ml witte rum, 20 ml donkere rum, 10 ml amaretto, 10 ml Frangelico, 5 ml maraschino-likeur, 15 ml passievruchtpuree, 15 ml ananassap en 15 ml limoensap met ijs in de shaker.",
-    "Shake stevig.",
-    "Giet ongezeefd in het glas.",
+    "Muddel een plakje verse gember in de shaker.",
+    "Voeg 30 ml witte rum, 30 ml donkere rum, 15 ml amaretto, 5 ml Frangelico, een paar druppels maraschino, 30 ml passievruchtpuree, 90 ml ananassap en 30 ml limoensap toe, met ijs.",
+    "Shake stevig en zeef over fijngestampt ijs.",
     "Garneer uitbundig met ananas, een cocktailkers en een parasolletje.",
   ],
   three_dots_and_a_dash: [
@@ -2229,7 +2229,7 @@ export const STEPS = {
   penicillin: [
     "Doe 60 ml scotch, 20 ml citroensap en 20 ml honing-gembersiroop met ijs in de shaker.",
     "Shake en zeef over vers ijs.",
-    "Giet een klein scheutje rokerige scotch voorzichtig overheen als drijflaag.",
+    "Heb je een rokerige Islay-whisky? Giet er dan ongeveer 7 ml voorzichtig overheen als drijflaag.",
     "Garneer eventueel met een schijfje gekonfijte gember.",
   ],
   paper_plane: [
@@ -2255,13 +2255,13 @@ export const STEPS = {
     "Garneer met een sinaasappelschilletje.",
   ],
   pisco_punch: [
-    "Doe 60 ml pisco, 30 ml ananassap, 10 ml suikersiroop, 10 ml citroensap en 15 ml witte wijn met ijs in de shaker.",
+    "Doe 60 ml pisco, 30 ml ananassap, 10 ml suikersiroop en 15 ml citroensap met ijs in de shaker.",
     "Shake stevig.",
     "Dubbel zeef in een gekoelde coupe.",
     "Garneer met een schijfje ananas.",
   ],
   alexander: [
-    "Doe 30 ml cognac, 30 ml crème de cacao en 30 ml slagroom met ijs in de shaker.",
+    "Doe 30 ml gin, 30 ml crème de cacao en 30 ml slagroom met ijs in de shaker.",
     "Shake en zeef in een gekoeld glas.",
     "Garneer met geraspte nootmuskaat bovenop.",
   ],
@@ -2410,10 +2410,10 @@ export const STEPS = {
     "Garneer met een schijfje limoen.",
   ],
   kiwi_smash: [
-    "Muddel de munt zacht met 10 ml suikersiroop in de shaker.",
+    "Muddel een halve geschilde kiwi en de munt zacht met 10 ml suikersiroop in de shaker.",
     "Voeg 50 ml wodka, 20 ml limoensap en ijs toe en shake stevig.",
-    "Zeef over vers ijs.",
-    "Garneer met een muntblaadje.",
+    "Dubbel zeef over vers ijs.",
+    "Garneer met een muntblaadje en een schijfje kiwi.",
   ],
   machete: [
     "Muddel de munt zacht met 15 ml agavesiroop in de shaker.",
@@ -2477,7 +2477,7 @@ export const STEPS = {
     "Garneer met een aardbei op de rand.",
   ],
   vanilla_fix: [
-    "Doe 50 ml bourbon, 20 ml citroensap en 15 ml suikersiroop met ijs in de shaker.",
+    "Doe 50 ml bourbon, 20 ml citroensap en 15 ml vanillesiroop (of suikersiroop waarin een vanillestokje heeft getrokken) met ijs in de shaker.",
     "Shake stevig.",
     "Zeef over vers crushed ijs.",
     "Garneer met een schijfje citroen.",
@@ -2489,7 +2489,7 @@ export const STEPS = {
     "Zeef in een gekoelde coupe.",
   ],
   xyz_cocktail: [
-    "Doe 45 ml witte rum, 20 ml triple sec en 20 ml limoensap met ijs in de shaker.",
+    "Doe 45 ml witte rum, 20 ml triple sec en 20 ml citroensap met ijs in de shaker.",
     "Shake stevig.",
     "Zeef in een gekoelde coupe.",
   ],
@@ -2682,8 +2682,8 @@ export const STEPS = {
     "Garneer met een schijfje limoen.",
   ],
   east_side_cocktail: [
-    "Muddel de munt zacht in de shaker.",
-    "Voeg 60 ml gin, 20 ml limoensap, 10 ml suikersiroop en ijs toe en shake stevig.",
+    "Muddel 3 plakjes komkommer en de munt zacht in de shaker.",
+    "Voeg 60 ml gin, 20 ml limoensap, 15 ml suikersiroop en ijs toe en shake stevig.",
     "Zeef over vers ijs en top met 30 ml soda.",
     "Garneer met een muntblaadje en een schijfje komkommer.",
   ],
@@ -2694,13 +2694,15 @@ export const STEPS = {
     "Garneer met een schijfje limoen.",
   ],
   camomile_collins: [
-    "Doe 50 ml gin, 20 ml honingsiroop en 20 ml citroensap met ijs in de shaker.",
+    "Laat een zakje kamillethee 10 minuten trekken in warme honingsiroop en laat afkoelen.",
+    "Doe 50 ml gin, 20 ml kamille-honingsiroop en 20 ml citroensap met ijs in de shaker.",
     "Shake stevig.",
     "Zeef over vers ijs en top met 90 ml soda.",
     "Garneer met een schijfje citroen.",
   ],
   lemongrass_collins: [
-    "Doe 50 ml wodka, 20 ml suikersiroop en 20 ml citroensap met ijs in de shaker.",
+    "Laat een gekneusde stengel citroengras een half uur trekken in de suikersiroop.",
+    "Doe 50 ml wodka, 20 ml citroengrassiroop en 20 ml citroensap met ijs in de shaker.",
     "Shake stevig.",
     "Zeef over vers ijs en top met 90 ml soda.",
     "Garneer met een schijfje citroen.",
@@ -2718,7 +2720,7 @@ export const STEPS = {
     "Garneer met een paar braambessen.",
   ],
   orchard_collins: [
-    "Doe 50 ml gin, 15 ml vlierbloesemsiroop en 20 ml citroensap met ijs in de shaker.",
+    "Doe 40 ml gin, 15 ml calvados, 15 ml vlierbloesemsiroop en 20 ml citroensap met ijs in de shaker.",
     "Shake stevig.",
     "Zeef over vers ijs en top met 90 ml soda.",
     "Garneer met een schijfje appel.",
@@ -2738,7 +2740,7 @@ export const STEPS = {
   flora_dora: [
     "Doe 50 ml gin, 15 ml frambozensiroop en 15 ml limoensap met ijs in de shaker.",
     "Shake stevig.",
-    "Zeef over vers ijs en top met 90 ml gemberbier.",
+    "Zeef over vers ijs en top met 90 ml ginger ale.",
     "Garneer met een paar frambozen.",
   ],
   kurant_blush: [
@@ -2880,10 +2882,10 @@ export const STEPS = {
     "Garneer met een schijfje limoen.",
   ],
   watermelon_punch: [
-    "Doe 50 ml witte rum, 20 ml limoensap en 15 ml grenadine met ijs in de shaker.",
-    "Shake stevig.",
-    "Zeef over vers ijs en top met 60 ml soda.",
-    "Garneer met een schijfje limoen.",
+    "Muddel 4 blokjes watermeloen (zonder pitten) in de shaker.",
+    "Voeg 50 ml witte rum, 20 ml limoensap, 15 ml grenadine en ijs toe en shake stevig.",
+    "Dubbel zeef over vers ijs en top met 60 ml soda.",
+    "Garneer met een partje watermeloen of een schijfje limoen.",
   ],
   surface_to_air: [
     "Doe 45 ml donkere rum, 20 ml limoensap, 10 ml amandelsiroop (orgeat) en 10 ml falernum met ijs in de shaker.",
