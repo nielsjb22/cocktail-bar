@@ -3098,8 +3098,7 @@ function Switch({ checked, onChange, disabled }) {
 function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, nativePush, onNavigate }) {
   return (
     <div>
-      <SectionLabel>Instellingen</SectionLabel>
-      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden" }}>
+      <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px" }}>
           <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
             <Sparkles size={16} strokeWidth={1.8} />
@@ -3224,7 +3223,6 @@ function PrivacyPolicyScreen() {
   const H = ({ children }) => <h3 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: BOTTLE, margin: "22px 0 8px" }}>{children}</h3>;
   return (
     <div>
-      <SectionLabel>Privacybeleid</SectionLabel>
       <p style={{ fontSize: 12, color: MUTED, marginBottom: 20 }}>Laatst bijgewerkt: {new Date().toISOString().slice(0, 10)}</p>
       <P>Mijn Thuisbar is een persoonlijke app voor het bijhouden van je thuisbar, cocktailrecepten en check-ins met vrienden. Dit beleid legt uit welke gegevens de app verzamelt en waarvoor.</P>
       <H>Welke gegevens</H>
@@ -3259,14 +3257,13 @@ function PhotoCreditsScreen() {
 
   return (
     <div>
-      <SectionLabel>Fotoverantwoording</SectionLabel>
       <p style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 20 }}>
         Foto's van cocktails en dranken in deze app komen van fotografen die hun werk vrij beschikbaar stellen. Hieronder de bron en licentie per foto.
       </p>
       {credited.length === 0 ? (
         <p style={{ fontSize: 13.5, color: MUTED, textAlign: "center", padding: "30px 0" }}>Nog geen foto's met externe bronvermelding.</p>
       ) : (
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden" }}>
+        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
           {credited.map((e, i) => (
             <div key={`${e.type}:${e.id}`} style={{ padding: "12px 16px", borderBottom: i < credited.length - 1 ? `1px solid ${BORDER}` : "none" }}>
               <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 14.5, color: INK }}>{e.name}</div>
@@ -3290,7 +3287,6 @@ function AccountDeleteScreen({ onDelete, busy, error }) {
   const canDelete = confirmText.trim().toUpperCase() === "VERWIJDEREN";
   return (
     <div>
-      <SectionLabel>Account verwijderen</SectionLabel>
       <div style={{ background: "rgba(122,46,42,0.08)", border: `1px solid rgba(122,46,42,0.3)`, borderRadius: RADIUS, padding: 16, marginBottom: 20 }}>
         <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: 0 }}>
           Dit verwijdert je account en alle bijbehorende gegevens (profiel, check-ins, vriendschappen, meldingen-inschrijvingen) <b>definitief</b>. Dit kan niet ongedaan gemaakt worden.
@@ -3356,7 +3352,7 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
           return (
             <button key={t.id} onClick={() => onSelect(t.id)} className="press-scale" style={{
               display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10, textAlign: "left", boxSizing: "border-box",
-              background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS + 6, padding: "16px 14px",
+              background: CREAM, border: "none", borderRadius: 16, padding: "16px 14px",
               cursor: "pointer", fontFamily: sans, boxShadow: SHADOW_CARD, position: "relative",
             }}>
               <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
@@ -4457,7 +4453,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
       )}
 
       {nativePush?.supported && nativePush.permission === "prompt" && !pushPromptHidden && (
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 14, marginBottom: 22 }}>
+        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: 14, marginBottom: 22 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
             <span style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(184,134,46,0.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Bell size={17} color={BRASS} strokeWidth={2} />
@@ -4608,9 +4604,11 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
   );
 }
 
+// Huisstijl: sectiekopjes klein, in hoofdletters en gedempt, zodat de
+// kaarten eronder het werk doen en niet de koppen.
 function SectionLabel({ children }) {
   return (
-    <div style={{ fontFamily: systemFont, fontSize: 20, fontWeight: 700, color: INK, marginBottom: 12 }}>
+    <div style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED, margin: "4px 4px 10px" }}>
       {children}
     </div>
   );
@@ -4690,22 +4688,26 @@ function LargeTitleHeader({ title, right = null, band = false }) {
 function HeaderNavBar({ backLabel, onBack, title, right = null, style }) {
   return (
     <div className="header-navbar" style={{ ...HEADER_BAR_STYLE, marginBottom: 16, borderBottom: `2px solid ${BRASS}`, ...style }}>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", height: 44, padding: "0 16px 0 12px" }}>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", height: 44, padding: "0 16px 0 12px" }}>
         {/* Een tik is geen voltooide swipe; stopPropagation voorkomt dat de
             tik de rand-swipe-gestiek arm't (de knop staat in de edge-zone). */}
         <button onClick={onBack} onTouchStart={(e) => e.stopPropagation()} style={{
-          justifySelf: "start", display: "flex", alignItems: "center", gap: 2, background: "none", border: "none",
-          cursor: "pointer", padding: "10px 8px 10px 0", margin: 0, color: HEADER_ACCENT, fontFamily: sans, fontSize: 16, fontWeight: 600, whiteSpace: "nowrap",
+          display: "flex", alignItems: "center", gap: 1, background: "none", border: "none",
+          cursor: "pointer", padding: "10px 6px 10px 0", margin: 0, color: HEADER_ACCENT, fontFamily: sans, fontSize: 15, fontWeight: 600, whiteSpace: "nowrap",
         }}>
-          <ChevronLeft size={22} strokeWidth={2.2} /> {backLabel}
+          <ChevronLeft size={22} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+          {/* Lange namen worden "Terug", zoals iOS doet als de ruimte op is. */}
+          <span>{title && backLabel.length > 9 ? "Terug" : backLabel}</span>
         </button>
-        {title ? (
+        {/* Titel echt in het midden van het scherm, los van de breedte van
+            het terug-label. */}
+        {title && (
           <div style={{
-            justifySelf: "center", fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: HEADER_TEXT, whiteSpace: "nowrap",
-            overflow: "hidden", textOverflow: "ellipsis", maxWidth: "46vw",
+            position: "absolute", left: "50%", transform: "translateX(-50%)", maxWidth: "calc(100% - 240px)", pointerEvents: "none",
+            fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: HEADER_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
           }}>{title}</div>
-        ) : <div aria-hidden />}
-        {right ? <div style={{ justifySelf: "end", color: HEADER_ACCENT }}>{right}</div> : <div aria-hidden />}
+        )}
+        {right && <div style={{ color: HEADER_ACCENT }}>{right}</div>}
       </div>
     </div>
   );
@@ -5129,7 +5131,7 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
       {right}
     </div>
   );
-  const listCard = (children) => <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>{children}</div>;
+  const listCard = (children) => <div style={{ background: CREAM, border: "none", borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>{children}</div>;
 
   return (
     <div style={{ fontFamily: sans }}>
@@ -5551,7 +5553,7 @@ function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOn
           </div>
           <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 10 }}>
             {[0, 1, 2].map(i => (
-              <div key={i} style={{ height: 52, borderRadius: RADIUS, background: CREAM, border: `1px solid ${BORDER}` }} />
+              <div key={i} style={{ height: 52, borderRadius: 16, background: CREAM, border: "none", boxShadow: SHADOW_CARD }} />
             ))}
           </div>
           <div ref={scrimRef} aria-hidden style={{ position: "absolute", inset: 0, background: "rgba(15,12,9,0.16)", opacity: 1 }} />
@@ -6189,7 +6191,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
           <div style={{ fontSize: 12.5, color: MUTED, margin: "-6px 0 13px" }}>Gebaseerd op je smaakprofiel en je voorraad</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
             {sortedRecommended.map(({ recipe, matchPct }) => (
-              <button key={recipe.id} onClick={() => { onSound?.("pop"); onOpenRecipe?.(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
+              <button key={recipe.id} onClick={() => { onSound?.("pop"); onOpenRecipe?.(recipe.id); }} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: CREAM, border: "none", borderRadius: 14, boxShadow: SHADOW_CARD, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                   <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={48} />
                 </div>
@@ -6419,7 +6421,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
                   <button onClick={() => setBijnaExpanded(v => !v)} style={linkBtn}>{bijnaExpanded ? "Toon minder" : `Alle ${bijnaAll.length}`}</button>
                 )}
               </div>
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, overflow: "hidden" }}>
                 {bijnaShown.map(({ recipe, missing }, i) => {
                   const done = onList(missing[0]);
                   return (
@@ -6657,7 +6659,7 @@ function BatchRecipePicker({ recipes, allIngredients, recentRecipeIds, favoriteR
   const section = (title, list) => list.length > 0 && (
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED, margin: "0 0 6px 4px" }}>{title}</div>
-      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>{list.map(row)}</div>
+      <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, overflow: "hidden" }}>{list.map(row)}</div>
     </div>
   );
   return createPortal((
@@ -6825,7 +6827,7 @@ function BatchCalculatorTab({ recipes, ingredientLabel, allIngredients, isOwned,
   };
 
   // ---- Weergave ----
-  const card = { background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, boxShadow: SHADOW_CARD };
+  const card = { background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD };
   const seg = (active) => ({
     flex: 1, minHeight: 40, border: "none", borderRadius: 10, cursor: "pointer", fontFamily: sans, fontSize: 14.5, fontWeight: 700,
     background: active ? CREAM : "transparent", color: active ? INK : MUTED, boxShadow: active ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
@@ -7155,7 +7157,7 @@ function FlesKiezenSheet({ item, meta, options = [], chosenId, recipeNames, onCh
 
         <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
           {richtprijs && (
-            <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16, marginBottom: 14 }}>
+            <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: 16, marginBottom: 14 }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>Richtprijs</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
                 <span style={{ fontSize: 26, fontWeight: 800 }}>± {euro(richtprijs)}</span>
@@ -7247,7 +7249,7 @@ function FlesKiezenSheet({ item, meta, options = [], chosenId, recipeNames, onCh
           ) : (
             <>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Zoek bij</div>
-              <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "0 14px" }}>
+              <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "0 14px" }}>
                 {["drankgigant", "dirckiii", "mitra", "drankdozijn", "gall"].map((k, i) => (
                   <button key={k} onClick={() => openShopUrl(WINKELS[k].zoek(searchName))} style={{
                     display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 56, padding: 0, background: "none", border: "none",
@@ -7592,7 +7594,7 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
               </span>
               {g.subtotal > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: MUTED }}>{euro(g.subtotal)}</span>}
             </div>
-            <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+            <div style={{ background: CREAM, border: "none", borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>
               {[...g.open, ...g.done].map(renderRow)}
             </div>
             {g.key === "supermarkt" && hasFruit && (
@@ -7830,7 +7832,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 12 }}>
                 {favoriteRecipeIds.map(id => scoredById.get(id)).filter(Boolean).map(({ recipe: r }) => (
                   <button key={r.id} onClick={() => selectRecipe(r.id)} style={{
-                    background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD,
+                    background: CREAM, border: "none", borderRadius: 14, boxShadow: SHADOW_CARD,
                     padding: "12px 8px 10px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", fontFamily: sans,
                   }}>
                     <div style={{ marginBottom: 8 }}><RecipeCircle recipe={r} allIngredients={allIngredients} /></div>
@@ -8212,7 +8214,7 @@ function QuizBlock({ quiz, title = "Vragen", onFinish, onClose, nextAction = nul
       <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "18px 20px 20px", boxSizing: "border-box" }}>
           {done ? (
-            <div className="success-pop" style={{ padding: 18, borderRadius: 16, background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${passed ? SAGE : BURGUNDY}`, marginTop: 20 }}>
+            <div className="success-pop" style={{ padding: 18, borderRadius: 16, background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderLeft: `4px solid ${passed ? SAGE : BURGUNDY}`, marginTop: 20 }}>
               <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: passed ? SAGE : BURGUNDY }}>{score} van {quiz.length} goed</div>
               <p style={{ fontSize: 15, color: INK, margin: "8px 0 0", lineHeight: 1.5 }}>
                 {passed ? "Geslaagd. Dit telt mee voor je rang." : `Je hebt er ${Math.ceil(quiz.length * QUIZ_PASS_RATIO)} goed nodig. Lees de les nog eens en probeer het opnieuw.`}
@@ -8248,7 +8250,7 @@ function QuizBlock({ quiz, title = "Vragen", onFinish, onClose, nextAction = nul
                 })}
               </div>
               {answered && (
-                <div className="accordion-reveal" style={{ marginTop: 14, padding: "13px 15px", borderRadius: 14, background: CREAM, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${picked === q.correct ? SAGE : BURGUNDY}` }}>
+                <div className="accordion-reveal" style={{ marginTop: 14, padding: "13px 15px", borderRadius: 14, background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderLeft: `4px solid ${picked === q.correct ? SAGE : BURGUNDY}` }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: picked === q.correct ? SAGE : BURGUNDY, marginBottom: 3 }}>{picked === q.correct ? "Goed" : "Niet helemaal"}</div>
                   <p style={{ fontSize: 14.5, lineHeight: 1.5, margin: 0, color: INK }}>{q.explain}</p>
                 </div>
@@ -8336,7 +8338,7 @@ function PracticeLessonBody({ lesson, recipes, allIngredients, onOpenRecipe, onC
       {lesson.taste && (
         <>
           {label(lesson.taste.title)}
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "0 14px", marginBottom: 24 }}>
+          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 14px", marginBottom: 24 }}>
             {lesson.taste.rows.map((r, i) => (
               <div key={i} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "12px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none" }}>
                 <span style={{ flexShrink: 0, width: 78, fontSize: 13.5, fontWeight: 700, color: PRACTICE_TONES[r.tone] || INK }}>{r.label}</span>
@@ -8664,7 +8666,7 @@ function CursusTab({ progress, setProgress, onSound, recipes, allIngredients, on
       {nextUp && (
         <button onClick={() => openLesson(nextUp.id)} className="press-scale" style={{
           width: "100%", display: "flex", alignItems: "center", gap: 12, padding: 14, marginBottom: 18, boxSizing: "border-box", textAlign: "left",
-          background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: SHADOW_CARD, cursor: "pointer", fontFamily: sans, color: INK,
+          background: CREAM, border: "none", borderRadius: 14, boxShadow: SHADOW_CARD, cursor: "pointer", fontFamily: sans, color: INK,
         }}>
           <LessonArt lesson={nextUp} />
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -8707,7 +8709,7 @@ function CursusTab({ progress, setProgress, onSound, recipes, allIngredients, on
       </div>
 
       <SectionLabel>Delen</SectionLabel>
-      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", marginBottom: 22 }}>
+      <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden", marginBottom: 22 }}>
         {COURSE_PARTS.map((part, partIndex) => {
           const lessons = COURSE_LESSONS.filter(l => l.part === part.id);
           const doneInPart = lessons.filter(l => progress[l.id]?.completed).length;
@@ -9302,7 +9304,7 @@ function PartyCard({ party, recipes, allIngredients, isOwned, ingredientLabel, v
 
   return (
     <button onClick={onOpen} style={{
-      display: "block", width: "100%", textAlign: "left", background: CREAM, border: `1px solid ${BORDER}`,
+      display: "block", width: "100%", textAlign: "left", background: CREAM, border: "none",
       borderRadius: RADIUS + 4, boxShadow: SHADOW_CARD, cursor: "pointer", padding: 0, overflow: "hidden", fontFamily: sans,
     }}>
       {!compact && (
@@ -9914,7 +9916,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
       {activeTab === "menu" && (
       <>
 
-      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16, marginBottom: 24 }}>
+      <div style={{ background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD, padding: 16, marginBottom: 24 }}>
         <SectionLabel>Smaaktest voor je gasten</SectionLabel>
         {survey === undefined ? null : survey === null ? (
           <>
@@ -10216,7 +10218,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
               const isEditing = editingIndex === i;
               const warnings = surveyResponses.length > 0 ? getSurveyWarnings(r, surveyDietaryTotals, surveyDislikeTotals) : [];
               const row = (
-                <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: "none", boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
                   {isEditing ? (
                     <RecipePicker recipes={recipes} value={r.id} listId={`feest-recipe-${i}`}
                       onChange={id => { const next = chosen.slice(); next[i] = id; setChosen(next); setEditingIndex(null); }}
@@ -10799,7 +10801,7 @@ function MenuOptionCard({ selected, onClick, icon, title, subtitle }) {
 
 function MenuToggleRow({ title, subtitle, checked, onChange }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 64, boxSizing: "border-box", padding: "12px 14px", background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, marginTop: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 64, boxSizing: "border-box", padding: "12px 14px", background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, marginTop: 6 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>{title}</div>
         {subtitle && <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{subtitle}</div>}
@@ -10863,7 +10865,7 @@ function MaSwapSheet({ title, subtitle, alternatives, filters, setFilters, showF
           {alternatives.length === 0 ? (
             <p style={{ fontSize: 13.5, color: MUTED, margin: "8px 0 14px" }}>Geen alternatieven met deze filters. Zet een filter uit of zoek zelf.</p>
           ) : (
-            <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "0 10px 0 12px", marginBottom: 12 }}>
+            <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 10px 0 12px", marginBottom: 12 }}>
               {alternatives.map(({ f, why }, i) => (
                 <div key={f.recipe.id} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 68, borderTop: i ? `1px solid ${BORDER}` : "none" }}>
                   <RecipeCircle recipe={f.recipe} allIngredients={allIngredients} size={40} />
@@ -11153,7 +11155,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
           )}
         </div>
 
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, boxShadow: SHADOW_CARD, padding: "0 4px 0 10px" }}>
+        <div style={{ background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD, padding: "0 4px 0 10px" }}>
           {current.items.map((m, i) => {
             const { slot, f, why } = m;
             if (!f) {
@@ -11193,7 +11195,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
           border: "1px dashed #B8A98A", borderRadius: 12, background: "transparent", color: BOTTLE, fontFamily: sans, fontSize: 14.5, fontWeight: 600, cursor: "pointer",
         }}><Plus size={15} /> Cocktail toevoegen</button>
 
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, boxShadow: SHADOW_CARD, padding: "4px 14px", marginBottom: 16 }}>
+        <div style={{ background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD, padding: "4px 14px", marginBottom: 16 }}>
           {[
             { icon: <Check size={16} strokeWidth={2.4} />, content: <span><strong>{makeable} van {picked.length}</strong> kun je nu maken</span> },
             missingRows.length > 0 && {
@@ -11278,7 +11280,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
     const advice = a.guests <= 6 ? "3 tot 4" : a.guests <= 15 ? "4 tot 6" : "5 tot 7";
     body = (
       <>
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "0 14px", marginTop: -1 }}>
+        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 14px", marginTop: -1 }}>
           <div style={{ marginTop: -1 }}>
             {stepperRow("Cocktails", "tussen 1 en 10", a.count, () => setAnswer({ count: Math.max(1, a.count - 1), alcoholvrijCount: Math.min(a.alcoholvrijCount, Math.max(1, a.count - 1)) }), () => setAnswer({ count: Math.min(10, a.count + 1) }), "cocktails")}
             {stepperRow("Waarvan alcoholvrij", "0 tot 3", a.alcoholvrijCount, () => setAnswer({ alcoholvrijCount: Math.max(0, a.alcoholvrijCount - 1) }), () => setAnswer({ alcoholvrijCount: Math.min(3, a.count, a.alcoholvrijCount + 1) }), "alcoholvrij")}
@@ -11385,7 +11387,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
         </div>
         <div style={{ fontSize: 19, fontWeight: 700, color: INK, marginBottom: 6 }}>Bekend of verrassend?</div>
         <p style={{ fontSize: 14, lineHeight: 1.5, color: MUTED, margin: "0 0 12px" }}>Hoeveel van het menu mag onbekend zijn voor je gasten?</p>
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 14px 12px" }}>
+        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "14px 14px 12px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, color: INK, marginBottom: 4 }}><span>Alles bekend</span><span>Alles nieuw</span></div>
           <input type="range" min={0} max={100} step={10} value={a.surprise} onChange={e => setAnswer({ surprise: Number(e.target.value) })} aria-label="Hoeveel van het menu mag onbekend zijn"
             style={{ width: "100%", accentColor: "#1F3D36", minHeight: 36 }} />
@@ -11417,7 +11419,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
         <RecipePicker recipes={recipes.filter(r => !a.mustHave.includes(r.id))} value={null} listId="menu-assistent-must"
           onChange={id => id && !a.mustHave.includes(id) && setAnswer({ mustHave: [...a.mustHave, id] })} style={{ width: "100%", boxSizing: "border-box" }} />
         {a.mustHave.length > 0 && (
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "0 4px 0 12px", marginTop: 12 }}>
+          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 4px 0 12px", marginTop: 12 }}>
             {a.mustHave.map((id, i) => {
               const f = factsById.get(id);
               if (!f) return null;
@@ -11457,7 +11459,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
     const useUpList = showAllUseUp ? ownedBottles : ownedBottles.slice(0, 10);
     body = (
       <>
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "0 14px", marginBottom: 18 }}>
+        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 14px", marginBottom: 18 }}>
           <div style={{ marginTop: -1 }}>
             {stepperRow("Maximaal flessen", a.maxBottles >= MA_NO_LIMIT ? "geen grens" : "0 = alleen wat je in huis hebt", a.maxBottles,
               () => setAnswer({ maxBottles: Math.max(0, a.maxBottles - 1) }), () => setAnswer({ maxBottles: Math.min(MA_NO_LIMIT, a.maxBottles + 1) }), "flessen",
@@ -12115,7 +12117,7 @@ function CourseProgressCard({ courseProgress, courseRank, firstName = null }) {
   const ci = courseProgress ? computeCourseInsights(courseProgress) : null;
   const r = courseRank || withRank(-1, 0, false);
   return (
-    <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16, marginBottom: 12 }}>
+    <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: 16, marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14, gap: 8 }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: INK }}>Cursus</span>
         <span style={{ fontSize: 12.5, color: MUTED }}>{r.partsDone} van {COURSE_PART_COUNT} delen{ci ? ` · ${ci.xp} XP` : ""}</span>
@@ -12735,7 +12737,7 @@ function TasteDetails({ insights, logboek, recipes, allIngredients }) {
           <SectionLabel>Favorieten</SectionLabel>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
             {favCards.map(c => (
-              <div key={c.label} style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+              <div key={c.label} style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
                 <div style={{ height: 96, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                   {c.recipe && (localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image)
                     ? <img src={localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
@@ -12754,7 +12756,7 @@ function TasteDetails({ insights, logboek, recipes, allIngredients }) {
       {insights.spirits.length > 0 && (
         <div style={{ marginBottom: 22 }}>
           <SectionLabel>Meest gebruikte drank</SectionLabel>
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
             {insights.spirits.map((sp, i) => {
               const meta = spiritMeta(sp.label);
               return (
@@ -12779,7 +12781,7 @@ function TasteDetails({ insights, logboek, recipes, allIngredients }) {
       {monthsWithData >= 2 && (
         <div style={{ marginBottom: 22 }}>
           <SectionLabel>Check-ins per maand</SectionLabel>
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "16px 16px 12px" }}>
+          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "16px 16px 12px" }}>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80 }}>
               {insights.months.map((m, i) => (
                 <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 6 }}>
@@ -13165,7 +13167,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       {/* ---------- Tab: Check-ins ---------- */}
       {profileTab === "checkins" && (
         logboek.length === 0 ? (
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "26px 20px", textAlign: "center" }}>
+          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "26px 20px", textAlign: "center" }}>
             <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 4 }}>Nog geen check-ins</div>
             <p style={{ margin: 0, fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>Tik op de + onderin om je eerste cocktail in te checken.</p>
           </div>
@@ -13296,7 +13298,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               })}
             </div>
             {activeAch && (
-              <div className="accordion-reveal" style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 14px", marginBottom: 22 }}>
+              <div className="accordion-reveal" style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "12px 14px", marginBottom: 22 }}>
                 {(() => { const I = activeAch.icon; return <I size={20} strokeWidth={1.8} color={activeAch.unlocked ? BRASS : MUTED} />; })()}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: INK }}>{activeAch.label}{activeAch.unlocked ? "" : " · nog niet behaald"}</div>
@@ -13311,12 +13313,12 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             {insights.locations.length >= 2 && mapLocations.length > 0 ? (
               <div style={{ marginBottom: 12 }}>
                 <SectionLabel>Jouw cocktailkaart</SectionLabel>
-                <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+                <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
                   <CocktailMap locations={mapLocations} />
                 </div>
               </div>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "14px", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "14px", marginBottom: 12 }}>
                 <span style={{ width: 40, height: 40, borderRadius: 12, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><MapPin size={19} color={BOTTLE} strokeWidth={1.8} /></span>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>Jouw cocktailkaart</div>
@@ -13842,7 +13844,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
 
       {label("Samen gedronken")}
       {together.events.length > 0 ? (
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "0 14px", marginBottom: 22 }}>
+        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "0 14px", marginBottom: 22 }}>
           {together.events.slice(0, 12).map((ev, i) => (
             <div key={ev.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none" }}>
               {ev.recipe ? <RecipeCircle recipe={ev.recipe} allIngredients={allIngredients} size={44} radius={10} /> : <span style={{ width: 44, height: 44, borderRadius: 10, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Martini size={18} color={MUTED} /></span>}
@@ -13864,7 +13866,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
       {together.both.length > 0 && (
         <>
           {label("Allebei geproefd")}
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 14, marginBottom: 22 }}>
+          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: 14, marginBottom: 22 }}>
             {together.both.map(b => (
               <div key={b.key} style={{ marginBottom: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 14, marginBottom: 8 }}>
@@ -13971,7 +13973,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
         <p style={{ color: MUTED, fontSize: 13.5, textAlign: "center", padding: "40px 0" }}>Bezig met laden…</p>
       ) : tab === "checkins" ? (
         logboek.length === 0 ? (
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "26px 20px", textAlign: "center", fontSize: 14, color: MUTED }}>{firstName} heeft nog niets ingecheckt.</div>
+          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "26px 20px", textAlign: "center", fontSize: 14, color: MUTED }}>{firstName} heeft nog niets ingecheckt.</div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginLeft: -20, marginRight: -20 }}>
             {logboek.map(entry => {
@@ -14069,7 +14071,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                   })}
                 </div>
                 {active && (
-                  <div className="accordion-reveal" style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "12px 14px" }}>
+                  <div className="accordion-reveal" style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "12px 14px" }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: INK }}>{active.label}</div>
                     <div style={{ fontSize: 13, color: MUTED, marginTop: 1 }}>{active.text}</div>
                   </div>
@@ -14198,7 +14200,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
       {incoming.length > 0 && (
         <>
           <SectionLabel>Vriendschapsverzoeken</SectionLabel>
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden", marginBottom: 26 }}>
+          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden", marginBottom: 26 }}>
             {incoming.map((f, i) => (
               <div key={f.id} style={{ ...rowStyle, borderBottom: i < incoming.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                 <Avatar name={profilesById[f.requester_id]?.name} photo={profilesById[f.requester_id]?.avatar_url} size={32} />
@@ -14228,7 +14230,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
         <input value={query} onChange={e => doSearch(e.target.value)} placeholder="Zoek op naam…" enterKeyHint="search" autoCapitalize="words" style={fieldStyle()} />
       </div>
       {searchResults.length > 0 && (
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden", marginBottom: 26 }}>
+        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden", marginBottom: 26 }}>
           {searchResults.map((p, i) => (
             <div key={p.id} style={{ ...rowStyle, borderBottom: i < searchResults.length - 1 ? `1px solid ${BORDER}` : "none" }}>
               <Avatar name={p.name} photo={p.avatar_url} size={32} />
@@ -14247,7 +14249,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
       {outgoing.length > 0 && (
         <>
           <SectionLabel>Verzonden verzoeken</SectionLabel>
-          <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden", marginBottom: 26 }}>
+          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden", marginBottom: 26 }}>
             {outgoing.map((f, i) => (
               <div key={f.id} style={{ ...rowStyle, borderBottom: i < outgoing.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                 <Avatar name={profilesById[f.addressee_id]?.name} photo={profilesById[f.addressee_id]?.avatar_url} size={32} />
@@ -14266,7 +14268,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
       {accepted.length === 0 ? (
         <p style={{ color: MUTED, fontSize: 13.5, margin: 0 }}>Nog geen vrienden toegevoegd.</p>
       ) : (
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: RADIUS, overflow: "hidden" }}>
+        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
           {accepted.map((f, i) => {
             const otherId = f.requester_id === myId ? f.addressee_id : f.requester_id;
             return (
@@ -14390,7 +14392,7 @@ function IngredientPickerSheet({ allIngredients, isOwned, onPick, onClose }) {
         <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
           {results.length > 0 && (<>
             {head("Uit de app")}
-            <div role="radiogroup" style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>
+            <div role="radiogroup" style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, overflow: "hidden" }}>
               {results.map((ing, i) => {
                 const on = chosen?.id === ing.id;
                 return (
@@ -14666,7 +14668,7 @@ function EigenRecepten({ customRecipes, allIngredients, recipes, isOwned, recent
       </div>
 
       {label("Ingrediënten")}
-      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>
+      <div style={{ background: CREAM, border: "none", borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>
         {form.rows.map((row, i) => {
           const meta = row.newName ? null : metaOf(row);
           return (
@@ -14690,7 +14692,7 @@ function EigenRecepten({ customRecipes, allIngredients, recipes, isOwned, recent
           return <button key={t.key} role="radio" aria-checked={on} onClick={() => set({ technique: t.key, steps: null })} style={{ flex: 1, minHeight: 40, border: "none", borderRadius: 10, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : MUTED, boxShadow: on ? "0 1px 4px rgba(43,38,32,0.14)" : "none" }}>{t.label}</button>;
         })}
       </div>
-      <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, marginTop: 10, padding: "4px 14px" }}>
+      <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, marginTop: 10, padding: "4px 14px" }}>
         {steps.map((s, i) => (
           <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
             <span style={{ width: 24, height: 24, marginTop: 8, borderRadius: "50%", border: `1.5px solid ${BRASS}`, color: BRASS, fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxSizing: "border-box" }}>{i + 1}</span>
@@ -14726,7 +14728,7 @@ function EigenRecepten({ customRecipes, allIngredients, recipes, isOwned, recent
 
       {customRecipes.length > 0 && (<>
         {label(`Jouw eigen recepten (${customRecipes.length})`)}
-        <div style={{ background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
           {customRecipes.map((r, i) => (
             <SwipeToDelete key={r.id} onDelete={() => onRemoveRecipe(r.id)}>
               <button onClick={() => editExisting(r)} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 58, padding: "6px 14px", border: "none", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, background: CREAM, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK }}>
