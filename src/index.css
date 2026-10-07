@@ -716,17 +716,6 @@ html.kb-open .menu-assist-footer {
   display: none;
 }
 
-/* Navigatiebalk van push-schermen (‹ Bar | Titel): crème in licht, donker
-   in donkere modus — anders was de witte titel onleesbaar. */
-.secondary-navbar {
-  background: rgba(243, 236, 221, 0.92) !important;
-}
-@media (prefers-color-scheme: dark) {
-  .secondary-navbar {
-    background: rgba(23, 19, 14, 0.92) !important;
-  }
-}
-
 /* Horizontale chip-rijen zonder zichtbare scrollbalk. */
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

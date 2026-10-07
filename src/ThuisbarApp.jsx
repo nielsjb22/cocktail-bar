@@ -99,20 +99,11 @@ const SHADOW_HERO = "var(--shadow-hero)";
 const SHADOW_CTA = "var(--shadow-cta)";
 const RADIUS = 8;
 
-// Sticky headers: de hele pagina scrollt via het venster (geen aparte
-// scroll-container per tab), dus "position: sticky" met een top die de
-// veilige zone (notch/statusbalk) respecteert werkt overal hetzelfde. Waar
-// twee sticky balken boven elkaar staan (Ontdekken: filter-toggle + zoek-
-// of receptbalk) stapelt de tweede op de hoogte van de eerste.
-// De drie sticky-lagen stapelen exact op elkaars ECHTE hoogte (44px per
-// laag, met expliciete `height` + alignItems:"center" op elke balk i.p.v.
-// een hoogte die uit padding+content-grootte moest worden afgeleid) — een
-// eerdere mismatch tussen deze constanten en de werkelijk gerenderde
-// balkhoogte liet onderliggende, scrollende inhoud even doorschijnen in de
-// naad tussen twee sticky balken. Ook meteen compacter dan de vorige 54/108px.
-const STICKY_TOP = "env(safe-area-inset-top)";
-const STICKY_SUBHEADER_TOP = "calc(env(safe-area-inset-top) + 44px)";
-const STICKY_SUB2HEADER_TOP = "calc(env(safe-area-inset-top) + 88px)";
+// Sticky headers: de hele pagina scrollt via het venster, dus
+// "position: sticky" werkt overal hetzelfde. De groene kop van een
+// subscherm (HeaderNavBar) is 44px + 2px messinglijn hoog; een tweede
+// sticky balk eronder staat precies op die hoogte.
+const STICKY_SUBHEADER_TOP = "calc(env(safe-area-inset-top) + 46px)";
 
 // Titels voor de vaste navigatiebalk van elk push-scherm (SecondaryTabScreen)
 // — gecentreerd tussen de terugknop en de rand, zoals een echte iOS-navbar.
@@ -1628,36 +1619,28 @@ function GuestBrowseShell({
   // Zelfde gedrag als de ingelogde app: een andere tab openen begint bovenaan.
   useLayoutEffect(() => { window.scrollTo(0, 0); }, [tab]);
   const [pendingRecipeId, setPendingRecipeId] = useState(null);
+  // Zonder account: dezelfde groene kop als in de app, met rechts Inloggen.
+  const loginButton = (
+    <button onClick={onGoLogin} className="press-scale" style={{
+      flexShrink: 0, marginRight: 6, background: HEADER_TEXT, color: "#132622", border: "none", borderRadius: 100,
+      padding: "8px 16px", fontFamily: sans, fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+    }}>
+      Inloggen
+    </button>
+  );
+  const guestNotice = (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: PAPER_DEEP, borderRadius: 14, padding: "11px 14px", marginBottom: 20 }}>
+      <Lock size={15} color={BOTTLE} style={{ flexShrink: 0 }} />
+      <span style={{ fontSize: 12.5, color: INK, lineHeight: 1.4 }}>Inchecken, vrienden en je profiel vereisen een (gratis) account.</span>
+    </div>
+  );
 
   return (
     <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
-      <div style={{ background: `radial-gradient(ellipse 900px 300px at 15% -40%, #2A4B42, ${BOTTLE_DARK} 70%)`, borderBottom: `3px solid ${BRASS}`, padding: "calc(env(safe-area-inset-top) + 22px) 20px 20px" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", flexShrink: 0 }}>
-            <Martini color={BRASS} size={22} strokeWidth={1.5} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ fontFamily: systemFont, fontSize: 22, fontWeight: 700, color: CREAM, margin: 0 }}>Mijn Thuisbar</h1>
-            <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "#B9C4B9" }}>Bekijken kan zonder account</p>
-          </div>
-          <button onClick={onGoLogin} className="press-scale" style={{
-            flexShrink: 0, background: BRASS, color: CREAM, border: "none", borderRadius: 100,
-            padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-          }}>
-            Inloggen
-          </button>
-        </div>
-      </div>
-
-      <StatusBarBackdrop showAfter={95} />
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(184,134,46,0.1)", border: `1px solid rgba(184,134,46,0.3)`, borderRadius: RADIUS, padding: "11px 14px", marginBottom: 20 }}>
-          <Lock size={15} color={BRASS} style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: 12.5, color: INK, lineHeight: 1.4 }}>Inchecken, vrienden en je profiel vereisen een (gratis) account.</span>
-        </div>
-
+      <StatusBarBackdrop showAfter={0} dark />
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
         {tab === "ontdekken" ? (
-          <OntdekkenTab
+          <OntdekkenTab headerRight={loginButton} intro={guestNotice}
             openRecipeId={pendingRecipeId} onOpenRecipeHandled={() => setPendingRecipeId(null)}
             recommended={[]} favoriteFamily={null}
             allIngredients={allIngredients} onOpenRecipe={setPendingRecipeId} onSound={onSound}
@@ -1675,8 +1658,12 @@ function GuestBrowseShell({
             }}
           />
         ) : (
-          <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={onSound}
-            recipes={recipes} allIngredients={allIngredients} onOpenRecipe={(id) => { setPendingRecipeId(id); setTab("ontdekken"); }} />
+          <>
+            <LargeTitleHeader title="Cursus" right={loginButton} />
+            {guestNotice}
+            <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={onSound}
+              recipes={recipes} allIngredients={allIngredients} onOpenRecipe={(id) => { setPendingRecipeId(id); setTab("ontdekken"); }} />
+          </>
         )}
       </div>
 
@@ -2778,7 +2765,7 @@ export default function ThuisbarApp() {
   }, [checkinInsights, logboek.length]);
   const greeting = useMemo(() => getGreeting(), []);
   const timeWarmth = useMemo(() => getTimeWarmth(), []);
-  useEffect(() => { setStatusBarOnDark(tab === "home"); }, [tab]);
+  useEffect(() => { setStatusBarOnDark(true); }, [tab]);
   const [notifTick, setNotifTick] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   useEffect(() => { if (tab === "home") setNotifTick(t => t + 1); }, [tab, homeTapTick]);
@@ -2923,7 +2910,7 @@ export default function ThuisbarApp() {
     <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
       {!isOnline && <OfflineBanner />}
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
-      {tab !== "home" && <StatusBarBackdrop showAfter={0} />}
+      {tab !== "home" && <StatusBarBackdrop showAfter={0} dark />}
       {showNotifications && (
         <NotificationsScreen notifications={notifications} recipes={allRecipes} allIngredients={allIngredients}
           onClose={() => setShowNotifications(false)}
@@ -2931,7 +2918,7 @@ export default function ThuisbarApp() {
       )}
       {/* Home: smalle donkergroene kop die bovenaan blijft staan, met de
           naam van de app en een knop om in te checken. Andere tabs krijgen
-          een iOS-large-title (zie LargeTitleHeader binnen elke tab). */}
+          dezelfde groene kop (LargeTitleHeader / HeaderNavBar). */}
       {tab === "home" && (
         <div style={{ position: "sticky", top: 0, zIndex: 20, background: BOTTLE_DARK, color: "#FBF6EA" }}>
           <div style={{ maxWidth: 960, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 6px) 14px 8px 20px", display: "flex", alignItems: "center", gap: 10, boxSizing: "border-box" }}>
@@ -2957,7 +2944,7 @@ export default function ThuisbarApp() {
         </div>
       )}
 
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: tab === "home" ? "0 20px calc(env(safe-area-inset-bottom) + 150px)" : "calc(env(safe-area-inset-top) + 6px) 20px calc(env(safe-area-inset-bottom) + 150px)" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 20px calc(env(safe-area-inset-bottom) + 150px)" }}>
         <TabPanel id="home" active={tab === "home"} visited={visitedTabs.has("home")} panelRef={panelRefs}>
           <HomeTab session={session} profile={profile} greeting={greeting} featuredRecipe={featuredRecipe}
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
@@ -3345,7 +3332,7 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
   ];
   return (
     <div>
-      <LargeTitleHeader title="Bar" active={active} />
+      <LargeTitleHeader title="Bar" />
 
       <button onClick={() => onSelect("voorraad")} className="press-scale" style={{
         width: "100%", display: "flex", alignItems: "center", gap: 14, textAlign: "left", boxSizing: "border-box",
@@ -4577,7 +4564,7 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
             {badge && (
               <span style={{
                 position: "absolute", top: -5, right: -8, minWidth: 15, height: 15, borderRadius: 8,
-                background: BRASS, color: CREAM, fontSize: 9.5, fontWeight: 700,
+                background: BOTTLE, color: CREAM, fontSize: 9.5, fontWeight: 700,
                 display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
               }}>{badge}</span>
             )}
@@ -4607,9 +4594,9 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
         {/* +-knop steekt 18px uit (was 26px): valt minder over de inhoud. */}
         <div style={{ flex: 1, display: "flex", justifyContent: "center", marginTop: -18 }}>
           <button onClick={onCheckin} aria-label="Inchecken" className="press-scale" style={{
-            width: 54, height: 54, borderRadius: "50%", background: BRASS, border: `4px solid ${PAPER}`,
-            boxShadow: "0 6px 16px -4px rgba(184,134,46,0.6), 0 0 0 8px rgba(184,134,46,0.14)",
-            display: "flex", alignItems: "center", justifyContent: "center", color: CREAM, cursor: "pointer",
+            width: 54, height: 54, borderRadius: "50%", background: BOTTLE_DARK, border: `3px solid ${BRASS}`,
+            boxShadow: "0 6px 16px -4px rgba(19,38,34,0.55)",
+            display: "flex", alignItems: "center", justifyContent: "center", color: "#FBF6EA", cursor: "pointer",
           }}>
             <Plus size={24} strokeWidth={2.4} />
           </button>
@@ -4641,7 +4628,7 @@ function SectionLabel({ children }) {
 // één geheel vormen (zoals een echte iOS-navigatiebalk). `showAfter`: pas
 // zichtbaar na zoveel px scrollen — voor schermen die bovenaan een donkergroene
 // header hebben die zelf al tot achter de statusbalk doorloopt (Home, gast).
-function StatusBarBackdrop({ showAfter = 0 }) {
+function StatusBarBackdrop({ showAfter = 0, dark = false }) {
   const [visible, setVisible] = useState(showAfter === 0);
   useEffect(() => {
     if (showAfter === 0) { setVisible(true); return; }
@@ -4651,47 +4638,75 @@ function StatusBarBackdrop({ showAfter = 0 }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, [showAfter]);
   return (
-    <div aria-hidden className="glass-light" style={{
+    <div aria-hidden className={dark ? undefined : "glass-light"} style={{
       position: "fixed", top: 0, left: 0, right: 0, height: "env(safe-area-inset-top)", zIndex: 25,
-      border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)", pointerEvents: "none",
+      border: "none", boxShadow: "none", background: dark ? BOTTLE_DARK : "rgba(243,236,221,0.92)", pointerEvents: "none",
       opacity: visible ? 1 : 0, transition: "opacity 0.15s ease",
     }} />
   );
 }
 
-function LargeTitleHeader({ title, active = true, sticky = true }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const sentinelRef = useRef(null);
-  useEffect(() => {
-    // Andere tabs blijven gemount (display:none) om scrollpositie te bewaren
-    // — zo'n verborgen element heeft geen afmeting meer, dus de observer zou
-    // 'm als "niet zichtbaar" zien en de titel per ongeluk laten inklappen.
-    // Alleen observeren terwijl deze tab echt actief is voorkomt dat.
-    if (!active || !sticky) return;
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(([entry]) => setCollapsed(!entry.isIntersecting), { rootMargin: "-45px 0px 0px 0px" });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [active, sticky]);
+// Huisstijl: elk scherm heeft bovenaan dezelfde donkergroene kop met een
+// messinglijn eronder (zoals Home). Hoofdschermen krijgen een serif-titel
+// links, subschermen een terugknop + gecentreerde titel (HeaderNavBar).
+// De kop is sticky en loopt zelf door tot achter de statusbalk.
+const HEADER_TEXT = "#FBF6EA";
+const HEADER_ACCENT = "#DDB877";
+const HEADER_MUTED = "#A9B8B0";
+const HEADER_BAR_STYLE = {
+  position: "sticky", top: 0, zIndex: 20, background: BOTTLE_DARK, color: HEADER_TEXT,
+  marginLeft: -20, marginRight: -20, paddingTop: "env(safe-area-inset-top)",
+};
+function HeaderIconButton({ onClick, label, children }) {
   return (
-    <>
-      {sticky && (
-        <div className="glass-light" style={{
-          position: "sticky", top: STICKY_TOP, zIndex: 8,
-          display: "flex", alignItems: "center", justifyContent: "center", height: 44,
-          marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-          border: "none", borderBottom: collapsed ? `1px solid ${BORDER}` : "1px solid transparent", boxShadow: "none", background: "rgba(243,236,221,0.92)",
-          opacity: collapsed ? 1 : 0, pointerEvents: collapsed ? "auto" : "none",
-          transition: "opacity 0.18s ease, border-color 0.18s ease",
-          fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK,
+    <button onClick={onClick} aria-label={label} className="press-scale" style={{
+      width: 44, height: 44, border: "none", background: "none", color: HEADER_ACCENT, padding: 0,
+      display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
+    }}>{children}</button>
+  );
+}
+// Groen vlak direct onder de kop (zoekveld, profielgegevens): scrolt mee,
+// de messinglijn verhuist dan naar de onderkant van dit vlak.
+function HeaderBand({ children, style }) {
+  return (
+    <div style={{ background: BOTTLE_DARK, color: HEADER_TEXT, margin: "0 -20px 16px", padding: "2px 20px 16px", borderBottom: `2px solid ${BRASS}`, ...style }}>
+      {children}
+    </div>
+  );
+}
+function LargeTitleHeader({ title, right = null, band = false }) {
+  return (
+    <div style={{ ...HEADER_BAR_STYLE, marginBottom: band ? 0 : 16, borderBottom: band ? "none" : `2px solid ${BRASS}` }}>
+      <div style={{ height: 52, display: "flex", alignItems: "center", gap: 6, padding: "0 10px 0 20px" }}>
+        <h1 style={{ flex: 1, margin: 0, fontFamily: serif, fontSize: 24, fontWeight: 700, letterSpacing: 0.2, color: HEADER_TEXT }}>{title}</h1>
+        {right}
+      </div>
+    </div>
+  );
+}
+// Kop voor subschermen: "‹ Vorige" links in goud, titel in het midden.
+// Precies 44px hoog (STICKY_SUBHEADER_TOP rekent daarmee).
+function HeaderNavBar({ backLabel, onBack, title, right = null, style }) {
+  return (
+    <div className="header-navbar" style={{ ...HEADER_BAR_STYLE, marginBottom: 16, borderBottom: `2px solid ${BRASS}`, ...style }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", height: 44, padding: "0 16px 0 12px" }}>
+        {/* Een tik is geen voltooide swipe; stopPropagation voorkomt dat de
+            tik de rand-swipe-gestiek arm't (de knop staat in de edge-zone). */}
+        <button onClick={onBack} onTouchStart={(e) => e.stopPropagation()} style={{
+          justifySelf: "start", display: "flex", alignItems: "center", gap: 2, background: "none", border: "none",
+          cursor: "pointer", padding: "10px 8px 10px 0", margin: 0, color: HEADER_ACCENT, fontFamily: sans, fontSize: 16, fontWeight: 600, whiteSpace: "nowrap",
         }}>
-          {title}
-        </div>
-      )}
-      <h1 style={{ fontFamily: systemFont, fontWeight: 800, fontSize: 34, color: INK, margin: "6px 0 20px", letterSpacing: -0.4 }}>{title}</h1>
-      {sticky && <div ref={sentinelRef} style={{ height: 1, marginTop: -1 }} />}
-    </>
+          <ChevronLeft size={22} strokeWidth={2.2} /> {backLabel}
+        </button>
+        {title ? (
+          <div style={{
+            justifySelf: "center", fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: HEADER_TEXT, whiteSpace: "nowrap",
+            overflow: "hidden", textOverflow: "ellipsis", maxWidth: "46vw",
+          }}>{title}</div>
+        ) : <div aria-hidden />}
+        {right ? <div style={{ justifySelf: "end", color: HEADER_ACCENT }}>{right}</div> : <div aria-hidden />}
+      </div>
+    </div>
   );
 }
 
@@ -5530,11 +5545,8 @@ function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOn
           position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none", overflow: "hidden",
           background: PAPER, transform: "translateX(-24%)", opacity: 0,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(env(safe-area-inset-top) + 22px) 20px 14px" }}>
-            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "50%", background: "rgba(184,134,46,0.14)", flexShrink: 0 }}>
-              <MoreHorizontal size={18} color={BRASS} strokeWidth={2} />
-            </span>
-            <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: INK }}>{label}</span>
+          <div style={{ background: BOTTLE_DARK, borderBottom: `2px solid ${BRASS}`, padding: "env(safe-area-inset-top) 20px 0", marginBottom: 16 }}>
+            <div style={{ height: 52, display: "flex", alignItems: "center", fontFamily: serif, fontWeight: 700, fontSize: 24, color: HEADER_TEXT }}>{label}</div>
           </div>
           <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 10 }}>
             {[0, 1, 2].map(i => (
@@ -5550,35 +5562,9 @@ function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOn
             blijft staan terwijl de inhoud eronder scrollt, i.p.v. mee weg te
             scrollen zoals voorheen. marginLeft/Right+paddingLeft/Right span
             de balk edge-to-edge ondanks de 20px zijpadding van de pagina. */}
-        <div className="glass-light secondary-navbar" style={{
-          position: "sticky", top: STICKY_TOP, zIndex: 20,
-          marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-          display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
-          minHeight: 44, marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none",
-        }}>
-          {/* Een tik hier is geen voltooide swipe: commitBack() verwacht de
-              peek-preview-laag die alleen tijdens een echte sleep gerenderd
-              wordt, dus die reuseden gaf een korte "lege" flits. Een tik
-              schakelt daarom rechtstreeks (net zo instant als de dock-tabs).
-              stopPropagation op touchstart voorkomt ook dat een tik hier de
-              rand-swipe-gestiek zelf arm't — de knop staat namelijk al
-              binnen de 90px edge-zone. */}
-          <button onClick={onBack} onTouchStart={(e) => e.stopPropagation()} style={{
-            justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
-            cursor: "pointer", padding: "10px 8px 10px 0", margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
-          }}>
-            <ChevronLeft size={18} strokeWidth={2.4} /> {label}
-          </button>
-          {title && (
-            <div style={{
-              justifySelf: "center", fontFamily: systemFont, fontWeight: 600, fontSize: 17, color: INK, whiteSpace: "nowrap",
-              overflow: "hidden", textOverflow: "ellipsis", maxWidth: "46vw",
-            }}>
-              {title}
-            </div>
-          )}
-          {navOverride?.right ? <div style={{ justifySelf: "end" }}>{navOverride.right}</div> : <div aria-hidden />}
-        </div>
+        {/* Vaste navigatiebalk (huisstijl): terugknop links, titel in het
+            midden, sticky zodat hij blijft staan terwijl de inhoud scrolt. */}
+        <HeaderNavBar backLabel={label} onBack={onBack} title={title} right={navOverride?.right} />
         <NavOverrideContext.Provider value={setNavOverride}>
           {children}
         </NavOverrideContext.Provider>
@@ -6141,7 +6127,7 @@ function MatchPill({ pct, label }) {
 }
 
 function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHandled, recommended, favoriteFamily, allIngredients, onOpenRecipe, onSound, active,
-  recipeBackLabel = "Ontdekken", onRecipeBack = null, rootTapTick = 0 }) {
+  recipeBackLabel = "Ontdekken", onRecipeBack = null, rootTapTick = 0, headerRight = null, intro = null }) {
   const [mode, setMode] = useState("alles");
   // Staat er een recept open, dan is dit scherm puur dat recept: geen grote
   // titel, geen Alle/Maken-schakelaar en geen "Aanbevolen voor jou" erboven.
@@ -6174,34 +6160,22 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   const sortedRecommended = recommended ? [...recommended].sort((a, b) => b.matchPct - a.matchPct) : recommended;
   return (
     <div>
-      {showChrome && <LargeTitleHeader title="Ontdekken" active={active} sticky={false} />}
-      {/* De titel zelf is niet meer sticky (op verzoek) — deze toggle-balk
-          blijft wel sticky, maar dan meteen bovenaan (STICKY_TOP i.p.v.
-          STICKY_SUBHEADER_TOP) want er zit nu geen sticky titelbalk meer
-          boven die anders die ruimte al innam. */}
-      {/* .glass-light's eigen tint (rgba(250,246,238,...)) week net genoeg af
-          van de paginakleur (PAPER, #F3ECDD) om als een zichtbare andere
-          band op te vallen zodra er niets kleurrijks onder scrolt — hier
-          overschreven naar PAPER's eigen RGB zodat de balk in rust exact
-          samenvalt met de pagina, en alleen tijdens scrollen (over de
-          Aanbevolen-kaarten) echt als glas oplicht. */}
-      <div className="glass-light" style={{
-        display: showChrome ? "flex" : "none",
-        position: "sticky", top: STICKY_TOP, zIndex: 7,
-        alignItems: "center", gap: 8, height: 44, boxSizing: "border-box", marginBottom: 12, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-        border: "none", boxShadow: "none", background: "rgba(243,236,221,0.92)",
-      }}>
-        <button onClick={() => openMode("alles")} style={{
-          flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "alles" ? BOTTLE : BORDER}`,
-          background: mode === "alles" ? BOTTLE : CREAM, color: mode === "alles" ? CREAM : INK,
-          fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
-        }}>Alle recepten</button>
-        <button onClick={() => openMode("kan")} style={{
-          flex: 1, padding: "8px 12px", borderRadius: RADIUS, border: `1px solid ${mode === "kan" ? BOTTLE : BORDER}`,
-          background: mode === "kan" ? BOTTLE : CREAM, color: mode === "kan" ? CREAM : INK,
-          fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
-        }}>Wat ik kan maken</button>
-      </div>
+      {showChrome && <LargeTitleHeader title="Ontdekken" band right={headerRight} />}
+      {/* Schakelaar in het groene vlak onder de kop: alle recepten of alleen
+          wat je nu kunt maken. */}
+      {showChrome && (
+        <HeaderBand style={{ paddingTop: 4 }}>
+          <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, borderRadius: 12, background: "rgba(251,246,234,0.1)" }}>
+            {[["alles", "Alle recepten"], ["kan", "Wat ik kan maken"]].map(([id, lab]) => (
+              <button key={id} role="tab" aria-selected={mode === id} onClick={() => openMode(id)} style={{
+                flex: 1, height: 36, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 700,
+                background: mode === id ? HEADER_TEXT : "transparent", color: mode === id ? "#132622" : HEADER_MUTED,
+              }}>{lab}</button>
+            ))}
+          </div>
+        </HeaderBand>
+      )}
+      {showChrome && intro}
 
       {/* Zelfde aanbevelingslogica als Check-in ("Jouw favoriete stijl"),
           hier vooraan getoond zodat ontdekken ook persoonlijk aanvoelt i.p.v.
@@ -7920,26 +7894,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
         <EdgeSwipeBackArea key={recipe.id} onBack={goBack}>
           {/* Eigen iOS-navigatiebalk, net als de Bar-schermen: terug naar waar
               je vandaan kwam, met de naam van het recept in het midden. */}
-          <div className="glass-light" style={{
-            position: "sticky", top: STICKY_TOP, zIndex: 20,
-            marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
-            display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
-            minHeight: 44, marginBottom: 16, border: "none", borderBottom: `1px solid ${BORDER}`, boxShadow: "none", background: "rgba(243,236,221,0.92)",
-          }}>
-            <button onClick={goBack} onTouchStart={(e) => e.stopPropagation()} style={{
-              justifySelf: "start", display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
-              cursor: "pointer", padding: "10px 8px 10px 0", margin: 0, color: BRASS, fontFamily: sans, fontSize: 13.5, fontWeight: 700,
-            }}>
-              <ChevronLeft size={18} strokeWidth={2.4} /> {backLabel}
-            </button>
-            <div style={{
-              justifySelf: "center", fontFamily: systemFont, fontWeight: 600, fontSize: 17, color: INK, whiteSpace: "nowrap",
-              overflow: "hidden", textOverflow: "ellipsis", maxWidth: "46vw",
-            }}>
-              {recipe.name}
-            </div>
-            <div aria-hidden />
-          </div>
+          <HeaderNavBar backLabel={backLabel} onBack={goBack} title={recipe.name} />
           {/* Apart element van EdgeSwipeBackArea's eigen contentRef (die de
               rand-swipe-terug-physics imperatief op translateX zet) zodat de
               mount-animatie hier niet met die transform kan botsen. De klasse
@@ -12112,7 +12067,7 @@ function RankAvatar({ name, photo, size, courseRank }) {
   return <CourseRing name={name} photo={photo} size={size} partsDone={courseRank.partsDone} master={courseRank.master} />;
 }
 // Rangnaam naast een naam (feed, vriendenlijst) of als chip onder je naam.
-function CourseRankLabel({ courseRank, chip = false }) {
+function CourseRankLabel({ courseRank, chip = false, onDark = false }) {
   if (!courseRank?.rank) return null;
   if (!chip) {
     if (courseRank.master) {
@@ -12128,7 +12083,7 @@ function CourseRankLabel({ courseRank, chip = false }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, whiteSpace: "nowrap",
-      background: courseRank.master ? MASTER_GOLD : BOTTLE_DARK, color: courseRank.master ? BOTTLE_DARK : "#F1D9A6", fontSize: 12, fontWeight: 800,
+      background: courseRank.master ? MASTER_GOLD : onDark ? "rgba(221,184,119,0.16)" : BOTTLE_DARK, color: courseRank.master ? BOTTLE_DARK : onDark ? "#DDB877" : "#F1D9A6", fontSize: 12, fontWeight: 800,
       boxShadow: courseRank.master ? "0 2px 8px rgba(138,97,24,0.35)" : "none",
     }}><GraduationCap size={13} strokeWidth={2} /> {courseRank.rank.name}</span>
   );
@@ -13140,18 +13095,13 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
   return (
     <div>
-      {/* Kop: titel met Vrienden/Instellingen rechts op dezelfde regel */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "6px 0 16px" }}>
-        <h1 style={{ fontFamily: systemFont, fontWeight: 800, fontSize: 34, color: INK, margin: 0, letterSpacing: -0.4 }}>Profiel</h1>
-        <div style={{ display: "flex", gap: 10 }}>
-          {[{ onClick: onGoVrienden, label: "Vrienden", Icon: Users }, { onClick: onGoInstellingen, label: "Instellingen", Icon: Settings }].map(({ onClick, label, Icon }) => (
-            <button key={label} onClick={onClick} className="press-scale" aria-label={label} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: BOTTLE, cursor: "pointer" }}>
-              <Icon size={18} strokeWidth={1.8} />
-            </button>
-          ))}
-        </div>
-      </div>
-
+      {/* Kop (huisstijl): groene balk met Vrienden/Instellingen rechts,
+          daaronder in hetzelfde groen je gegevens en kerncijfers. */}
+      <LargeTitleHeader title="Profiel" band right={<>
+        <HeaderIconButton onClick={onGoVrienden} label="Vrienden"><Users size={22} strokeWidth={1.8} /></HeaderIconButton>
+        <HeaderIconButton onClick={onGoInstellingen} label="Instellingen"><Settings size={22} strokeWidth={1.8} /></HeaderIconButton>
+      </>} />
+      <HeaderBand style={{ paddingTop: 6, paddingBottom: isMaster ? 0 : 14 }}>
       {/* Identiteit: foto met XP-ring, naam (tik = wijzigen), niveau.
           Voor een Meester in een donkere ledenkaart met Meestergoud. */}
       <div style={isMaster ? MASTER_HEADER_STYLE : undefined}>
@@ -13159,7 +13109,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <input ref={photoInputRef} type="file" accept="image/*" onChange={handleProfilePhotoFile} style={{ display: "none" }} />
         <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" aria-label="Profielfoto wijzigen" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
-          <CourseRing name={profile?.name || "Jij"} photo={profile?.avatar_url} size={84} partsDone={courseRank?.partsDone || 0} master={!!courseRank?.master} />
+          <CourseRing name={profile?.name || "Jij"} photo={profile?.avatar_url} size={84} partsDone={courseRank?.partsDone || 0} master={!!courseRank?.master} dark />
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           {editingName ? (
@@ -13172,41 +13122,41 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             </div>
           ) : (
             <button onClick={startEditName} aria-label="Naam wijzigen" style={{ display: "block", maxWidth: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: isMaster ? CREAM : INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: HEADER_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
             </button>
           )}
-          {courseRank?.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={courseRank} chip /></div>}
-          <div style={{ fontSize: 14, fontWeight: 600, color: isMaster ? "#DDB877" : BRASS, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {courseRank?.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={courseRank} chip onDark /></div>}
+          <div style={{ fontSize: 14, fontWeight: 600, color: HEADER_ACCENT, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             Niveau {insights.level.level} · {insights.level.title}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 3 }}>
-            <span style={{ fontSize: 12, color: isMaster ? "#C9D2CB" : MUTED }}>{insights.level.to ? `${insights.level.to - insights.level.xp} XP tot niveau ${insights.level.level + 1}` : "Hoogste niveau bereikt"}</span>
+            <span style={{ fontSize: 12, color: HEADER_MUTED }}>{insights.level.to ? `${insights.level.to - insights.level.xp} XP tot niveau ${insights.level.level + 1}` : "Hoogste niveau bereikt"}</span>
           </div>
         </div>
       </div>
 
       {/* Kerncijfers */}
-      <div style={{ display: "flex", background: isMaster ? "rgba(255,255,255,0.06)" : CREAM, border: `1px solid ${isMaster ? "rgba(221,184,119,0.25)" : BORDER}`, borderRadius: 16, padding: "12px 0", marginBottom: isMaster ? 0 : 16 }}>
+      <div style={{ display: "flex", padding: "12px 0 0", borderTop: `1px solid ${isMaster ? "rgba(221,184,119,0.25)" : "rgba(251,246,234,0.14)"}` }}>
         {[
           { value: <AnimatedNumber value={stats.total} />, label: "check-ins" },
           { value: <AnimatedNumber value={stats.uniques} />, label: "uniek" },
-          { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill={BRASS} color={BRASS} /></span>, label: "gemiddeld" },
-        ].map((c, i) => (
-          <div key={c.label} style={{ flex: 1, textAlign: "center", borderLeft: i === 0 ? "none" : `1px solid ${isMaster ? "rgba(221,184,119,0.25)" : BORDER}` }}>
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: isMaster ? CREAM : INK }}>{c.value}</div>
-            <div style={{ fontSize: 12, color: isMaster ? "#C9D2CB" : MUTED, marginTop: 1 }}>{c.label}</div>
+          { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill="#C8963A" color="#C8963A" /></span>, label: "gemiddeld" },
+        ].map((c) => (
+          <div key={c.label} style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: HEADER_TEXT }}>{c.value}</div>
+            <div style={{ fontSize: 12, color: HEADER_MUTED, marginTop: 1 }}>{c.label}</div>
           </div>
         ))}
       </div>
       </div>
+      </HeaderBand>
 
       {/* Tabbladen */}
       <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12, marginBottom: 18 }}>
         {[["checkins", "Check-ins"], ["smaak", "Smaak"], ["prestaties", "Prestaties"]].map(([id, label]) => (
           <button key={id} role="tab" aria-selected={profileTab === id} onClick={() => setProfileTab(id)} style={{
-            flex: 1, height: 34, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 600,
-            background: profileTab === id ? CREAM : "transparent", color: profileTab === id ? INK : MUTED,
-            boxShadow: profileTab === id ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
+            flex: 1, height: 34, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 700,
+            background: profileTab === id ? BOTTLE_DARK : "transparent", color: profileTab === id ? HEADER_TEXT : MUTED,
           }}>{label}</button>
         ))}
       </div>
@@ -13854,29 +13804,27 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
   );
 
   const header = (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 44, marginBottom: 8, position: "relative" }}>
-      <button onClick={view === "samen" ? () => setView("profiel") : onClose} style={{ display: "flex", alignItems: "center", gap: 2, minHeight: 44, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: sans, fontSize: 16, fontWeight: 600, color: "#8F6A21" }}>
-        <ChevronLeft size={22} /> {view === "samen" ? firstName : "Terug"}
-      </button>
-      {view === "profiel" && (
-        <button onClick={() => setMenuOpen(o => !o)} aria-label="Meer" aria-expanded={menuOpen} style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-          <MoreHorizontal size={18} />
-        </button>
-      )}
-      {menuOpen && (
-        <>
-          <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 1 }} />
-          <div className="accordion-reveal" style={{ position: "absolute", right: 0, top: 46, zIndex: 2, minWidth: 210, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: "0 10px 30px rgba(43,38,32,0.18)", overflow: "hidden" }}>
-            <button onClick={reportUser} disabled={reported} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, padding: "0 16px", background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, cursor: reported ? "default" : "pointer", fontFamily: sans, fontSize: 15, color: INK, textAlign: "left" }}>
-              {reported ? <Check size={16} color={SAGE} /> : <Flag size={16} />} {reported ? "Gemeld" : `Meld ${firstName}`}
-            </button>
-            <button onClick={() => { setMenuOpen(false); setConfirmBlock(true); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, padding: "0 16px", background: "none", border: "none", cursor: "pointer", fontFamily: sans, fontSize: 15, color: BURGUNDY, textAlign: "left" }}>
-              <UserX size={16} /> Blokkeer {firstName}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+    <HeaderNavBar backLabel={view === "samen" ? firstName : "Terug"} onBack={view === "samen" ? () => setView("profiel") : onClose}
+      title={view === "samen" ? "Samen" : firstName}
+      style={{ marginBottom: view === "samen" ? 16 : 0 }}
+      right={view === "profiel" && (
+        <div style={{ position: "relative" }}>
+          <HeaderIconButton onClick={() => setMenuOpen(o => !o)} label="Meer"><MoreHorizontal size={22} /></HeaderIconButton>
+          {menuOpen && (
+            <>
+              <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 1 }} />
+              <div className="accordion-reveal" style={{ position: "absolute", right: 0, top: 46, zIndex: 2, color: INK, minWidth: 210, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: "0 10px 30px rgba(43,38,32,0.18)", overflow: "hidden" }}>
+                <button onClick={reportUser} disabled={reported} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, padding: "0 16px", background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, cursor: reported ? "default" : "pointer", fontFamily: sans, fontSize: 15, color: INK, textAlign: "left" }}>
+                  {reported ? <Check size={16} color={SAGE} /> : <Flag size={16} />} {reported ? "Gemeld" : `Meld ${firstName}`}
+                </button>
+                <button onClick={() => { setMenuOpen(false); setConfirmBlock(true); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, padding: "0 16px", background: "none", border: "none", cursor: "pointer", fontFamily: sans, fontSize: 15, color: BURGUNDY, textAlign: "left" }}>
+                  <UserX size={16} /> Blokkeer {firstName}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )} />
   );
 
   const samenView = together && (
@@ -13961,33 +13909,34 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
   const fm = friendRank.master;
   const profielView = (
     <>
+      <HeaderBand style={{ paddingTop: 6, paddingBottom: fm ? 0 : 14 }}>
       <div style={fm ? MASTER_HEADER_STYLE : undefined}>
       {fm && <MasterHeaderTitle number={friendMasterNumber} />}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-        <CourseRing name={name} photo={friendProfile?.avatar_url} size={84} partsDone={friendRank.partsDone} master={friendRank.master} />
+        <CourseRing name={name} photo={friendProfile?.avatar_url} size={84} partsDone={friendRank.partsDone} master={friendRank.master} dark />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: fm ? CREAM : INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
-          {friendRank.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={friendRank} chip /></div>}
-          {insights && <div style={{ fontSize: 14, fontWeight: 600, color: fm ? "#DDB877" : BRASS, marginTop: 2 }}>Niveau {insights.level.level} · {insights.level.title}</div>}
+          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: HEADER_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+          {friendRank.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={friendRank} chip onDark /></div>}
+          {insights && <div style={{ fontSize: 14, fontWeight: 600, color: HEADER_ACCENT, marginTop: 2 }}>Niveau {insights.level.level} · {insights.level.title}</div>}
         </div>
       </div>
 
       {stats && (
-        <div style={{ display: "flex", background: fm ? "rgba(255,255,255,0.06)" : CREAM, border: `1px solid ${fm ? "rgba(221,184,119,0.25)" : BORDER}`, borderRadius: 16, padding: "12px 0", marginBottom: fm ? 0 : 12 }}>
+        <div style={{ display: "flex", padding: "12px 0 0", borderTop: `1px solid ${fm ? "rgba(221,184,119,0.25)" : "rgba(251,246,234,0.14)"}` }}>
           {[
             { value: stats.total, label: "check-ins" },
             { value: stats.uniques, label: "uniek" },
-            { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill={BRASS} color={BRASS} /></span>, label: "gemiddeld" },
-          ].map((c, i) => (
-            <div key={c.label} style={{ flex: 1, textAlign: "center", borderLeft: i === 0 ? "none" : `1px solid ${fm ? "rgba(221,184,119,0.25)" : BORDER}` }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: fm ? CREAM : INK }}>{c.value}</div>
-              <div style={{ fontSize: 12, color: fm ? "#C9D2CB" : MUTED, marginTop: 1 }}>{c.label}</div>
+            { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill="#C8963A" color="#C8963A" /></span>, label: "gemiddeld" },
+          ].map((c) => (
+            <div key={c.label} style={{ flex: 1, textAlign: "center" }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: HEADER_TEXT }}>{c.value}</div>
+              <div style={{ fontSize: 12, color: HEADER_MUTED, marginTop: 1 }}>{c.label}</div>
             </div>
           ))}
         </div>
       )}
       </div>
-      {fm && <div style={{ height: 12 }} />}
+      </HeaderBand>
 
       {showSamenStrip && (
         <button onClick={() => setView("samen")} className="press-scale" style={{
@@ -14137,7 +14086,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
       position: "fixed", inset: 0, zIndex: 30, background: PAPER, overflowY: "auto", overscrollBehavior: "contain",
       WebkitOverflowScrolling: "touch", fontFamily: sans, color: INK,
     }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 8px) 20px calc(env(safe-area-inset-bottom) + 36px)", overflowX: "hidden" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px calc(env(safe-area-inset-bottom) + 36px)", overflowX: "hidden" }}>
         <EdgeSwipeBackArea onBack={view === "samen" ? () => setView("profiel") : onClose}>
           {header}
           {view === "samen" ? samenView : profielView}
