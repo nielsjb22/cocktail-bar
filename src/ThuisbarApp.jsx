@@ -2779,6 +2779,10 @@ export default function ThuisbarApp() {
   const greeting = useMemo(() => getGreeting(), []);
   const timeWarmth = useMemo(() => getTimeWarmth(), []);
   useEffect(() => { setStatusBarOnDark(tab === "home"); }, [tab]);
+  const [notifTick, setNotifTick] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  useEffect(() => { if (tab === "home") setNotifTick(t => t + 1); }, [tab, homeTapTick]);
+  const notifications = useNotifications(session, logboek, notifTick);
 
   const ownedNames = useMemo(() => {
     const byId = new Map(allIngredients.map(i => [i.id, i]));
@@ -2920,6 +2924,11 @@ export default function ThuisbarApp() {
       {!isOnline && <OfflineBanner />}
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
       {tab !== "home" && <StatusBarBackdrop showAfter={0} />}
+      {showNotifications && (
+        <NotificationsScreen notifications={notifications} recipes={allRecipes} allIngredients={allIngredients}
+          onClose={() => setShowNotifications(false)}
+          onOpenFriends={() => { setShowNotifications(false); navigateTo("vrienden"); }} />
+      )}
       {/* Home: smalle donkergroene kop die bovenaan blijft staan, met de
           naam van de app en een knop om in te checken. Andere tabs krijgen
           een iOS-large-title (zie LargeTitleHeader binnen elke tab). */}
@@ -2927,6 +2936,17 @@ export default function ThuisbarApp() {
         <div style={{ position: "sticky", top: 0, zIndex: 20, background: BOTTLE_DARK, color: "#FBF6EA" }}>
           <div style={{ maxWidth: 960, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 6px) 14px 8px 20px", display: "flex", alignItems: "center", gap: 10, boxSizing: "border-box" }}>
             <h1 style={{ flex: 1, margin: 0, fontFamily: serif, fontSize: 24, fontWeight: 700, letterSpacing: 0.2, color: "#FBF6EA" }}>Mijn Thuisbar</h1>
+            <button onClick={() => setShowNotifications(true)} aria-label={notifications.unread > 0 ? `Meldingen, ${notifications.unread} nieuw` : "Meldingen"} className="press-scale" style={{
+              position: "relative", width: 44, height: 44, border: "none", background: "none", color: "#DDB877",
+              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
+            }}>
+              <Bell size={23} strokeWidth={1.9} />
+              {notifications.unread > 0 && (
+                <span style={{ position: "absolute", top: 6, right: 4, minWidth: 18, height: 18, padding: "0 5px", boxSizing: "border-box", borderRadius: 9, background: "#D9573F", border: "2px solid #132622", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {notifications.unread > 9 ? "9+" : notifications.unread}
+                </span>
+              )}
+            </button>
             <button onClick={() => openCheckin()} aria-label="Inchecken" className="press-scale" style={{
               width: 38, height: 38, borderRadius: "50%", border: "none", background: "#B8862E", color: "#132622",
               display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
@@ -3775,6 +3795,161 @@ function usePullToRefresh(onRefresh) {
   };
 
   return { indicatorRef, refreshing, handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: onTouchEnd } };
+}
+
+// ---------- Meldingen in de app (belletje in de groene kop) ----------
+// Verzamelt wat er voor jou gebeurd is: proost en reacties op je check-ins
+// en je cursusrang, tags, vriendschapsverzoeken en nieuwe rangen van
+// vrienden. Werkt zonder pushmeldingen; wat je al gezien hebt onthouden we
+// per toestel (Preferences) als lijstje sleutels.
+const NOTIF_SEEN_KEY = "thuisbar-meldingen-gezien";
+function useNotifications(session, logboek, refreshKey) {
+  const myId = session?.user?.id || null;
+  const [items, setItems] = useState([]);
+  const [seen, setSeen] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    Preferences.get({ key: NOTIF_SEEN_KEY }).then(({ value }) => {
+      try { setSeen(value ? new Set(JSON.parse(value)) : "first"); } catch { setSeen("first"); }
+    }).catch(() => setSeen("first"));
+  }, []);
+  const myCheckinIds = useMemo(() => logboek.slice(0, 60).map(e => e.id), [logboek]);
+  const checkinKey = myCheckinIds.join(",");
+  useEffect(() => {
+    if (!myId) { setItems([]); return; }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const out = [];
+      const safe = async (q) => { try { const { data, error } = await q; return error ? [] : (data || []); } catch { return []; } };
+      const byId = Object.fromEntries(logboek.map(e => [e.id, e]));
+      const [reactions, comments, tags, requests, friendships, myMilestones, blocks] = await Promise.all([
+        myCheckinIds.length ? safe(supabase.from("checkin_reactions").select("*").in("checkin_id", myCheckinIds).neq("user_id", myId).limit(100)) : [],
+        myCheckinIds.length ? safe(supabase.from("checkin_comments").select("*").in("checkin_id", myCheckinIds).neq("user_id", myId).order("created_at", { ascending: false }).limit(60)) : [],
+        safe(supabase.from("checkin_tags").select("*").eq("tagged_user_id", myId).order("created_at", { ascending: false }).limit(30)),
+        safe(supabase.from("friendships").select("*").eq("addressee_id", myId).eq("status", "pending")),
+        safe(supabase.from("friendships").select("requester_id, addressee_id").eq("status", "accepted").or(`requester_id.eq.${myId},addressee_id.eq.${myId}`)),
+        safe(supabase.from("course_milestones").select("*").eq("user_id", myId)),
+        safe(supabase.from("blocked_users").select("blocked_id").eq("blocker_id", myId)),
+      ]);
+      const blocked = new Set(blocks.map(b => b.blocked_id));
+      const friendIds = friendships.map(f => f.requester_id === myId ? f.addressee_id : f.requester_id);
+      const msIds = myMilestones.map(m => m.id);
+      const [friendRanks, msReactions, msComments, taggedCheckins] = await Promise.all([
+        friendIds.length ? safe(supabase.from("course_milestones").select("*").in("user_id", friendIds).order("created_at", { ascending: false }).limit(20)) : [],
+        msIds.length ? safe(supabase.from("course_milestone_reactions").select("*").in("milestone_id", msIds).neq("user_id", myId)) : [],
+        msIds.length ? safe(supabase.from("course_milestone_comments").select("*").in("milestone_id", msIds).neq("user_id", myId)) : [],
+        tags.length ? safe(supabase.from("checkins").select("id, name, recipe_id").in("id", tags.map(t => t.checkin_id))) : [],
+      ]);
+      const msById = Object.fromEntries(myMilestones.map(m => [m.id, m]));
+      const tagCk = Object.fromEntries(taggedCheckins.map(c => [c.id, c]));
+      const rankName = (id) => COURSE_RANKS.find(r => r.id === id)?.name || id;
+      reactions.forEach(r => byId[r.checkin_id] && out.push({ key: `r:${r.checkin_id}:${r.user_id}`, kind: "proost", actor: r.user_id, at: r.created_at || byId[r.checkin_id].createdAt, drink: byId[r.checkin_id].name, recipeId: byId[r.checkin_id].recipeId }));
+      comments.forEach(c => byId[c.checkin_id] && out.push({ key: `c:${c.id}`, kind: "reactie", actor: c.user_id, at: c.created_at, drink: byId[c.checkin_id].name, recipeId: byId[c.checkin_id].recipeId, text: c.text }));
+      tags.forEach(t => out.push({ key: `t:${t.id}`, kind: "tag", actor: t.tagger_id, at: t.created_at, drink: tagCk[t.checkin_id]?.name || "een cocktail", recipeId: tagCk[t.checkin_id]?.recipe_id }));
+      requests.forEach(f => out.push({ key: `f:${f.id}`, kind: "verzoek", actor: f.requester_id, at: f.created_at }));
+      friendRanks.forEach(m => out.push({ key: `m:${m.id}`, kind: "rang", actor: m.user_id, at: m.created_at, rank: m.rank, rankLabel: rankName(m.rank) }));
+      msReactions.forEach(r => msById[r.milestone_id] && out.push({ key: `mr:${r.milestone_id}:${r.user_id}`, kind: "proost-rang", actor: r.user_id, at: r.created_at, rankLabel: rankName(msById[r.milestone_id].rank) }));
+      msComments.forEach(c => msById[c.milestone_id] && out.push({ key: `mc:${c.id}`, kind: "reactie-rang", actor: c.user_id, at: c.created_at, rankLabel: rankName(msById[c.milestone_id].rank), text: c.text }));
+      const visible = out.filter(n => n.actor && !blocked.has(n.actor));
+      const actorIds = [...new Set(visible.map(n => n.actor))];
+      const profs = actorIds.length ? await safe(supabase.from("profiles").select("id, name, avatar_url").in("id", actorIds)) : [];
+      const pById = Object.fromEntries(profs.map(p => [p.id, p]));
+      visible.forEach(n => { n.name = pById[n.actor]?.name || "Een vriend"; n.photo = pById[n.actor]?.avatar_url || null; });
+      visible.sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+      if (!cancelled) { setItems(visible.slice(0, 80)); setLoading(false); setLoaded(true); }
+    })();
+    return () => { cancelled = true; };
+  }, [myId, checkinKey, refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Eerste keer op dit toestel: alles wat er al was telt als gezien.
+  useEffect(() => {
+    if (seen === "first" && loaded) {
+      const all = items.map(n => n.key);
+      setSeen(new Set(all));
+      Preferences.set({ key: NOTIF_SEEN_KEY, value: JSON.stringify(all) }).catch(() => {});
+    }
+  }, [seen, items, loaded]);
+  const seenSet = seen instanceof Set ? seen : new Set();
+  const unread = seen instanceof Set ? items.filter(n => !seenSet.has(n.key)).length : 0;
+  const markAllSeen = () => {
+    const all = [...new Set([...items.map(n => n.key), ...seenSet])].slice(-400);
+    setSeen(new Set(all));
+    Preferences.set({ key: NOTIF_SEEN_KEY, value: JSON.stringify(all) }).catch(() => {});
+  };
+  return { items, unread, isNew: (n) => seen instanceof Set && !seenSet.has(n.key), markAllSeen, loading };
+}
+
+function notificationText(n) {
+  const name = <strong>{(n.name || "Een vriend").split(" ")[0]}</strong>;
+  const drink = <strong>{n.drink}</strong>;
+  const quote = n.text ? <>: &ldquo;{n.text.length > 80 ? `${n.text.slice(0, 79)}…` : n.text}&rdquo;</> : null;
+  switch (n.kind) {
+    case "proost": return <>{name} proost op je {drink}</>;
+    case "reactie": return <>{name} reageerde op je {drink}{quote}</>;
+    case "tag": return <>{name} heeft je getagd bij een {drink}</>;
+    case "verzoek": return <>{name} wil vrienden met je worden</>;
+    case "rang": return n.rank === "meester" ? <>{name} heeft de cursus afgerond en is nu <strong style={masterTextStyle}>Meester</strong></> : <>{name} is nu <strong>{n.rankLabel}</strong> in de cursus</>;
+    case "proost-rang": return <>{name} proost op je nieuwe rang <strong>{n.rankLabel}</strong></>;
+    case "reactie-rang": return <>{name} reageerde op je rang {n.rankLabel}{quote}</>;
+    default: return null;
+  }
+}
+
+function NotificationsScreen({ notifications, recipes, allIngredients, onClose, onOpenFriends }) {
+  useBodyScrollLock();
+  const [snapshot] = useState(() => new Set(notifications.items.filter(notifications.isNew).map(n => n.key)));
+  useEffect(() => { notifications.markAllSeen(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const fresh = notifications.items.filter(n => snapshot.has(n.key));
+  const older = notifications.items.filter(n => !snapshot.has(n.key));
+  const row = (n, isNew) => {
+    const recipe = n.recipeId ? recipes.find(r => r.id === n.recipeId) : null;
+    const onTap = n.kind === "verzoek" ? onOpenFriends : onClose;
+    return (
+      <button key={n.key} onClick={onTap} style={{
+        display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 20px", border: "none", textAlign: "left", cursor: "pointer",
+        background: isNew ? "rgba(31,61,54,0.07)" : "none", fontFamily: sans, color: INK,
+      }}>
+        <Avatar name={n.name} photo={n.photo} size={42} />
+        <span style={{ flex: 1, minWidth: 0, fontSize: 14, lineHeight: 1.4 }}>
+          {notificationText(n)}
+          <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{n.at ? feedRelTime({ createdAt: n.at }) : ""}</span>
+        </span>
+        {recipe && <span style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} radius={8} /></span>}
+        {isNew && <span aria-label="Nieuw" style={{ width: 8, height: 8, borderRadius: "50%", background: BOTTLE, flexShrink: 0 }} />}
+      </button>
+    );
+  };
+  const label = (t) => <div style={{ padding: "18px 20px 8px", fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED }}>{t}</div>;
+  return createPortal((
+    <div className="push-slide-in" style={{ position: "fixed", inset: 0, zIndex: 30, background: PAPER, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", fontFamily: sans, color: INK }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 2, background: BOTTLE_DARK, borderBottom: `2px solid ${BRASS}` }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 6px) 12px 8px", display: "flex", alignItems: "center", boxSizing: "border-box", minHeight: 52 }}>
+          <button onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 2, width: 90, minHeight: 44, border: "none", background: "none", color: "#DDB877", fontSize: 17, fontWeight: 600, cursor: "pointer", fontFamily: sans, padding: 0 }}>
+            <ChevronLeft size={22} strokeWidth={2.2} /> Home
+          </button>
+          <span style={{ flex: 1, textAlign: "center", fontWeight: 700, fontSize: 17, color: "#FBF6EA" }}>Meldingen</span>
+          <span style={{ width: 90 }} />
+        </div>
+      </div>
+      <div style={{ maxWidth: 720, margin: "0 auto", paddingBottom: "calc(env(safe-area-inset-bottom) + 36px)" }}>
+        <EdgeSwipeBackArea onBack={onClose}>
+          {notifications.items.length === 0 ? (
+            <div style={{ padding: "48px 32px", textAlign: "center", color: MUTED, fontSize: 14, lineHeight: 1.5 }}>
+              <Bell size={28} color={MUTED} style={{ marginBottom: 10 }} />
+              <div>{notifications.loading ? "Meldingen laden…" : "Nog geen meldingen. Als een vriend proost, reageert of je tagt, zie je dat hier."}</div>
+            </div>
+          ) : (
+            <>
+              {fresh.length > 0 && <>{label("Nieuw")}{fresh.map(n => row(n, true))}</>}
+              {older.length > 0 && <>{label(fresh.length > 0 ? "Eerder" : "Meldingen")}{older.map(n => row(n, false))}</>}
+            </>
+          )}
+        </EdgeSwipeBackArea>
+      </div>
+    </div>
+  ), document.body);
 }
 
 // Feed: tijd zoals een app hem toont ("12 min", "3 u", "gisteren 21:10").
