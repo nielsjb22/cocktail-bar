@@ -726,6 +726,17 @@ html.kb-open .menu-assist-footer {
   }
 }
 
+/* Meesterring: lichtplekje dat rustig rond de gouden ring draait. */
+.master-shine {
+  animation: masterShine 5s linear infinite;
+}
+@keyframes masterShine {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .master-shine { display: none; }
+}
+
 /* Horizontale chip-rijen zonder zichtbare scrollbalk. */
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

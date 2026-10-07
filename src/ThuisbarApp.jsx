@@ -12131,7 +12131,7 @@ function CourseRing({ name, photo, size = 84, partsDone = 0, master = false, dar
   const gid = useId().replace(/:/g, "");
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ position: "absolute", inset: 0 }} aria-hidden>
+      <svg width={size} height={size} style={{ position: "absolute", inset: 0, overflow: "visible" }} aria-hidden>
         {master ? (
           <>
             <defs>
@@ -12141,6 +12141,17 @@ function CourseRing({ name, photo, size = 84, partsDone = 0, master = false, dar
             </defs>
             <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#mg${gid})`} strokeWidth={big ? stroke + 1.5 : stroke + 0.8} />
             {big && <circle cx={size / 2} cy={size / 2} r={r - stroke - 1.5} fill="none" stroke={`url(#mg${gid})`} strokeWidth={1} opacity={0.8} />}
+            {/* Meester: een zacht lichtplekje dat langzaam rond de gouden
+                ring trekt — een wazige gloed met een kleine heldere kern.
+                Alleen bij de grote ring (profiel), niet in de feed. */}
+            {big && (
+              <g className="master-shine" style={{ transformOrigin: `${size / 2}px ${size / 2}px` }}>
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#FFE7A8" strokeWidth={stroke + 5} strokeLinecap="round"
+                  strokeDasharray={`${c * 0.14} ${c}`} opacity={0.45} style={{ filter: "blur(3px)" }} />
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#FFF6DC" strokeWidth={stroke + 0.6} strokeLinecap="round"
+                  strokeDasharray={`${c * 0.05} ${c}`} transform={`rotate(${0.045 * 360} ${size / 2} ${size / 2})`} opacity={0.9} />
+              </g>
+            )}
           </>
         ) : [0, 1, 2, 3, 4, 5].map(i => {
           const on = i < partsDone;
