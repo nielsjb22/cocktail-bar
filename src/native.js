@@ -74,10 +74,14 @@ export function initNativeShell() {
     if (!root.classList.contains("kb-open")) baseHeight = window.innerHeight;
     updatePad();
   });
+  // Bij het begin van de animatie alleen de klasse zetten, nog géén
+  // --kb-pad: iOS maakt de WebView zelf kleiner ("native" resize). Eerst
+  // optillen en daarna terugzetten liet pop-ups als de check-in even te ver
+  // omhoog schieten (tot achter de statusbalk). Pas als het toetsenbord er
+  // staat (didShow) vullen we aan, en alleen als de WebView niet kromp.
   Keyboard.addListener("keyboardWillShow", (info) => {
     kbHeight = info?.keyboardHeight || 0;
     root.classList.add("kb-open");
-    updatePad();
   }).catch?.(() => {});
   Keyboard.addListener("keyboardDidShow", (info) => {
     kbHeight = info?.keyboardHeight || kbHeight;

@@ -2212,7 +2212,7 @@ function useOnlineStatus() {
 // Zet een veld binnen een pop-up in beeld door alleen de scrollbare inhoud
 // van die pop-up te verschuiven (niet de pagina): het veld komt net boven de
 // onderrand van wat zichtbaar is, met wat lucht eronder.
-function revealInSheet(el) {
+function revealInSheet(el, alignTop = false) {
   let box = el.parentElement;
   while (box && box !== document.body) {
     const oy = getComputedStyle(box).overflowY;
@@ -2225,6 +2225,9 @@ function revealInSheet(el) {
   const visibleBottom = Math.min(boxRect.bottom, vv ? vv.offsetTop + vv.height : window.innerHeight);
   const r = el.getBoundingClientRect();
   const margin = 24;
+  // Zoekveld met suggestielijst: bovenin de pop-up, dan heeft de lijst
+  // eronder de ruimte boven het toetsenbord.
+  if (alignTop) { const d = r.top - (boxRect.top + 12); if (Math.abs(d) > 4) box.scrollTop += d; return; }
   if (r.bottom > visibleBottom - margin) box.scrollTop += r.bottom - (visibleBottom - margin);
   else if (r.top < boxRect.top + margin) box.scrollTop -= (boxRect.top + margin) - r.top;
 }
@@ -2253,6 +2256,9 @@ function useKeyboardBehavior() {
       if (!isTextInput(el)) return;
       lastFocusAt = Date.now();
       clearTimeout(blurTimer);
+      // Toetsenbord stond al open (van veld naar veld tikken): dan komt er
+      // geen nieuw "toetsenbord open"-signaal, dus zelf even in beeld zetten.
+      const kbWasOpen = document.documentElement.classList.contains("kb-open");
       if (!isNativeShell) setKbOpen(true);
       // Zoekvelden met een suggestielijst (data-kb-scope) gaan bovenaan in
       // beeld staan, zodat de lijst eronder de ruimte boven het toetsenbord
@@ -2264,15 +2270,16 @@ function useKeyboardBehavior() {
       // scrollIntoView schoof op iOS ook de (vastgezette) pagina mee, wat
       // het veld soms juist áchter het toetsenbord liet belanden. Een paar
       // keer, want het toetsenbord komt in stappen omhoog.
-      if ((el.tagName === "TEXTAREA" || el.closest(".sheet-max-92")) && !picker) {
-        [80, 350, 700].forEach(t => setTimeout(() => { if (document.activeElement === el) revealInSheet(el); }, t));
+      // Eén keer verschuiven, als het toetsenbord er staat: in de app via
+      // het app-keyboard-shown-event, op het web via de (uitgestelde)
+      // viewport-resize hieronder. Meerdere keren (zoals eerst) liet het
+      // veld zichtbaar op en neer springen. Ook zoekvelden in een pop-up
+      // (cocktail, locatie) gaan via revealInSheet en nooit via
+      // scrollIntoView, dat in Safari ook de pagina erachter verschoof.
+      if (el.tagName === "TEXTAREA" || el.closest(".sheet-max-92")) {
+        if (kbWasOpen) setTimeout(() => { if (document.activeElement === el) onKeyboardShown(); }, 60);
         return;
       }
-      // Zoekveld in een pop-up (cocktail kiezen bij inchecken): niet zelf
-      // scrollen. Het veld komt al bovenaan doordat de foto inklapt; een
-      // extra scrollIntoView liet in Safari ook de pagina erachter
-      // verspringen, wat samen met het toetsenbord flink haperde.
-      if (picker && el.closest(".sheet-max-92")) return;
       setTimeout(() => {
         if (document.activeElement !== el) return;
         if (picker) { el.scrollIntoView({ block: "start", behavior: "smooth" }); return; }
@@ -2287,7 +2294,10 @@ function useKeyboardBehavior() {
     // zichtbare hoogte verandert: het actieve veld nog één keer in beeld zetten.
     const onKeyboardShown = () => {
       const el = document.activeElement;
-      if (isTextInput(el) && (el.tagName === "TEXTAREA" || el.closest(".sheet-max-92")) && !el.closest("[data-kb-scope]")) revealInSheet(el);
+      if (!isTextInput(el) || !(el.tagName === "TEXTAREA" || el.closest(".sheet-max-92"))) return;
+      // Cocktailzoeker bij inchecken staat al bovenaan (de foto klapt in).
+      const picker = el.closest("[data-kb-scope]");
+      revealInSheet(el, !!picker);
     };
     window.addEventListener("app-keyboard-shown", onKeyboardShown);
     // Web (Safari/PWA): hetzelfde --kb-pad als native, op basis van visualViewport.
@@ -2295,15 +2305,17 @@ function useKeyboardBehavior() {
     // Safari meldt de toetsenbordhoogte in veel kleine stapjes; hooguit één
     // keer per frame bijwerken, en zonder animatie (zie .kb-pad-web), anders
     // hobbelt het venster achter het toetsenbord aan.
-    let vvRaf = 0;
+    let vvRaf = 0, vvSettle = null;
     const onViewport = () => {
-      if (isNativeShell || !vv || vvRaf) return;
-      vvRaf = requestAnimationFrame(() => {
+      if (isNativeShell || !vv) return;
+      if (!vvRaf) vvRaf = requestAnimationFrame(() => {
         vvRaf = 0;
         const covered = window.innerHeight - vv.height - vv.offsetTop;
         document.documentElement.style.setProperty("--kb-pad", `${covered > 80 ? Math.round(covered) : 0}px`);
-        onKeyboardShown();
       });
+      // Pas als het toetsenbord stilstaat het veld in beeld zetten.
+      clearTimeout(vvSettle);
+      vvSettle = setTimeout(onKeyboardShown, 160);
     };
     vv?.addEventListener("resize", onViewport);
 
@@ -2355,6 +2367,7 @@ function useKeyboardBehavior() {
       window.removeEventListener("app-keyboard-shown", onKeyboardShown);
       vv?.removeEventListener("resize", onViewport);
       cancelAnimationFrame(vvRaf);
+      clearTimeout(vvSettle);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
       document.removeEventListener("click", onClickCapture, true);
@@ -13837,7 +13850,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
       })()}
 
       {showCheckinSheet && createPortal((
-        <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: "var(--kb-pad, 0px)", transition: isNativeShell ? "padding-bottom 0.25s ease" : "none" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: "var(--kb-pad, 0px)" }}>
           <BodyScrollLock />
           <div className="sheet-backdrop-in" onClick={closeCheckinSheet} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: checkinClosing ? 0 : 1, transition: "opacity 0.22s ease" }} />
           <div ref={checkinPanelRef} className="sheet-slide-in sheet-max-92" style={{
