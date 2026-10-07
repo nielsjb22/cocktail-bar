@@ -2774,6 +2774,10 @@ export default function ThuisbarApp() {
   const maParty = maPartyId ? parties.parties.find(p => p.id === maPartyId) || null : null;
   const openMenuAssistentForParty = (partyId) => { setMaPartyId(partyId); navigateTo("balans"); };
   const backToMaParty = () => { const id = maPartyId; setMaPartyId(null); setOpenPartyId(id); navigateTo("feest", { restore: true }); };
+  // Voorraad → "Wat ik kan maken" (in Ontdekken), met de terugknop naar Voorraad.
+  const [kanOpenTick, setKanOpenTick] = useState(0);
+  const [kanFromVoorraad, setKanFromVoorraad] = useState(false);
+  const openMakenFromVoorraad = () => { setKanFromVoorraad(true); setKanOpenTick(t => t + 1); navigateTo("ontdekken"); };
   const [notifTick, setNotifTick] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   useEffect(() => { if (tab === "home") setNotifTick(t => t + 1); }, [tab, homeTapTick]);
@@ -2963,6 +2967,9 @@ export default function ThuisbarApp() {
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
             recipeBackLabel={recipeBackLabel} onRecipeBack={recipeOrigin ? returnFromRecipe : null} rootTapTick={ontdekkenTapTick}
+            openKanTick={kanOpenTick}
+            kanBack={kanFromVoorraad ? { label: "Voorraad", onBack: () => { setKanFromVoorraad(false); navigateTo("voorraad", { restore: true }); } } : null}
+            onKanClosed={() => setKanFromVoorraad(false)}
             openRecipeId={pendingRecipeId} onOpenRecipeHandled={() => setPendingRecipeId(null)}
             recommended={checkinInsights.recommended} favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             allIngredients={allIngredients} onOpenRecipe={openRecipeDetail} onSound={chime}
@@ -2972,6 +2979,7 @@ export default function ThuisbarApp() {
               onOpenRecipe: openRecipeDetail, onAddToFeest: addRecipeToFeest, feestChosen,
               shoppingKeys, onRemoveFromShoppingList: removeFromShoppingList,
               favoriteRecipeIds, onToggleFavorite: toggleFavoriteRecipe, onOpenCheckin: openCheckin,
+              onOpenVoorraad: () => { setKanFromVoorraad(false); navigateTo("voorraad"); },
             }}
             verhaalProps={{
               recipes: allRecipes, ingredientLabel, allIngredients, isOwned,
@@ -2999,7 +3007,7 @@ export default function ThuisbarApp() {
             <VoorraadTab allIngredients={allIngredients} recipes={allRecipes} isOwned={isOwned} voorraad={voorraad}
               voorraadAantal={voorraadAantal} onAdjustAantal={adjustAantal}
               onToggle={toggleIngredient} onAddCustom={addCustomIngredient} onRemoveCustom={removeCustomIngredient}
-              niveaus={voorraadNiveau} onSetNiveau={setNiveau} onAddPack={addPack} onUndoPack={undoPack}
+              niveaus={voorraadNiveau} onSetNiveau={setNiveau} onAddPack={addPack} onUndoPack={undoPack} onOpenMaken={openMakenFromVoorraad}
               onAddToShoppingList={addToShoppingList} shoppingKeys={shoppingKeys} onOpenFullRecipe={openRecipeDetail} onSound={chime} />
           </SecondaryTabScreen>
         </TabPanel>
@@ -5042,7 +5050,7 @@ function FlesSheet({ ing, owned, usedIn, makeableWith, level, aantal, onSetLevel
 }
 
 function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAantal, onAdjustAantal, onToggle, onAddCustom, onRemoveCustom,
-  niveaus = {}, onSetNiveau, onAddPack, onUndoPack, onAddToShoppingList, shoppingKeys, onOpenFullRecipe, onSound }) {
+  niveaus = {}, onSetNiveau, onAddPack, onUndoPack, onAddToShoppingList, shoppingKeys, onOpenFullRecipe, onSound, onOpenMaken = null }) {
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("Alles");
   const [openId, setOpenId] = useState(null);
@@ -5153,7 +5161,12 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
     <div style={{ fontFamily: sans }}>
       <h1 style={{ fontFamily: serif, fontSize: 34, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.1 }}>Voorraad</h1>
       <div style={{ fontSize: 14, color: MUTED, marginTop: 4 }}>
-        <strong style={{ color: INK }}>{bottleCount} {bottleCount === 1 ? "fles" : "flessen"}</strong> · hiermee maak je <strong style={{ color: INK }}>{makeableCount} cocktail{makeableCount === 1 ? "" : "s"}</strong>
+        <strong style={{ color: INK }}>{bottleCount} {bottleCount === 1 ? "fles" : "flessen"}</strong> · hiermee maak je{" "}
+        {onOpenMaken ? (
+          <button onClick={onOpenMaken} style={{ display: "inline-flex", alignItems: "center", gap: 1, background: "none", border: "none", padding: "6px 0", margin: "-6px 0", cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700, color: BOTTLE }}>
+            {makeableCount} cocktail{makeableCount === 1 ? "" : "s"} <ChevronRight size={16} strokeWidth={2.4} />
+          </button>
+        ) : <strong style={{ color: INK }}>{makeableCount} cocktail{makeableCount === 1 ? "" : "s"}</strong>}
       </div>
 
       <div data-kb-scope style={{ position: "sticky", top: "calc(env(safe-area-inset-top) + 45px)", zIndex: 8, margin: "12px -20px 0", padding: "8px 20px", background: PAPER }}>
@@ -6146,7 +6159,8 @@ function MatchPill({ pct, label }) {
 }
 
 function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHandled, recommended, favoriteFamily, allIngredients, onOpenRecipe, onSound, active,
-  recipeBackLabel = "Ontdekken", onRecipeBack = null, rootTapTick = 0, headerRight = null, intro = null }) {
+  recipeBackLabel = "Ontdekken", onRecipeBack = null, rootTapTick = 0, headerRight = null, intro = null,
+  openKanTick = 0, kanBack = null, onKanClosed }) {
   const [mode, setMode] = useState("alles");
   // Staat er een recept open, dan is dit scherm puur dat recept: geen grote
   // titel, geen Alle/Maken-schakelaar en geen "Aanbevolen voor jou" erboven.
@@ -6166,6 +6180,14 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   const openMode = (next) => { setMode(next); window.scrollTo(0, 0); };
   // Nog eens op de actieve Ontdekken-tab tikken = terug naar het overzicht.
   useEffect(() => { if (rootTapTick) setMode("alles"); }, [rootTapTick]);
+  // Van buitenaf (Voorraad) direct "Wat ik kan maken" openen.
+  useEffect(() => { if (openKanTick) openMode("kan"); }, [openKanTick]);
+  // Verlaat je "Wat ik kan maken", dan vervalt de terugweg naar Voorraad.
+  const prevModeRef = useRef(mode);
+  useEffect(() => {
+    if (prevModeRef.current === "kan" && mode !== "kan" && kanBack) onKanClosed?.();
+    prevModeRef.current = mode;
+  }, [mode]);
   // Titel, schakelaar en Aanbevolen horen alleen bij het overzicht, niet bij
   // een geopend recept en niet bij het eigen scherm "Wat ik kan maken".
   const showChrome = !recipeOpen && mode !== "kan";
@@ -6228,7 +6250,8 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
       )}
 
       <div style={{ display: mode === "kan" ? "" : "none" }}>
-        <MakenTab {...makenProps} onBack={() => openMode("alles")} />
+        <MakenTab {...makenProps} backLabel={kanBack?.label || "Ontdekken"}
+          onBack={kanBack ? () => { setMode("alles"); kanBack.onBack(); } : () => openMode("alles")} />
       </div>
       <div style={{ display: mode === "alles" ? "" : "none" }}>
         <VerhaalTab {...verhaalProps} openRecipeId={openRecipeId} onOpenRecipeHandled={onOpenRecipeHandled}
@@ -6238,7 +6261,7 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   );
 }
 
-function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen, onBack, shoppingKeys, onRemoveFromShoppingList, favoriteRecipeIds, onToggleFavorite, onOpenCheckin }) {
+function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen, onBack, shoppingKeys, onRemoveFromShoppingList, favoriteRecipeIds, onToggleFavorite, onOpenCheckin }) {
   const [view, setView] = useState("ontdekken");
   const [openId, setOpenId] = useState(null);
   const [query, setQuery] = useState("");
@@ -6363,7 +6386,7 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
   // terug naar Ontdekken; in de volledige lijst "‹ Overzicht" terug hierheen.
   return (
     <SecondaryTabScreen
-      label={view === "alle" ? "Overzicht" : "Ontdekken"}
+      label={view === "alle" ? "Overzicht" : backLabel}
       title={view === "alle" ? "Alle recepten" : "Wat kan ik maken"}
       onBack={view === "alle" ? backToOverview : onBack}>
 
@@ -6391,6 +6414,14 @@ function MakenTab({ recipes, isOwned, ingredientLabel, allIngredients, onAddToSh
           }}>
             <Shuffle size={18} className={shuffling ? "spin-icon" : undefined} /> Verras me
           </button>
+          {onOpenVoorraad && (
+            <button onClick={onOpenVoorraad} className="press-scale" style={{
+              width: "100%", height: 44, marginTop: 8, borderRadius: 12, border: "1px solid rgba(251,246,234,0.3)", background: "transparent",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: HEADER_TEXT, fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer",
+            }}>
+              <Refrigerator size={17} /> Voorraad bijwerken
+            </button>
+          )}
         </div>
       )}
 
