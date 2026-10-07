@@ -4011,7 +4011,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
       const cheer = rankCheers[entry.id] || { count: 0, mine: false };
       const first = who.split(" ")[0];
       return (
-        <div style={{ marginBottom: 14, borderRadius: 16, background: CREAM, overflow: "hidden", boxShadow: "0 1px 2px rgba(43,38,32,0.06)", border: isMaster ? "1px solid rgba(184,134,46,0.55)" : "none" }}>
+        <div style={{ marginBottom: 14, borderRadius: 16, background: CREAM, overflow: "hidden", position: "relative", boxShadow: isMaster ? "0 0 0 1px rgba(184,134,46,0.55)" : "0 1px 2px rgba(43,38,32,0.06)" }}>
           {isMaster && <div aria-hidden style={{ height: 3, background: MASTER_GOLD }} />}
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 12px 12px 14px" }}>
             <span style={{ width: 40, height: 40, borderRadius: "50%", background: isMaster ? MASTER_GOLD : BOTTLE_DARK, color: isMaster ? "#132622" : "#DDB877", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -4085,8 +4085,8 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
     const withNames = checkinTags[entry.id]?.length > 0 ? `met ${joinNames(checkinTags[entry.id].map(t => (t.name || "een vriend").split(" ")[0]))} · ` : "";
     const nComments = commentCounts[entry.id] || 0;
     return (
-      <div style={{ marginBottom: 16, borderRadius: 20, background: CREAM, padding: 12, boxShadow: "0 1px 2px rgba(43,38,32,0.08), 0 8px 22px -12px rgba(43,38,32,0.3)", border: master ? "1px solid rgba(184,134,46,0.55)" : "none", position: "relative" }}>
-        {master && <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: 3, background: MASTER_GOLD, borderRadius: "20px 20px 0 0" }} />}
+      <div style={{ marginBottom: 16, borderRadius: 20, background: CREAM, padding: master ? "15px 12px 12px" : 12, boxShadow: master ? "0 0 0 1px rgba(184,134,46,0.55), 0 8px 22px -12px rgba(43,38,32,0.3)" : "0 1px 2px rgba(43,38,32,0.08), 0 8px 22px -12px rgba(43,38,32,0.3)", position: "relative", overflow: "hidden" }}>
+        {master && <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: 3, background: MASTER_GOLD }} />}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 2px 10px" }}>
           <RankAvatar name={who} photo={whoAvatar} size={36} courseRank={rankOf(entry)} />
           <div style={{ flex: 1, minWidth: 0, lineHeight: 1.25 }}>
