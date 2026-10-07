@@ -52,46 +52,31 @@ export function initNativeShell() {
   if (!isNative) return;
   StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
   syncStatusBarWithTheme();
-  Keyboard.setResizeMode({ mode: "native" }).catch(() => {});
-  // Klasse op <html> zolang het toetsenbord open is: de zwevende onderbalk
-  // verdwijnt dan (zie .kb-open in index.css) i.p.v. mee omhoog te schuiven
-  // en over zoekresultaten te vallen.
-  //
-  // --kb-pad: hoeveel ruimte het toetsenbord inneemt die de WebView NIET zelf
-  // al kleiner is geworden. Normaal krimpt de WebView ("native" resize) en is
-  // dit 0; gebeurt dat niet of te laat, dan tilt deze waarde pop-ups (zoals
-  // de check-in) alsnog boven het toetsenbord uit — anders lag bijv. het
-  // notitieveld áchter het toetsenbord en zag je je tekst er vaag doorheen.
+  // Toetsenbord: de WebView blijft altijd even groot (resize "none", ook in
+  // capacitor.config.json). Bij "native" maakte iOS de WebView pas ná de
+  // toetsenbordanimatie kleiner (+0,2 s) — het toetsenbord schoof eerst over
+  // de velden heen (vaag erdoorheen te zien) en daarna sprong alles omhoog.
+  // Nu zetten we bij het begin van de animatie meteen --kb-pad op de hoogte
+  // van het toetsenbord; pop-ups en schermen schuiven met een CSS-overgang
+  // in hetzelfde tempo mee omhoog (zie html.native-shell in index.css).
+  Keyboard.setResizeMode({ mode: "none" }).catch(() => {});
   const root = document.documentElement;
-  let baseHeight = window.innerHeight;
-  let kbHeight = 0;
-  const updatePad = () => {
-    if (!root.classList.contains("kb-open")) { root.style.setProperty("--kb-pad", "0px"); return; }
-    const shrunk = baseHeight - window.innerHeight;
-    root.style.setProperty("--kb-pad", `${shrunk > 60 ? 0 : Math.round(kbHeight)}px`);
-  };
-  window.addEventListener("resize", () => {
-    if (!root.classList.contains("kb-open")) baseHeight = window.innerHeight;
-    updatePad();
-  });
-  // Bij het begin van de animatie alleen de klasse zetten, nog géén
-  // --kb-pad: iOS maakt de WebView zelf kleiner ("native" resize). Eerst
-  // optillen en daarna terugzetten liet pop-ups als de check-in even te ver
-  // omhoog schieten (tot achter de statusbalk). Pas als het toetsenbord er
-  // staat (didShow) vullen we aan, en alleen als de WebView niet kromp.
+  root.classList.add("native-shell");
+  const setPad = (px) => root.style.setProperty("--kb-pad", `${Math.max(0, Math.round(px))}px`);
+  setPad(0);
+  // Klasse op <html> zolang het toetsenbord open is: de zwevende onderbalk
+  // verdwijnt dan (zie .kb-open in index.css).
   Keyboard.addListener("keyboardWillShow", (info) => {
-    kbHeight = info?.keyboardHeight || 0;
+    setPad(info?.keyboardHeight || 0);
     root.classList.add("kb-open");
   }).catch?.(() => {});
   Keyboard.addListener("keyboardDidShow", (info) => {
-    kbHeight = info?.keyboardHeight || kbHeight;
-    updatePad();
+    if (info?.keyboardHeight) setPad(info.keyboardHeight);
     window.dispatchEvent(new Event("app-keyboard-shown"));
   }).catch?.(() => {});
   Keyboard.addListener("keyboardWillHide", () => {
     root.classList.remove("kb-open");
-    kbHeight = 0;
-    updatePad();
+    setPad(0);
   }).catch?.(() => {});
 }
 

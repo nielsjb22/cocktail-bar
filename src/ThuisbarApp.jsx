@@ -2209,6 +2209,18 @@ function useOnlineStatus() {
   return online;
 }
 
+// Onderrand van wat er boven het toetsenbord zichtbaar is. In de app krimpt
+// de WebView niet (toetsenbord-resize "none"), dus daar telt --kb-pad; op
+// het web de visualViewport.
+function visibleViewportBottom() {
+  if (isNativeShell) {
+    const kbPad = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--kb-pad")) || 0;
+    return window.innerHeight - kbPad;
+  }
+  const vv = window.visualViewport;
+  return vv ? vv.offsetTop + vv.height : window.innerHeight;
+}
+
 // Zet een veld binnen een pop-up in beeld door alleen de scrollbare inhoud
 // van die pop-up te verschuiven (niet de pagina): het veld komt net boven de
 // onderrand van wat zichtbaar is, met wat lucht eronder.
@@ -2221,8 +2233,7 @@ function revealInSheet(el, alignTop = false) {
   }
   if (!box || box === document.body) return;
   const boxRect = box.getBoundingClientRect();
-  const vv = window.visualViewport;
-  const visibleBottom = Math.min(boxRect.bottom, vv ? vv.offsetTop + vv.height : window.innerHeight);
+  const visibleBottom = Math.min(boxRect.bottom, visibleViewportBottom());
   const r = el.getBoundingClientRect();
   const margin = 24;
   // Zoekveld met suggestielijst: bovenin de pop-up, dan heeft de lijst
@@ -2284,6 +2295,16 @@ function useKeyboardBehavior() {
         if (document.activeElement !== el) return;
         if (picker) { el.scrollIntoView({ block: "start", behavior: "smooth" }); return; }
         const rect = el.getBoundingClientRect();
+        // In de app krimpt de WebView niet (resize "none"): de zichtbare
+        // hoogte is het scherm min het toetsenbord (--kb-pad). scroll-margin-
+        // bottom (index.css) laat "nearest" boven het toetsenbord uitkomen.
+        if (isNativeShell) {
+          const kbPad = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--kb-pad")) || 0;
+          if (rect.bottom > window.innerHeight - kbPad - 24 || rect.top < 0) {
+            el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          }
+          return;
+        }
         const viewportH = window.visualViewport?.height || window.innerHeight;
         if (rect.bottom > viewportH - 90 || rect.top < 0) {
           el.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -2656,7 +2677,9 @@ export default function ThuisbarApp() {
       // Pas nu in het logboek zetten: dat laat o.a. de tagmeldingen op Home
       // herladen, en dan moet een overgenomen tag al als overgenomen staan.
       setLogboekState(cur => [checkinRowToEntry(data), ...cur]);
+      return data.id;
     }
+    return null;
   };
   // Check-in bewerken: meteen in de lijst aanpassen, dan opslaan. Lukt het
   // opslaan niet (bijv. ontbrekende update-policy), dan terug naar wat er
@@ -2764,6 +2787,17 @@ export default function ThuisbarApp() {
   // object (i.p.v. een simpele boolean) zorgt dat twee achtereenvolgende
   // aanvragen voor dezelfde naam allebei echt de sheet heropenen.
   const [checkinRequest, setCheckinRequest] = useState(null);
+  // Net ingecheckt: naar de feed, de nieuwe post licht bovenaan even op.
+  const [feedHighlight, setFeedHighlight] = useState(null);
+  const handleCheckedIn = (saved) => {
+    navigateTo("home");
+    window.scrollTo(0, 0);
+    Promise.resolve(saved).then((id) => {
+      if (!id) return;
+      setFeedHighlight(id);
+      setTimeout(() => setFeedHighlight(cur => (cur === id ? null : cur)), 3200);
+    }).catch(() => {});
+  };
   const openCheckin = (req = "") => setCheckinRequest(typeof req === "string" ? { ts: Date.now(), name: req } : { ts: Date.now(), ...req });
 
   // Eén recept toevoegen aan de Feestplanner-keuze, vanuit Maken of een
@@ -3009,7 +3043,7 @@ export default function ThuisbarApp() {
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             logboek={logboek} recipes={allRecipes} allIngredients={allIngredients} active={tab === "home"}
             onOpenRecipe={openRecipeDetail} onOpenCheckin={openCheckin} onSound={chime}
-            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} nativePush={nativePush} />
+            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} nativePush={nativePush} highlightId={feedHighlight} />
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
@@ -3044,7 +3078,7 @@ export default function ThuisbarApp() {
             courseProgress={courseProgress} />
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
-          <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onUpdateEntry={updateLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
+          <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onUpdateEntry={updateLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest} onCheckedIn={handleCheckedIn}
             onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress} courseRank={courseRank}
             onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} />
         </TabPanel>
@@ -4077,7 +4111,7 @@ function FeedScore({ value }) {
   );
 }
 
-function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush }) {
+function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush, highlightId }) {
   const [pushPromptHidden, setPushPromptHidden] = useStorage("thuisbar-push-prompt-weg", false);
   const [photoViewer, setPhotoViewer] = useState(null);
   const myId = session?.user?.id;
@@ -4580,7 +4614,8 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
               <div key={`d-${dayLabel}-${idx}`} style={{ padding: idx === 0 ? "18px 4px 10px" : "8px 4px 10px", fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED }}>{dayLabel}</div>
             ) : null;
             const item = renderFeedItem(entry);
-            return item ? <div key={`w-${entry.kind || "c"}-${entry.id}`}>{dayHeader}{item}</div> : null;
+            const isNew = highlightId && entry.kind !== "rank" && entry.mine && entry.id === highlightId;
+            return item ? <div key={`w-${entry.kind || "c"}-${entry.id}`} className={isNew ? "feed-new" : undefined}>{dayHeader}{item}</div> : null;
           })}
         </div>
       )}
@@ -5837,7 +5872,7 @@ function useDropdownMaxHeight(wrapRef, open, fallback = 260) {
       const el = wrapRef.current;
       if (!el) return;
       const bottom = el.getBoundingClientRect().top + (el.firstElementChild?.offsetHeight || 40);
-      const viewH = vv ? vv.height + vv.offsetTop : window.innerHeight;
+      const viewH = visibleViewportBottom();
       setMaxH(Math.max(150, Math.min(360, Math.floor(viewH - bottom - 14))));
     };
     calc();
@@ -9466,13 +9501,13 @@ function ConfirmDialog({ title, message, cancelLabel = "Annuleer", confirmLabel,
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onCancel} className="press-scale" style={{
             flex: 1, minHeight: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: "none",
-            color: INK, fontSize: 14, fontWeight: 700, cursor: "pointer",
+            color: INK, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: systemFont,
           }}>
             {cancelLabel}
           </button>
           <button onClick={onConfirm} disabled={busy} className="press-scale" style={{
             flex: 1, minHeight: 44, borderRadius: RADIUS, border: "none", background: confirmColor,
-            color: CREAM, fontSize: 14, fontWeight: 700, cursor: "pointer",
+            color: CREAM, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: systemFont,
           }}>
             {busy ? "Bezig…" : confirmLabel}
           </button>
@@ -12052,7 +12087,7 @@ function formatDecimal1(value) {
 // Eén notitieregel die vanzelf meegroeit met de tekst — geen zichtbare rand
 // of resize-greep, past bij het vlakke, kaderloze veldontwerp van de
 // check-in-sheet.
-function AutoGrowTextField({ value, onChange, placeholder, bare }) {
+function AutoGrowTextField({ value, onChange, placeholder, bare, onFocus, onBlur, minRows = 1 }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!ref.current) return;
@@ -12063,9 +12098,9 @@ function AutoGrowTextField({ value, onChange, placeholder, bare }) {
     if (document.activeElement === ref.current) revealInSheet(ref.current);
   }, [value]);
   return (
-    <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={1} style={{
+    <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)} onFocus={onFocus} onBlur={onBlur} placeholder={placeholder} rows={minRows} style={{
       width: "100%", border: "none", outline: "none", resize: "none", background: bare ? "transparent" : PAPER, borderRadius: 12,
-      padding: bare ? "10px 0" : "13px 14px", fontSize: 15, fontFamily: systemFont, color: INK, boxSizing: "border-box",
+      padding: bare ? "10px 0" : "13px 14px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box",
       lineHeight: 1.4, overflow: "hidden", display: "block", scrollMarginTop: 70, scrollMarginBottom: 24,
     }} />
   );
@@ -12263,6 +12298,279 @@ function CheckinStars({ value, onChange, onSound }) {
       </div>
       <div style={{ fontFamily: systemFont, fontSize: 12, color: MUTED, marginTop: 2 }}>Tik op een ster · nog een keer tikken = halve ster</div>
     </div>
+  );
+}
+
+// Cijfer bij het inchecken: vegen over de sterren (of tikken) in halve
+// stappen, met een tikje (haptiek) bij elke halve ster, zoals Untappd. Elke
+// ster is een even brede cel zonder tussenruimte, zodat de vingerpositie
+// precies op een halve of hele ster valt. touch-action pan-y: verticaal
+// scrollen blijft gewoon werken, horizontaal vegen is voor de sterren.
+function SwipeStars({ value, onChange, onSound }) {
+  const rowRef = useRef(null);
+  const lastRef = useRef(value);
+  lastRef.current = value;
+  const dragRef = useRef(false);
+  const cell = 52, star = 42;
+  const valueAt = (clientX) => {
+    const r = rowRef.current.getBoundingClientRect();
+    const f = (clientX - r.left) / r.width;
+    return Math.min(5, Math.max(0.5, Math.ceil(f * 10) / 2));
+  };
+  const set = (v) => {
+    if (v === lastRef.current) return;
+    lastRef.current = v;
+    onSound?.("tick");
+    onChange(v);
+  };
+  const shown = value > 0 ? Math.min(5, Math.max(1, Math.round(value))) : 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, minHeight: 50 }}>
+        {value > 0 ? (
+          <>
+            <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 40, lineHeight: 1.1, color: INK }}>{value.toFixed(1).replace(".", ",")}</span>
+            <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: BRASS_TEXT }}>{RATING_WORDS[shown]}</span>
+          </>
+        ) : (
+          <span style={{ fontFamily: systemFont, fontSize: 16, color: MUTED, alignSelf: "center" }}>Hoe was 'ie?</span>
+        )}
+      </div>
+      <div ref={rowRef} role="slider" aria-label="Cijfer" aria-valuemin={0} aria-valuemax={5} aria-valuenow={value} tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); set(Math.min(5, (value || 0) + 0.5)); }
+          if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); set(Math.max(0.5, (value || 1) - 0.5)); }
+        }}
+        onPointerDown={(e) => { dragRef.current = true; e.currentTarget.setPointerCapture?.(e.pointerId); set(valueAt(e.clientX)); }}
+        onPointerMove={(e) => { if (dragRef.current) set(valueAt(e.clientX)); }}
+        onPointerUp={() => { dragRef.current = false; }}
+        onPointerCancel={() => { dragRef.current = false; }}
+        style={{ display: "flex", touchAction: "pan-y", cursor: "pointer", userSelect: "none", WebkitUserSelect: "none", outline: "none", marginTop: 4 }}>
+        {[1, 2, 3, 4, 5].map(n => {
+          const filled = Math.min(1, Math.max(0, value - (n - 1)));
+          return (
+            <div key={n} style={{ width: cell, height: cell, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+              <div style={{ position: "relative", width: star, height: star }}>
+                <Star size={star} color="#C9BC9C" strokeWidth={1.4} style={{ display: "block" }} />
+                {filled > 0 && (
+                  <div style={{ position: "absolute", inset: 0, width: `${filled * 100}%`, overflow: "hidden" }}>
+                    <Star size={star} fill={BRASS} color={BRASS} strokeWidth={1.4} style={{ display: "block" }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontFamily: systemFont, fontSize: 12, color: MUTED, marginTop: 4 }}>Veeg of tik · halve sterren kan ook</div>
+    </div>
+  );
+}
+
+// Schermvullende kop van de incheckflow: groen, links Annuleer/Terug,
+// titel in het midden, rechts de actie (Plaats, Klaar, Gereed).
+function CheckinTopBar({ leftLabel, leftBack, onLeft, title, rightLabel, rightDisabled, onRight, children }) {
+  return (
+    <div style={{ background: BOTTLE_DARK, color: HEADER_TEXT, paddingTop: "env(safe-area-inset-top)", flexShrink: 0, borderBottom: children ? "none" : `2px solid ${BRASS}` }}>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", height: 50, padding: "0 12px" }}>
+        <button onClick={onLeft} className="tap-target-44" style={{
+          display: "flex", alignItems: "center", gap: 1, background: "none", border: "none", cursor: "pointer",
+          padding: "10px 4px", color: HEADER_ACCENT, fontFamily: systemFont, fontSize: 16, fontWeight: 600, whiteSpace: "nowrap",
+        }}>
+          {leftBack && <ChevronLeft size={22} strokeWidth={2.2} style={{ flexShrink: 0 }} />}
+          {leftLabel}
+        </button>
+        <div style={{
+          position: "absolute", left: "50%", transform: "translateX(-50%)", maxWidth: "calc(100% - 200px)", pointerEvents: "none",
+          fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: HEADER_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        }}>{title}</div>
+        {rightLabel ? (
+          <button onClick={onRight} disabled={rightDisabled} className="press-scale" style={{
+            minWidth: 70, height: 34, padding: "0 16px", borderRadius: 100, border: "none",
+            background: rightDisabled ? "rgba(251,246,234,0.14)" : "#DDB877", color: rightDisabled ? "rgba(251,246,234,0.45)" : "#132622",
+            fontFamily: systemFont, fontSize: 15, fontWeight: 700, cursor: rightDisabled ? "default" : "pointer", transition: "background 0.15s ease, color 0.15s ease",
+          }}>{rightLabel}</button>
+        ) : <span style={{ width: 70 }} />}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// Stap 1: cocktail kiezen. Het zoekveld staat bovenaan het scherm (in de
+// groene kop), de resultaten eronder — er hoeft niets te verschuiven als het
+// toetsenbord opkomt. Geen exacte match? Dan kun je toch inchecken onder de
+// naam die je typte.
+function CheckinSearchStep({ recipes, allIngredients, recent, initialQuery, onPick, onCancel, cancelLabel, cancelBack }) {
+  const [query, setQuery] = useState(initialQuery || "");
+  const inputRef = useRef(null);
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 80);
+    return () => clearTimeout(t);
+  }, []);
+  const sorted = useMemo(() => [...recipes].sort((a, b) => a.name.localeCompare(b.name)), [recipes]);
+  const q = query.trim().toLowerCase();
+  const results = useMemo(() => {
+    if (!q) return [];
+    const starts = [], contains = [];
+    for (const r of sorted) {
+      const n = r.name.toLowerCase();
+      if (n.startsWith(q)) starts.push(r);
+      else if (n.includes(q)) contains.push(r);
+    }
+    return [...starts, ...contains].slice(0, 50);
+  }, [sorted, q]);
+  const exact = q && sorted.some(r => r.name.toLowerCase() === q);
+  const pick = (name) => { inputRef.current?.blur(); onPick(name); };
+  const row = (r) => (
+    <button key={r.id} onClick={() => pick(r.name)} className="list-row-tap" style={{
+      display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "9px 16px", background: "none", border: "none",
+      borderBottom: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", fontFamily: systemFont,
+    }}>
+      <RecipeCircle recipe={r} allIngredients={allIngredients} size={42} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 16, fontWeight: 600, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</span>
+        {r.family && <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>{r.family}</span>}
+      </span>
+    </button>
+  );
+  // Geen exacte match: toch inchecken onder de getypte naam. Zonder
+  // resultaten bovenaan, anders onder de lijst.
+  const customRow = !exact && (
+              <button onClick={() => pick(query.trim())} className="list-row-tap" style={{
+                display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", background: "none", border: "none",
+                borderBottom: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", fontFamily: systemFont,
+              }}>
+                <span style={{ width: 42, height: 42, borderRadius: "50%", background: PAPER_DEEP, border: `1.5px dashed ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Plus size={18} color={BOTTLE} />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 16, fontWeight: 600, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Inchecken als '{query.trim()}'</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>Staat er niet tussen? Gebruik deze naam</span>
+                </span>
+              </button>
+  );
+  const sectionLabel = (text) => (
+    <div style={{ padding: "16px 16px 6px", fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED, fontFamily: systemFont }}>{text}</div>
+  );
+  return (
+    <>
+      <CheckinTopBar leftLabel={cancelLabel} leftBack={cancelBack} onLeft={onCancel} title="Kies je cocktail">
+        <div style={{ padding: "4px 16px 14px", borderBottom: `2px solid ${BRASS}` }}>
+          <div style={{ position: "relative" }}>
+            <Search size={17} color={MUTED} style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+            <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} placeholder="Zoek een cocktail"
+              enterKeyHint="search" autoCapitalize="words" autoCorrect="off" spellCheck={false}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (results[0] && results[0].name.toLowerCase() === q) pick(results[0].name); else e.currentTarget.blur(); } }}
+              style={{
+                width: "100%", border: "none", outline: "none", background: CREAM, borderRadius: 12,
+                padding: "12px 38px 12px 38px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box",
+              }} />
+            {query && (
+              <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} aria-label="Wis zoekterm" style={{
+                position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", width: 30, height: 30, borderRadius: "50%",
+                border: "none", background: "none", color: MUTED, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+              }}><X size={16} /></button>
+            )}
+          </div>
+        </div>
+      </CheckinTopBar>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+        {q ? (
+          <>
+            {results.length === 0 && customRow}
+            {results.map(row)}
+            {results.length > 0 && customRow}
+            {results.length === 0 && (
+              <div style={{ padding: "18px 16px", fontSize: 14, color: MUTED, fontFamily: systemFont }}>Geen recept gevonden met '{query.trim()}'.</div>
+            )}
+          </>
+        ) : (
+          <>
+            {recent.length > 0 && <>{sectionLabel("Laatst gemaakt")}{recent.map(row)}</>}
+            {sectionLabel("Alle cocktails")}
+            {sorted.slice(0, 60).map(row)}
+            <div style={{ padding: "14px 16px 24px", fontSize: 13, color: MUTED, fontFamily: systemFont, textAlign: "center" }}>Typ om alle {sorted.length} recepten te doorzoeken</div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// Stap "Met wie": vrienden taggen op een eigen scherm (ruimte genoeg, geen
+// horizontale rij onder het toetsenbord).
+function CheckinFriendsStep({ friends, taggedIds, onToggle, onDone }) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const list = friends || [];
+  const shown = q ? list.filter(f => (f.name || "").toLowerCase().includes(q)) : list;
+  return (
+    <>
+      <CheckinTopBar leftLabel="Terug" leftBack onLeft={onDone} title="Met wie?" rightLabel="Klaar" onRight={onDone}>
+        {list.length > 6 && (
+          <div style={{ padding: "4px 16px 14px", borderBottom: `2px solid ${BRASS}` }}>
+            <div style={{ position: "relative" }}>
+              <Search size={17} color={MUTED} style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Zoek een vriend" enterKeyHint="search" autoCorrect="off"
+                style={{ width: "100%", border: "none", outline: "none", background: CREAM, borderRadius: 12, padding: "12px 14px 12px 38px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box" }} />
+            </div>
+          </div>
+        )}
+      </CheckinTopBar>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+        {friends === null && <div style={{ padding: 18, fontSize: 14, color: MUTED, fontFamily: systemFont }}>Vrienden laden…</div>}
+        {friends && friends.length === 0 && <div style={{ padding: 18, fontSize: 14, color: MUTED, fontFamily: systemFont, lineHeight: 1.5 }}>Je hebt nog geen vrienden in de app. Voeg ze toe via Profiel → Vrienden.</div>}
+        {shown.map(f => {
+          const on = taggedIds.includes(f.id);
+          return (
+            <button key={f.id} onClick={() => onToggle(f.id)} aria-pressed={on} className="list-row-tap" style={{
+              display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 16px", background: "none", border: "none",
+              borderBottom: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", fontFamily: systemFont,
+            }}>
+              <Avatar name={f.name} photo={f.avatar_url} size={44} />
+              <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: INK, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.name || "Vriend"}</span>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: on ? BOTTLE : "none", border: on ? "none" : `1.5px solid ${BORDER}` }}>
+                {on && <Check size={15} strokeWidth={3} color="#DDB877" />}
+              </span>
+            </button>
+          );
+        })}
+        {q && shown.length === 0 && <div style={{ padding: 18, fontSize: 14, color: MUTED, fontFamily: systemFont }}>Geen vriend gevonden</div>}
+        {list.length > 0 && (
+          <div style={{ padding: "14px 16px 24px", fontSize: 12.5, color: MUTED, lineHeight: 1.5, fontFamily: systemFont }}>
+            Wie je tagt ziet je check-in en kan 'm overnemen met een eigen cijfer.
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// Stap "Locatie": snelle keuzes en zoeken naar een plek, met de resultaten
+// gewoon in het scherm (geen zwevende lijst).
+function CheckinLocationStep({ location, onChange, onDone }) {
+  return (
+    <>
+      <CheckinTopBar leftLabel="Terug" leftBack onLeft={onDone} title="Locatie" rightLabel="Klaar" onRight={onDone} />
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "18px 16px 24px" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+          {["Thuis", "Bar", "Bij vrienden"].map(label => {
+            const active = location === label;
+            return (
+              <button key={label} onClick={() => { onChange(label, null); onDone(); }} className="press-scale" style={{
+                height: 40, padding: "0 16px", borderRadius: 100, border: `1px solid ${active ? BOTTLE : BORDER}`,
+                background: active ? BOTTLE : CREAM, color: active ? CREAM : INK,
+                fontFamily: systemFont, fontSize: 14.5, fontWeight: 600, cursor: "pointer",
+              }}>{label}</button>
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 13, color: MUTED, marginBottom: 8, fontFamily: systemFont }}>Of zoek een plek</div>
+        <PlaceAutocomplete value={["Thuis", "Bar", "Bij vrienden"].includes(location) ? "" : location}
+          onChange={(text, place) => { onChange(text, place); if (place) onDone(); }} placeholder="Bar, adres of stad…" inline />
+      </div>
+    </>
   );
 }
 
@@ -12948,7 +13256,7 @@ async function searchPlaces(query) {
   }
 }
 
-function PlaceAutocomplete({ value, onChange, placeholder }) {
+function PlaceAutocomplete({ value, onChange, placeholder, inline }) {
   const [query, setQuery] = useState(value);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12999,9 +13307,13 @@ function PlaceAutocomplete({ value, onChange, placeholder }) {
         placeholder={placeholder} enterKeyHint="done" autoCapitalize="words" style={{
           width: "100%", border: "none", outline: "none", background: PAPER, borderRadius: 12,
           padding: "13px 14px 13px 40px", fontSize: 16, fontFamily: systemFont, color: INK, boxSizing: "border-box",
+          ...(inline ? { background: CREAM } : null),
         }} />
-      {open && (loading || results.length > 0) && (
-        <div style={{
+      {(open || inline) && (loading || results.length > 0) && (
+        <div style={inline ? {
+          // Eigen scherm (incheckflow): de lijst hoort gewoon bij de pagina.
+          marginTop: 8, background: CREAM, borderRadius: 14, overflow: "hidden",
+        } : {
           // In de flow i.p.v. zwevend: in het check-in-venster viel een zwevende
           // lijst achter de Inchecken-knop onderaan.
           position: "relative", marginTop: 6, background: CREAM,
@@ -13385,7 +13697,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank}) {
+function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onCheckedIn, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -13500,6 +13812,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
     setTasteTags(entry.tasteTags || []);
     setMoreOpen(!!entry.location && entry.location !== "Thuis");
     setTaggedIds([]); setAdoptTag(null);
+    editOrigRef.current = JSON.stringify([entry.name || "", entry.rating || 0, entry.notes || "", entry.photo || null, entry.location || "Thuis", entry.tasteTags || []]);
+    setCiStep("form");
     setShowCheckinSheet(true);
   };
   const addEntry = () => {
@@ -13524,36 +13838,48 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
       closeCheckinSheet();
       return;
     }
+    document.activeElement?.blur?.();
     const checkinNumber = logboek.length + 1;
-    onAddEntry({
+    const saved = Promise.resolve(onAddEntry({
       recipeId: recipeForEntry ? recipeForEntry.id : null,
       name, rating, notes: notes.trim(), photo, location: location.trim() || "Thuis",
       locationLat: locationCoords?.lat ?? null, locationLon: locationCoords?.lon ?? null,
       tasteTags: tasteTags,
       tagUserIds: taggedIds, adoptTag,
-    });
+    }));
     onSound("chime");
     setStampNumber(checkinNumber);
+    // Na de stempel: naar de feed, waar de nieuwe post bovenaan oplicht.
     setTimeout(() => {
       setStampNumber(null);
-      closeCheckinSheet();
-      setNameInput(""); setNotes(""); setRating(0); setPhoto(null); setLocation("Thuis"); setLocationCoords(null);
-      setTasteTags([]); setMoreOpen(false);
-      setTaggedIds([]); setTagQuery(""); setAdoptTag(null);
+      finishCheckin();
+      onCheckedIn?.(saved);
     }, 1050);
   };
   const removeEntry = (id) => { onSound("remove"); onRemoveEntry(id); };
   const cardRefs = useRef({});
   const scrollToEntry = (id) => cardRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "center" });
   const [showCheckinSheet, setShowCheckinSheet] = useState(false);
-  const [cocktailSearchOpen, setCocktailSearchOpen] = useState(false);
-  const { panelRef: checkinPanelRef, closing: checkinClosing, close: closeCheckinSheet, dragHandlers: checkinDragHandlers } = useSheetDismiss(() => {
-    setShowCheckinSheet(false);
-    // Bewerken klaar of afgebroken: de volgende check-in begint weer blanco.
-    if (editingRef.current) { setEditingEntryId(null); resetCheckinForm(); return; }
-    // Overnemen afgebroken: de volgende check-in begint weer blanco.
-    if (adoptTag) { setAdoptTag(null); setNameInput(""); setPhoto(null); setLocation("Thuis"); }
-  });
+  // Incheckflow (schermvullend, à la Untappd): eerst de cocktail zoeken,
+  // dan het formulier; "Met wie" en "Locatie" zijn eigen schermen. Zo staat
+  // elk tekstveld bovenaan en hoeft er niets te schuiven als het toetsenbord
+  // opkomt.
+  const [ciStep, setCiStep] = useState("form");
+  const [ciClosing, setCiClosing] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [notesFocused, setNotesFocused] = useState(false);
+  const editOrigRef = useRef(null);
+  // Afgerond of afgebroken: de volgende check-in begint weer blanco.
+  const finishCheckin = () => {
+    setShowCheckinSheet(false); setCiClosing(false); setConfirmDiscard(false); setNotesFocused(false);
+    setEditingEntryId(null); editOrigRef.current = null; resetCheckinForm();
+  };
+  const closeCheckinSheet = () => {
+    document.activeElement?.blur?.();
+    setConfirmDiscard(false);
+    setCiClosing(true);
+    setTimeout(finishCheckin, 220);
+  };
   // Extern verzoek om in te checken (centrale +-knop, of straks direct vanaf
   // een recept) — de sheet zelf blijft hier leven (portal't toch al naar
   // document.body, dus verschijnt sowieso boven elke tab).
@@ -13562,8 +13888,15 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
   const [tagQuery, setTagQuery] = useState("");
   const [adoptTag, setAdoptTag] = useState(null);
   const tagFriends = useFriendList(profile?.id, showCheckinSheet);
+  // Annuleer met iets ingevuld → eerst vragen of het weg mag.
+  const ciDirty = editingEntryId
+    ? editOrigRef.current !== JSON.stringify([nameInput, rating, notes, photo, location, tasteTags])
+    : (rating > 0 || notes.trim().length > 0 || (!!photo && !adoptTag) || taggedIds.length > 0);
+  const requestCancel = () => { if (ciDirty) { document.activeElement?.blur?.(); setConfirmDiscard(true); } else closeCheckinSheet(); };
   useEffect(() => {
     if (!checkinRequest) return;
+    setCiClosing(false);
+    setCiStep(checkinRequest.name || checkinRequest.adoptTag ? "form" : "search");
     if (checkinRequest.name) setNameInput(checkinRequest.name);
     if (checkinRequest.adoptTag) {
       setAdoptTag(checkinRequest.adoptTag);
@@ -13850,200 +14183,171 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
       })()}
 
       {showCheckinSheet && createPortal((
-        <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: "var(--kb-pad, 0px)" }}>
+        <div className={`kb-lift ${ciClosing ? "ci-screen-out" : "ci-screen-in"}`} role="dialog" aria-modal="true" aria-label="Check-in" style={{
+          position: "fixed", inset: 0, zIndex: 40, background: PAPER, display: "flex", flexDirection: "column", overflow: "hidden",
+        }}>
           <BodyScrollLock />
-          <div className="sheet-backdrop-in" onClick={closeCheckinSheet} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: checkinClosing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-          <div ref={checkinPanelRef} className="sheet-slide-in sheet-max-92" style={{
-            position: "relative", maxWidth: 960, width: "100%", margin: "0 auto",
-            background: PAPER_DEEP, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
-            display: "flex", flexDirection: "column", overflow: "hidden",
-          }}>
-            {/* Header: alleen titel + sluitknop, geen verloop en geen icoon-cirkel */}
-            <div {...checkinDragHandlers} style={{ padding: "9px 16px 12px", background: PAPER_DEEP, borderBottom: `1px solid ${BORDER}`, touchAction: "none", flexShrink: 0 }}>
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
-                <div style={{ width: 36, height: 4.5, borderRadius: 3, background: BORDER }} />
-              </div>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <div style={{ flex: 1, fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK }}>{editingEntryId ? "Check-in bewerken" : "Check-in"}</div>
-                <button onClick={closeCheckinSheet} onTouchStart={(e) => e.stopPropagation()} aria-label="Sluiten" className="tap-target-44" style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30,
-                  borderRadius: "50%", background: PAPER, border: "none", cursor: "pointer", color: INK, flexShrink: 0,
-                }}><X size={16} /></button>
-              </div>
-            </div>
-
-            <div style={{ background: PAPER_DEEP, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", flex: 1, minHeight: 0 }}>
-              {/* Beeldvlak 4:3: eigen foto, anders de foto van het gekozen recept, anders een rustige placeholder. Tikken opent de camera/foto-kiezer. */}
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
-              {/* Tijdens het zoeken naar een cocktail klapt de grote foto in, zodat
-                  zoekveld + resultaten de ruimte boven het toetsenbord krijgen. */}
-              <button onClick={() => fileInputRef.current?.click()} disabled={photoBusy} style={{
-                display: cocktailSearchOpen ? "none" : "block",
-                position: "relative", margin: "18px 20px 0", width: "calc(100% - 40px)",
-                aspectRatio: "4 / 3", border: "none", borderRadius: 20, padding: 0,
-                cursor: photoBusy ? "default" : "pointer", overflow: "hidden",
-                background: heroPhotoSrc ? "none" : `radial-gradient(ellipse 420px 260px at 50% 20%, #2A4B42, ${BOTTLE_DARK} 75%)`,
-              }}>
-                {heroPhotoSrc ? (
-                  <img src={heroPhotoSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                ) : (
-                  <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "rgba(251,246,234,0.55)" }}>
-                    <Martini size={30} strokeWidth={1.3} />
-                    <span style={{ fontFamily: systemFont, fontSize: 14, color: "rgba(251,246,234,0.85)" }}>{photoBusy ? "Bezig…" : "Kies je cocktail"}</span>
-                  </div>
-                )}
-                <div style={{ position: "absolute", right: 12, bottom: 12, width: 34, height: 34, borderRadius: "50%", background: heroPhotoSrc ? "rgba(20,16,10,0.55)" : "rgba(251,246,234,0.14)", border: heroPhotoSrc ? "none" : "1px solid rgba(251,246,234,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Camera size={15} color="#FBF6EA" />
-                </div>
-                {photo && (
-                  <div role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setPhoto(null); }} aria-label="Eigen foto verwijderen" style={{ position: "absolute", left: 12, top: 12, width: 28, height: 28, borderRadius: "50%", background: "rgba(20,16,10,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <X size={13} color="#FBF6EA" />
-                  </div>
-                )}
-              </button>
-
-              <div style={{ padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 22 }}>
-                <RecipeSearchWithPhotos recipes={recipes} value={nameInput} onChange={setNameInput} onOpenChange={setCocktailSearchOpen}
-                  onSelect={(r) => setNameInput(r.name)} allIngredients={allIngredients} recent={recentCocktails} />
-
-                <CheckinStars value={rating} onChange={setRating} onSound={onSound} />
-
-                {adoptTag ? (
-                  <div style={{ padding: "12px 14px", borderRadius: 14, background: PAPER_DEEP, fontSize: 13.5, lineHeight: 1.45, color: INK, fontFamily: systemFont }}>
-                    Je checkt in met <strong>{adoptTag.taggerName || "je vriend"}</strong>. Je cijfer en notitie zijn alleen van jou; aan de check-in van {adoptTag.taggerName || "je vriend"} verandert niets.
-                  </div>
-                ) : !editingEntryId && tagFriends && tagFriends.length > 0 && (() => {
-                  const q = tagQuery.trim().toLowerCase();
-                  const shown = q ? tagFriends.filter(f => (f.name || "").toLowerCase().includes(q)) : tagFriends;
-                  const toggle = (id) => { onSound("pop"); setTaggedIds(cur => cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]); };
-                  return (
-                    <div>
-                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
-                        <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: INK }}>Met wie drink je?</span>
-                        <span style={{ fontFamily: systemFont, fontSize: 12, color: MUTED }}>{taggedIds.length > 0 ? `${taggedIds.length} getagd` : "Optioneel"}</span>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
+          <div key={ciStep} className="ci-step-in" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            {ciStep === "search" ? (
+              <CheckinSearchStep recipes={recipes} allIngredients={allIngredients} recent={recentCocktails}
+                initialQuery={matchedRecipe ? "" : nameInput}
+                cancelLabel={nameInput.trim() ? "Terug" : "Annuleer"} cancelBack={!!nameInput.trim()}
+                onCancel={() => { if (nameInput.trim()) setCiStep("form"); else requestCancel(); }}
+                onPick={(name) => { setNameInput(name); setCiStep("form"); }} />
+            ) : ciStep === "friends" ? (
+              <CheckinFriendsStep friends={tagFriends} taggedIds={taggedIds}
+                onToggle={(id) => { onSound("pop"); setTaggedIds(cur => cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]); }}
+                onDone={() => { document.activeElement?.blur?.(); setCiStep("form"); }} />
+            ) : ciStep === "location" ? (
+              <CheckinLocationStep location={location} onChange={handleLocationChange}
+                onDone={() => { document.activeElement?.blur?.(); setCiStep("form"); }} />
+            ) : (() => {
+              const canSubmit = nameInput.trim().length > 0 && rating > 0;
+              const tagged = (tagFriends || []).filter(f => taggedIds.includes(f.id));
+              const cardStyle = { background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD };
+              const optionRow = (Icon, label, value, onClick, last) => (
+                <button onClick={onClick} className="list-row-tap" style={{
+                  display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 54, padding: "8px 14px", background: "none", border: "none",
+                  borderBottom: last ? "none" : `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", fontFamily: systemFont,
+                }}>
+                  <Icon size={19} color={BOTTLE} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 15.5, fontWeight: 600, color: INK }}>{label}</span>
+                  <span style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "flex-end", alignItems: "center" }}>{value}</span>
+                  <ChevronRight size={18} color={MUTED} style={{ flexShrink: 0 }} />
+                </button>
+              );
+              return (
+                <>
+                  {/* Rechtsboven: Plaats (pas actief met cocktail + cijfer). Typ je
+                      in de notitie, dan staat daar Gereed om het toetsenbord te
+                      sluiten. */}
+                  <CheckinTopBar leftLabel="Annuleer" onLeft={requestCancel} title={editingEntryId ? "Check-in bewerken" : "Check-in"}
+                    rightLabel={notesFocused ? "Gereed" : editingEntryId ? "Opslaan" : "Plaats"}
+                    rightDisabled={notesFocused ? false : !canSubmit}
+                    onRight={notesFocused ? () => document.activeElement?.blur?.() : addEntry} />
+                  <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+                    <div style={{ padding: "16px 16px 28px", display: "flex", flexDirection: "column", gap: 14, maxWidth: 640, margin: "0 auto" }}>
+                      <div style={{ ...cardStyle, display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}>
+                        {matchedRecipe ? (
+                          <RecipeCircle recipe={matchedRecipe} allIngredients={allIngredients} size={52} />
+                        ) : (
+                          <span style={{ width: 52, height: 52, borderRadius: "50%", background: BOTTLE_DARK, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <Martini size={22} color="#DDB877" strokeWidth={1.6} />
+                          </span>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 19, color: INK, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameInput.trim() || "Kies je cocktail"}</div>
+                          <div style={{ fontFamily: systemFont, fontSize: 13, color: MUTED, marginTop: 2 }}>{matchedRecipe ? matchedRecipe.family : nameInput.trim() ? "Eigen cocktail" : "Nog niets gekozen"}</div>
+                        </div>
+                        {!adoptTag && (
+                          <button onClick={() => setCiStep("search")} style={{ background: "none", border: "none", padding: "8px 2px 8px 8px", cursor: "pointer", fontFamily: systemFont, fontSize: 15, fontWeight: 600, color: BOTTLE }}>Wijzig</button>
+                        )}
                       </div>
-                      <div style={{ display: "flex", gap: 12, overflowX: "auto", margin: "-5px -20px 0", padding: "6px 20px 6px" }}>
-                        {shown.map(f => {
-                          const on = taggedIds.includes(f.id);
-                          return (
-                            <button key={f.id} onClick={() => toggle(f.id)} aria-pressed={on} style={{
-                              display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: 60, flexShrink: 0,
-                              background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont,
-                            }}>
-                              <span style={{ position: "relative", width: 52, height: 52, borderRadius: "50%", boxShadow: on ? `0 0 0 2.5px ${PAPER}, 0 0 0 4.5px ${BRASS}` : "none" }}>
-                                <Avatar name={f.name} photo={f.avatar_url} size={52} />
-                                {on && (
-                                  <span style={{ position: "absolute", right: -3, bottom: -3, width: 20, height: 20, borderRadius: "50%", background: BRASS, border: `2px solid ${PAPER}`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    <Check size={11} strokeWidth={3.5} color={BOTTLE_DARK} />
-                                  </span>
-                                )}
-                              </span>
-                              <span style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: on ? INK : MUTED, maxWidth: 60, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(f.name || "Vriend").split(" ")[0]}</span>
-                            </button>
-                          );
-                        })}
-                        {shown.length === 0 && <span style={{ fontSize: 13, color: MUTED, padding: "16px 0" }}>Geen vriend gevonden</span>}
-                      </div>
-                      {tagFriends.length > 6 && (
-                        <input value={tagQuery} onChange={e => setTagQuery(e.target.value)} placeholder="Zoek een vriend" enterKeyHint="search"
-                          style={{ ...fieldStyle(), width: "100%", boxSizing: "border-box", marginTop: 10, fontSize: 16 }} />
-                      )}
-                      {taggedIds.length > 0 && (
-                        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 8, lineHeight: 1.45, fontFamily: systemFont }}>
-                          {joinNames(tagFriends.filter(f => taggedIds.includes(f.id)).map(f => (f.name || "Vriend").split(" ")[0]))} {taggedIds.length === 1 ? "ziet" : "zien"} dit en {taggedIds.length === 1 ? "kan" : "kunnen"} de check-in overnemen met een eigen cijfer.
+
+                      {adoptTag && (
+                        <div style={{ padding: "12px 14px", borderRadius: 14, background: PAPER_DEEP, fontSize: 13.5, lineHeight: 1.45, color: INK, fontFamily: systemFont }}>
+                          Je checkt in met <strong>{adoptTag.taggerName || "je vriend"}</strong>. Je cijfer en notitie zijn alleen van jou; aan de check-in van {adoptTag.taggerName || "je vriend"} verandert niets.
                         </div>
                       )}
-                    </div>
-                  );
-                })()}
 
-                <div>
-                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
-                    <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: INK }}>Wat proefde je?</span>
-                    <span style={{ fontFamily: systemFont, fontSize: 12, color: MUTED }}>Kies er zoveel je wilt</span>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {CHECKIN_TASTE_TAGS.map(({ key, label }) => {
-                      const on = tasteTags.includes(key);
-                      return (
-                        <button key={key} onClick={() => toggleTasteTag(key)} aria-pressed={on} className="press-scale" style={{
-                          height: 40, padding: "0 16px", borderRadius: 100, boxSizing: "border-box",
-                          display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
-                          border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : PAPER, color: on ? CREAM : INK,
-                          fontFamily: systemFont, fontSize: 14, fontWeight: 600,
-                        }}>
-                          {on && <Check size={14} strokeWidth={3} color="#DDB877" />}
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                      <div style={{ ...cardStyle, padding: "14px 8px 14px" }}>
+                        <SwipeStars value={rating} onChange={setRating} onSound={onSound} />
+                      </div>
 
-                <AutoGrowTextField value={notes} onChange={setNotes} placeholder="Voeg een notitie toe…" />
+                      <div style={{ ...cardStyle, padding: "4px 14px 14px" }}>
+                        <AutoGrowTextField bare minRows={2} value={notes} onChange={setNotes} placeholder="Wat vond je ervan?"
+                          onFocus={() => setNotesFocused(true)}
+                          // Pas ná de tik wisselen: anders werd een tik op "Gereed"
+                          // halverwege een tik op "Plaats".
+                          onBlur={() => setTimeout(() => setNotesFocused(false), 60)} />
+                        <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                          {photo ? (
+                            <div style={{ position: "relative", width: 74, height: 74, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}>
+                              <img src={photo} alt="Je foto" onClick={() => fileInputRef.current?.click()} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }} />
+                              <button onClick={() => setPhoto(null)} aria-label="Foto verwijderen" style={{
+                                position: "absolute", right: 4, top: 4, width: 24, height: 24, borderRadius: "50%", border: "none",
+                                background: "rgba(20,16,10,0.6)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0,
+                              }}><X size={13} color="#FBF6EA" /></button>
+                            </div>
+                          ) : (
+                            <button onClick={() => fileInputRef.current?.click()} disabled={photoBusy} className="press-scale" style={{
+                              width: 74, height: 74, borderRadius: 12, border: `1.5px dashed ${BORDER}`, background: PAPER,
+                              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
+                              cursor: "pointer", color: MUTED, fontFamily: systemFont, fontSize: 12, fontWeight: 600, flexShrink: 0,
+                            }}>
+                              <Camera size={20} color={BOTTLE} />
+                              {photoBusy ? "Bezig…" : "Foto"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
 
-                <div>
-                  <button onClick={(e) => {
-                    const btn = e.currentTarget;
-                    setMoreOpen(v => { if (!v) setTimeout(() => btn.scrollIntoView({ block: "start", behavior: "smooth" }), 60); return !v; });
-                  }} style={{ display: "flex", alignItems: "center", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: systemFont, fontSize: 15.5, fontWeight: 600, color: INK }}>
-                    <span style={{ flex: 1, textAlign: "left" }}>Meer toevoegen</span>
-                    {moreOpen ? <ChevronUp size={18} color={MUTED} /> : <ChevronDown size={18} color={MUTED} />}
-                  </button>
-
-                  {moreOpen && (
-                    <div className="accordion-reveal" style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 20 }}>
-                      <div>
-                        <div style={{ fontSize: 13, color: MUTED, marginBottom: 9, fontFamily: systemFont }}>Locatie</div>
-                        <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                          {["Thuis", "Bar", "Bij vrienden"].map(label => {
-                            const active = location === label;
+                      <div style={{ padding: "4px 2px 0" }}>
+                        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+                          <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: INK }}>Wat proefde je?</span>
+                          <span style={{ fontFamily: systemFont, fontSize: 12, color: MUTED }}>Kies er zoveel je wilt</span>
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {CHECKIN_TASTE_TAGS.map(({ key, label }) => {
+                            const on = tasteTags.includes(key);
                             return (
-                              <button key={label} onClick={() => handleLocationChange(label, null)} style={{
-                                padding: "8px 14px", borderRadius: 100, border: "none",
-                                background: active ? BOTTLE : PAPER, color: active ? CREAM : INK,
-                                fontFamily: systemFont, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
-                              }}>{label}</button>
+                              <button key={key} onClick={() => toggleTasteTag(key)} aria-pressed={on} className="press-scale" style={{
+                                height: 38, padding: "0 15px", borderRadius: 100, boxSizing: "border-box",
+                                display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                                border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : CREAM, color: on ? CREAM : INK,
+                                fontFamily: systemFont, fontSize: 14, fontWeight: 600,
+                              }}>
+                                {on && <Check size={14} strokeWidth={3} color="#DDB877" />}
+                                {label}
+                              </button>
                             );
                           })}
                         </div>
-                        <div style={{ fontSize: 12, color: MUTED, marginBottom: 7, fontFamily: systemFont }}>Of zoek een eigen locatie</div>
-                        <PlaceAutocomplete value={location} onChange={handleLocationChange} placeholder="Bar, adres of stad…" />
+                      </div>
+
+                      <div style={{ ...cardStyle, overflow: "hidden" }}>
+                        {!editingEntryId && !adoptTag && optionRow(Users, "Met wie",
+                          tagged.length > 0 ? (
+                            <span style={{ display: "flex", alignItems: "center" }}>
+                              {tagged.slice(0, 3).map((f, i) => (
+                                <span key={f.id} style={{ marginLeft: i ? -8 : 0, borderRadius: "50%", boxShadow: `0 0 0 2px ${CREAM}`, display: "flex" }}>
+                                  <Avatar name={f.name} photo={f.avatar_url} size={28} />
+                                </span>
+                              ))}
+                              {tagged.length > 3 && <span style={{ marginLeft: 6, fontSize: 13, color: MUTED, fontFamily: systemFont }}>+{tagged.length - 3}</span>}
+                            </span>
+                          ) : <span style={{ fontSize: 14.5, color: MUTED, fontFamily: systemFont }}>Niemand</span>,
+                          () => setCiStep("friends"), false)}
+                        {optionRow(MapPin, "Locatie",
+                          <span style={{ fontSize: 14.5, color: MUTED, fontFamily: systemFont, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{location.trim() || "Thuis"}</span>,
+                          () => setCiStep("location"), true)}
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="checkin-footer" style={{ padding: "14px 20px calc(env(safe-area-inset-bottom) + 14px)", background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
-              {(() => {
-                const canSubmit = nameInput.trim().length > 0 && rating > 0;
-                return (
-                  <button onClick={addEntry} disabled={!canSubmit} style={{
-                    width: "100%", background: canSubmit ? BOTTLE : BORDER, color: canSubmit ? "#FBF6EA" : "#9C927A",
-                    border: "none", borderRadius: 14, padding: "15px 18px", fontSize: 16, fontWeight: 700,
-                    fontFamily: systemFont, cursor: canSubmit ? "pointer" : "default",
-                  }}>
-                    {editingEntryId ? "Opslaan" : "Inchecken"}
-                  </button>
-                );
-              })()}
-            </div>
-
-            {stampNumber != null && (
-              <div style={{ position: "absolute", inset: 0, zIndex: 5, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(20,16,10,0.4)" }}>
-                <div className="stamp-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: CREAM, border: `3px solid ${BOTTLE}`, borderRadius: 20, padding: "26px 34px", boxShadow: "0 10px 34px rgba(20,16,10,0.4)" }}>
-                  <div style={{ width: 50, height: 50, borderRadius: "50%", background: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Check size={26} color="#FBF6EA" strokeWidth={3} />
                   </div>
-                  <div style={{ fontFamily: systemFont, fontWeight: 800, fontSize: 16, color: BOTTLE, textAlign: "center", lineHeight: 1.35 }}>
-                    Cocktail #{stampNumber}<br />geproefd
-                  </div>
-                </div>
-              </div>
-            )}
+                </>
+              );
+            })()}
           </div>
+
+          {stampNumber != null && (
+            <div style={{ position: "absolute", inset: 0, zIndex: 5, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(20,16,10,0.4)" }}>
+              <div className="stamp-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: CREAM, border: `3px solid ${BOTTLE}`, borderRadius: 20, padding: "26px 34px", boxShadow: "0 10px 34px rgba(20,16,10,0.4)" }}>
+                <div style={{ width: 50, height: 50, borderRadius: "50%", background: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={26} color="#FBF6EA" strokeWidth={3} />
+                </div>
+                <div style={{ fontFamily: systemFont, fontWeight: 800, fontSize: 16, color: BOTTLE, textAlign: "center", lineHeight: 1.35 }}>
+                  Cocktail #{stampNumber}<br />geproefd
+                </div>
+              </div>
+            </div>
+          )}
+          {confirmDiscard && (
+            <ConfirmDialog title={editingEntryId ? "Wijzigingen weggooien?" : "Check-in weggooien?"}
+              message={editingEntryId ? "Je aanpassingen worden niet bewaard." : "Wat je hebt ingevuld wordt niet bewaard."}
+              cancelLabel="Verder gaan" confirmLabel="Weggooien"
+              onCancel={() => setConfirmDiscard(false)} onConfirm={closeCheckinSheet} />
+          )}
         </div>
       ), document.body)}
 

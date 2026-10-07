@@ -460,9 +460,39 @@ button:focus-visible {
   .tab-fade, .accordion-reveal, .glass-liquid-fill, .success-pop,
   .glass-bounce-in, .glass-drop-fall, .hero-text-in, .ingredient-reveal,
   .check-pop, .ring-pop, .spin-icon, .glass-shimmer, .sheet-backdrop-in, .sheet-slide-in,
-  .push-slide-in {
+  .push-slide-in, .ci-screen-in, .ci-screen-out, .ci-step-in, .feed-new > :last-child {
     animation: none !important;
   }
+}
+
+/* Incheckflow: schermvullend, schuift van onder in beeld (en weer weg). */
+.ci-screen-in {
+  animation: sheetSlideUp 0.32s cubic-bezier(.32,.72,.35,1) both;
+}
+.ci-screen-out {
+  animation: ciSlideDown 0.22s cubic-bezier(.4,0,1,1) both;
+}
+@keyframes ciSlideDown {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+.ci-step-in {
+  animation: ciStepIn 0.18s ease both;
+}
+@keyframes ciStepIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Net ingecheckt: de nieuwe post bovenaan de feed licht even op in messing. */
+.feed-new > :last-child {
+  animation: feedNew 2.6s ease-out backwards;
+}
+@keyframes feedNew {
+  0%   { opacity: 0; transform: translateY(-8px) scale(0.98); box-shadow: 0 0 0 2px var(--brass), 0 0 24px rgba(184,134,46,0.55); }
+  14%  { opacity: 1; transform: none; box-shadow: 0 0 0 2px var(--brass), 0 0 24px rgba(184,134,46,0.55); }
+  70%  { box-shadow: 0 0 0 2px var(--brass), 0 0 16px rgba(184,134,46,0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(184,134,46,0), 0 1px 2px rgba(43,38,32,0.06); }
 }
 
 /* Categorie-popup in Voorraad: een bottom sheet die vanaf de onderrand
@@ -701,6 +731,41 @@ html.kb-open .bottom-dock {
 .sheet-max-92 {
   max-height: calc(92vh - var(--kb-pad, 0px));
   max-height: calc(92dvh - var(--kb-pad, 0px));
+}
+
+/* iOS-app (toetsenbord-resize "none"): de WebView krimpt niet meer, dus
+   tillen we zelf op. --kb-pad gaat bij het begin van de toetsenbord-
+   animatie in één keer naar de toetsenbordhoogte; de overgang hieronder
+   volgt dezelfde curve als het iOS-toetsenbord, zodat het venster precies
+   gelijk met het toetsenbord meeschuift. De ruimte zit ín het venster
+   (padding), dus achter het doorschijnende toetsenbord zie je de kleur
+   van het venster en geen vage velden. */
+html.native-shell .sheet-max-92 {
+  max-height: 92vh;
+  max-height: 92dvh;
+}
+html.native-shell .sheet-slide-in,
+html.native-shell .kb-lift {
+  transition: padding-bottom 0.25s cubic-bezier(.38,.7,.125,1);
+}
+html.native-shell.kb-open .sheet-slide-in,
+html.native-shell.kb-open .kb-lift {
+  padding-bottom: var(--kb-pad, 0px) !important;
+}
+/* Velden op een gewone pagina: genoeg ruimte om boven het toetsenbord te
+   kunnen scrollen, en scrollIntoView houdt rekening met het toetsenbord. */
+/* Incheckflow op het web: ruimte voor het toetsenbord via visualViewport. */
+html:not(.native-shell) .kb-lift {
+  padding-bottom: var(--kb-pad, 0px);
+}
+html.native-shell.kb-open #root::after {
+  content: "";
+  display: block;
+  height: var(--kb-pad, 0px);
+}
+html.native-shell.kb-open input,
+html.native-shell.kb-open textarea {
+  scroll-margin-bottom: calc(var(--kb-pad, 0px) + 24px);
 }
 
 /* Check-in: zolang het toetsenbord open is verdwijnt de Inchecken-balk
