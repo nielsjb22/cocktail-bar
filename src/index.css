@@ -716,6 +716,16 @@ html.kb-open .menu-assist-footer {
   display: none;
 }
 
+/* Actieve tab in de onderbalk: in donkere modus geen wit glas (dan was de
+   groene tekst onleesbaar) maar een zacht licht vlak met lichte tekst. */
+@media (prefers-color-scheme: dark) {
+  .dock-active {
+    background: rgba(255, 255, 255, 0.10) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+    color: #EDE6D6;
+  }
+}
+
 /* Horizontale chip-rijen zonder zichtbare scrollbalk. */
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

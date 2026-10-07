@@ -3334,7 +3334,7 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
       <button onClick={() => onSelect("voorraad")} className="press-scale" style={{
         width: "100%", display: "flex", alignItems: "center", gap: 14, textAlign: "left", boxSizing: "border-box",
         background: BOTTLE_DARK, border: "none", borderRadius: RADIUS + 8, padding: "16px 18px", marginBottom: 14,
-        cursor: "pointer", color: CREAM, fontFamily: sans, boxShadow: SHADOW_CARD,
+        cursor: "pointer", color: HEADER_TEXT, fontFamily: sans, boxShadow: SHADOW_CARD,
       }}>
         <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: RADIUS, background: "rgba(245,239,230,0.14)", flexShrink: 0 }}>
           <Refrigerator size={19} strokeWidth={1.8} color={BRASS} />
@@ -3343,7 +3343,7 @@ function BarTab({ onSelect, shoppingCount, active, voorraadCount, customRecipesC
           <div style={{ fontWeight: 700, fontSize: 15.5 }}>Voorraad</div>
           <div style={{ fontSize: 12.5, opacity: 0.8, marginTop: 1 }}>{voorraadCount > 0 ? `${voorraadCount} in huis` : "Nog leeg · vul in wat je hebt"}</div>
         </span>
-        <ChevronRight size={17} color={CREAM} style={{ opacity: 0.7, flexShrink: 0 }} />
+        <ChevronRight size={17} color={HEADER_TEXT} style={{ opacity: 0.7, flexShrink: 0 }} />
       </button>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -4427,7 +4427,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           {tagInbox.items.map(({ tag, entry, tagger }) => {
             const taggerName = tagger?.name || "Een vriend";
             return (
-              <div key={tag.id} style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 16, padding: 14 }}>
+              <div key={tag.id} style={{ background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 16, padding: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Avatar name={taggerName} photo={tagger?.avatar_url} size={40} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -4464,7 +4464,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <button onClick={nativePush.enable} disabled={nativePush.busy} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: BOTTLE_DARK, color: CREAM, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
+            <button onClick={nativePush.enable} disabled={nativePush.busy} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
               Aanzetten
             </button>
             <button onClick={() => setPushPromptHidden(true)} style={{ minHeight: 42, padding: "0 16px", borderRadius: 12, border: `1px solid ${BORDER}`, background: "none", color: INK, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: sans }}>
@@ -4547,7 +4547,7 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
             kleur" te zijn — puur neutrale wit-tinten, de warmte die je nog
             ziet komt vanzelf van wat erdoorheen schijnt (echt glasgedrag),
             niet van een ingebouwde kleur. */}
-        <span style={{
+        <span className={active ? "dock-active" : undefined} style={{
           display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
           padding: "6px 14px 7px", borderRadius: 16, transition: "background 0.2s ease, box-shadow 0.2s ease",
           background: active ? "linear-gradient(160deg, rgba(255,255,255,0.65), rgba(255,255,255,0.3))" : "transparent",
@@ -7430,7 +7430,7 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
     return (
       <div style={{ marginBottom: 18 }}>
         {best && (
-          <div style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 16, padding: 16, marginBottom: 14 }}>
+          <div style={{ background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 16, padding: 16, marginBottom: 14 }}>
             <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#DDB877" }}>Goedkoopst in één keer</div>
             <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, marginTop: 4 }}>Alles bij {best.naam} · {euro(best.total)}</div>
             <div style={{ fontSize: 13, color: "#C9D2CB", marginTop: 4, lineHeight: 1.45 }}>
@@ -7803,7 +7803,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                 width: "100%", textAlign: "left", border: "none", cursor: "pointer", borderRadius: RADIUS + 4,
                 padding: "20px 22px", marginBottom: 24, position: "relative", overflow: "hidden", boxSizing: "border-box",
                 minHeight: photo ? 220 : undefined, display: "flex", flexDirection: "column", justifyContent: "flex-end",
-                background: BOTTLE_DARK, boxShadow: SHADOW_HERO, color: CREAM, fontFamily: sans,
+                background: BOTTLE_DARK, boxShadow: SHADOW_HERO, color: HEADER_TEXT, fontFamily: sans,
               }}>
                 {photo && (
                   <>
@@ -7860,7 +7860,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
           <button onClick={verrasMe} style={{
             display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", border: "none", cursor: "pointer",
             borderRadius: 16, padding: "16px 18px", marginBottom: 24, background: BOTTLE_DARK,
-            color: CREAM, boxShadow: SHADOW_CARD, fontFamily: sans, boxSizing: "border-box",
+            color: HEADER_TEXT, boxShadow: SHADOW_CARD, fontFamily: sans, boxSizing: "border-box",
           }}>
             <Shuffle size={22} />
             <div><div style={{ fontSize: 14.5, fontWeight: 800 }}>Verras me</div><div style={{ fontSize: 11.5, opacity: 0.82 }}>Ontdek een willekeurige cocktail</div></div>
@@ -8378,7 +8378,7 @@ function PracticeLessonBody({ lesson, recipes, allIngredients, onOpenRecipe, onC
       {lesson.tryIt && (
         <>
           {label("Probeer het zelf")}
-          <div style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 16, padding: 16, marginBottom: 24 }}>
+          <div style={{ background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 16, padding: 16, marginBottom: 24 }}>
             <p style={{ fontSize: 15, lineHeight: 1.55, margin: recipe ? "0 0 14px" : 0 }}>{lesson.tryIt.text}</p>
             {recipe && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.06)", marginBottom: onCheckin ? 12 : 0 }}>
@@ -8460,7 +8460,7 @@ function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLe
       {(
         <button onClick={() => setShowQuiz(true)} className="press-scale" style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 8,
-          background: BOTTLE_DARK, color: CREAM, border: "none", borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: sans,
+          background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: sans,
         }}>
           {quizDone || progress?.completed ? "Vragen nog een keer" : "Naar de vragen"} <ChevronRight size={17} />
         </button>
@@ -8643,7 +8643,7 @@ function CursusTab({ progress, setProgress, onSound, recipes, allIngredients, on
     <div>
       <div style={{
         display: "flex", alignItems: "center", gap: 16, marginBottom: 14, borderRadius: RADIUS + 4, padding: 16,
-        background: `radial-gradient(ellipse 500px 220px at 15% -20%, #2A4B42, ${BOTTLE_DARK} 75%)`, boxShadow: SHADOW_HERO, color: CREAM,
+        background: `radial-gradient(ellipse 500px 220px at 15% -20%, #2A4B42, ${BOTTLE_DARK} 75%)`, boxShadow: SHADOW_HERO, color: HEADER_TEXT,
       }}>
         <CourseRing size={72} partsDone={rank.partsDone} master={rank.master} dark seal={false}>
           <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#2A4B42", display: "flex", alignItems: "center", justifyContent: "center", color: "#F1D9A6" }}>
@@ -9249,7 +9249,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
 
       <button onClick={() => setShowNewPartySheet(true)} className="press-scale" style={{
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 48,
-        background: BOTTLE_DARK, color: CREAM, border: "none", borderRadius: RADIUS, fontSize: 14.5, fontWeight: 700,
+        background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: RADIUS, fontSize: 14.5, fontWeight: 700,
         cursor: "pointer", boxShadow: SHADOW_CTA, marginBottom: 28,
       }}>
         <Plus size={16} /> Nieuw feest
@@ -9416,7 +9416,7 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
 
           <button onClick={submit} disabled={!name.trim() || busy} className="press-scale" style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", minHeight: 44,
-            background: BOTTLE_DARK, color: CREAM, border: "none", borderRadius: RADIUS, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
+            background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: RADIUS, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
           }}>
             {busy ? "Bezig…" : initial ? "Opslaan" : "Feest aanmaken"}
           </button>
@@ -10029,7 +10029,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
                         </div>
                       </div>
                       {surveyMixerTally.some(t => t.like > 0 && !t.key.startsWith(CUSTOM_PREFIX)) && (
-                        <button onClick={addSurveyMixersToList} className="press-scale" style={{ flexShrink: 0, minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: BOTTLE_DARK, color: CREAM, fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                        <button onClick={addSurveyMixersToList} className="press-scale" style={{ flexShrink: 0, minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                           {mixersAdded ? "Toegevoegd" : "Op inkooplijst"}
                         </button>
                       )}
@@ -10134,7 +10134,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
                             role="button"
                             tabIndex={0}
                             onClick={(e) => { e.stopPropagation(); onSound("shuffle"); setChosen([...chosen, recipe.id]); }}
-                            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 7, minHeight: 44, fontSize: 11, color: CREAM, fontWeight: 700, background: BOTTLE_DARK, border: "none", borderRadius: 10, cursor: "pointer" }}
+                            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 7, minHeight: 44, fontSize: 11, color: HEADER_TEXT, fontWeight: 700, background: BOTTLE_DARK, border: "none", borderRadius: 10, cursor: "pointer" }}
                           >
                             <Plus size={12} /> toevoegen
                           </div>
@@ -10255,7 +10255,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
           {chosenRecipes.length > 0 && (
             <button onClick={() => setShowShareSheet(true)} className="press-scale" style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 48, marginTop: 12,
-              background: BOTTLE_DARK, color: CREAM, border: "none", borderRadius: RADIUS, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+              background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: RADIUS, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
             }}>
               <ImageIcon size={17} /> Deel als afbeelding
             </button>
@@ -10274,7 +10274,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
                   Voor {guests} gasten raden we {guestTiers.label} cocktails aan. Je hebt er {chosenRecipes.length}.
                 </p>
                 <button onClick={() => keepBest(guestTiers.target)} className="press-scale" style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, minHeight: 40, background: BOTTLE_DARK, color: CREAM,
+                  display: "inline-flex", alignItems: "center", gap: 6, minHeight: 40, background: BOTTLE_DARK, color: HEADER_TEXT,
                   border: "none", borderRadius: 100, padding: "0 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
                 }}>
                   Houd de beste {guestTiers.target}
@@ -12153,7 +12153,7 @@ function CourseDiploma({ date, scorePct, isOwn = true }) {
   return (
     <div style={{
       position: "relative", overflow: "hidden", borderRadius: 16, padding: "16px 18px", marginBottom: 18,
-      background: `radial-gradient(ellipse 140% 120% at 20% 0%, #2A4B42, ${BOTTLE_DARK} 75%)`, color: CREAM,
+      background: `radial-gradient(ellipse 140% 120% at 20% 0%, #2A4B42, ${BOTTLE_DARK} 75%)`, color: HEADER_TEXT,
       border: `1.5px solid ${BRASS}`, boxShadow: SHADOW_CARD,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
@@ -13159,7 +13159,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
         {[["checkins", "Check-ins"], ["smaak", "Smaak"], ["prestaties", "Prestaties"]].map(([id, label]) => (
           <button key={id} role="tab" aria-selected={profileTab === id} onClick={() => setProfileTab(id)} style={{
             flex: 1, height: 34, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 700,
-            background: profileTab === id ? BOTTLE_DARK : "transparent", color: profileTab === id ? HEADER_TEXT : MUTED,
+            background: profileTab === id ? BOTTLE : "transparent", color: profileTab === id ? HEADER_TEXT : MUTED,
           }}>{label}</button>
         ))}
       </div>
@@ -13891,7 +13891,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
       {together.tryOne && (
         <>
           {label(`Probeer wat ${firstName} lekker vindt`)}
-          <div style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
             <RecipeCircle recipe={together.tryOne.recipe} allIngredients={allIngredients} size={56} radius={12} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontFamily: serif, fontSize: 17, fontWeight: 700 }}>{together.tryOne.recipe.name}</span>
@@ -13944,7 +13944,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
       {showSamenStrip && (
         <button onClick={() => setView("samen")} className="press-scale" style={{
           display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 14px", boxSizing: "border-box", borderRadius: 16,
-          background: BOTTLE_DARK, color: CREAM, border: "none", cursor: "pointer", textAlign: "left", fontFamily: sans, marginBottom: 18,
+          background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", cursor: "pointer", textAlign: "left", fontFamily: sans, marginBottom: 18,
         }}>
           {pairAvatars(34, BOTTLE_DARK)}
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -14012,7 +14012,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
         )
       ) : tab === "smaak" ? (
         <>
-          <div style={{ background: BOTTLE_DARK, color: CREAM, borderRadius: 18, padding: "18px 18px 14px", boxShadow: SHADOW_HERO, borderBottom: `3px solid ${BRASS}`, marginBottom: 22 }}>
+          <div style={{ background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 18, padding: "18px 18px 14px", boxShadow: SHADOW_HERO, borderBottom: `3px solid ${BRASS}`, marginBottom: 22 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, color: "#DDB877", marginBottom: 6 }}>Smaakprofiel van {firstName}</div>
             {insights?.personality && (
               <>
