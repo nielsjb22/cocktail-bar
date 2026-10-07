@@ -2630,6 +2630,25 @@ export default function ThuisbarApp() {
       if (rows.length > 0) await supabase.from("checkin_tags").insert(rows);
     }
   };
+  // Check-in bewerken: meteen in de lijst aanpassen, dan opslaan. Lukt het
+  // opslaan niet (bijv. ontbrekende update-policy), dan terug naar wat er
+  // in de database staat.
+  const updateLogEntry = async (id, entry) => {
+    if (!session) return;
+    const patch = {
+      recipe_id: entry.recipeId, name: entry.name, rating: entry.rating, notes: entry.notes, photo: entry.photo,
+      location: entry.location, location_lat: entry.locationLat, location_lon: entry.locationLon, taste_tags: entry.tasteTags,
+    };
+    setLogboekState(cur => cur.map(e => e.id === id ? { ...e, ...entry } : e));
+    const { data, error } = await supabase.from("checkins").update(patch).eq("id", id).eq("user_id", session.user.id).select().single();
+    if (error || !data) {
+      console.error("Check-in bijwerken mislukt:", error);
+      window.alert("Opslaan van de wijziging lukte niet. Probeer het later nog eens.");
+      reloadLogboek();
+      return;
+    }
+    setLogboekState(cur => cur.map(e => e.id === id ? checkinRowToEntry(data) : e));
+  };
   const removeLogEntry = async (id) => {
     setLogboekState(cur => cur.filter(e => e.id !== id));
     await supabase.from("checkins").delete().eq("id", id);
@@ -2997,7 +3016,7 @@ export default function ThuisbarApp() {
             courseProgress={courseProgress} />
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
-          <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
+          <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onUpdateEntry={updateLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest}
             onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress} courseRank={courseRank}
             onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} />
         </TabPanel>
@@ -13229,7 +13248,7 @@ function TasteRadar({ taste, size = 230, compare = null }) {
 
 // Details van één check-in (tik op een tegel in het fotoraster), met
 // verwijderen. Eigen lettertype expliciet: rendert via een portal.
-function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, who, whoAvatar, onClose, onRemove }) {
+function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, who, whoAvatar, onClose, onRemove, onEdit = null }) {
   useBodyScrollLock();
   const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -13290,8 +13309,14 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
               </div>
             ))}
           </div>
+          {onEdit && (
+            <button onClick={() => { onClose(); onEdit(entry); }} className="press-scale" style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 18, height: 48, borderRadius: 14,
+              border: "none", background: BOTTLE, color: CREAM, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+            }}><Pencil size={16} /> Bewerken</button>
+          )}
           <button onClick={() => setConfirmDelete(true)} style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 18, height: 48, borderRadius: 14,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: onEdit ? 10 : 18, height: 48, borderRadius: 14,
             border: "none", background: PAPER_DEEP, color: BURGUNDY, fontFamily: sans, fontSize: 15, fontWeight: 600, cursor: "pointer",
           }}><Trash2 size={16} /> Check-in verwijderen</button>
         </div>
@@ -13305,7 +13330,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank}) {
+function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -13358,7 +13383,11 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   // (suggestTasteTags), de gebruiker corrigeert alleen. Wat hier aan staat
   // gaat letterlijk als taste_tags de database in.
   const [tasteTags, setTasteTags] = useState([]);
-  useEffect(() => { setTasteTags(suggestTasteTags(matchedRecipe)); }, [matchedRecipe?.id]);
+  // Bewerken van een bestaande check-in: hetzelfde formulier, ingevuld.
+  const [editingEntryId, setEditingEntryId] = useState(null);
+  const editingRef = useRef(null);
+  editingRef.current = editingEntryId;
+  useEffect(() => { if (editingRef.current) return; setTasteTags(suggestTasteTags(matchedRecipe)); }, [matchedRecipe?.id]);
   const toggleTasteTag = (key) => {
     onSound("tick");
     setTasteTags(prev => prev.includes(key) ? prev.filter(k => k !== key) : CHECKIN_TASTE_TAGS.map(t => t.key).filter(k => k === key || prev.includes(k)));
@@ -13403,6 +13432,21 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   // gekozen — tikken vervangt 'm altijd door een eigen foto.
   const heroPhotoSrc = photo || (matchedRecipe ? (localItemImageUrl("cocktail", matchedRecipe.id) || matchedRecipe.image) : null);
 
+  const resetCheckinForm = () => {
+    setNameInput(""); setNotes(""); setRating(0); setPhoto(null); setLocation("Thuis"); setLocationCoords(null);
+    setTasteTags([]); setMoreOpen(false);
+    setTaggedIds([]); setTagQuery(""); setAdoptTag(null);
+  };
+  const startEditEntry = (entry) => {
+    setEditingEntryId(entry.id);
+    setNameInput(entry.name || ""); setRating(entry.rating || 0); setNotes(entry.notes || "");
+    setPhoto(entry.photo || null); setLocation(entry.location || "Thuis");
+    setLocationCoords(entry.locationLat != null && entry.locationLon != null ? { lat: entry.locationLat, lon: entry.locationLon } : null);
+    setTasteTags(entry.tasteTags || []);
+    setMoreOpen(!!entry.location && entry.location !== "Thuis");
+    setTaggedIds([]); setAdoptTag(null);
+    setShowCheckinSheet(true);
+  };
   const addEntry = () => {
     let name = nameInput.trim();
     if (!name || rating === 0) return;
@@ -13413,6 +13457,17 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       const q = name.toLowerCase();
       const starts = recipes.filter(r => r.name.toLowerCase().startsWith(q));
       if (starts.length === 1) { recipeForEntry = starts[0]; name = starts[0].name; }
+    }
+    if (editingEntryId) {
+      onUpdateEntry(editingEntryId, {
+        recipeId: recipeForEntry ? recipeForEntry.id : null,
+        name, rating, notes: notes.trim(), photo, location: location.trim() || "Thuis",
+        locationLat: locationCoords?.lat ?? null, locationLon: locationCoords?.lon ?? null,
+        tasteTags: tasteTags,
+      });
+      onSound("tick");
+      closeCheckinSheet();
+      return;
     }
     const checkinNumber = logboek.length + 1;
     onAddEntry({
@@ -13439,6 +13494,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
   const [cocktailSearchOpen, setCocktailSearchOpen] = useState(false);
   const { panelRef: checkinPanelRef, closing: checkinClosing, close: closeCheckinSheet, dragHandlers: checkinDragHandlers } = useSheetDismiss(() => {
     setShowCheckinSheet(false);
+    // Bewerken klaar of afgebroken: de volgende check-in begint weer blanco.
+    if (editingRef.current) { setEditingEntryId(null); resetCheckinForm(); return; }
     // Overnemen afgebroken: de volgende check-in begint weer blanco.
     if (adoptTag) { setAdoptTag(null); setNameInput(""); setPhoto(null); setLocation("Thuis"); }
   });
@@ -13751,7 +13808,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                 <div style={{ width: 36, height: 4.5, borderRadius: 3, background: BORDER }} />
               </div>
               <div style={{ display: "flex", alignItems: "center" }}>
-                <div style={{ flex: 1, fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK }}>Check-in</div>
+                <div style={{ flex: 1, fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK }}>{editingEntryId ? "Check-in bewerken" : "Check-in"}</div>
                 <button onClick={closeCheckinSheet} onTouchStart={(e) => e.stopPropagation()} aria-label="Sluiten" className="tap-target-44" style={{
                   display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30,
                   borderRadius: "50%", background: PAPER, border: "none", cursor: "pointer", color: INK, flexShrink: 0,
@@ -13799,7 +13856,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                   <div style={{ padding: "12px 14px", borderRadius: 14, background: PAPER_DEEP, fontSize: 13.5, lineHeight: 1.45, color: INK, fontFamily: systemFont }}>
                     Je checkt in met <strong>{adoptTag.taggerName || "je vriend"}</strong>. Je cijfer en notitie zijn alleen van jou; aan de check-in van {adoptTag.taggerName || "je vriend"} verandert niets.
                   </div>
-                ) : tagFriends && tagFriends.length > 0 && (() => {
+                ) : !editingEntryId && tagFriends && tagFriends.length > 0 && (() => {
                   const q = tagQuery.trim().toLowerCase();
                   const shown = q ? tagFriends.filter(f => (f.name || "").toLowerCase().includes(q)) : tagFriends;
                   const toggle = (id) => { onSound("pop"); setTaggedIds(cur => cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]); };
@@ -13912,7 +13969,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                     border: "none", borderRadius: 14, padding: "15px 18px", fontSize: 16, fontWeight: 700,
                     fontFamily: systemFont, cursor: canSubmit ? "pointer" : "default",
                   }}>
-                    Inchecken
+                    {editingEntryId ? "Opslaan" : "Inchecken"}
                   </button>
                 );
               })()}
@@ -13937,7 +13994,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       {openEntry && (
         <CheckinDetailSheet entry={openEntry} recipe={findMatch(openEntry)} allIngredients={allIngredients} ingredientLabel={ingredientLabel}
           who={profile?.name || "Jij"} whoAvatar={profile?.avatar_url}
-          onClose={() => setOpenEntryId(null)} onRemove={removeEntry} />
+          onClose={() => setOpenEntryId(null)} onRemove={removeEntry} onEdit={startEditEntry} />
       )}
     </div>
   );
@@ -14554,11 +14611,20 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
   useEffect(() => { if (active) loadFriendships(); }, [myId, active]);
 
   const [blockedIds, setBlockedIds] = useState(() => new Set());
+  const loadBlocked = async () => {
+    const { data } = await supabase.from("blocked_users").select("blocked_id").eq("blocker_id", myId);
+    setBlockedIds(new Set((data || []).map(b => b.blocked_id)));
+  };
   useEffect(() => {
     if (!active || !myId) return;
-    supabase.from("blocked_users").select("blocked_id").eq("blocker_id", myId)
-      .then(({ data }) => setBlockedIds(new Set((data || []).map(b => b.blocked_id))));
+    loadBlocked();
   }, [myId, active]);
+  // Naar beneden trekken = verzoeken, vrienden en een lopende zoekopdracht verversen.
+  const refreshAll = async () => {
+    await Promise.all([loadFriendships(), loadBlocked()]);
+    if (query.trim().length >= 2) await doSearch(query);
+  };
+  const { indicatorRef: friendsPullRef, refreshing: friendsRefreshing, handlers: friendsPullHandlers } = usePullToRefresh(() => refreshAll());
 
   const accepted = friendships.filter(f => f.status === "accepted");
   const incoming = friendships.filter(f => f.status === "pending" && f.addressee_id === myId);
@@ -14604,7 +14670,15 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
   const rowStyle = { display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" };
 
   return (
-    <div>
+    <div {...friendsPullHandlers} style={{ touchAction: "pan-y" }}>
+      <div ref={friendsPullRef} aria-hidden style={{
+        height: 0, opacity: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
+        marginBottom: 4, color: BOTTLE,
+      }}>
+        <span className={`ptr-icon${friendsRefreshing ? " spin-icon" : ""}`} style={{ display: "flex", transition: "transform 0.1s linear" }}>
+          <Martini size={18} strokeWidth={1.8} />
+        </span>
+      </div>
       {incoming.length > 0 && (
         <>
           <SectionLabel>Vriendschapsverzoeken</SectionLabel>
