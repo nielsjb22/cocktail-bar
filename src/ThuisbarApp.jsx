@@ -10172,25 +10172,48 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
         </p>
       )}
 
-      {/* Compacte kop: datum, gasten en totalen in twee regels; het potlood
-          opent "Feest aanpassen" (ook gasten, drankjes p.p. en verwijderen).
+      {/* Feestkaart als kop: hoe lang nog, naam, datum en gasten, en drie
+          voortgangsbalkjes (menu, inkoop, voorbereiding). Het potlood opent
+          "Feest aanpassen" (ook gasten, drankjes p.p. en verwijderen).
           Alleen de schakelaar eronder blijft vast staan tijdens scrollen. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 0 12px" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16.5, fontWeight: 700, color: INK }}>
-            {party.starts_at ? `${formatDayShort(new Date(party.starts_at))} · ${formatTimeShort(new Date(party.starts_at))}` : "Geen datum"} · {guests} {guests === 1 ? "gast" : "gasten"}
+      {(() => {
+        const toBuyKeys = teKopenRows.map(r => r.key);
+        const bought = toBuyKeys.filter(k => checkedBuyItems.includes(k)).length;
+        const prepDone = prepChecklist.filter(i => checkedPrep.includes(i.id)).length;
+        const bars = [
+          ["Menu", chosenRecipes.length > 0 ? `${chosenRecipes.length}` : "leeg", chosenRecipes.length > 0 ? 100 : 0],
+          ["Inkoop", toBuyKeys.length ? `${bought}/${toBuyKeys.length}` : "in huis", toBuyKeys.length ? Math.round((bought / toBuyKeys.length) * 100) : (chosenRecipes.length ? 100 : 0)],
+          ["Voorbereid", prepChecklist.length ? `${prepDone}/${prepChecklist.length}` : "–", prepChecklist.length ? Math.round((prepDone / prepChecklist.length) * 100) : 0],
+        ];
+        return (
+          <div style={{ position: "relative", background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 20, padding: "18px 18px 16px", borderBottom: `3px solid ${BRASS}`, marginBottom: 14, boxShadow: SHADOW_CARD }}>
+            <button onClick={() => setShowEditSheet(true)} aria-label="Feest aanpassen" className="press-scale" style={{
+              position: "absolute", right: 14, top: 14, width: 38, height: 38, borderRadius: "50%", border: "none", background: "rgba(251,246,234,0.12)",
+              color: HEADER_ACCENT, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+            }}>
+              <Pencil size={16} />
+            </button>
+            <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", color: HEADER_ACCENT, paddingRight: 48 }}>{formatPartyWhen(party)}</div>
+            <div style={{ fontFamily: serif, fontSize: 28, fontWeight: 700, lineHeight: 1.15, marginTop: 4, paddingRight: 48 }}>{party.name || "Mijn feest"}</div>
+            <div style={{ fontSize: 14, color: HEADER_TEXT, marginTop: 6, fontWeight: 600 }}>
+              {party.starts_at ? `${formatDayShort(new Date(party.starts_at))} · ${formatTimeShort(new Date(party.starts_at))} · ` : ""}{guests} {guests === 1 ? "gast" : "gasten"}
+            </div>
+            <div style={{ fontSize: 13, color: HEADER_MUTED, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {totalDrinks} drankjes · ± <AnimatedNumber value={totalCost} format={euro} /> inkoop{party.address ? ` · ${party.address}` : ""}
+            </div>
+            <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+              {bars.map(([label, value, pct]) => (
+                <div key={label} style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ height: 4, borderRadius: 2, background: "rgba(251,246,234,0.16)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: BRASS, transition: "width 0.4s ease" }} />
+                  </div>
+                  <div style={{ fontSize: 11.5, color: HEADER_MUTED, marginTop: 6, whiteSpace: "nowrap" }}>{label} <strong style={{ color: HEADER_TEXT }}>{value}</strong></div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div style={{ fontSize: 13, color: MUTED, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {totalDrinks} drankjes · ± <AnimatedNumber value={totalCost} format={euro} /> inkoop{party.address ? ` · ${party.address}` : ""}
-          </div>
-        </div>
-        <button onClick={() => setShowEditSheet(true)} aria-label="Feest aanpassen" className="press-scale" style={{
-          width: 40, height: 40, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: BOTTLE, flexShrink: 0,
-          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-        }}>
-          <Pencil size={17} />
-        </button>
-      </div>
+        );
+      })()}
       <div style={{
         position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 15, background: PAPER,
         marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, paddingBottom: 12,
