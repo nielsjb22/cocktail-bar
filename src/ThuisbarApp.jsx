@@ -4593,7 +4593,7 @@ function BoldLead({ text }) {
 
 // Uitleg bovenaan het flesscherm: één zin, smaaklabels, alleen waar nodig
 // een tip, en de rest achter "Meer over …" (zie src/data/ingredientInfo.js).
-const INFO_MERKNAMEN = new Set(["campari", "aperol", "amaro_nonino", "cynar", "fernet_branca", "yellow_chartreuse", "green_chartreuse",
+const INFO_MERKNAMEN = new Set(["suze", "campari", "aperol", "amaro_nonino", "cynar", "fernet_branca", "yellow_chartreuse", "green_chartreuse",
   "chambord", "frangelico", "galliano", "pimms", "drambuie", "benedictine", "grand_marnier", "lillet_blanc", "angostura", "peychauds",
   "tabasco", "worcestershire", "irish_whiskey", "scotch"]);
 function IngredientInfoBlock({ ing }) {

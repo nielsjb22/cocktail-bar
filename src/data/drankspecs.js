@@ -36,6 +36,7 @@ export const DRANK_SPECS = {
   aperol: { omschrijving: "Italiaanse aperitief-bitter", eis: "Aperol. Geen kant-en-klare Aperol Spritz." },
   amaro_nonino: { omschrijving: "Italiaanse amaro op grappabasis", eis: "Amaro Nonino Quintessentia. Geen andere amaro." },
   cynar: { omschrijving: "Italiaanse artisjok-amaro", eis: "Cynar (de gewone, 16,5%)." },
+  suze: { omschrijving: "Franse gentiaanbitter", eis: "Suze of een andere gentiaanlikeur (zoals Salers of Avèze). Geen Campari of Aperol: die zijn rood en zoeter." },
   fernet_branca: { omschrijving: "Bittere Italiaanse kruidenlikeur", eis: "Fernet-Branca (niet Branca Menta)." },
   yellow_chartreuse: { omschrijving: "Franse kruidenlikeur, geel", eis: "Chartreuse Jaune (geel). Geen groene." },
   green_chartreuse: { omschrijving: "Franse kruidenlikeur, groen", eis: "Chartreuse Verte (groen). Geen gele." },

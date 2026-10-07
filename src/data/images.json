@@ -3078,6 +3078,15 @@
     "niveau": "illustratie"
   },
   {
+    "id": "chamomile",
+    "type": "drank",
+    "bestand": "chamomile.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
     "id": "cherry",
     "type": "drank",
     "bestand": "cherry.webp",
@@ -3510,6 +3519,15 @@
     "niveau": "illustratie"
   },
   {
+    "id": "kiwi",
+    "type": "drank",
+    "bestand": "kiwi.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
     "id": "lemon_juice",
     "type": "drank",
     "bestand": "lemon_juice.webp",
@@ -3526,6 +3544,15 @@
     "maker": "Vitaly Gorbachev",
     "licentie": "Pexels License",
     "niveau": "passend"
+  },
+  {
+    "id": "lemongrass",
+    "type": "drank",
+    "bestand": "lemongrass.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
   },
   {
     "id": "lillet_blanc",
@@ -3648,6 +3675,15 @@
     "id": "orgeat",
     "type": "drank",
     "bestand": "orgeat.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "passion_fruit_juice",
+    "type": "drank",
+    "bestand": "passion_fruit_juice.webp",
     "bronUrl": "",
     "maker": "",
     "licentie": "",
@@ -3852,6 +3888,15 @@
     "niveau": "illustratie"
   },
   {
+    "id": "suze",
+    "type": "drank",
+    "bestand": "suze.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
     "id": "sweet_vermouth",
     "type": "drank",
     "bestand": "sweet_vermouth.webp",
@@ -3906,9 +3951,36 @@
     "niveau": "illustratie"
   },
   {
+    "id": "vanilla_syrup",
+    "type": "drank",
+    "bestand": "vanilla_syrup.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "vanilla_vodka",
+    "type": "drank",
+    "bestand": "vanilla_vodka.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
     "id": "vodka",
     "type": "drank",
     "bestand": "vodka.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "watermelon",
+    "type": "drank",
+    "bestand": "watermelon.webp",
     "bronUrl": "",
     "maker": "",
     "licentie": "",
@@ -3954,24 +4026,6 @@
     "id": "yellow_chartreuse",
     "type": "drank",
     "bestand": "yellow_chartreuse.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
-  },
-  {
-    "id": "vanilla_vodka",
-    "type": "drank",
-    "bestand": "vanilla_vodka.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
-  },
-  {
-    "id": "passion_fruit_juice",
-    "type": "drank",
-    "bestand": "passion_fruit_juice.webp",
     "bronUrl": "",
     "maker": "",
     "licentie": "",

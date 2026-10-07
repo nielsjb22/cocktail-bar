@@ -134,6 +134,12 @@ const SPECS = {
   triple_sec: { shape: "square", liquid: "#F2EEE4", glass: "#E8DCC8", cap: "#E07A24" },
   white_rum: { shape: "spirit", liquid: "#F2EEE4", glass: "#E0E4DC", cap: "#8A6A3A" },
   white_wine: { shape: "wine", liquid: "#EEDC90", glass: "#D8E0B8", cap: "#B8862E" },
+  suze: { shape: "liqueur", liquid: "#E8D23A", glass: "#EDE6B8", cap: "#1F3A6A" },
+  vanilla_syrup: { shape: "syrup", liquid: "#EADBB0", glass: "#E8E2D0", cap: "#5A3A1E" },
+  kiwi: { shape: "kiwi" },
+  watermelon: { shape: "watermelon" },
+  lemongrass: { shape: "lemongrass" },
+  chamomile: { shape: "chamomile" },
 };
 
 const W = 600;
@@ -301,6 +307,22 @@ function draw(id, s) {
       <path d="M300 440 C300 340 520 340 520 440 C520 500 300 500 300 440Z" fill="#F4E8D0" stroke="#C8B48A" stroke-width="3"/>
       <ellipse cx="410" cy="432" rx="100" ry="40" fill="#FBFBF6" stroke="#E0DCD0" stroke-width="3"/>
       <ellipse cx="190" cy="300" rx="20" ry="30" fill="#fff" opacity="0.4"/>`);
+    case "kiwi": return frame(`
+      <ellipse cx="230" cy="380" rx="120" ry="96" fill="#8A6A3E"/>
+      <ellipse cx="230" cy="374" rx="112" ry="88" fill="#9A7A4A"/>
+      <circle cx="390" cy="360" r="100" fill="#7A5A32"/><circle cx="390" cy="360" r="90" fill="#7FB83A"/>
+      <circle cx="390" cy="360" r="62" fill="#9ACC4E"/><ellipse cx="390" cy="360" rx="24" ry="30" fill="#F0F2D0"/>
+      ${Array.from({ length: 14 }, (_, i) => { const a = i * Math.PI / 7; return `<ellipse cx="${390 + Math.cos(a) * 38}" cy="${360 + Math.sin(a) * 42}" rx="4" ry="7" fill="#2A1E12" transform="rotate(${i * 180 / 7 + 90} ${390 + Math.cos(a) * 38} ${360 + Math.sin(a) * 42})"/>`; }).join("")}`);
+    case "watermelon": return frame(`
+      <path d="M120 300 A180 180 0 0 0 480 300 Z" fill="#3E7A2A"/>
+      <path d="M134 300 A166 166 0 0 0 466 300 Z" fill="#E8F0C8"/>
+      <path d="M150 300 A150 150 0 0 0 450 300 Z" fill="#E0384A"/>
+      ${[[220, 340], [270, 380], [330, 380], [380, 340], [300, 340], [250, 330], [350, 330]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="6" ry="10" fill="#2A1A12"/>`).join("")}
+      <ellipse cx="230" cy="315" rx="40" ry="8" fill="#fff" opacity="0.3"/>`);
+    case "lemongrass": return frame(`
+      ${[[-10, 0], [0, 18], [10, -16]].map(([r, dx]) => `<g transform="rotate(${r} 300 470)"><rect x="${282 + dx}" y="150" width="36" height="330" rx="18" fill="#C8D890"/><rect x="${282 + dx}" y="150" width="36" height="140" rx="18" fill="#8AB04A"/><rect x="${290 + dx}" y="300" width="8" height="170" rx="4" fill="#fff" opacity="0.4"/></g>`).join("")}`);
+    case "chamomile": return frame(`
+      ${[[220, 330, 1], [380, 300, 0.85], [320, 430, 0.9]].map(([x, y, sc]) => `<g transform="translate(${x} ${y}) scale(${sc})">${Array.from({ length: 12 }, (_, i) => `<ellipse cx="0" cy="-52" rx="16" ry="40" fill="#FBF8EE" stroke="#E0D8C0" stroke-width="2" transform="rotate(${i * 30})"/>`).join("")}<circle r="30" fill="#F0B82A"/><circle r="30" fill="none" stroke="#C8901A" stroke-width="3"/></g>`).join("")}`);
     default: throw new Error(`onbekende vorm ${s.shape}`);
   }
 }
