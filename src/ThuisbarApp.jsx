@@ -3036,7 +3036,7 @@ export default function ThuisbarApp() {
               onAddToShoppingList={addToShoppingList} voorraadAantal={voorraadAantal} onSound={chime} onOpenRecipe={openRecipeDetail}
               parties={parties.parties} onCreateParty={parties.createParty} onUpdateParty={parties.updateParty} onDeleteParty={parties.deleteParty}
               openPartyId={openPartyId} onOpenPartyHandled={() => setOpenPartyId(null)}
-              hostName={profile?.name || ""}
+              hostName={profile?.name || ""} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
               active={tab === "feest"} />
           </SecondaryTabScreen>
         </TabPanel>
@@ -9180,7 +9180,7 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
 }
 
 function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active,
-  parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled, hostName }) {
+  parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled, hostName, recentRecipeIds, favoriteRecipeIds }) {
   const [selectedPartyId, setSelectedPartyId] = useState(null);
   // Een feest openen (of terug naar de lijst) begint bovenaan.
   useEffect(() => { window.scrollTo(0, 0); }, [selectedPartyId]);
@@ -9220,7 +9220,7 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
         onBack={() => setSelectedPartyId(null)} onDelete={() => setConfirmDeletePartyId(selectedParty.id)}
         recipes={recipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
         onAddToShoppingList={onAddToShoppingList} voorraadAantal={voorraadAantal} onSound={onSound} onOpenRecipe={onOpenRecipe}
-        hostName={hostName} active={active} />
+        hostName={hostName} active={active} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds} />
       {confirmDeletePartyId && (
         <ConfirmDialog title="Feest verwijderen?" message="Het menu, de inkooplijst en de voorbereiding van dit feest gaan verloren."
           confirmLabel="Verwijder" onCancel={() => setConfirmDeletePartyId(null)} onConfirm={deleteParty} />
@@ -9426,11 +9426,11 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
   ), document.body);
 }
 
-function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, hostName, active }) {
+function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, hostName, active, recentRecipeIds = [], favoriteRecipeIds = [] }) {
   const [activeTab, setActiveTab] = useState("menu");
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [shareState, setShareState] = useState(null);
-  const [editingIndex, setEditingIndex] = useState(null);
+  const [pickerFor, setPickerFor] = useState(null); // null | index | "new"
   const [confirmNieuweSuggestie, setConfirmNieuweSuggestie] = useState(false);
   const [sheetIndex, setSheetIndex] = useState(null);
   const [justAddedId, setJustAddedId] = useState(null);
@@ -9677,14 +9677,15 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
     return picked;
   };
 
-  useEffect(() => {
-    if (chosen.length === 0) setChosen(pickRandom(3));
-  }, []);
-
-  const addSlot = () => {
-    const pool = recipes.filter(r => !chosen.includes(r.id));
-    const pick = (pool.length > 0 ? pool : recipes)[Math.floor(Math.random() * (pool.length > 0 ? pool.length : recipes.length))];
-    if (pick) { onSound("shuffle"); setChosen([...chosen, pick.id]); }
+  // Een leeg menu mag (geen verplichte cocktail meer); toevoegen of wisselen
+  // gaat via een kiesscherm i.p.v. een los zoekveld in de veegrij — dat werd
+  // daar afgesneden en botste met het vegen.
+  const pickRecipe = (id) => {
+    if (pickerFor === "new") {
+      if (!chosen.includes(id)) { onSound("pop"); setChosen([...chosen, id]); }
+    } else if (pickerFor != null) {
+      const next = chosen.slice(); next[pickerFor] = id; setChosen(next);
+    }
   };
   const removeSlot = (i) => { onSound("remove"); setChosen(chosen.filter((_, idx) => idx !== i)); };
 
@@ -10197,7 +10198,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <SectionLabel>Menu ({chosenRecipes.length})</SectionLabel>
-            <button onClick={() => { if (chosen.length > 0) setConfirmNieuweSuggestie(true); else setChosen(pickRandom(1)); }}
+            <button onClick={() => { if (chosen.length > 0) setConfirmNieuweSuggestie(true); else { onSound("shuffle"); setChosen(pickRandom(3)); } }}
               style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: 100, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
               <Shuffle size={13} /> Nieuwe suggestie
             </button>
@@ -10209,43 +10210,41 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
             <ConfirmDialog title="Nieuwe suggesties?" message="Hele menu vervangen door nieuwe suggesties?"
               confirmLabel="Vervang" confirmColor={BRASS}
               onCancel={() => setConfirmNieuweSuggestie(false)}
-              onConfirm={() => { setConfirmNieuweSuggestie(false); setChosen(pickRandom(Math.max(1, chosen.length))); }} />
+              onConfirm={() => { setConfirmNieuweSuggestie(false); setChosen(pickRandom(chosen.length)); }} />
+          )}
+          {chosenRecipes.length === 0 && (
+            <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: "20px 18px", textAlign: "center", fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>
+              Nog geen cocktails op het menu. Kies er zelf een of tik op Nieuwe suggestie.
+            </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {chosenRecipes.map((r, i) => {
               const required = r.ingredients.filter(ing => !ing.optional);
               const missing = required.filter(ing => !isOwned(ing));
-              const isEditing = editingIndex === i;
               const warnings = surveyResponses.length > 0 ? getSurveyWarnings(r, surveyDietaryTotals, surveyDislikeTotals) : [];
               const row = (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: "none", boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
-                  {isEditing ? (
-                    <RecipePicker recipes={recipes} value={r.id} listId={`feest-recipe-${i}`}
-                      onChange={id => { const next = chosen.slice(); next[i] = id; setChosen(next); setEditingIndex(null); }}
-                      style={{ flex: 1, minWidth: 0 }} />
-                  ) : (
-                    <button onClick={() => setSheetIndex(i)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, minHeight: 44, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: 0, fontFamily: sans }}>
-                      <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: missing.length === 0 ? SAGE : MUTED }}>
-                            {missing.length === 0 ? "Alles in huis" : `${missing.length} fles${missing.length === 1 ? "" : "sen"} kopen`}
-                          </span>
-                          <span style={{ fontSize: 11, color: MUTED, flexShrink: 0 }}>· {perRecipeCounts[i]} glazen</span>
-                        </div>
-                        {warnings.length > 0 && (
-                          <div title={warnings.join(", ")} style={{ fontSize: 10.5, color: BURGUNDY, fontWeight: 700, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            <AlertTriangle size={11} strokeWidth={2} style={{ verticalAlign: "-1px" }} aria-hidden="true" /> {warnings.join(" · ")}
-                          </div>
-                        )}
+                  <button onClick={() => setSheetIndex(i)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, minHeight: 44, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: 0, fontFamily: sans }}>
+                    <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: missing.length === 0 ? SAGE : MUTED }}>
+                          {missing.length === 0 ? "Alles in huis" : `${missing.length} fles${missing.length === 1 ? "" : "sen"} kopen`}
+                        </span>
+                        <span style={{ fontSize: 11, color: MUTED, flexShrink: 0 }}>· {perRecipeCounts[i]} glazen</span>
                       </div>
-                    </button>
-                  )}
+                      {warnings.length > 0 && (
+                        <div title={warnings.join(", ")} style={{ fontSize: 10.5, color: BURGUNDY, fontWeight: 700, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <AlertTriangle size={11} strokeWidth={2} style={{ verticalAlign: "-1px" }} aria-hidden="true" /> {warnings.join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                  </button>
                 </div>
               );
               return (
-                <SwipeRevealRow key={i} onWissel={() => setEditingIndex(isEditing ? null : i)} onVerwijder={chosen.length > 1 ? () => removeSlot(i) : null}>
+                <SwipeRevealRow key={i} onWissel={() => setPickerFor(i)} onVerwijder={() => removeSlot(i)}>
                   {row}
                 </SwipeRevealRow>
               );
@@ -10283,9 +10282,15 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
             </div>
           )}
 
-          <button onClick={addSlot} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "none", border: `1px dashed ${BOTTLE}`, borderRadius: 14, padding: "13px", minHeight: 44, fontSize: 12.5, fontWeight: 700, color: BOTTLE, cursor: "pointer", marginTop: 10 }}>
-            <Plus size={14} /> Extra cocktail toevoegen
+          <button onClick={() => setPickerFor("new")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "none", border: `1px dashed ${BOTTLE}`, borderRadius: 14, padding: "13px", minHeight: 44, fontSize: 12.5, fontWeight: 700, color: BOTTLE, cursor: "pointer", marginTop: 10 }}>
+            <Plus size={14} /> {chosenRecipes.length === 0 ? "Cocktail kiezen" : "Cocktail toevoegen"}
           </button>
+          {pickerFor != null && (
+            <BatchRecipePicker recipes={recipes} allIngredients={allIngredients}
+              recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
+              currentId={pickerFor === "new" ? null : chosen[pickerFor]}
+              onPick={pickRecipe} onClose={() => setPickerFor(null)} />
+          )}
       </>
       )}
 
