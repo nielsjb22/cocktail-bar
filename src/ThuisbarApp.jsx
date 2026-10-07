@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext, useId } from "react";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext, useId, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { Browser } from "@capacitor/browser";
@@ -6,7 +6,7 @@ import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
-import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck, Play } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
@@ -15,7 +15,7 @@ import { supabase } from "./supabaseClient";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, partyInfoQuery, menuStrength, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf, formatMenuDate } from "./menuCard";
 import { SURVEY_SPIRITS, SURVEY_LIQUEURS, SURVEY_MIXERS, SURVEY_TASTES, SURVEY_STYLES, SURVEY_STRENGTHS, SURVEY_ALLERGIES, CUSTOM_PREFIX, choiceLabel, emptyAnswers, legacyFieldsFromAnswers, ingredientPreferenceCounts, tallyChoices } from "./surveyOptions";
-import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor, setStatusBarOnDark } from "./native";
+import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor, setStatusBarOnDark, setKeepAwake } from "./native";
 import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
 import feestHeaderImg from "./assets/feest-header.jpg";
@@ -7693,6 +7693,253 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
   );
 }
 
+// ---------- Bereidingsmodus ----------
+// Schermvullend stap voor stap maken: klaarzetten (aantal glazen, wat je
+// nodig hebt), afmeten met vinkjes, de stappen uit de bereidingstekst (met
+// een timer bij shaken/roeren), afwerken en Proost. Donkergroen, grote tekst
+// en grote knoppen voor natte handen; het scherm gaat intussen niet op slot.
+const BEREID_BG = "#132622";
+const BEREID_MUTED = "#A9B8B0";
+const BEREID_GOLD = "#DDB877";
+function bereidTimerFor(text) {
+  const l = text.toLowerCase();
+  if (/shake|schud/.test(l)) return 12;
+  if (/\broer/.test(l) && !/\bbouw/.test(l)) return /roer kort/.test(l) ? 10 : 30;
+  return null;
+}
+function buildBereidSteps(recipe) {
+  const t = inferTechniques(recipe.method);
+  const vessel = t.includes("shaken") ? "de shaker" : t.includes("stirred") ? "het mengglas" : t.includes("blend") ? "de blender" : "het glas";
+  const steps = [{ kind: "klaar" }, { kind: "afmeten", vessel }];
+  // "Shake … en dubbel zeven in een coupe" wordt twee stappen, zodat de
+  // timer bij het shaken/roeren hoort en het afschenken een eigen stap is.
+  const parts = [];
+  splitMethodIntoSteps(recipe.method).forEach(text => {
+    const m = text.match(/^(.*?\b(?:shake|roer)\b.*?)\s+en\s+((?:dubbel\s+)?(?:zeef|zeven|giet|schenk)\b.*)$/i);
+    if (m) { parts.push(m[1].replace(/[,\s]+$/, "") + "."); parts.push(m[2].charAt(0).toUpperCase() + m[2].slice(1)); }
+    else parts.push(text);
+  });
+  parts.forEach(text => {
+    const timer = bereidTimerFor(text);
+    const pour = !timer && /^(dubbel\s+)?(zeef|zeven|giet|schenk)/i.test(text);
+    steps.push({ kind: "tekst", text, timer, label: timer === 12 ? "Shaken" : timer ? "Roeren" : pour ? "Afschenken" : "Bereiden" });
+  });
+  if (recipe.garnish && !/^geen garnering/i.test(recipe.garnish.trim())) steps.push({ kind: "tekst", label: "Afwerken", text: recipe.garnish });
+  steps.push({ kind: "proost" });
+  return steps;
+}
+function bereidTools(recipe, servings) {
+  const m = (recipe.method || "").toLowerCase();
+  const t = inferTechniques(recipe.method);
+  const out = [];
+  if (t.includes("shaken")) out.push("Shaker");
+  if (t.includes("stirred")) out.push("Mengglas en barlepel");
+  if (t.includes("blend")) out.push("Blender");
+  if (t.includes("muddle") || /muddel|kneus|stamp/.test(m)) out.push("Stamper");
+  out.push("Jigger of maatbeker");
+  if (/zeef|zeven/.test(m)) out.push(/dubbel/.test(m) ? "Zeef en fijne zeef" : "Zeef");
+  if (/ijs/.test(m)) out.push(/crushed/.test(m) ? "Crushed ijs" : "Ijs");
+  const glass = (recipe.glass || "glas").split("(")[0].trim().toLowerCase();
+  out.push(`${servings} × ${glass}${/gekoeld/.test(m) ? ", koel ze alvast in de vriezer" : ""}`);
+  return out;
+}
+function BereidModus({ recipe, ingredientLabel, allIngredients, initialServings = 1, onClose, onCheckin, onSound }) {
+  useBodyScrollLock();
+  const steps = useMemo(() => buildBereidSteps(recipe), [recipe]);
+  const [idx, setIdx] = useState(0);
+  const [servings, setServings] = useState(Math.max(1, initialServings));
+  const [checked, setChecked] = useState(() => new Set());
+  const [left, setLeft] = useState(null);
+  const [running, setRunning] = useState(false);
+  const endRef = useRef(0);
+  const startedAt = useRef(Date.now());
+  const step = steps[idx];
+  const bodyRef = useRef(null);
+
+  useEffect(() => { setKeepAwake(true); return () => { setKeepAwake(false); }; }, []);
+  // Nieuwe stap: timer klaarzetten (nog niet lopend) en bovenaan beginnen.
+  useEffect(() => {
+    setRunning(false);
+    setLeft(step.timer || null);
+    bodyRef.current?.scrollTo?.(0, 0);
+  }, [idx]);
+  useEffect(() => {
+    if (!running) return;
+    const iv = setInterval(() => {
+      const rest = Math.max(0, Math.ceil((endRef.current - Date.now()) / 1000));
+      setLeft(rest);
+      if (rest === 0) { setRunning(false); hapticFor("timer"); onSound?.("chime"); }
+    }, 200);
+    return () => clearInterval(iv);
+  }, [running]);
+  const startTimer = () => { endRef.current = Date.now() + (left > 0 ? left : step.timer) * 1000; if (!(left > 0)) setLeft(step.timer); setRunning(true); onSound?.("tick"); };
+  const resetTimer = () => { setRunning(false); setLeft(step.timer); };
+
+  const toggle = (key) => { onSound?.("tick"); setChecked(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; }); };
+  const go = (d) => { onSound?.("pop"); setIdx(i => Math.min(steps.length - 1, Math.max(0, i + d))); };
+  const amountOf = (ing) => {
+    const a = scaleAmount(ing.amount, ing.unit, servings);
+    return `${formatDutchNumber(a)} ${unitLabel(ing.unit, a)}`;
+  };
+  const total = steps.length - 1; // Proost telt niet als stap
+  const isLast = idx === steps.length - 2;
+
+  const checkCircle = (on, size = 28) => (
+    <span style={{
+      width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+      ...(on ? { background: BRASS } : { boxShadow: "inset 0 0 0 2px rgba(251,246,234,0.3)" }),
+    }}>{on && <Check size={size * 0.55} color={BEREID_BG} strokeWidth={3} />}</span>
+  );
+  const sectionLabel = (t) => <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: BEREID_MUTED, margin: "18px 0 0" }}>{t}</div>;
+  const kicker = (t) => <div style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", color: BEREID_GOLD, marginBottom: 10 }}>{t}</div>;
+  const bigText = (t, size = 32) => <div style={{ fontFamily: serif, fontSize: size, fontWeight: 700, lineHeight: 1.2, color: HEADER_TEXT }}>{t}</div>;
+  const listRow = (key, label, amount, last) => {
+    const on = checked.has(key);
+    return (
+      <button key={key} onClick={() => toggle(key)} style={{
+        display: "flex", alignItems: "center", gap: 14, width: "100%", padding: "11px 0", background: "none", border: "none", textAlign: "left", cursor: "pointer", fontFamily: sans,
+        borderBottom: last ? "none" : "1px solid rgba(251,246,234,0.1)",
+      }}>
+        {checkCircle(on)}
+        <span style={{ flex: 1, fontSize: 16.5, color: HEADER_TEXT, opacity: on ? 0.55 : 1, textDecoration: on ? "line-through" : "none" }}>{label}</span>
+        {amount && <span style={{ fontSize: 16, fontWeight: 700, color: BEREID_GOLD, flexShrink: 0 }}>{amount}</span>}
+      </button>
+    );
+  };
+
+  let body = null;
+  if (step.kind === "klaar") {
+    const tools = bereidTools(recipe, servings);
+    body = (
+      <>
+        {kicker("Klaarzetten")}
+        {bigText("Zet alles klaar", 34)}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, padding: "10px 12px 10px 16px", borderRadius: 14, background: "rgba(251,246,234,0.07)" }}>
+          <span style={{ fontSize: 15, fontWeight: 600, color: HEADER_TEXT }}>Aantal glazen</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            {[[-1, "−", "Minder glazen"], [1, "+", "Meer glazen"]].map(([d, sym, lab], i) => (
+              <Fragment key={d}>
+                {i === 1 && <span style={{ fontSize: 20, fontWeight: 800, color: HEADER_TEXT, minWidth: 18, textAlign: "center" }}>{servings}</span>}
+                <button onClick={() => { onSound?.("tick"); setServings(v => Math.min(12, Math.max(1, v + d))); }} aria-label={lab} style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(251,246,234,0.12)", color: HEADER_TEXT, fontSize: 20, cursor: "pointer" }}>{sym}</button>
+              </Fragment>
+            ))}
+          </span>
+        </div>
+        {sectionLabel("Ingrediënten")}
+        {recipe.ingredients.map((ing, i) => listRow(`k-${i}`, `${ingredientLabel(ing)}${ing.optional ? " (optioneel)" : ""}`, amountOf(ing), i === recipe.ingredients.length - 1))}
+        {sectionLabel("Gereedschap")}
+        {tools.map((t, i) => listRow(`t-${i}`, t, null, i === tools.length - 1))}
+      </>
+    );
+  } else if (step.kind === "afmeten") {
+    body = (
+      <>
+        {kicker("Afmeten")}
+        {bigText(`Meet af in ${step.vessel}`, 34)}
+        <div style={{ fontSize: 16, lineHeight: 1.5, color: BEREID_MUTED, marginTop: 10 }}>Tik aan wat erin zit, dan raak je de tel niet kwijt.</div>
+        <div style={{ marginTop: 22 }}>
+          {recipe.ingredients.map((ing, i) => {
+            const on = checked.has(`p-${i}`);
+            return (
+              <button key={i} onClick={() => toggle(`p-${i}`)} style={{
+                display: "flex", alignItems: "center", gap: 14, width: "100%", padding: "16px", marginBottom: 10, borderRadius: 16, border: "none", cursor: "pointer", textAlign: "left", fontFamily: sans,
+                background: on ? "rgba(184,134,46,0.16)" : "rgba(251,246,234,0.07)",
+              }}>
+                <span style={{ fontFamily: serif, fontSize: 26, fontWeight: 700, color: BEREID_GOLD, minWidth: 96 }}>{amountOf(ing)}</span>
+                <span style={{ flex: 1, fontSize: 18, fontWeight: 600, color: HEADER_TEXT }}>{ingredientLabel(ing)}</span>
+                {checkCircle(on, 30)}
+              </button>
+            );
+          })}
+        </div>
+      </>
+    );
+  } else if (step.kind === "tekst") {
+    const R = 104, C = 2 * Math.PI * R;
+    const frac = step.timer ? (left ?? step.timer) / step.timer : 0;
+    body = (
+      <>
+        {kicker(step.label)}
+        {bigText(scaleStepText(step.text, servings), step.text.length > 90 ? 26 : 30)}
+        {step.timer && (
+          <>
+            <svg width="250" height="250" viewBox="0 0 250 250" style={{ display: "block", margin: "26px auto 0" }} aria-label={`Nog ${left} seconden`}>
+              <circle cx="125" cy="125" r={R} fill="none" stroke="rgba(251,246,234,0.12)" strokeWidth="12" />
+              <circle cx="125" cy="125" r={R} fill="none" stroke={BRASS} strokeWidth="12" strokeLinecap="round"
+                strokeDasharray={`${C * frac} ${C}`} transform="rotate(-90 125 125)" style={{ transition: "stroke-dasharray 0.2s linear" }} />
+              <text x="125" y="130" textAnchor="middle" fontFamily="'Playfair Display', Georgia, serif" fontWeight="700" fontSize="64" fill={HEADER_TEXT}>0:{String(left ?? step.timer).padStart(2, "0")}</text>
+              <text x="125" y="164" textAnchor="middle" fontFamily={sans} fontWeight="600" fontSize="14" fill={BEREID_MUTED}>{left === 0 ? "klaar" : `van ${step.timer} seconden`}</text>
+            </svg>
+            <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 16 }}>
+              <button onClick={running ? () => setRunning(false) : startTimer} style={{ display: "flex", alignItems: "center", gap: 8, height: 48, padding: "0 22px", borderRadius: 100, border: "none", background: running ? "rgba(251,246,234,0.1)" : HEADER_TEXT, color: running ? HEADER_TEXT : BEREID_BG, fontFamily: sans, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+                {running ? "Pauze" : left > 0 && left < step.timer ? "Verder" : "Start timer"}
+              </button>
+              <button onClick={resetTimer} style={{ display: "flex", alignItems: "center", gap: 8, height: 48, padding: "0 20px", borderRadius: 100, border: "none", background: "rgba(251,246,234,0.1)", color: HEADER_TEXT, fontFamily: sans, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+                <RotateCcw size={16} /> Opnieuw
+              </button>
+            </div>
+          </>
+        )}
+      </>
+    );
+  }
+
+  const mins = Math.max(1, Math.round((Date.now() - startedAt.current) / 60000));
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: BEREID_BG, color: HEADER_TEXT, fontFamily: sans, display: "flex", flexDirection: "column" }}>
+      {step.kind !== "proost" && (
+        <div style={{ padding: "calc(env(safe-area-inset-top) + 6px) 16px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button onClick={onClose} aria-label="Stoppen" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(251,246,234,0.1)", color: HEADER_TEXT, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={19} /></button>
+            <span style={{ flex: 1, textAlign: "center", fontWeight: 700, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</span>
+            <span style={{ width: 40, textAlign: "right", fontSize: 13, fontWeight: 700, color: BEREID_MUTED }}>{idx + 1}/{total}</span>
+          </div>
+          <div style={{ display: "flex", gap: 5, padding: "14px 4px 0" }} aria-hidden>
+            {Array.from({ length: total }, (_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= idx ? BRASS : "rgba(251,246,234,0.16)" }} />)}
+          </div>
+        </div>
+      )}
+
+      {step.kind === "proost" ? (
+        <>
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "calc(env(safe-area-inset-top) + 60px) 22px 0", textAlign: "center" }}>
+            <div style={{ width: 180, height: 180, margin: "0 auto", borderRadius: "50%", boxShadow: `0 0 0 4px ${BEREID_BG}, 0 0 0 6px ${BRASS}`, overflow: "hidden" }}>
+              <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={180} />
+            </div>
+            <div style={{ fontFamily: serif, fontSize: 40, fontWeight: 700, marginTop: 28 }}>Proost!</div>
+            <div style={{ fontSize: 16, color: BEREID_MUTED, marginTop: 8, lineHeight: 1.5 }}>
+              {servings === 1 ? `${recipe.name} is klaar` : `${servings} glazen ${recipe.name} zijn klaar`}, in {mins} minu{mins === 1 ? "ut" : "ten"}.
+            </div>
+          </div>
+          <div style={{ padding: "14px 20px calc(env(safe-area-inset-bottom) + 18px)", display: "flex", flexDirection: "column", gap: 10 }}>
+            {onCheckin && (
+              <button onClick={() => { onClose(); onCheckin(recipe.name); }} className="press-scale" style={{ height: 56, borderRadius: 16, border: "none", background: HEADER_TEXT, color: BEREID_BG, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: sans, fontWeight: 800, fontSize: 16.5, cursor: "pointer" }}>
+                <Plus size={18} strokeWidth={2.6} /> Inchecken
+              </button>
+            )}
+            <button onClick={() => { setChecked(new Set()); startedAt.current = Date.now(); setIdx(1); }} className="press-scale" style={{ height: 52, borderRadius: 16, border: "none", boxShadow: "inset 0 0 0 1.5px rgba(251,246,234,0.28)", background: "transparent", color: HEADER_TEXT, fontFamily: sans, fontWeight: 700, fontSize: 15.5, cursor: "pointer" }}>Nog een ronde</button>
+            <button onClick={onClose} style={{ height: 44, border: "none", background: "none", color: BEREID_MUTED, fontFamily: sans, fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Terug naar het recept</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div ref={bodyRef} key={idx} className="tab-fade" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", padding: "26px 22px 16px" }}>
+            {body}
+          </div>
+          <div style={{ padding: "12px 20px calc(env(safe-area-inset-bottom) + 18px)", display: "flex", gap: 10 }}>
+            {idx > 0 && (
+              <button onClick={() => go(-1)} className="press-scale" style={{ flex: "0 0 34%", height: 56, borderRadius: 16, border: "none", boxShadow: "inset 0 0 0 1.5px rgba(251,246,234,0.28)", background: "transparent", color: HEADER_TEXT, fontFamily: sans, fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Vorige</button>
+            )}
+            <button onClick={() => { if (isLast) onSound?.("clink"); go(1); }} className="press-scale" style={{ flex: 1, height: 56, borderRadius: 16, border: "none", background: HEADER_TEXT, color: BEREID_BG, fontFamily: sans, fontWeight: 800, fontSize: 16.5, cursor: "pointer" }}>
+              {idx === 0 ? "Begin" : isLast ? "Klaar" : "Volgende"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  ), document.body);
+}
+
 function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite, onSound,
   openRecipeId, onOpenRecipeHandled, onAddToShoppingList, onAddToFeest, feestChosen, onOpenCheckin,
   backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange, rootTapTick = 0 }) {
@@ -7702,6 +7949,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const listScrollRef = useRef(0);
   const [openTech, setOpenTech] = useState(null);
   const [servings, setServings] = useState(1);
+  const [bereidOpen, setBereidOpen] = useState(false);
   // Welke recepten deze sessie al naar winkelmandje/feestplanner zijn
   // gestuurd: de bevestiging blijft dan staan i.p.v. na 1,8 s terug te
   // springen naar de knop (wat leek alsof het niet gelukt was).
@@ -8154,6 +8402,19 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               )}
             </div>
           </div>
+          {/* Bereidingsmodus: vaste knop onderaan het recept. */}
+          <div style={{ position: "sticky", bottom: "calc(env(safe-area-inset-bottom) + 96px)", zIndex: 6, marginTop: 24, pointerEvents: "none" }}>
+            <button onClick={() => { onSound("pop"); setBereidOpen(true); }} className="press-scale" style={{
+              pointerEvents: "auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, width: "100%", height: 56, borderRadius: 16, border: "none",
+              background: BOTTLE_DARK, color: HEADER_TEXT, fontFamily: sans, fontSize: 16.5, fontWeight: 800, cursor: "pointer", boxShadow: "0 10px 24px -8px rgba(19,38,34,0.6)",
+            }}>
+              <Play size={17} fill="currentColor" /> Ik ga maken
+            </button>
+          </div>
+          {bereidOpen && (
+            <BereidModus recipe={recipe} ingredientLabel={ingredientLabel} allIngredients={allIngredients} initialServings={servings}
+              onClose={() => setBereidOpen(false)} onCheckin={onOpenCheckin} onSound={onSound} />
+          )}
         </EdgeSwipeBackArea>
       )}
     </div>

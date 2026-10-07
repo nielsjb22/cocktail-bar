@@ -3,6 +3,7 @@ import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { Keyboard } from "@capacitor/keyboard";
 import { SplashScreen as CapacitorSplashScreen } from "@capacitor/splash-screen";
+import { KeepAwake } from "@capacitor-community/keep-awake";
 
 export const isNative = Capacitor.isNativePlatform();
 
@@ -20,6 +21,7 @@ const HAPTIC_MAP = {
   chime: () => Haptics.notification({ type: NotificationType.Success }),
   levelup: () => Haptics.notification({ type: NotificationType.Success }),
   unlock: () => Haptics.notification({ type: NotificationType.Success }),
+  timer: () => Haptics.notification({ type: NotificationType.Warning }),
 };
 
 export function hapticFor(soundName) {
@@ -110,3 +112,14 @@ export function hideNativeSplash() {
 // Vangnet: blijft de app ergens hangen (bv. geen netwerk bij het ophalen van
 // de sessie), dan mag het opstartscherm er niet eeuwig voor blijven staan.
 if (isNative) setTimeout(hideNativeSplash, SPLASH_MAX_MS);
+
+// Scherm wakker houden (bereidingsmodus): in de app via de KeepAwake-plugin,
+// op het web via de Screen Wake Lock API waar de browser die heeft.
+let webWakeLock = null;
+export async function setKeepAwake(on) {
+  try {
+    if (isNative) { await (on ? KeepAwake.keepAwake() : KeepAwake.allowSleep()); return; }
+    if (on && navigator.wakeLock) webWakeLock = await navigator.wakeLock.request("screen");
+    else if (!on && webWakeLock) { await webWakeLock.release(); webWakeLock = null; }
+  } catch { /* niet ondersteund: dan gaat het scherm gewoon op slot */ }
+}
