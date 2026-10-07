@@ -10,6 +10,7 @@ import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Chec
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
+import { INGREDIENT_INFO } from "./data/ingredientInfo";
 import { supabase } from "./supabaseClient";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, partyInfoQuery, menuStrength, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf, formatMenuDate } from "./menuCard";
@@ -4582,6 +4583,68 @@ function FillBottleIcon({ fill, color }) {
   );
 }
 
+// Tekst met een vetgedrukt begin ("<b>Na openen in de koelkast.</b> ...")
+// zonder dangerouslySetInnerHTML.
+function BoldLead({ text }) {
+  const m = /^<b>(.*?)<\/b>\s*(.*)$/s.exec(text || "");
+  if (!m) return text;
+  return <><strong>{m[1]}</strong> {m[2]}</>;
+}
+
+// Uitleg bovenaan het flesscherm: één zin, smaaklabels, alleen waar nodig
+// een tip, en de rest achter "Meer over …" (zie src/data/ingredientInfo.js).
+const INFO_MERKNAMEN = new Set(["campari", "aperol", "amaro_nonino", "cynar", "fernet_branca", "yellow_chartreuse", "green_chartreuse",
+  "chambord", "frangelico", "galliano", "pimms", "drambuie", "benedictine", "grand_marnier", "lillet_blanc", "angostura", "peychauds",
+  "tabasco", "worcestershire", "irish_whiskey", "scotch"]);
+function IngredientInfoBlock({ ing }) {
+  const info = INGREDIENT_INFO[ing.id];
+  const kopen = DRANK_SPECS[ing.id]?.eis;
+  const [open, setOpen] = useState(false);
+  if (!info) return null;
+  const meer = [
+    info.bewaren && ["Bewaren", info.bewaren],
+    info.vervangen && ["Geen in huis?", info.vervangen],
+    kopen && ["Waar let je op bij kopen", kopen],
+  ].filter(Boolean);
+  const baseName = ing.name.replace(/\s*\(.*\)\s*$/, "");
+  const shortName = INFO_MERKNAMEN.has(ing.id) ? baseName : baseName.charAt(0).toLowerCase() + baseName.slice(1);
+  return (
+    <div style={{ marginBottom: 6 }}>
+      <div style={{ fontSize: 14.5, lineHeight: 1.5, color: INK, marginBottom: 10 }}>{info.zin}</div>
+      {info.smaak?.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+          {info.smaak.map(t => (
+            <span key={t} style={{ padding: "4px 10px", borderRadius: 100, background: PAPER_DEEP, fontSize: 12.5, fontWeight: 600, color: INK }}>{t}</span>
+          ))}
+        </div>
+      )}
+      {info.tip && (
+        <div style={{ display: "flex", gap: 10, padding: "12px 14px", borderRadius: 14, background: "rgba(92,122,82,0.14)", marginBottom: 14, fontSize: 13.5, lineHeight: 1.5, color: INK }}>
+          <Info size={17} color={SAGE} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span><BoldLead text={info.tip} /></span>
+        </div>
+      )}
+      {meer.length > 0 && (
+        <div style={{ borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, marginBottom: 18 }}>
+          <button onClick={() => setOpen(o => !o)} aria-expanded={open} style={{
+            display: "flex", alignItems: "center", width: "100%", minHeight: 48, padding: 0, background: "none", border: "none",
+            cursor: "pointer", fontFamily: sans, color: INK, textAlign: "left",
+          }}>
+            <span style={{ flex: 1, fontSize: 14.5, fontWeight: 700 }}>Meer over {shortName}</span>
+            {open ? <ChevronUp size={18} color={MUTED} /> : <ChevronDown size={18} color={MUTED} />}
+          </button>
+          {open && meer.map(([k, v]) => (
+            <div key={k} style={{ paddingBottom: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, color: MUTED, textTransform: "uppercase", marginBottom: 3 }}>{k}</div>
+              <div style={{ fontSize: 14, lineHeight: 1.5, color: INK }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FlesSheet({ ing, owned, usedIn, makeableWith, level, aantal, onSetLevel, onAdjustAantal, onToggle, onAddToList, onList, onOpenRecipe, allIngredients, isCustom, onRemoveCustom, onClose }) {
   useBodyScrollLock();
   const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
@@ -4612,6 +4675,7 @@ function FlesSheet({ ing, owned, usedIn, makeableWith, level, aantal, onSetLevel
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
+          <IngredientInfoBlock ing={ing} />
           {owned ? (
             <>
               <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Hoe vol is de fles?</div>
