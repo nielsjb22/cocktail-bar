@@ -9648,7 +9648,7 @@ function PartyCard({ party, recipes, allIngredients, isOwned, ingredientLabel, v
   );
 }
 
-function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
+function PartyFormSheet({ initial, busy, onClose, onSubmit, onDelete = null }) {
   useBodyScrollLock();
   const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
   const [name, setName] = useState(initial?.name || "");
@@ -9668,7 +9668,7 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
   const inputStyle = { width: "100%", boxSizing: "border-box", padding: "12px 14px", minHeight: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, fontSize: 15, fontFamily: sans, color: INK };
 
   return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
       <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
       <div ref={panelRef} className="sheet-slide-in" style={{
         position: "relative", maxWidth: 560, width: "100%", margin: "0 auto", maxHeight: "85vh",
@@ -9729,6 +9729,14 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
           }}>
             {busy ? "Bezig…" : initial ? "Opslaan" : "Feest aanmaken"}
           </button>
+          {onDelete && (
+            <button onClick={onDelete} style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", minHeight: 44, marginTop: 10,
+              background: "none", border: "none", color: BURGUNDY, fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer",
+            }}>
+              <Trash2 size={15} /> Feest verwijderen
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -9738,6 +9746,7 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
 function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, hostName, active, recentRecipeIds = [], favoriteRecipeIds = [], onOpenMenuAssistent = null, maAnswers = null }) {
   const [activeTab, setActiveTab] = useState("menu");
   const [showEditSheet, setShowEditSheet] = useState(false);
+  const [showSurvey, setShowSurvey] = useState(false);
   const [shareState, setShareState] = useState(null);
   const [pickerFor, setPickerFor] = useState(null); // null | index | "new"
   const [confirmNieuweSuggestie, setConfirmNieuweSuggestie] = useState(false);
@@ -10163,48 +10172,30 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
         </p>
       )}
 
-      {/* Samenvatting + segmented control: samen sticky zodat beide zichtbaar
-          blijven tijdens scrollen, i.p.v. losse stapels met vaste 44px-tiers
-          (de samenvatting is zelf al hoger dan 44px). */}
+      {/* Compacte kop: datum, gasten en totalen in twee regels; het potlood
+          opent "Feest aanpassen" (ook gasten, drankjes p.p. en verwijderen).
+          Alleen de schakelaar eronder blijft vast staan tijdens scrollen. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 0 12px" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 16.5, fontWeight: 700, color: INK }}>
+            {party.starts_at ? `${formatDayShort(new Date(party.starts_at))} · ${formatTimeShort(new Date(party.starts_at))}` : "Geen datum"} · {guests} {guests === 1 ? "gast" : "gasten"}
+          </div>
+          <div style={{ fontSize: 13, color: MUTED, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {totalDrinks} drankjes · ± <AnimatedNumber value={totalCost} format={euro} /> inkoop{party.address ? ` · ${party.address}` : ""}
+          </div>
+        </div>
+        <button onClick={() => setShowEditSheet(true)} aria-label="Feest aanpassen" className="press-scale" style={{
+          width: 40, height: 40, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: BOTTLE, flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+        }}>
+          <Pencil size={17} />
+        </button>
+      </div>
       <div style={{
         position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 15, background: PAPER,
         marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, paddingBottom: 12,
-        marginBottom: 20, borderBottom: `1px solid ${BORDER}`,
+        marginBottom: 18,
       }}>
-        <button onClick={() => setShowEditSheet(true)} style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, width: "100%",
-          background: "none", border: "none", padding: "12px 0 10px", cursor: "pointer", textAlign: "left", fontFamily: sans,
-        }}>
-          <div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: INK }}>
-              {party.starts_at ? `${formatDayShort(new Date(party.starts_at))} · ${formatTimeShort(new Date(party.starts_at))}` : "Geen datum"}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setGuests(Math.max(1, guests - 1))} style={stepperBtn}>−</button>
-              <div style={stepperValue}>{guests}</div>
-              <button onClick={() => setGuests(Math.min(100, guests + 1))} style={stepperBtn}>+</button>
-              <span style={{ fontSize: 11.5, color: MUTED }}>gasten</span>
-            </div>
-            {/* Drankjes per persoon stond alleen verstopt in het bewerkscherm
-                (tik op de datum); nu direct instelbaar, net als het aantal gasten. */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setDrinksPerGuest(Math.max(1, drinksPerGuest - 1))} aria-label="Minder drankjes per persoon" style={stepperBtn}>−</button>
-              <div style={stepperValue}>{drinksPerGuest}</div>
-              <button onClick={() => setDrinksPerGuest(Math.min(10, drinksPerGuest + 1))} aria-label="Meer drankjes per persoon" style={stepperBtn}>+</button>
-              <span style={{ fontSize: 11.5, color: MUTED }}>drankjes p.p.</span>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: BOTTLE }}>{totalDrinks}</div>
-              <div style={{ fontSize: 9.5, color: MUTED }}>drankjes</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 19, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></div>
-              <div style={{ fontSize: 9.5, color: MUTED }}>inkoop</div>
-            </div>
-          </div>
-        </button>
         <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12 }}>
           {[["menu", "Menu"], ["inkoop", "Inkoop"], ["voorbereiding", "Voorbereiding"]].map(([id, label]) => (
             <button key={id} role="tab" aria-selected={activeTab === id} onClick={() => setActiveTab(id)} style={{
@@ -10220,14 +10211,142 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
 
       {showEditSheet && (
         <PartyFormSheet initial={party} onClose={() => setShowEditSheet(false)}
-          onSubmit={fields => { onUpdateParty(fields); setShowEditSheet(false); }} />
+          onSubmit={fields => { onUpdateParty(fields); setShowEditSheet(false); }}
+          onDelete={onDelete ? () => { setShowEditSheet(false); onDelete(); } : null} />
       )}
 
       {activeTab === "menu" && (
       <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <SectionLabel>Menu ({chosenRecipes.length})</SectionLabel>
+            <button onClick={() => { if (chosen.length > 0) setConfirmNieuweSuggestie(true); else { onSound("shuffle"); setChosen(pickRandom(3)); } }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: 100, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+              <Shuffle size={13} /> Nieuwe suggestie
+            </button>
+          </div>
+          {chosenRecipes.length > 0 && (
+            <p style={{ fontSize: 11, color: MUTED, margin: "0 0 8px" }}>Veeg naar links om te wisselen of te verwijderen.</p>
+          )}
+          {confirmNieuweSuggestie && (
+            <ConfirmDialog title="Nieuwe suggesties?" message="Hele menu vervangen door nieuwe suggesties?"
+              confirmLabel="Vervang" confirmColor={BRASS}
+              onCancel={() => setConfirmNieuweSuggestie(false)}
+              onConfirm={() => { setConfirmNieuweSuggestie(false); setChosen(pickRandom(chosen.length)); }} />
+          )}
+          {chosenRecipes.length === 0 && (
+            <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: "20px 18px", textAlign: "center", fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>
+              Nog geen cocktails op het menu. Kies er zelf een of tik op Nieuwe suggestie.
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {chosenRecipes.map((r, i) => {
+              const required = r.ingredients.filter(ing => !ing.optional);
+              const missing = required.filter(ing => !isOwned(ing));
+              const warnings = surveyResponses.length > 0 ? getSurveyWarnings(r, surveyDietaryTotals, surveyDislikeTotals) : [];
+              const row = (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: "none", boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
+                  <button onClick={() => setSheetIndex(i)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, minHeight: 44, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: 0, fontFamily: sans }}>
+                    <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: missing.length === 0 ? SAGE : MUTED }}>
+                          {missing.length === 0 ? "Alles in huis" : `${missing.length} fles${missing.length === 1 ? "" : "sen"} kopen`}
+                        </span>
+                        <span style={{ fontSize: 11, color: MUTED, flexShrink: 0 }}>· {perRecipeCounts[i]} glazen</span>
+                      </div>
+                      {warnings.length > 0 && (
+                        <div title={warnings.join(", ")} style={{ fontSize: 10.5, color: BURGUNDY, fontWeight: 700, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <AlertTriangle size={11} strokeWidth={2} style={{ verticalAlign: "-1px" }} aria-hidden="true" /> {warnings.join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              );
+              return (
+                <SwipeRevealRow key={i} onWissel={() => setPickerFor(i)} onVerwijder={() => removeSlot(i)}>
+                  {row}
+                </SwipeRevealRow>
+              );
+            })}
+          </div>
 
-      <div style={{ background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD, padding: 16, marginBottom: 24 }}>
-        <SectionLabel>Smaaktest voor je gasten</SectionLabel>
+          {showShareSheet && (
+            <MenuShareSheet busy={shareBusy} onClose={() => setShowShareSheet(false)}
+              onLink={() => { setShowShareSheet(false); shareMenu(chosen); }}
+              onStory={() => shareMenuFile("story")} onPdf={() => shareMenuFile("pdf")} />
+          )}
+
+          {chosenRecipes.length > guestTiers.target && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(184,134,46,0.08)", border: `1px solid ${BRASS}`, borderRadius: RADIUS, padding: "12px 14px", marginTop: 12 }}>
+              <Sparkles size={15} color={BRASS} style={{ marginTop: 2, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 13, color: INK, margin: "0 0 8px", lineHeight: 1.5 }}>
+                  Voor {guests} gasten raden we {guestTiers.label} cocktails aan. Je hebt er {chosenRecipes.length}.
+                </p>
+                <button onClick={() => keepBest(guestTiers.target)} className="press-scale" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, minHeight: 40, background: BOTTLE_DARK, color: HEADER_TEXT,
+                  border: "none", borderRadius: 100, padding: "0 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+                }}>
+                  Houd de beste {guestTiers.target}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button onClick={() => setPickerFor("new")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "none", border: `1px dashed ${BOTTLE}`, borderRadius: 14, padding: "13px", minHeight: 44, fontSize: 12.5, fontWeight: 700, color: BOTTLE, cursor: "pointer", marginTop: 10 }}>
+            <Plus size={14} /> {chosenRecipes.length === 0 ? "Cocktail kiezen" : "Cocktail toevoegen"}
+          </button>
+          {pickerFor != null && (
+            <BatchRecipePicker recipes={recipes} allIngredients={allIngredients}
+              recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
+              currentId={pickerFor === "new" ? null : chosen[pickerFor]}
+              onPick={pickRecipe} onClose={() => setPickerFor(null)} />
+          )}
+          {/* Hulp bij je menu: smaaktest en Menu-assistent samen in één
+              kaart onder het menu. De smaaktest klapt open bij Bekijk. */}
+          {(() => {
+            const n = surveyResponses.length;
+            const applied = maAnswers?.appliedSurveyCount;
+            const fresh = applied != null && n > applied ? n - applied : 0;
+            const row = ({ icon, title, sub, subColor, action, onClick, first, open }) => (
+              <button onClick={onClick} style={{
+                display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 14px", background: "none", border: "none",
+                borderTop: first ? "none" : `1px solid ${BORDER}`, textAlign: "left", cursor: "pointer", fontFamily: sans,
+              }}>
+                <span style={{ width: 36, height: 36, borderRadius: 11, background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{icon}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontWeight: 700, fontSize: 14.5, color: INK }}>{title}</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: subColor || MUTED, marginTop: 1, lineHeight: 1.35 }}>{sub}</span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 1, fontSize: 13, fontWeight: 700, color: BOTTLE, flexShrink: 0 }}>
+                  {action}<ChevronRight size={15} strokeWidth={2.4} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 0.2s ease" }} />
+                </span>
+              </button>
+            );
+            return (
+              <div style={{ marginTop: 26 }}>
+                <SectionLabel>Hulp bij je menu</SectionLabel>
+                <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, overflow: "hidden" }}>
+                  {row({
+                    first: true, icon: <Users size={17} />, title: "Smaaktest",
+                    sub: survey === undefined ? "Laden…" : survey === null ? "Vraag je gasten vooraf naar hun smaak" : n > 0 ? `${n} reactie${n === 1 ? "" : "s"} binnen` : "Nog geen reacties, deel de link",
+                    action: showSurvey ? "Verberg" : survey === null ? "Maak" : "Bekijk", open: showSurvey,
+                    onClick: () => { onSound("tick"); setShowSurvey(v => !v); },
+                  })}
+                  {onOpenMenuAssistent && row({
+                    icon: <Sparkles size={17} />, title: "Menu-assistent",
+                    sub: fresh > 0 ? `${fresh} nieuwe reactie${fresh === 1 ? "" : "s"} sinds je menu` : n > 0 ? "Stel samen op basis van de smaaktest" : "Een gebalanceerd menu in een paar vragen",
+                    subColor: fresh > 0 ? BRASS_TEXT : null, action: fresh > 0 ? "Opnieuw" : "Start",
+                    onClick: () => { onSound("pop"); onOpenMenuAssistent(); },
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+      {showSurvey && (
+      <div className="accordion-reveal" style={{ background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD, padding: 16, marginTop: 10 }}>
         {survey === undefined ? null : survey === null ? (
           <>
             <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 12px" }}>
@@ -10493,6 +10612,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
           </>
         )}
       </div>
+      )}
 
       {suggestionSheetRecipe && (() => {
         const required = suggestionSheetRecipe.ingredients.filter(ing => !ing.optional);
@@ -10505,131 +10625,6 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
         );
       })()}
 
-          {/* Menu-assistent voor dit feest: leest de smaaktest in en zet het
-              resultaat direct op dit menu. Na nieuwe reacties een seintje. */}
-          {onOpenMenuAssistent && (() => {
-            const n = surveyResponses.length;
-            const applied = maAnswers?.appliedSurveyCount;
-            const fresh = applied != null && n > applied ? n - applied : 0;
-            return (
-              <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: 14, marginBottom: 22 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ width: 38, height: 38, borderRadius: 12, background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><ListChecks size={18} /></span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: INK }}>{fresh > 0 ? `${fresh} nieuwe reactie${fresh === 1 ? "" : "s"} sinds je menu` : "Menu samenstellen"}</div>
-                    <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>
-                      {fresh > 0 ? "Laat de Menu-assistent opnieuw kijken. Je huidige cocktails blijven staan."
-                        : n > 0 ? `De Menu-assistent gebruikt de ${n} reactie${n === 1 ? "" : "s"} van je gasten.`
-                        : survey ? "De Menu-assistent neemt de smaaktest mee zodra er reacties zijn."
-                        : "Een gebalanceerd menu in een paar vragen."}
-                    </div>
-                  </div>
-                </div>
-                <button onClick={() => { onSound("pop"); onOpenMenuAssistent(); }} className="press-scale" style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 46, marginTop: 12,
-                  background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: 12, fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer",
-                }}>
-                  <Sparkles size={16} /> {fresh > 0 ? "Opnieuw laten kijken" : "Stel samen met de Menu-assistent"}
-                </button>
-              </div>
-            );
-          })()}
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <SectionLabel>Menu ({chosenRecipes.length})</SectionLabel>
-            <button onClick={() => { if (chosen.length > 0) setConfirmNieuweSuggestie(true); else { onSound("shuffle"); setChosen(pickRandom(3)); } }}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: 100, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-              <Shuffle size={13} /> Nieuwe suggestie
-            </button>
-          </div>
-          {chosenRecipes.length > 0 && (
-            <p style={{ fontSize: 11, color: MUTED, margin: "0 0 8px" }}>Veeg naar links om te wisselen of te verwijderen.</p>
-          )}
-          {confirmNieuweSuggestie && (
-            <ConfirmDialog title="Nieuwe suggesties?" message="Hele menu vervangen door nieuwe suggesties?"
-              confirmLabel="Vervang" confirmColor={BRASS}
-              onCancel={() => setConfirmNieuweSuggestie(false)}
-              onConfirm={() => { setConfirmNieuweSuggestie(false); setChosen(pickRandom(chosen.length)); }} />
-          )}
-          {chosenRecipes.length === 0 && (
-            <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: "20px 18px", textAlign: "center", fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>
-              Nog geen cocktails op het menu. Kies er zelf een of tik op Nieuwe suggestie.
-            </div>
-          )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {chosenRecipes.map((r, i) => {
-              const required = r.ingredients.filter(ing => !ing.optional);
-              const missing = required.filter(ing => !isOwned(ing));
-              const warnings = surveyResponses.length > 0 ? getSurveyWarnings(r, surveyDietaryTotals, surveyDislikeTotals) : [];
-              const row = (
-                <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: "none", boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
-                  <button onClick={() => setSheetIndex(i)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, minHeight: 44, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: 0, fontFamily: sans }}>
-                    <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: missing.length === 0 ? SAGE : MUTED }}>
-                          {missing.length === 0 ? "Alles in huis" : `${missing.length} fles${missing.length === 1 ? "" : "sen"} kopen`}
-                        </span>
-                        <span style={{ fontSize: 11, color: MUTED, flexShrink: 0 }}>· {perRecipeCounts[i]} glazen</span>
-                      </div>
-                      {warnings.length > 0 && (
-                        <div title={warnings.join(", ")} style={{ fontSize: 10.5, color: BURGUNDY, fontWeight: 700, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          <AlertTriangle size={11} strokeWidth={2} style={{ verticalAlign: "-1px" }} aria-hidden="true" /> {warnings.join(" · ")}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                </div>
-              );
-              return (
-                <SwipeRevealRow key={i} onWissel={() => setPickerFor(i)} onVerwijder={() => removeSlot(i)}>
-                  {row}
-                </SwipeRevealRow>
-              );
-            })}
-          </div>
-
-          {chosenRecipes.length > 0 && (
-            <button onClick={() => setShowShareSheet(true)} className="press-scale" style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 48, marginTop: 12,
-              background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: RADIUS, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
-            }}>
-              <ImageIcon size={17} /> Deel als afbeelding
-            </button>
-          )}
-          {showShareSheet && (
-            <MenuShareSheet busy={shareBusy} onClose={() => setShowShareSheet(false)}
-              onLink={() => { setShowShareSheet(false); shareMenu(chosen); }}
-              onStory={() => shareMenuFile("story")} onPdf={() => shareMenuFile("pdf")} />
-          )}
-
-          {chosenRecipes.length > guestTiers.target && (
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(184,134,46,0.08)", border: `1px solid ${BRASS}`, borderRadius: RADIUS, padding: "12px 14px", marginTop: 12 }}>
-              <Sparkles size={15} color={BRASS} style={{ marginTop: 2, flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 13, color: INK, margin: "0 0 8px", lineHeight: 1.5 }}>
-                  Voor {guests} gasten raden we {guestTiers.label} cocktails aan. Je hebt er {chosenRecipes.length}.
-                </p>
-                <button onClick={() => keepBest(guestTiers.target)} className="press-scale" style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, minHeight: 40, background: BOTTLE_DARK, color: HEADER_TEXT,
-                  border: "none", borderRadius: 100, padding: "0 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-                }}>
-                  Houd de beste {guestTiers.target}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <button onClick={() => setPickerFor("new")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "none", border: `1px dashed ${BOTTLE}`, borderRadius: 14, padding: "13px", minHeight: 44, fontSize: 12.5, fontWeight: 700, color: BOTTLE, cursor: "pointer", marginTop: 10 }}>
-            <Plus size={14} /> {chosenRecipes.length === 0 ? "Cocktail kiezen" : "Cocktail toevoegen"}
-          </button>
-          {pickerFor != null && (
-            <BatchRecipePicker recipes={recipes} allIngredients={allIngredients}
-              recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
-              currentId={pickerFor === "new" ? null : chosen[pickerFor]}
-              onPick={pickRecipe} onClose={() => setPickerFor(null)} />
-          )}
       </>
       )}
 
@@ -10794,17 +10789,6 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
       </>
       )}
 
-      {/* Altijd zichtbaar (niet alleen via naar-links-vegen in de lijst, wat
-          niemand vanzelf ontdekt). */}
-      {onDelete && (
-        <button onClick={onDelete} style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 28,
-          padding: "12px", borderRadius: RADIUS, border: `1px solid rgba(122,46,42,0.35)`, background: "none",
-          color: BURGUNDY, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer",
-        }}>
-          <Trash2 size={15} /> Feest verwijderen
-        </button>
-      )}
 
       {sheetIndex !== null && chosenRecipes[sheetIndex] && (() => {
         const r = chosenRecipes[sheetIndex];
