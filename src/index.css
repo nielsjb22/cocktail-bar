@@ -728,7 +728,7 @@ html.kb-open .menu-assist-footer {
 
 /* Meesterring: lichtplekje dat rustig rond de gouden ring draait. */
 .master-shine {
-  animation: masterShine 5s linear infinite;
+  animation: masterShine 7s linear infinite;
 }
 @keyframes masterShine {
   to { transform: rotate(360deg); }

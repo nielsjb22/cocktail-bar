@@ -12172,15 +12172,15 @@ function CourseRing({ name, photo, size = 84, partsDone = 0, master = false, dar
             </defs>
             <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#mg${gid})`} strokeWidth={big ? stroke + 1.5 : stroke + 0.8} />
             {big && <circle cx={size / 2} cy={size / 2} r={r - stroke - 1.5} fill="none" stroke={`url(#mg${gid})`} strokeWidth={1} opacity={0.8} />}
-            {/* Meester: een zacht lichtplekje dat langzaam rond de gouden
-                ring trekt — een wazige gloed met een kleine heldere kern.
+            {/* Meester: een heel zachte glans in bijna dezelfde goudtint die
+                langzaam rond de ring trekt — valt nauwelijks op, net een extra.
                 Alleen bij de grote ring (profiel), niet in de feed. */}
             {big && (
               <g className="master-shine" style={{ transformOrigin: `${size / 2}px ${size / 2}px` }}>
-                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#FFE7A8" strokeWidth={stroke + 5} strokeLinecap="round"
-                  strokeDasharray={`${c * 0.14} ${c}`} opacity={0.45} style={{ filter: "blur(3px)" }} />
-                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#FFF6DC" strokeWidth={stroke + 0.6} strokeLinecap="round"
-                  strokeDasharray={`${c * 0.05} ${c}`} transform={`rotate(${0.045 * 360} ${size / 2} ${size / 2})`} opacity={0.9} />
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E9C77E" strokeWidth={stroke + 2} strokeLinecap="round"
+                  strokeDasharray={`${c * 0.18} ${c}`} opacity={0.22} style={{ filter: "blur(2px)" }} />
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#EED6A0" strokeWidth={stroke + 0.5} strokeLinecap="round"
+                  strokeDasharray={`${c * 0.07} ${c}`} transform={`rotate(${0.055 * 360} ${size / 2} ${size / 2})`} opacity={0.35} />
               </g>
             )}
           </>
