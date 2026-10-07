@@ -2767,6 +2767,13 @@ export default function ThuisbarApp() {
   const greeting = useMemo(() => getGreeting(), []);
   const timeWarmth = useMemo(() => getTimeWarmth(), []);
   useEffect(() => { setStatusBarOnDark(true); }, [tab]);
+  // Menu-assistent gekoppeld aan een feest (vanaf de feestpagina geopend);
+  // null = los gebruikt via Bar. Antwoorden per feest apart bewaard.
+  const [maPartyId, setMaPartyId] = useState(null);
+  const [maFeesten, setMaFeesten] = useStorage("thuisbar-menu-assistent-feesten", {});
+  const maParty = maPartyId ? parties.parties.find(p => p.id === maPartyId) || null : null;
+  const openMenuAssistentForParty = (partyId) => { setMaPartyId(partyId); navigateTo("balans"); };
+  const backToMaParty = () => { const id = maPartyId; setMaPartyId(null); setOpenPartyId(id); navigateTo("feest", { restore: true }); };
   const [notifTick, setNotifTick] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   useEffect(() => { if (tab === "home") setNotifTick(t => t + 1); }, [tab, homeTapTick]);
@@ -2976,7 +2983,7 @@ export default function ThuisbarApp() {
           />
         </TabPanel>
         <TabPanel id="bar" active={tab === "bar"} visited={visitedTabs.has("bar")} panelRef={panelRefs}>
-          <BarTab onSelect={navigateTo} shoppingCount={shoppingList.length} feestCount={feestChosen.length} active={tab === "bar"}
+          <BarTab onSelect={(id) => { if (id === "balans") setMaPartyId(null); navigateTo(id); }} shoppingCount={shoppingList.length} feestCount={feestChosen.length} active={tab === "bar"}
             voorraadCount={voorraad.size} customRecipesCount={customRecipes.length}
             feestSubtitle={upcomingParties[0] ? `${upcomingParties[0].name} · ${formatPartyWhen(upcomingParties[0]).toLowerCase()}` : "Plan een avond"}
             courseProgress={courseProgress} />
@@ -3011,12 +3018,20 @@ export default function ThuisbarApp() {
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="balans" active={tab === "balans"} visited={visitedTabs.has("balans")} panelRef={panelRefs}>
-          <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.balans} onBack={() => navigateTo("bar", { restore: true })}>
-            <MenuAssistentTab recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients} ingredientLabel={ingredientLabel}
+          <SecondaryTabScreen label={maParty ? "Feest" : "Bar"} title={PUSH_SCREEN_TITLES.balans} onBack={maParty ? backToMaParty : () => navigateTo("bar", { restore: true })}>
+            <MenuAssistentTab key={maParty ? maParty.id : "los"} recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients} ingredientLabel={ingredientLabel}
               favoriteRecipeIds={favoriteRecipeIds} recentRecipeIds={recentRecipeIds} tasteLikes={menuTasteLikes} parties={parties.parties}
               onAddToShoppingList={addToShoppingList} onSound={chime}
-              onUseInFeestplanner={async (ids, guests) => {
-                const target = await resolveTargetParty({ guests });
+              linkedParty={maParty} partyAnswers={maParty ? maFeesten[maParty.id] || null : null}
+              onPartyAnswers={(next) => maParty && setMaFeesten({ ...maFeesten, [maParty.id]: next })}
+              onApplyToParty={(ids, surveyCount) => {
+                parties.updateParty(maParty.id, { cocktail_ids: ids });
+                setMaFeesten({ ...maFeesten, [maParty.id]: { ...(maFeesten[maParty.id] || {}), appliedSurveyCount: surveyCount } });
+                backToMaParty();
+              }}
+              onUnlink={() => setMaPartyId(null)}
+              onUseInFeestplanner={async (ids, guests, partyId) => {
+                const target = (partyId && parties.parties.find(p => p.id === partyId)) || await resolveTargetParty({ guests });
                 if (!target) return;
                 parties.updateParty(target.id, { cocktail_ids: ids });
                 setOpenPartyId(target.id);
@@ -3037,6 +3052,7 @@ export default function ThuisbarApp() {
               parties={parties.parties} onCreateParty={parties.createParty} onUpdateParty={parties.updateParty} onDeleteParty={parties.deleteParty}
               openPartyId={openPartyId} onOpenPartyHandled={() => setOpenPartyId(null)}
               hostName={profile?.name || ""} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
+              onOpenMenuAssistent={openMenuAssistentForParty} maAnswersByParty={maFeesten}
               active={tab === "feest"} />
           </SecondaryTabScreen>
         </TabPanel>
@@ -9180,7 +9196,7 @@ function SwipeRevealRow({ onWissel, onVerwijder, children }) {
 }
 
 function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active,
-  parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled, hostName, recentRecipeIds, favoriteRecipeIds }) {
+  parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled, hostName, recentRecipeIds, favoriteRecipeIds, onOpenMenuAssistent, maAnswersByParty = {} }) {
   const [selectedPartyId, setSelectedPartyId] = useState(null);
   // Een feest openen (of terug naar de lijst) begint bovenaan.
   useEffect(() => { window.scrollTo(0, 0); }, [selectedPartyId]);
@@ -9220,7 +9236,8 @@ function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngred
         onBack={() => setSelectedPartyId(null)} onDelete={() => setConfirmDeletePartyId(selectedParty.id)}
         recipes={recipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
         onAddToShoppingList={onAddToShoppingList} voorraadAantal={voorraadAantal} onSound={onSound} onOpenRecipe={onOpenRecipe}
-        hostName={hostName} active={active} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds} />
+        hostName={hostName} active={active} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
+        onOpenMenuAssistent={onOpenMenuAssistent ? () => onOpenMenuAssistent(selectedParty.id) : null} maAnswers={maAnswersByParty[selectedParty.id] || null} />
       {confirmDeletePartyId && (
         <ConfirmDialog title="Feest verwijderen?" message="Het menu, de inkooplijst en de voorbereiding van dit feest gaan verloren."
           confirmLabel="Verwijder" onCancel={() => setConfirmDeletePartyId(null)} onConfirm={deleteParty} />
@@ -9426,7 +9443,7 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
   ), document.body);
 }
 
-function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, hostName, active, recentRecipeIds = [], favoriteRecipeIds = [] }) {
+function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, hostName, active, recentRecipeIds = [], favoriteRecipeIds = [], onOpenMenuAssistent = null, maAnswers = null }) {
   const [activeTab, setActiveTab] = useState("menu");
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [shareState, setShareState] = useState(null);
@@ -10196,6 +10213,36 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
         );
       })()}
 
+          {/* Menu-assistent voor dit feest: leest de smaaktest in en zet het
+              resultaat direct op dit menu. Na nieuwe reacties een seintje. */}
+          {onOpenMenuAssistent && (() => {
+            const n = surveyResponses.length;
+            const applied = maAnswers?.appliedSurveyCount;
+            const fresh = applied != null && n > applied ? n - applied : 0;
+            return (
+              <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: 14, marginBottom: 22 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ width: 38, height: 38, borderRadius: 12, background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><ListChecks size={18} /></span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: INK }}>{fresh > 0 ? `${fresh} nieuwe reactie${fresh === 1 ? "" : "s"} sinds je menu` : "Menu samenstellen"}</div>
+                    <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>
+                      {fresh > 0 ? "Laat de Menu-assistent opnieuw kijken. Je huidige cocktails blijven staan."
+                        : n > 0 ? `De Menu-assistent gebruikt de ${n} reactie${n === 1 ? "" : "s"} van je gasten.`
+                        : survey ? "De Menu-assistent neemt de smaaktest mee zodra er reacties zijn."
+                        : "Een gebalanceerd menu in een paar vragen."}
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => { onSound("pop"); onOpenMenuAssistent(); }} className="press-scale" style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 46, marginTop: 12,
+                  background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: 12, fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer",
+                }}>
+                  <Sparkles size={16} /> {fresh > 0 ? "Opnieuw laten kijken" : "Stel samen met de Menu-assistent"}
+                </button>
+              </div>
+            );
+          })()}
+
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <SectionLabel>Menu ({chosenRecipes.length})</SectionLabel>
             <button onClick={() => { if (chosen.length > 0) setConfirmNieuweSuggestie(true); else { onSound("shuffle"); setChosen(pickRandom(3)); } }}
@@ -10894,8 +10941,14 @@ function MaSwapSheet({ title, subtitle, alternatives, filters, setFilters, showF
   ), document.body);
 }
 
-function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, favoriteRecipeIds = [], recentRecipeIds = [], tasteLikes, parties = [], onAddToShoppingList, onUseInFeestplanner, onSound }) {
-  const [stored, setStored] = useStorage("thuisbar-menu-assistent-v2", MA_DEFAULTS);
+function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, favoriteRecipeIds = [], recentRecipeIds = [], tasteLikes, parties = [], onAddToShoppingList, onUseInFeestplanner, onSound,
+  linkedParty = null, partyAnswers = null, onPartyAnswers, onApplyToParty, onUnlink }) {
+  // Los gebruikt: één set antwoorden. Gekoppeld aan een feest: eigen
+  // antwoorden per feest (bewaard in de app), zodat je gewone instellingen
+  // niet overschreven worden door de smaaktest van een feest.
+  const [globalStored, setGlobalStored] = useStorage("thuisbar-menu-assistent-v2", MA_DEFAULTS);
+  const stored = linkedParty ? (partyAnswers || MA_DEFAULTS) : globalStored;
+  const setStored = linkedParty ? onPartyAnswers : setGlobalStored;
   const a = {
     ...MA_DEFAULTS, ...stored,
     prefs: { ...MA_DEFAULTS.prefs, ...(stored?.prefs || {}) },
@@ -10903,7 +10956,8 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
   };
   const setAnswer = (patch) => setStored({ ...a, ...patch });
   const order = a.start === "eigen" ? [6, 1, 2, 3, 4, 5, 7] : [1, 2, 3, 4, 5, 6, 7];
-  const [pos, setPos] = useState(0); // 0 = startpunt, 1..7 = vragen, 8 = resultaat
+  // Gekoppeld aan een feest sla je het startscherm over (het startpunt is het feest).
+  const [pos, setPos] = useState(linkedParty ? 1 : 0); // 0 = startpunt, 1..7 = vragen, 8 = resultaat
   const step = pos >= 1 && pos <= MA_QUESTION_COUNT ? order[pos - 1] : null;
   const showResult = pos > MA_QUESTION_COUNT;
   const [tab, setTab] = useState("balans");
@@ -10997,14 +11051,15 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
   const surveyParties = parties.filter(p => p.taste_survey_id);
 
   // Smaaktest als startpunt: de antwoorden van de gasten vullen de vragen alvast in.
-  const applySurvey = async (party) => {
+  const applySurvey = async (party, base = a) => {
+    const startKey = base.start === "feest" ? "feest" : "smaaktest";
     setSurveyBusy(party.id);
     const { data } = await supabase.from("party_survey_responses").select("*").eq("survey_id", party.taste_survey_id).order("created_at", { ascending: false });
     setSurveyBusy(null);
     const seen = new Set();
     const rs = (data || []).filter(r => { const n = (r.guest_name || "").trim().toLowerCase(); if (!n) return true; if (seen.has(n)) return false; seen.add(n); return true; });
     const n = rs.length;
-    if (n === 0) { setAnswer({ start: "smaaktest", surveyNote: `${party.name}: nog geen reacties` }); return; }
+    if (n === 0) { setStored({ ...base, start: startKey, surveyNote: `${party.name}: nog geen reacties`, surveyPartyId: party.id, surveyCount: 0 }); return; }
     const pick = (group) => {
       const t = tallyChoices(rs, group);
       const min = Math.max(1, n / 3);
@@ -11020,17 +11075,46 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
     });
     const avoid = new Set();
     rs.forEach(r => (r.answers?.allergies || r.dietary || []).forEach(k => (MA_ALLERGY_IDS[k] || []).forEach(id => avoid.add(id))));
-    setAnswer({
-      start: "smaaktest",
+    setStored({
+      ...base,
+      start: startKey,
       surveyNote: `${party.name} · ${n} reactie${n === 1 ? "" : "s"}`,
-      guests: party.guests || a.guests,
-      prefs: { spirits: pick("spirits"), tastes: pick("tastes"), custom: a.prefs.custom },
+      surveyPartyId: party.id, surveyCount: n,
+      guests: party.guests || base.guests,
+      prefs: { spirits: pick("spirits"), tastes: pick("tastes"), custom: base.prefs.custom },
       styles: Object.entries(styleCount).filter(([, c]) => c >= n / 3).map(([k]) => k),
       strengths: ["licht", "middel", "sterk"].filter(k => (strengthCount[k] || 0) >= n / 4),
-      alcoholvrijCount: strengthCount.alcoholvrij ? Math.max(1, a.alcoholvrijCount) : a.alcoholvrijCount,
+      alcoholvrijCount: strengthCount.alcoholvrij ? Math.max(1, base.alcoholvrijCount) : base.alcoholvrijCount,
       avoidIds: [...avoid],
     });
   };
+
+  // Gekoppeld openen: gasten en het huidige menu van het feest gaan mee (de
+  // cocktails die er al op staan worden vaste keuzes), en de smaaktest wordt
+  // telkens opnieuw ingelezen zodat nieuwe reacties meetellen. Je eigen
+  // antwoorden over moeite, gereedschap en budget blijven bewaard.
+  const linkedInitRef = useRef(false);
+  useEffect(() => {
+    if (!linkedParty || linkedInitRef.current) return;
+    linkedInitRef.current = true;
+    const ids = linkedParty.cocktail_ids || [];
+    const base = { ...a, start: "feest", theme: null, guests: linkedParty.guests || a.guests, mustHave: ids, count: Math.min(10, Math.max(a.count, ids.length)) };
+    if (linkedParty.taste_survey_id) applySurvey(linkedParty, base);
+    else setStored({ ...base, surveyNote: null, surveyPartyId: null, surveyCount: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedParty]);
+  const linkedBanner = linkedParty && (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: CREAM, borderRadius: 14, boxShadow: SHADOW_CARD, padding: "10px 12px", marginBottom: 16 }}>
+      <span style={{ width: 32, height: 32, borderRadius: 10, background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><PartyPopper size={16} /></span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, lineHeight: 1.35, color: INK }}>
+        Voor <strong>{linkedParty.name || "je feest"}</strong>
+        <span style={{ display: "block", fontSize: 12, color: MUTED }}>
+          {surveyBusy ? "Smaaktest inlezen…" : a.surveyCount > 0 ? `${a.surveyCount} reactie${a.surveyCount === 1 ? "" : "s"} uit de smaaktest verwerkt` : linkedParty.taste_survey_id ? "Nog geen reacties op de smaaktest" : "Zonder smaaktest"}
+        </span>
+      </span>
+      <button onClick={onUnlink} style={{ background: "none", border: "none", color: BOTTLE, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "8px 0 8px 6px", flexShrink: 0 }}>Losmaken</button>
+    </div>
+  );
 
   const startResult = () => {
     onSound?.("chime");
@@ -11136,6 +11220,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
 
     return (
       <div style={{ fontFamily: sans }}>
+        {linkedBanner}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
           <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.15 }}>Jouw menu</h1>
           <button onClick={() => goTo(0)} style={{ background: "none", border: "none", color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer", minHeight: 44, padding: "0 0 0 8px" }}>Opnieuw</button>
@@ -11226,17 +11311,22 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
           ))}
         </div>
 
-        <button onClick={() => { onSound?.("chime"); onUseInFeestplanner(picked.map(m => m.f.recipe.id), a.guests); }} disabled={picked.length === 0} className="press-scale" style={{
+        <button onClick={() => {
+          onSound?.("chime");
+          const ids = picked.map(m => m.f.recipe.id);
+          if (linkedParty) onApplyToParty(ids, a.surveyCount || 0);
+          else onUseInFeestplanner(ids, a.guests, a.start === "smaaktest" ? a.surveyPartyId : null);
+        }} disabled={picked.length === 0} className="press-scale" style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14,
           background: BOTTLE_DARK, color: "#FBF6EA", border: "none", fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA, marginBottom: 10,
         }}>
-          <PartyPopper size={17} /> Naar de feestplanner
+          <PartyPopper size={17} /> {linkedParty ? `Zet op het menu van ${linkedParty.name || "je feest"}` : "Naar de feestplanner"}
         </button>
         <button onClick={shareMenu} disabled={picked.length === 0} className="press-scale" style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14,
-          background: "rgba(184,134,46,0.18)", color: INK, border: "none", fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+          background: PAPER_DEEP, color: INK, border: "none", fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
         }}>
-          <Share2 size={17} color={BRASS} /> {shareState === "copied" ? "Gekopieerd" : shareState === "shared" ? "Gedeeld" : shareState === "failed" ? "Delen lukte niet" : "Deel menu"}
+          <Share2 size={17} color={BOTTLE} /> {shareState === "copied" ? "Gekopieerd" : shareState === "shared" ? "Gedeeld" : shareState === "failed" ? "Delen lukte niet" : "Deel menu"}
         </button>
 
         {sheet && sheetSlot && (
@@ -11343,7 +11433,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
     const customs = [...a.prefs.custom.like, ...a.prefs.custom.dislike];
     body = (
       <>
-        {a.surveyNote && a.start === "smaaktest" && <p style={{ fontSize: 12.5, color: SAGE, fontWeight: 600, margin: "-8px 0 12px" }}>Ingevuld uit de smaaktest: {a.surveyNote}</p>}
+        {a.surveyNote && (a.start === "smaaktest" || a.start === "feest") && <p style={{ fontSize: 12.5, color: SAGE, fontWeight: 600, margin: "-8px 0 12px" }}>Ingevuld uit de smaaktest: {a.surveyNote}</p>}
         {sectionLabel("STERKE DRANK")}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 18 }}>
           {SURVEY_SPIRITS.map(o => prefChip("spirits", o.key, o.label))}
@@ -11523,6 +11613,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
   const isLast = pos === MA_QUESTION_COUNT;
   return (
     <div style={{ fontFamily: sans, display: "flex", flexDirection: "column", minHeight: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 154px)", marginBottom: -62 }}>
+      {linkedBanner}
       {pos > 0 && (
         <>
           <div style={{ display: "flex", gap: 5, marginBottom: 14 }} aria-hidden>
@@ -11543,9 +11634,9 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
         background: `linear-gradient(180deg, transparent 0, ${PAPER} 16px)`,
       }}>
         <div style={{ display: "flex", gap: 10 }}>
-          {pos > 0 && (
+          {pos > (linkedParty ? 1 : 0) && (
             <button onClick={() => goTo(pos - 1)} className="press-scale" style={{
-              flex: "0 0 32%", minHeight: 52, borderRadius: 14, border: "none", background: "rgba(184,134,46,0.22)", color: INK,
+              flex: "0 0 32%", minHeight: 52, borderRadius: 14, border: "none", background: PAPER_DEEP, color: INK,
               fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
             }}>Terug</button>
           )}
