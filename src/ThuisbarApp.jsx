@@ -2268,6 +2268,11 @@ function useKeyboardBehavior() {
         [80, 350, 700].forEach(t => setTimeout(() => { if (document.activeElement === el) revealInSheet(el); }, t));
         return;
       }
+      // Zoekveld in een pop-up (cocktail kiezen bij inchecken): niet zelf
+      // scrollen. Het veld komt al bovenaan doordat de foto inklapt; een
+      // extra scrollIntoView liet in Safari ook de pagina erachter
+      // verspringen, wat samen met het toetsenbord flink haperde.
+      if (picker && el.closest(".sheet-max-92")) return;
       setTimeout(() => {
         if (document.activeElement !== el) return;
         if (picker) { el.scrollIntoView({ block: "start", behavior: "smooth" }); return; }
@@ -2287,11 +2292,18 @@ function useKeyboardBehavior() {
     window.addEventListener("app-keyboard-shown", onKeyboardShown);
     // Web (Safari/PWA): hetzelfde --kb-pad als native, op basis van visualViewport.
     const vv = window.visualViewport;
+    // Safari meldt de toetsenbordhoogte in veel kleine stapjes; hooguit één
+    // keer per frame bijwerken, en zonder animatie (zie .kb-pad-web), anders
+    // hobbelt het venster achter het toetsenbord aan.
+    let vvRaf = 0;
     const onViewport = () => {
-      if (isNativeShell || !vv) return;
-      const covered = window.innerHeight - vv.height - vv.offsetTop;
-      document.documentElement.style.setProperty("--kb-pad", `${covered > 80 ? Math.round(covered) : 0}px`);
-      onKeyboardShown();
+      if (isNativeShell || !vv || vvRaf) return;
+      vvRaf = requestAnimationFrame(() => {
+        vvRaf = 0;
+        const covered = window.innerHeight - vv.height - vv.offsetTop;
+        document.documentElement.style.setProperty("--kb-pad", `${covered > 80 ? Math.round(covered) : 0}px`);
+        onKeyboardShown();
+      });
     };
     vv?.addEventListener("resize", onViewport);
 
@@ -2342,6 +2354,7 @@ function useKeyboardBehavior() {
     return () => {
       window.removeEventListener("app-keyboard-shown", onKeyboardShown);
       vv?.removeEventListener("resize", onViewport);
+      cancelAnimationFrame(vvRaf);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
       document.removeEventListener("click", onClickCapture, true);
@@ -2615,7 +2628,6 @@ export default function ThuisbarApp() {
       location_lat: entry.locationLat, location_lon: entry.locationLon, taste_tags: entry.tasteTags,
     }).select().single();
     if (data) {
-      setLogboekState(cur => [checkinRowToEntry(data), ...cur]);
       supabase.functions.invoke("notify-friends", { body: { userId: session.user.id, cocktailName: entry.name } }).catch(() => {});
       // Vrienden taggen. Bij overnemen: de oorspronkelijke tag wijst nu naar
       // jouw eigen check-in, en jij tagt de ander terug (al "overgenomen",
@@ -2628,6 +2640,9 @@ export default function ThuisbarApp() {
         await supabase.from("checkin_tags").update({ adopted_checkin_id: data.id }).eq("id", adopt.id);
       }
       if (rows.length > 0) await supabase.from("checkin_tags").insert(rows);
+      // Pas nu in het logboek zetten: dat laat o.a. de tagmeldingen op Home
+      // herladen, en dan moet een overgenomen tag al als overgenomen staan.
+      setLogboekState(cur => [checkinRowToEntry(data), ...cur]);
     }
   };
   // Check-in bewerken: meteen in de lijst aanpassen, dan opslaan. Lukt het
@@ -3632,16 +3647,16 @@ function useCheckinTags(checkinIds, active, knownProfiles, reloadKey) {
     (async () => {
       const { data, error } = await supabase.from("checkin_tags").select("checkin_id, tagged_user_id").in("checkin_id", checkinIds);
       if (cancelled || error || !data) return;
-      const names = {};
-      Object.values(knownProfiles || {}).forEach(p => { if (p?.id) names[p.id] = p.name; });
+      const names = {}, photos = {};
+      Object.values(knownProfiles || {}).forEach(p => { if (p?.id) { names[p.id] = p.name; photos[p.id] = p.avatar_url || null; } });
       const missing = [...new Set(data.map(t => t.tagged_user_id))].filter(id => !names[id]);
       if (missing.length > 0) {
-        const { data: profs } = await supabase.from("profiles").select("id, name").in("id", missing);
-        (profs || []).forEach(p => { names[p.id] = p.name; });
+        const { data: profs } = await supabase.from("profiles").select("id, name, avatar_url").in("id", missing);
+        (profs || []).forEach(p => { names[p.id] = p.name; photos[p.id] = p.avatar_url || null; });
       }
       if (cancelled) return;
       const map = {};
-      data.forEach(t => { (map[t.checkin_id] = map[t.checkin_id] || []).push({ id: t.tagged_user_id, name: names[t.tagged_user_id] || "een vriend" }); });
+      data.forEach(t => { (map[t.checkin_id] = map[t.checkin_id] || []).push({ id: t.tagged_user_id, name: names[t.tagged_user_id] || "een vriend", photo: photos[t.tagged_user_id] || null }); });
       setTags(map);
     })();
     return () => { cancelled = true; };
@@ -3789,9 +3804,14 @@ function usePullToRefresh(onRefresh) {
   const paint = (px, spinning) => {
     if (!indicatorRef.current) return;
     indicatorRef.current.style.height = `${px}px`;
-    indicatorRef.current.style.opacity = px > 4 ? Math.min(1, px / 40) : 0;
+    // De strook zelf blijft vol zichtbaar (op Home is hij groen, dan schemert
+    // er nooit beige door); alleen het glaasje fadet in.
+    indicatorRef.current.style.opacity = px > 0 ? 1 : 0;
     const icon = indicatorRef.current.querySelector(".ptr-icon");
-    if (icon) icon.style.transform = spinning ? "" : `rotate(${Math.min(220, (px / MAX_PULL) * 220)}deg)`;
+    if (icon) {
+      icon.style.opacity = px > 4 ? Math.min(1, px / 40) : 0;
+      icon.style.transform = spinning ? "" : `rotate(${Math.min(220, (px / MAX_PULL) * 220)}deg)`;
+    }
   };
 
   const onTouchStart = (e) => {
@@ -4290,8 +4310,17 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
       <div style={{ marginBottom: 16, borderRadius: 20, background: CREAM, padding: master ? "15px 12px 12px" : 12, boxShadow: master ? "0 0 0 1px rgba(184,134,46,0.55), 0 8px 22px -12px rgba(43,38,32,0.3)" : "0 1px 2px rgba(43,38,32,0.08), 0 8px 22px -12px rgba(43,38,32,0.3)", position: "relative", overflow: "hidden" }}>
         {master && <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: 3, background: MASTER_GOLD }} />}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 2px 10px" }}>
-          <RankAvatar name={who} photo={whoAvatar} size={36} courseRank={rankOf(entry)} />
-          <div style={{ flex: 1, minWidth: 0, lineHeight: 1.25 }}>
+          {/* Samen gedronken: de getagde vriend(en) schuiven als kleine
+              avatar half over die van de schrijver heen. */}
+          <span style={{ position: "relative", flexShrink: 0, marginRight: (checkinTags[entry.id]?.length || 0) > 0 ? 8 : 0 }}>
+            <RankAvatar name={who} photo={whoAvatar} size={36} courseRank={rankOf(entry)} />
+            {(checkinTags[entry.id] || []).slice(0, 2).map((t, i) => (
+              <span key={t.id} style={{ position: "absolute", right: -10 - i * 12, bottom: -4, borderRadius: "50%", boxShadow: `0 0 0 2px ${CREAM}`, display: "flex" }}>
+                <Avatar name={t.name} photo={t.photo} size={20} />
+              </span>
+            ))}
+          </span>
+          <div style={{ flex: 1, minWidth: 0, lineHeight: 1.25, marginLeft: Math.max(0, ((checkinTags[entry.id]?.length || 0) - 1)) * 12 }}>
             <div style={{ fontSize: 14, color: INK, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               {entry.mine ? (
                 <span style={{ fontWeight: 700, ...(master ? masterTextStyle : {}) }}>{who}</span>
@@ -4310,6 +4339,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                 <MoreHorizontal size={20} />
               </button>
               {menuFor === entry.id && (
+                <>
+                {/* Tik ergens anders op het scherm = menu dicht. */}
+                <div onClick={() => setMenuFor(null)} onTouchStart={() => setMenuFor(null)} style={{ position: "fixed", inset: 0, zIndex: 4 }} />
                 <div style={{ position: "absolute", right: 0, top: 36, zIndex: 5, background: CREAM, borderRadius: 12, boxShadow: "0 8px 24px rgba(43,38,32,0.22)", border: `1px solid ${BORDER}`, overflow: "hidden", minWidth: 190 }}>
                   <button onClick={() => { setMenuFor(null); setOpenFriendId(entry.friendId); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "12px 14px", border: "none", background: "none", cursor: "pointer", fontSize: 14, color: INK, fontFamily: sans, textAlign: "left" }}>
                     <User size={15} /> Profiel bekijken
@@ -4318,6 +4350,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                     {reportedIds.has(entry.id) ? <><Check size={15} /> Gemeld</> : <><Flag size={15} /> Meld deze check-in</>}
                   </button>
                 </div>
+                </>
               )}
             </div>
           )}
@@ -4415,12 +4448,14 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
 
   return (
     <div {...pullHandlers} style={{ touchAction: "pan-y" }}>
+      {/* Verversen: een groene strook die naadloos tussen de kop en de
+          vriendenrij openschuift, met een gouden glaasje dat meedraait. */}
       <div ref={indicatorRef} aria-hidden style={{
         height: 0, opacity: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
-        color: BOTTLE,
+        margin: "0 -20px", background: BOTTLE_DARK, color: "#DDB877",
       }}>
-        <span className={`ptr-icon${refreshing ? " spin-icon" : ""}`} style={{ display: "flex", transition: "transform 0.1s linear" }}>
-          <Martini size={18} strokeWidth={1.8} />
+        <span className={`ptr-icon${refreshing ? " spin-icon" : ""}`} style={{ display: "flex", transition: "transform 0.1s linear, opacity 0.1s linear" }}>
+          <Martini size={20} strokeWidth={1.8} />
         </span>
       </div>
       {/* Vriendenrij op het groen van de kop: wie vandaag incheckte heeft
@@ -5297,6 +5332,13 @@ function useBodyScrollLock() {
       window.scrollTo(0, scrollY);
     };
   }, []);
+}
+
+// Zelfde vergrendeling als component, voor vellen die inline (niet als eigen
+// component) worden getoond, zoals het check-in-venster.
+function BodyScrollLock() {
+  useBodyScrollLock();
+  return null;
 }
 
 // Bottom sheets native laten aanvoelen: met je vinger omlaag vegen om te
@@ -13795,7 +13837,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
       })()}
 
       {showCheckinSheet && createPortal((
-        <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: "var(--kb-pad, 0px)", transition: "padding-bottom 0.25s ease" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: "var(--kb-pad, 0px)", transition: isNativeShell ? "padding-bottom 0.25s ease" : "none" }}>
+          <BodyScrollLock />
           <div className="sheet-backdrop-in" onClick={closeCheckinSheet} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: checkinClosing ? 0 : 1, transition: "opacity 0.22s ease" }} />
           <div ref={checkinPanelRef} className="sheet-slide-in sheet-max-92" style={{
             position: "relative", maxWidth: 960, width: "100%", margin: "0 auto",
