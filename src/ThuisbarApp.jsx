@@ -13098,13 +13098,13 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
 
   return (
     <div>
-      {/* Kop (huisstijl): groene balk met Vrienden/Instellingen rechts,
-          daaronder in hetzelfde groen je gegevens en kerncijfers. */}
-      <LargeTitleHeader title="Profiel" band right={<>
+      {/* Kop (huisstijl): groene balk met Vrienden/Instellingen rechts.
+          Je gegevens staan eronder op de lichte achtergrond (een groen vlak
+          eronder was te zwaar); alleen een Meester houdt de donkere kaart. */}
+      <LargeTitleHeader title="Profiel" right={<>
         <HeaderIconButton onClick={onGoVrienden} label="Vrienden"><Users size={22} strokeWidth={1.8} /></HeaderIconButton>
         <HeaderIconButton onClick={onGoInstellingen} label="Instellingen"><Settings size={22} strokeWidth={1.8} /></HeaderIconButton>
       </>} />
-      <HeaderBand style={{ paddingTop: 6, paddingBottom: isMaster ? 0 : 14 }}>
       {/* Identiteit: foto met XP-ring, naam (tik = wijzigen), niveau.
           Voor een Meester in een donkere ledenkaart met Meestergoud. */}
       <div style={isMaster ? MASTER_HEADER_STYLE : undefined}>
@@ -13112,7 +13112,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <input ref={photoInputRef} type="file" accept="image/*" onChange={handleProfilePhotoFile} style={{ display: "none" }} />
         <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" aria-label="Profielfoto wijzigen" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
-          <CourseRing name={profile?.name || "Jij"} photo={profile?.avatar_url} size={84} partsDone={courseRank?.partsDone || 0} master={!!courseRank?.master} dark />
+          <CourseRing name={profile?.name || "Jij"} photo={profile?.avatar_url} size={84} partsDone={courseRank?.partsDone || 0} master={!!courseRank?.master} dark={isMaster} />
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           {editingName ? (
@@ -13125,34 +13125,35 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
             </div>
           ) : (
             <button onClick={startEditName} aria-label="Naam wijzigen" style={{ display: "block", maxWidth: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: HEADER_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: isMaster ? HEADER_TEXT : INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
             </button>
           )}
-          {courseRank?.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={courseRank} chip onDark /></div>}
-          <div style={{ fontSize: 14, fontWeight: 600, color: HEADER_ACCENT, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {courseRank?.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={courseRank} chip onDark={isMaster} /></div>}
+          <div style={{ fontSize: 14, fontWeight: 600, color: isMaster ? HEADER_ACCENT : BRASS_TEXT, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             Niveau {insights.level.level} · {insights.level.title}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 3 }}>
-            <span style={{ fontSize: 12, color: HEADER_MUTED }}>{insights.level.to ? `${insights.level.to - insights.level.xp} XP tot niveau ${insights.level.level + 1}` : "Hoogste niveau bereikt"}</span>
+            <span style={{ fontSize: 12, color: isMaster ? HEADER_MUTED : MUTED }}>{insights.level.to ? `${insights.level.to - insights.level.xp} XP tot niveau ${insights.level.level + 1}` : "Hoogste niveau bereikt"}</span>
           </div>
         </div>
       </div>
 
       {/* Kerncijfers */}
-      <div style={{ display: "flex", padding: "12px 0 0", borderTop: `1px solid ${isMaster ? "rgba(221,184,119,0.25)" : "rgba(251,246,234,0.14)"}` }}>
+      <div style={isMaster
+        ? { display: "flex", padding: "12px 0 0", borderTop: "1px solid rgba(221,184,119,0.25)" }
+        : { display: "flex", padding: "12px 0", marginBottom: 16, background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD }}>
         {[
           { value: <AnimatedNumber value={stats.total} />, label: "check-ins" },
           { value: <AnimatedNumber value={stats.uniques} />, label: "uniek" },
           { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill="#C8963A" color="#C8963A" /></span>, label: "gemiddeld" },
         ].map((c) => (
           <div key={c.label} style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: HEADER_TEXT }}>{c.value}</div>
-            <div style={{ fontSize: 12, color: HEADER_MUTED, marginTop: 1 }}>{c.label}</div>
+            <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: isMaster ? HEADER_TEXT : INK }}>{c.value}</div>
+            <div style={{ fontSize: 12, color: isMaster ? HEADER_MUTED : MUTED, marginTop: 1 }}>{c.label}</div>
           </div>
         ))}
       </div>
       </div>
-      </HeaderBand>
 
       {/* Tabbladen */}
       <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12, marginBottom: 18 }}>
@@ -13809,7 +13810,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
   const header = (
     <HeaderNavBar backLabel={view === "samen" ? firstName : "Terug"} onBack={view === "samen" ? () => setView("profiel") : onClose}
       title={view === "samen" ? "Samen" : firstName}
-      style={{ marginBottom: view === "samen" ? 16 : 0 }}
+      style={{ marginBottom: 10 }}
       right={view === "profiel" && (
         <div style={{ position: "relative" }}>
           <HeaderIconButton onClick={() => setMenuOpen(o => !o)} label="Meer"><MoreHorizontal size={22} /></HeaderIconButton>
@@ -13912,34 +13913,35 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
   const fm = friendRank.master;
   const profielView = (
     <>
-      <HeaderBand style={{ paddingTop: 6, paddingBottom: fm ? 0 : 14 }}>
+      <div style={{ height: 6 }} />
       <div style={fm ? MASTER_HEADER_STYLE : undefined}>
       {fm && <MasterHeaderTitle number={friendMasterNumber} />}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-        <CourseRing name={name} photo={friendProfile?.avatar_url} size={84} partsDone={friendRank.partsDone} master={friendRank.master} dark />
+        <CourseRing name={name} photo={friendProfile?.avatar_url} size={84} partsDone={friendRank.partsDone} master={friendRank.master} dark={fm} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: HEADER_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
-          {friendRank.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={friendRank} chip onDark /></div>}
-          {insights && <div style={{ fontSize: 14, fontWeight: 600, color: HEADER_ACCENT, marginTop: 2 }}>Niveau {insights.level.level} · {insights.level.title}</div>}
+          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: fm ? HEADER_TEXT : INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+          {friendRank.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={friendRank} chip onDark={fm} /></div>}
+          {insights && <div style={{ fontSize: 14, fontWeight: 600, color: fm ? HEADER_ACCENT : BRASS_TEXT, marginTop: 2 }}>Niveau {insights.level.level} · {insights.level.title}</div>}
         </div>
       </div>
 
       {stats && (
-        <div style={{ display: "flex", padding: "12px 0 0", borderTop: `1px solid ${fm ? "rgba(221,184,119,0.25)" : "rgba(251,246,234,0.14)"}` }}>
+        <div style={fm
+          ? { display: "flex", padding: "12px 0 0", borderTop: "1px solid rgba(221,184,119,0.25)" }
+          : { display: "flex", padding: "12px 0", marginBottom: 16, background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD }}>
           {[
             { value: stats.total, label: "check-ins" },
             { value: stats.uniques, label: "uniek" },
             { value: <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{stats.total > 0 ? formatDecimal1(stats.avg) : "–"}<Star size={13} fill="#C8963A" color="#C8963A" /></span>, label: "gemiddeld" },
           ].map((c) => (
             <div key={c.label} style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: HEADER_TEXT }}>{c.value}</div>
-              <div style={{ fontSize: 12, color: HEADER_MUTED, marginTop: 1 }}>{c.label}</div>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 20, color: fm ? HEADER_TEXT : INK }}>{c.value}</div>
+              <div style={{ fontSize: 12, color: fm ? HEADER_MUTED : MUTED, marginTop: 1 }}>{c.label}</div>
             </div>
           ))}
         </div>
       )}
       </div>
-      </HeaderBand>
 
       {showSamenStrip && (
         <button onClick={() => setView("samen")} className="press-scale" style={{
