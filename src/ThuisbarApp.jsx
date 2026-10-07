@@ -13182,14 +13182,14 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
                 </span>
               )}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginLeft: -20, marginRight: -20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
               {logboek.map(entry => {
                 const matched = findMatch(entry);
                 const own = entry.photo;
                 const recipeImg = matched && (localItemImageUrl("cocktail", matched.id) || matched.image);
                 return (
                   <button key={entry.id} onClick={() => setOpenEntryId(entry.id)} aria-label={`${entry.name}, ${formatRating(entry.rating)} sterren`} style={{
-                    position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", padding: 0, cursor: "pointer", background: PAPER_DEEP,
+                    position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", borderRadius: 10, padding: 0, cursor: "pointer", background: PAPER_DEEP,
                   }}>
                     {own || recipeImg ? (
                       <img src={own || recipeImg} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: own ? "none" : RECIPE_PHOTO_FILTER }} />
@@ -13977,14 +13977,14 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
         logboek.length === 0 ? (
           <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "26px 20px", textAlign: "center", fontSize: 14, color: MUTED }}>{firstName} heeft nog niets ingecheckt.</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginLeft: -20, marginRight: -20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
             {logboek.map(entry => {
               const matched = findMatch(entry);
               const recipeImg = matched && (localItemImageUrl("cocktail", matched.id) || matched.image);
               const src = entry.photo || recipeImg;
               return (
                 <button key={entry.id} onClick={() => setPhotoViewer({ entry, matched })} aria-label={`${entry.name}, ${formatRating(entry.rating)} sterren`} style={{
-                  position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", padding: 0, cursor: "pointer", background: PAPER_DEEP,
+                  position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", borderRadius: 10, padding: 0, cursor: "pointer", background: PAPER_DEEP,
                 }}>
                   {src ? (
                     <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
