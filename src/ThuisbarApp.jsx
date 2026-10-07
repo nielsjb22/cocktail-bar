@@ -4954,7 +4954,7 @@ function FlesSheet({ ing, owned, usedIn, makeableWith, level, aantal, onSetLevel
       <div ref={panelRef} className="sheet-slide-in sheet-max-92" style={{
         position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
         background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
-        display: "flex", flexDirection: "column", overflow: "hidden",
+        display: "flex", flexDirection: "column", overflow: "hidden", touchAction: "pan-y", overscrollBehavior: "contain",
       }}>
         <SheetGrabber {...dragHandlers} />
         <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "6px 20px 14px", touchAction: "none" }}>
@@ -4968,7 +4968,7 @@ function FlesSheet({ ing, owned, usedIn, makeableWith, level, aantal, onSetLevel
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", touchAction: "pan-y", overscrollBehavior: "contain", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
           <IngredientInfoBlock ing={ing} />
           {owned ? (
             <>
@@ -6036,7 +6036,7 @@ function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMi
           </div>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 18px" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 18px" }}>
           {/* Snelle feiten */}
           <div style={{ display: "flex", borderTop: hairline, borderBottom: hairline, padding: "12px 0", marginBottom: 18 }}>
             {facts.map((f, i) => {
@@ -6729,7 +6729,7 @@ function BatchRecipePicker({ recipes, allIngredients, recentRecipeIds, favoriteR
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Zoek een cocktail" aria-label="Zoek een cocktail"
             style={{ width: "100%", boxSizing: "border-box", minHeight: 44, padding: "0 14px 0 40px", borderRadius: 12, border: `1px solid ${BORDER}`, background: CREAM, color: INK, fontFamily: sans, fontSize: 16 }} />
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "4px 20px calc(env(safe-area-inset-bottom) + 20px)", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "4px 20px calc(env(safe-area-inset-bottom) + 20px)", WebkitOverflowScrolling: "touch" }}>
           {q ? (
             results.length ? section(`${results.length} resultaten`, results)
               : <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "24px 0" }}>Geen cocktail gevonden voor "{query}".</p>
@@ -7202,7 +7202,7 @@ function FlesKiezenSheet({ item, meta, options = [], chosenId, recipeNames, onCh
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
           {richtprijs && (
             <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: 16, marginBottom: 14 }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>Richtprijs</div>
@@ -8258,7 +8258,7 @@ function QuizBlock({ quiz, title = "Vragen", onFinish, onClose, nextAction = nul
         </div>
       </div>
 
-      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "18px 20px 20px", boxSizing: "border-box" }}>
           {done ? (
             <div className="success-pop" style={{ padding: 18, borderRadius: 16, background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderLeft: `4px solid ${passed ? SAGE : BURGUNDY}`, marginTop: 20 }}>
@@ -9421,7 +9421,7 @@ function PartyFormSheet({ initial, busy, onClose, onSubmit }) {
             <X size={16} />
           </button>
         </div>
-        <div style={{ padding: "18px 20px", overflowY: "auto" }}>
+        <div style={{ padding: "18px 20px", overflowY: "auto", overflowX: "hidden" }}>
           <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Naam</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="bijv. Najaarsborrel" autoFocus style={{ ...inputStyle, marginBottom: 16 }} />
 
@@ -10939,7 +10939,7 @@ function MaSwapSheet({ title, subtitle, alternatives, filters, setFilters, showF
           </div>
           <button onClick={close} aria-label="Sluiten" onTouchStart={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginTop: -8, marginRight: -10, background: "none", border: "none", color: INK, cursor: "pointer" }}><X size={18} /></button>
         </div>
-        <div style={{ overflowY: "auto", padding: "0 18px calc(env(safe-area-inset-bottom) + 20px)" }}>
+        <div style={{ overflowY: "auto", overflowX: "hidden", padding: "0 18px calc(env(safe-area-inset-bottom) + 20px)" }}>
           {showFilters && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "4px 0 12px" }}>
               {chip("same", "Zelfde soort")}{chip("inHouse", "Alles in huis")}{chip("otherBase", "Andere drank")}{chip("lighter", "Lichter")}
@@ -12985,7 +12985,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
           </div>
           <button onClick={close} aria-label="Sluiten" className="tap-target-44" onTouchStart={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0 }}><X size={15} /></button>
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 20px" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 20px" }}>
           <div onClick={img ? () => setPhotoOpen(true) : undefined} style={{ borderRadius: 16, overflow: "hidden", aspectRatio: "4 / 3", background: PAPER_DEEP, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: img ? "zoom-in" : undefined }}>
             {img ? <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
               : recipe ? <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={140} radius={16} />
@@ -13491,7 +13491,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onRemoveEntry, allIngredient
               </div>
             </div>
 
-            <div style={{ background: PAPER_DEEP, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", flex: 1, minHeight: 0 }}>
+            <div style={{ background: PAPER_DEEP, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", flex: 1, minHeight: 0 }}>
               {/* Beeldvlak 4:3: eigen foto, anders de foto van het gekozen recept, anders een rustige placeholder. Tikken opent de camera/foto-kiezer. */}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
               {/* Tijdens het zoeken naar een cocktail klapt de grote foto in, zodat
@@ -14529,7 +14529,7 @@ function IngredientPickerSheet({ allIngredients, isOwned, onPick, onClose }) {
               style={{ flex: 1, minHeight: 44, border: "none", outline: "none", background: "transparent", fontFamily: sans, fontSize: 16, color: INK }} />
           </div>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
           {results.length > 0 && (<>
             {head("Uit de app")}
             <div role="radiogroup" style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, overflow: "hidden" }}>
