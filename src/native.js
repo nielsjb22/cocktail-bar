@@ -27,11 +27,23 @@ export function hapticFor(soundName) {
   HAPTIC_MAP[soundName]?.().catch(() => {});
 }
 
+let statusBarOnDark = false;
+let applyThemeStatusBar = () => {};
 function syncStatusBarWithTheme() {
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
   const apply = (dark) => StatusBar.setStyle({ style: dark ? Style.Light : Style.Dark }).catch(() => {});
+  applyThemeStatusBar = () => apply(mq.matches);
   apply(mq.matches);
-  mq.addEventListener("change", (e) => apply(e.matches));
+  mq.addEventListener("change", (e) => { if (!statusBarOnDark) apply(e.matches); });
+}
+
+// Home heeft een donkergroene kop: dan lichte statusbalk-tekst (Style.Dark =
+// lichte tekst voor een donkere achtergrond); elders weer volgens het thema.
+export function setStatusBarOnDark(on) {
+  if (!isNative || statusBarOnDark === on) return;
+  statusBarOnDark = on;
+  if (on) StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+  else applyThemeStatusBar();
 }
 
 export function initNativeShell() {

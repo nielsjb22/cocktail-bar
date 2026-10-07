@@ -15,7 +15,7 @@ import { supabase } from "./supabaseClient";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, partyInfoQuery, menuStrength, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf, formatMenuDate } from "./menuCard";
 import { SURVEY_SPIRITS, SURVEY_LIQUEURS, SURVEY_MIXERS, SURVEY_TASTES, SURVEY_STYLES, SURVEY_STRENGTHS, SURVEY_ALLERGIES, CUSTOM_PREFIX, choiceLabel, emptyAnswers, legacyFieldsFromAnswers, ingredientPreferenceCounts, tallyChoices } from "./surveyOptions";
-import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor } from "./native";
+import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor, setStatusBarOnDark } from "./native";
 import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
 import feestHeaderImg from "./assets/feest-header.jpg";
@@ -2778,6 +2778,7 @@ export default function ThuisbarApp() {
   }, [checkinInsights, logboek.length]);
   const greeting = useMemo(() => getGreeting(), []);
   const timeWarmth = useMemo(() => getTimeWarmth(), []);
+  useEffect(() => { setStatusBarOnDark(tab === "home"); }, [tab]);
 
   const ownedNames = useMemo(() => {
     const byId = new Map(allIngredients.map(i => [i.id, i]));
@@ -2918,25 +2919,25 @@ export default function ThuisbarApp() {
     <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
       {!isOnline && <OfflineBanner />}
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
-      <StatusBarBackdrop showAfter={tab === "home" ? 95 : 0} />
-      {/* Signage band: alleen op Home. Andere tabs krijgen een iOS-large-title
-          i.p.v. dit groene blok — zie LargeTitleHeader binnen elke tab. */}
+      {tab !== "home" && <StatusBarBackdrop showAfter={0} />}
+      {/* Home: smalle donkergroene kop die bovenaan blijft staan, met de
+          naam van de app en een knop om in te checken. Andere tabs krijgen
+          een iOS-large-title (zie LargeTitleHeader binnen elke tab). */}
       {tab === "home" && (
-        <div style={{ background: `radial-gradient(ellipse 900px 300px at 15% -40%, #2A4B42, ${BOTTLE_DARK} 70%)`, borderBottom: `3px solid ${BRASS}`, position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, rgba(184,134,46,${timeWarmth}), transparent 60%)`, pointerEvents: "none" }} />
-          <div style={{ maxWidth: 960, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 22px) 20px 20px", display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", flexShrink: 0 }}>
-              <Martini color={BRASS} size={26} strokeWidth={1.5} />
-            </div>
-            <div>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: BRASS, marginBottom: 2 }}>{profile?.name ? `${greeting}, ${profile.name}` : greeting}</div>
-              <h1 style={{ fontFamily: systemFont, fontSize: 30, fontWeight: 700, color: CREAM, margin: 0, letterSpacing: 0.2 }}>Mijn Thuisbar</h1>
-            </div>
+        <div style={{ position: "sticky", top: 0, zIndex: 20, background: BOTTLE_DARK, color: "#FBF6EA" }}>
+          <div style={{ maxWidth: 960, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 6px) 14px 8px 20px", display: "flex", alignItems: "center", gap: 10, boxSizing: "border-box" }}>
+            <h1 style={{ flex: 1, margin: 0, fontFamily: serif, fontSize: 24, fontWeight: 700, letterSpacing: 0.2, color: "#FBF6EA" }}>Mijn Thuisbar</h1>
+            <button onClick={() => openCheckin()} aria-label="Inchecken" className="press-scale" style={{
+              width: 38, height: 38, borderRadius: "50%", border: "none", background: "#B8862E", color: "#132622",
+              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
+            }}>
+              <Plus size={20} strokeWidth={2.6} />
+            </button>
           </div>
         </div>
       )}
 
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: tab === "home" ? "28px 20px calc(env(safe-area-inset-bottom) + 150px)" : "calc(env(safe-area-inset-top) + 6px) 20px calc(env(safe-area-inset-bottom) + 150px)" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: tab === "home" ? "0 20px calc(env(safe-area-inset-bottom) + 150px)" : "calc(env(safe-area-inset-top) + 6px) 20px calc(env(safe-area-inset-bottom) + 150px)" }}>
         <TabPanel id="home" active={tab === "home"} visited={visitedTabs.has("home")} panelRef={panelRefs}>
           <HomeTab session={session} profile={profile} greeting={greeting} featuredRecipe={featuredRecipe}
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
@@ -3776,6 +3777,71 @@ function usePullToRefresh(onRefresh) {
   return { indicatorRef, refreshing, handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: onTouchEnd } };
 }
 
+// Feed: tijd zoals een app hem toont ("12 min", "3 u", "gisteren 21:10").
+const FEED_WEEKDAYS = ["zo", "ma", "di", "wo", "do", "vr", "za"];
+const FEED_MONTHS = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+function feedDate(entry) {
+  const d = new Date(entry.createdAt || entry.date);
+  return isNaN(d.getTime()) ? null : d;
+}
+function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function feedRelTime(entry) {
+  const d = feedDate(entry);
+  if (!d) return entry.date || "";
+  const hasTime = !!entry.createdAt;
+  const now = new Date();
+  const mins = Math.round((now - d) / 60000);
+  const hhmm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  if (hasTime && mins >= 0 && mins < 60) return mins <= 1 ? "zojuist" : `${mins} min`;
+  const days = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+  if (days === 0) return hasTime ? `${Math.round(mins / 60)} u` : "vandaag";
+  if (days === 1) return hasTime ? `gisteren ${hhmm}` : "gisteren";
+  if (days < 7) return hasTime ? `${FEED_WEEKDAYS[d.getDay()]} ${hhmm}` : FEED_WEEKDAYS[d.getDay()];
+  return `${d.getDate()} ${FEED_MONTHS[d.getMonth()]}${d.getFullYear() !== now.getFullYear() ? ` ${d.getFullYear()}` : ""}`;
+}
+function feedDayLabel(entry) {
+  const d = feedDate(entry);
+  if (!d) return "Eerder";
+  const days = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86400000);
+  if (days <= 0) return "Vandaag";
+  if (days === 1) return "Gisteren";
+  if (days < 7) return "Deze week";
+  return "Eerder";
+}
+
+// Vijf kleine sterren met halve ster (4,5 = vier en een half).
+function RatingStars({ value, size = 11 }) {
+  const v = Math.max(0, Math.min(5, Number(value) || 0));
+  return (
+    <span style={{ display: "inline-flex", gap: 1 }} aria-hidden>
+      {[0, 1, 2, 3, 4].map(i => {
+        const fill = Math.max(0, Math.min(1, v - i));
+        return (
+          <span key={i} style={{ position: "relative", width: size, height: size, display: "inline-block" }}>
+            <Star size={size} color={BRASS} strokeWidth={1.8} style={{ position: "absolute", left: 0, top: 0, display: "block" }} />
+            {fill > 0 && (
+              <span style={{ position: "absolute", left: 0, top: 0, height: size, width: `${fill * 100}%`, overflow: "hidden" }}>
+                <Star size={size} color={BRASS} fill={BRASS} strokeWidth={1.8} style={{ display: "block" }} />
+              </span>
+            )}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+// Cijfer zoals op een menukaart: groot in de sierletter, "/ 5" en sterren.
+function FeedScore({ value }) {
+  return (
+    <span style={{ textAlign: "right", flexShrink: 0 }} aria-label={`${formatRating(value)} van 5`}>
+      <span style={{ fontFamily: serif, fontSize: 32, fontWeight: 700, lineHeight: 1, color: INK }}>{(Math.round((Number(value) || 0) * 10) / 10).toFixed(1).replace(".", ",")}</span>
+      <span style={{ fontSize: 13, color: MUTED, fontWeight: 600 }}> / 5</span>
+      <span style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}><RatingStars value={value} size={11} /></span>
+    </span>
+  );
+}
+
 function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush }) {
   const [pushPromptHidden, setPushPromptHidden] = useStorage("thuisbar-push-prompt-weg", false);
   const [photoViewer, setPhotoViewer] = useState(null);
@@ -3786,6 +3852,16 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
     const theirs = friendFeed.map(e => ({ ...e, mine: false }));
     return [...mine, ...theirs, ...milestones].sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()).slice(0, 20);
   }, [logboek, friendFeed, milestones]);
+  // Vriendenrij bovenaan: wie vandaag incheckte eerst (met gouden ring).
+  const friendRow = useMemo(() => {
+    const todayStart = startOfDay(new Date());
+    const today = new Set(friendFeed.filter(e => { const d = feedDate(e); return d && d >= todayStart; }).map(e => e.friendId));
+    return Object.entries(friendProfiles || {}).map(([id, p]) => {
+      const name = p?.name || "Vriend";
+      return { id, name, first: name.split(" ")[0], photo: p?.avatar_url, today: today.has(id) };
+    }).sort((a, b) => (b.today - a.today) || a.name.localeCompare(b.name));
+  }, [friendFeed, friendProfiles]);
+  const [menuFor, setMenuFor] = useState(null);
   const feedIds = useMemo(() => combinedFeed.filter(e => e.kind !== "rank").map(e => e.id), [combinedFeed]);
   const milestoneIds = useMemo(() => combinedFeed.filter(e => e.kind === "rank").map(e => e.id), [combinedFeed]);
   const [rankCheers, setRankCheers] = useState({});
@@ -3924,58 +4000,267 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
     }
   };
 
+  // Eén feed-item: rangmoment (compacte regel) of check-in (post C:
+  // proefnotitie met cijfer zoals op een menukaart).
+  const renderFeedItem = (entry) => {
+    if (entry.kind === "rank") {
+      const who = entry.mine ? (profile?.name || "Jij") : (friendProfiles[entry.friendId]?.name || "Vriend");
+      const rankDef = COURSE_RANKS.find(r => r.id === entry.rankId);
+      if (!rankDef) return null;
+      const isMaster = entry.rankId === "meester";
+      const cheer = rankCheers[entry.id] || { count: 0, mine: false };
+      const first = who.split(" ")[0];
+      return (
+        <div style={{ marginBottom: 14, borderRadius: 16, background: CREAM, overflow: "hidden", boxShadow: "0 1px 2px rgba(43,38,32,0.06)", border: isMaster ? "1px solid rgba(184,134,46,0.55)" : "none" }}>
+          {isMaster && <div aria-hidden style={{ height: 3, background: MASTER_GOLD }} />}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 12px 12px 14px" }}>
+            <span style={{ width: 40, height: 40, borderRadius: "50%", background: isMaster ? MASTER_GOLD : BOTTLE_DARK, color: isMaster ? "#132622" : "#DDB877", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <GraduationCap size={19} strokeWidth={1.9} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 14, lineHeight: 1.35, color: INK }}>
+              {entry.mine ? <strong>{first}</strong> : (
+                <button onClick={() => setOpenFriendId(entry.friendId)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, fontSize: 14, color: INK, fontFamily: sans }}>{first}</button>
+              )}{isMaster ? <> heeft het diploma: <strong style={masterTextStyle}>Meester</strong></> : <> is nu <strong>{rankDef.name}</strong> in de cursus</>}
+              <div style={{ fontSize: 12, color: MUTED }}>{feedRelTime(entry)}</div>
+            </div>
+            <button onClick={() => toggleRankComments(entry.id)} aria-label="Reageren" className="press-scale" style={{
+              display: "flex", alignItems: "center", gap: 4, border: "none", background: "none", cursor: "pointer", color: openRankComments === entry.id ? BOTTLE : MUTED,
+              fontSize: 12.5, fontWeight: 700, padding: "6px 4px", fontFamily: sans,
+            }}>
+              <MessageCircle size={17} />{rankCommentCounts[entry.id] > 0 ? rankCommentCounts[entry.id] : ""}
+            </button>
+            <button onClick={() => toggleRankCheer(entry.id)} className="press-scale" style={{
+              display: "flex", alignItems: "center", gap: 5, border: "none", cursor: "pointer", borderRadius: 100, padding: "7px 12px",
+              background: cheer.mine ? "rgba(184,134,46,0.18)" : BOTTLE_DARK, color: cheer.mine ? "var(--brass-text)" : "#FBF6EA",
+              fontSize: 12.5, fontWeight: 700, fontFamily: sans, flexShrink: 0,
+            }}>
+              <Wine size={14} />{cheer.count > 0 ? ` ${cheer.count}` : ""} Proost
+            </button>
+          </div>
+          <div style={{ padding: "0 14px" }}>
+                  {openRankComments === entry.id && (
+                    <div style={{ borderTop: `1px dashed ${BORDER}`, margin: "0 14px 12px", paddingTop: 10 }}>
+                      {(rankComments[entry.id] || []).map(c => (
+                        <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
+                          <Avatar name={commenterName(c.user_id)} photo={commenterPhoto(c.user_id)} size={24} />
+                          <div style={{ flex: 1, minWidth: 0, background: PAPER_DEEP, borderRadius: 12, padding: "6px 10px" }}>
+                            <span style={{ fontWeight: 700, fontSize: 12, ...(commenterIsMaster(c.user_id) ? masterTextStyle : {}) }}>{commenterName(c.user_id)}</span>{commenterIsMaster(c.user_id) && <span style={{ display: "inline-flex", verticalAlign: "-2px", marginLeft: 3 }}><MasterSeal size={12} border={1} /></span>}{" "}
+                            <span style={{ fontSize: 12.5, color: INK }}>{c.text}</span>
+                          </div>
+                          {c.user_id === myId && (
+                            <button onClick={() => deleteRankComment(entry.id, c.id)} aria-label="Reactie verwijderen" style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, padding: 4, flexShrink: 0 }}>
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {(rankComments[entry.id] || []).length === 0 && (
+                        <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>{entry.mine ? "Nog geen reacties." : `Nog geen reacties. Feliciteer ${who.split(" ")[0]}!`}</div>
+                      )}
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <input value={commentDraft} onChange={e => setCommentDraft(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") postRankComment(entry.id); }}
+                          placeholder="Schrijf een reactie…" maxLength={500}
+                          style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "8px 14px", fontSize: 16, fontFamily: sans, background: PAPER, color: INK }} />
+                        <button onClick={() => postRankComment(entry.id)} disabled={!commentDraft.trim() || postingComment} aria-label="Versturen" style={{
+                          border: "none", cursor: commentDraft.trim() ? "pointer" : "default", background: commentDraft.trim() ? BOTTLE : BORDER,
+                          color: CREAM, borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        }}>
+                          <Send size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+          </div>
+        </div>
+      );
+    }
+    const matched = findMatch(entry);
+    const tint = matched ? recipeTint(matched, allIngredients) : [PAPER_DEEP, BORDER];
+    const who = entry.mine ? (profile?.name || "Jij") : (friendProfiles[entry.friendId]?.name || "Vriend");
+    const whoAvatar = entry.mine ? profile?.avatar_url : friendProfiles[entry.friendId]?.avatar_url;
+    const photo = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
+    const cheer = reactions[entry.id] || { count: 0, mine: false };
+    const master = rankOf(entry)?.master;
+    const withNames = checkinTags[entry.id]?.length > 0 ? `met ${joinNames(checkinTags[entry.id].map(t => (t.name || "een vriend").split(" ")[0]))} · ` : "";
+    const nComments = commentCounts[entry.id] || 0;
+    return (
+      <div style={{ marginBottom: 16, borderRadius: 20, background: CREAM, padding: 12, boxShadow: "0 1px 2px rgba(43,38,32,0.08), 0 8px 22px -12px rgba(43,38,32,0.3)", border: master ? "1px solid rgba(184,134,46,0.55)" : "none", position: "relative" }}>
+        {master && <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: 3, background: MASTER_GOLD, borderRadius: "20px 20px 0 0" }} />}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 2px 10px" }}>
+          <RankAvatar name={who} photo={whoAvatar} size={36} courseRank={rankOf(entry)} />
+          <div style={{ flex: 1, minWidth: 0, lineHeight: 1.25 }}>
+            <div style={{ fontSize: 14, color: INK, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {entry.mine ? (
+                <span style={{ fontWeight: 700, ...(master ? masterTextStyle : {}) }}>{who}</span>
+              ) : (
+                <button onClick={() => setOpenFriendId(entry.friendId)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, fontSize: 14, color: INK, fontFamily: sans }}>
+                  <span style={master ? masterTextStyle : undefined}>{who}</span>
+                </button>
+              )}
+              {rankOf(entry)?.rank && <CourseRankLabel courseRank={rankOf(entry)} />}
+            </div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{withNames}{entry.location} · {feedRelTime(entry)}</div>
+          </div>
+          {!entry.mine && (
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setMenuFor(menuFor === entry.id ? null : entry.id)} aria-label="Meer" style={{ width: 36, height: 36, border: "none", background: "none", cursor: "pointer", color: MUTED, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <MoreHorizontal size={20} />
+              </button>
+              {menuFor === entry.id && (
+                <div style={{ position: "absolute", right: 0, top: 36, zIndex: 5, background: CREAM, borderRadius: 12, boxShadow: "0 8px 24px rgba(43,38,32,0.22)", border: `1px solid ${BORDER}`, overflow: "hidden", minWidth: 190 }}>
+                  <button onClick={() => { setMenuFor(null); setOpenFriendId(entry.friendId); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "12px 14px", border: "none", background: "none", cursor: "pointer", fontSize: 14, color: INK, fontFamily: sans, textAlign: "left" }}>
+                    <User size={15} /> Profiel bekijken
+                  </button>
+                  <button onClick={() => { setMenuFor(null); reportCheckin(entry.id); }} disabled={reportedIds.has(entry.id)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "12px 14px", border: "none", borderTop: `1px solid ${BORDER}`, background: "none", cursor: reportedIds.has(entry.id) ? "default" : "pointer", fontSize: 14, color: reportedIds.has(entry.id) ? SAGE : BURGUNDY, fontFamily: sans, textAlign: "left" }}>
+                    {reportedIds.has(entry.id) ? <><Check size={15} /> Gemeld</> : <><Flag size={15} /> Meld deze check-in</>}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div onClick={photo ? () => setPhotoViewer({ entry, matched, who, whoAvatar }) : undefined}
+          style={{ position: "relative", width: "100%", aspectRatio: "8 / 7", borderRadius: 14, overflow: "hidden", cursor: photo ? "zoom-in" : undefined, background: BOTTLE_DARK }}>
+          {photo ? (
+            <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
+          ) : (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {matched ? (
+                <GlassArt glass={matched.glass} colors={tint} garnishes={inferGarnishes(matched, allIngredients)} rim={inferRim(matched, allIngredients)} foam={inferFoam(matched, allIngredients)} iceStyle={inferIceStyle(matched)} size={120} />
+              ) : (
+                <Martini size={44} color="rgba(251,246,234,0.85)" strokeWidth={1.3} />
+              )}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 4px 0" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 22, lineHeight: 1.1, color: INK }}>{entry.name}</div>
+            {matched && <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>{matched.family} · {matched.glass}</div>}
+          </div>
+          <FeedScore value={entry.rating} />
+        </div>
+        {entry.notes && (
+          <p style={{ margin: "10px 4px 0", paddingTop: 10, borderTop: `1.5px dashed ${BORDER}`, fontSize: 14, lineHeight: 1.45, fontStyle: "italic", color: INK }}>&ldquo;{entry.notes}&rdquo;</p>
+        )}
+        {entry.tasteTags.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 4px 0" }}>
+            {entry.tasteTags.map(k => CHECKIN_TASTE_META[k] && (
+              <span key={k} style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 100, background: "rgba(31,61,54,0.08)", color: BOTTLE }}>
+                {CHECKIN_TASTE_META[k].label}
+              </span>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 18, margin: "12px 4px 2px", paddingTop: 10, borderTop: `1px solid ${BORDER}` }}>
+          <button onClick={() => toggleCheer(entry.id)} className="press-scale" style={{
+            display: "flex", alignItems: "center", gap: 6, border: "none", background: "none", padding: "4px 0", cursor: "pointer",
+            color: cheer.mine ? "var(--brass-text)" : INK, fontSize: 13.5, fontWeight: 700, fontFamily: sans,
+          }}>
+            <Wine size={19} color={cheer.mine ? BRASS : INK} fill={cheer.mine ? "rgba(184,134,46,0.25)" : "none"} /> Proost{cheer.count > 0 ? ` · ${cheer.count}` : ""}
+          </button>
+          <button onClick={() => toggleComments(entry.id)} className="press-scale" style={{
+            display: "flex", alignItems: "center", gap: 6, border: "none", background: "none", padding: "4px 0", cursor: "pointer",
+            color: openComments === entry.id ? BOTTLE : INK, fontSize: 13.5, fontWeight: 700, fontFamily: sans,
+          }}>
+            <MessageCircle size={18} /> {nComments > 0 ? `${nComments} ${nComments === 1 ? "reactie" : "reacties"}` : "Reageren"}
+          </button>
+        </div>
+        <div style={{ padding: "0 4px" }}>
+                  {openComments === entry.id && (
+                    <div style={{ borderTop: `1px dashed ${BORDER}`, marginTop: 10, paddingTop: 10 }}>
+                      {(commentsByCheckin[entry.id] || []).map(c => (
+                        <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
+                          <Avatar name={commenterName(c.user_id)} photo={commenterPhoto(c.user_id)} size={24} />
+                          <div style={{ flex: 1, minWidth: 0, background: PAPER_DEEP, borderRadius: 12, padding: "6px 10px" }}>
+                            <span style={{ fontWeight: 700, fontSize: 12, ...(commenterIsMaster(c.user_id) ? masterTextStyle : {}) }}>{commenterName(c.user_id)}</span>{commenterIsMaster(c.user_id) && <span style={{ display: "inline-flex", verticalAlign: "-2px", marginLeft: 3 }}><MasterSeal size={12} border={1} /></span>}{" "}
+                            <span style={{ fontSize: 12.5, color: INK }}>{c.text}</span>
+                          </div>
+                          {c.user_id === myId && (
+                            <button onClick={() => deleteComment(entry.id, c.id)} style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, padding: 4, flexShrink: 0 }}>
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {(commentsByCheckin[entry.id] || []).length === 0 && (
+                        <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>Nog geen reacties. Wees de eerste!</div>
+                      )}
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <input
+                          value={commentDraft}
+                          onChange={e => setCommentDraft(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") postComment(entry.id); }}
+                          placeholder="Schrijf een reactie…"
+                          style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "8px 14px", fontSize: 12.5, fontFamily: sans, background: PAPER, color: INK }}
+                        />
+                        <button onClick={() => postComment(entry.id)} disabled={!commentDraft.trim() || postingComment} style={{
+                          border: "none", cursor: commentDraft.trim() ? "pointer" : "default", background: commentDraft.trim() ? BOTTLE : BORDER,
+                          color: CREAM, borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        }}>
+                          <Send size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div {...pullHandlers} style={{ touchAction: "pan-y" }}>
       <div ref={indicatorRef} aria-hidden style={{
         height: 0, opacity: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
-        marginBottom: 4, color: BRASS,
+        color: BRASS,
       }}>
         <span className={`ptr-icon${refreshing ? " spin-icon" : ""}`} style={{ display: "flex", transition: "transform 0.1s linear" }}>
           <Martini size={18} strokeWidth={1.8} />
         </span>
       </div>
-      <SectionLabel>Vandaag</SectionLabel>
-      {featuredRecipe && (
-        <div style={{
-          borderRadius: RADIUS + 4, marginBottom: 16, position: "relative", overflow: "hidden", boxSizing: "border-box",
-          background: BOTTLE_DARK, boxShadow: SHADOW_HERO, color: CREAM, fontFamily: sans,
-        }}>
-          {localItemImageUrl("cocktail", featuredRecipe.id) || featuredRecipe.image ? (
-            <>
-              <img src={localItemImageUrl("cocktail", featuredRecipe.id) || featuredRecipe.image} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0.35) 0%, rgba(15,26,23,0.88) 100%)" }} />
-            </>
-          ) : null}
-          <button onClick={() => onOpenRecipe(featuredRecipe.id)} style={{
-            position: "relative",
-            width: "100%", textAlign: "left", border: "none", cursor: "pointer", background: "none", color: "inherit",
-            padding: "20px 22px 14px", boxSizing: "border-box", fontFamily: "inherit",
-          }}>
-            <div className="glass-chip" style={{ display: "inline-block", borderRadius: 100, padding: "4px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>
-              Uitgelicht
-            </div>
-            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26 }}>{featuredRecipe.name}</div>
-            <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 4 }}>{featuredRecipe.family} · {featuredRecipe.glass}</div>
+      {/* Vriendenrij op het groen van de kop: wie vandaag incheckte heeft
+          een gouden ring; "Jij" met plusje om zelf in te checken. */}
+      <div style={{ margin: "0 -20px", background: BOTTLE_DARK, borderBottom: `2px solid ${BRASS}` }}>
+        <div className="no-scrollbar" style={{ display: "flex", gap: 12, overflowX: "auto", padding: "4px 16px 14px", WebkitOverflowScrolling: "touch" }}>
+          <button onClick={() => onOpenCheckin()} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: 62, flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: sans }}>
+            <span style={{ position: "relative" }}>
+              <span style={{ display: "block", borderRadius: "50%", boxShadow: `0 0 0 2px ${BOTTLE_DARK}, 0 0 0 4px rgba(251,246,234,0.18)` }}><Avatar name={profile?.name || "Jij"} photo={profile?.avatar_url} size={56} /></span>
+              <span style={{ position: "absolute", right: -3, bottom: -3, width: 22, height: 22, borderRadius: "50%", background: "#B8862E", border: `2px solid ${BOTTLE_DARK}`, display: "flex", alignItems: "center", justifyContent: "center", color: "#132622" }}><Plus size={12} strokeWidth={3.2} /></span>
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#FBF6EA" }}>Jij</span>
           </button>
-          <div style={{ position: "relative", margin: "2px 22px 20px", borderLeft: `2px solid ${BRASS}`, paddingLeft: 12, fontSize: 12.5, lineHeight: 1.5, opacity: 0.92 }}>
-            {featuredReason(featuredRecipe, favoriteFamily)}
-          </div>
+          {friendRow.map(f => (
+            <button key={f.id} onClick={() => setOpenFriendId(f.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: 62, flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: sans }}>
+              <span style={{ display: "block", borderRadius: "50%", boxShadow: `0 0 0 2px ${BOTTLE_DARK}, 0 0 0 ${f.today ? 5 : 4}px ${f.today ? "#C8963A" : "rgba(251,246,234,0.18)"}` }}><Avatar name={f.name} photo={f.photo} size={56} /></span>
+              <span style={{ fontSize: 12, fontWeight: f.today ? 700 : 500, color: f.today ? "#FBF6EA" : "#A9B8B0", maxWidth: 62, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.first}</span>
+            </button>
+          ))}
+          {friendRow.length === 0 && (
+            <div style={{ alignSelf: "center", fontSize: 12.5, color: "#A9B8B0", lineHeight: 1.4, paddingLeft: 4 }}>Voeg vrienden toe via Profiel; hier zie je wie er vandaag iets drinkt.</div>
+          )}
         </div>
-      )}
+      </div>
 
-      <button onClick={() => onOpenCheckin()} className="press-scale" style={{
-        display: "flex", alignItems: "center", gap: 11, width: "100%", boxSizing: "border-box", padding: "13px 16px",
-        borderRadius: 100, background: CREAM, border: `1.5px solid ${BORDER}`, boxShadow: "0 3px 10px -4px rgba(43,38,32,0.12)",
-        cursor: "pointer", marginBottom: 24, fontFamily: sans,
-      }}>
-        <span style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(184,134,46,0.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Plus size={15} color={BRASS} strokeWidth={2.4} />
-        </span>
-        <span style={{ textAlign: "left" }}>
-          <span style={{ display: "block", fontWeight: 700, fontSize: 14, color: INK }}>Wat drink je nu?</span>
-          <span style={{ display: "block", fontSize: 12, color: MUTED }}>Check meteen in</span>
-        </span>
-      </button>
+      {featuredRecipe && (
+        <button onClick={() => onOpenRecipe(featuredRecipe.id)} className="press-scale" style={{
+          display: "flex", alignItems: "center", gap: 12, width: "100%", boxSizing: "border-box", margin: "14px 0 0", padding: 10,
+          borderRadius: 16, border: "none", background: CREAM, boxShadow: "0 1px 2px rgba(43,38,32,0.06), 0 6px 16px -8px rgba(43,38,32,0.18)",
+          cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+        }}>
+          <span style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}>
+            <RecipeCircle recipe={featuredRecipe} allIngredients={allIngredients} size={52} radius={12} />
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: BOTTLE }}>Voor jou vandaag</span>
+            <span style={{ display: "block", fontFamily: serif, fontSize: 17, fontWeight: 700, marginTop: 1 }}>{featuredRecipe.name}</span>
+            <span style={{ display: "block", fontSize: 12.5, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{featuredReason(featuredRecipe, favoriteFamily)}</span>
+          </span>
+          <ChevronRight size={18} color={MUTED} style={{ flexShrink: 0 }} />
+        </button>
+      )}
 
       {photoViewer && <CheckinPhotoViewer {...photoViewer} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)} />}
       {tagInbox.items.length > 0 && (
@@ -4030,7 +4315,6 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
         </div>
       )}
 
-      <SectionLabel>Activiteit</SectionLabel>
       {combinedFeed.length === 0 ? (
         <div style={{ padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS }}>
           <p style={{ margin: 0, fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>
@@ -4038,225 +4322,18 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           </p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {combinedFeed.map(entry => {
-            if (entry.kind === "rank") {
-              const who = entry.mine ? (profile?.name || "Jij") : (friendProfiles[entry.friendId]?.name || "Vriend");
-              const whoAvatar = entry.mine ? profile?.avatar_url : friendProfiles[entry.friendId]?.avatar_url;
-              const rankDef = COURSE_RANKS.find(r => r.id === entry.rankId);
-              if (!rankDef) return null;
-              const isMaster = entry.rankId === "meester";
-              const lastPart = COURSE_PARTS[Math.max(0, Math.min(COURSE_PART_COUNT, entry.partsDone) - 1)];
-              const cheer = rankCheers[entry.id] || { count: 0, mine: false };
-              return (
-                <div key={`r-${entry.id}`} style={{ background: CREAM, border: `1px solid ${isMaster ? "rgba(184,134,46,0.55)" : BORDER}`, borderRadius: 18, overflow: "hidden", boxShadow: SHADOW_CARD }}>
-                  {isMaster && <div aria-hidden style={{ height: 3, background: MASTER_GOLD }} />}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px 10px" }}>
-                    <CourseRing name={who} photo={whoAvatar} size={38} partsDone={isMaster ? COURSE_PART_COUNT : entry.partsDone} master={isMaster} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, color: INK }}>
-                        {entry.mine ? <strong>{who}</strong> : (
-                          <button onClick={() => setOpenFriendId(entry.friendId)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, fontSize: 13.5, color: INK }}>{who}</button>
-                        )}{isMaster ? " heeft het diploma gehaald" : <> is nu <strong>{rankDef.name}</strong></>}
-                      </div>
-                      <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>Cursus · {entry.date}</div>
-                    </div>
-                  </div>
-                  <div style={{ margin: "0 14px 12px", padding: 18, borderRadius: 14, background: BOTTLE_DARK, color: CREAM, display: "flex", alignItems: "center", gap: 16 }}>
-                    <span style={{ width: 56, height: 56, borderRadius: "50%", border: isMaster ? "none" : `2px solid ${BRASS}`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", color: isMaster ? BOTTLE_DARK : "#DDB877", flexShrink: 0, background: isMaster ? MASTER_GOLD : "none" }}>
-                      {isMaster ? <GraduationCap size={26} strokeWidth={1.9} /> : <Martini size={26} strokeWidth={1.7} />}
-                    </span>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#DDB877" }}>{isMaster ? "Diploma" : "Nieuwe rang"}</div>
-                      <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, marginTop: 2, ...(isMaster ? masterTextStyleLight : {}) }}>{isMaster ? "Meester" : rankDef.name}</div>
-                      <div style={{ fontSize: 12.5, color: "#C9D2CB", marginTop: 3 }}>
-                        {isMaster ? "Alle 6 delen en de eindtoets gehaald" : `${lastPart ? `${lastPart.title} afgerond · ` : ""}${entry.partsDone} van ${COURSE_PART_COUNT} delen`}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px 12px" }}>
-                    <button onClick={() => toggleRankCheer(entry.id)} className="press-scale" style={{
-                      display: "flex", alignItems: "center", gap: 6, border: `1px solid ${cheer.mine ? BRASS : BORDER}`, cursor: "pointer",
-                      background: cheer.mine ? "rgba(184,134,46,0.1)" : "none", color: cheer.mine ? BRASS : MUTED,
-                      borderRadius: 100, padding: "7px 12px", fontSize: 12, fontWeight: 700,
-                    }}>
-                      <Wine size={13} /> {cheer.count > 0 ? cheer.count : ""} Proost
-                    </button>
-                    <button onClick={() => toggleRankComments(entry.id)} className="press-scale" style={{
-                      display: "flex", alignItems: "center", gap: 6, border: `1px solid ${openRankComments === entry.id ? BOTTLE : BORDER}`, cursor: "pointer",
-                      background: openRankComments === entry.id ? BOTTLE : "none", color: openRankComments === entry.id ? CREAM : MUTED,
-                      borderRadius: 100, padding: "7px 12px", fontSize: 12, fontWeight: 700,
-                    }}>
-                      <MessageCircle size={13} /> {rankCommentCounts[entry.id] > 0 ? rankCommentCounts[entry.id] : ""} Reageren
-                    </button>
-                  </div>
-                  {openRankComments === entry.id && (
-                    <div style={{ borderTop: `1px dashed ${BORDER}`, margin: "0 14px 12px", paddingTop: 10 }}>
-                      {(rankComments[entry.id] || []).map(c => (
-                        <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
-                          <Avatar name={commenterName(c.user_id)} photo={commenterPhoto(c.user_id)} size={24} />
-                          <div style={{ flex: 1, minWidth: 0, background: PAPER_DEEP, borderRadius: 12, padding: "6px 10px" }}>
-                            <span style={{ fontWeight: 700, fontSize: 12, ...(commenterIsMaster(c.user_id) ? masterTextStyle : {}) }}>{commenterName(c.user_id)}</span>{commenterIsMaster(c.user_id) && <span style={{ display: "inline-flex", verticalAlign: "-2px", marginLeft: 3 }}><MasterSeal size={12} border={1} /></span>}{" "}
-                            <span style={{ fontSize: 12.5, color: INK }}>{c.text}</span>
-                          </div>
-                          {c.user_id === myId && (
-                            <button onClick={() => deleteRankComment(entry.id, c.id)} aria-label="Reactie verwijderen" style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, padding: 4, flexShrink: 0 }}>
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      {(rankComments[entry.id] || []).length === 0 && (
-                        <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>{entry.mine ? "Nog geen reacties." : `Nog geen reacties. Feliciteer ${who.split(" ")[0]}!`}</div>
-                      )}
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <input value={commentDraft} onChange={e => setCommentDraft(e.target.value)}
-                          onKeyDown={e => { if (e.key === "Enter") postRankComment(entry.id); }}
-                          placeholder="Schrijf een reactie…" maxLength={500}
-                          style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "8px 14px", fontSize: 16, fontFamily: sans, background: PAPER, color: INK }} />
-                        <button onClick={() => postRankComment(entry.id)} disabled={!commentDraft.trim() || postingComment} aria-label="Versturen" style={{
-                          border: "none", cursor: commentDraft.trim() ? "pointer" : "default", background: commentDraft.trim() ? BOTTLE : BORDER,
-                          color: CREAM, borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                        }}>
-                          <Send size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            const matched = findMatch(entry);
-            const tint = matched ? recipeTint(matched, allIngredients) : [PAPER_DEEP, BORDER];
-            const who = entry.mine ? (profile?.name || "Jij") : (friendProfiles[entry.friendId]?.name || "Vriend");
-            const whoAvatar = entry.mine ? profile?.avatar_url : friendProfiles[entry.friendId]?.avatar_url;
-            const photo = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
-            const key = `${entry.mine ? "m" : "f"}-${entry.id}`;
-            const cheer = reactions[entry.id] || { count: 0, mine: false };
-            return (
-              <div key={key} style={{ background: CREAM, border: `1px solid ${rankOf(entry)?.master ? "rgba(184,134,46,0.55)" : BORDER}`, borderRadius: 18, overflow: "hidden", boxShadow: SHADOW_CARD }}>
-                {rankOf(entry)?.master && <div aria-hidden style={{ height: 3, background: MASTER_GOLD }} />}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px 10px" }}>
-                  <RankAvatar name={who} photo={whoAvatar} size={38} courseRank={rankOf(entry)} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {entry.mine ? (
-                      <span style={{ fontWeight: 700, fontSize: 13.5, color: INK, ...(rankOf(entry)?.master ? masterTextStyle : {}) }}>{who}</span>
-                    ) : (
-                      <button onClick={() => setOpenFriendId(entry.friendId)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, fontSize: 13.5, color: INK }}>
-                        <span style={rankOf(entry)?.master ? masterTextStyle : undefined}>{who}</span>
-                      </button>
-                    )}
-                    {rankOf(entry)?.rank && <span style={{ marginLeft: 6 }}><CourseRankLabel courseRank={rankOf(entry)} /></span>}
-                    {checkinTags[entry.id]?.length > 0 && (
-                      <div style={{ fontSize: 12.5, color: INK, marginTop: 1 }}>met {joinNames(checkinTags[entry.id].map(t => (t.name || "een vriend").split(" ")[0]))}</div>
-                    )}
-                    <div style={{ fontSize: 11, color: MUTED, marginTop: 1, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                      <MapPin size={11} style={{ flexShrink: 0 }} /> {entry.location} · {entry.date}
-                    </div>
-                  </div>
-                </div>
-
-                <div onClick={photo ? () => setPhotoViewer({ entry, matched, who, whoAvatar }) : undefined}
-                  style={{ height: photo ? 190 : 150, position: "relative", margin: "0 0 12px", cursor: photo ? "zoom-in" : undefined }}>
-                  {photo ? (
-                    <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
-                  ) : (
-                    <div style={{ position: "absolute", inset: 0, background: BOTTLE_DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {matched ? (
-                        <GlassArt glass={matched.glass} colors={tint} garnishes={inferGarnishes(matched, allIngredients)} rim={inferRim(matched, allIngredients)} foam={inferFoam(matched, allIngredients)} iceStyle={inferIceStyle(matched)} size={100} />
-                      ) : (
-                        <Martini size={40} color="rgba(251,246,234,0.85)" strokeWidth={1.3} />
-                      )}
-                    </div>
-                  )}
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0) 45%, rgba(15,26,23,0.5) 100%)" }} />
-                  <div className="glass-chip-dark" style={{ position: "absolute", left: 12, bottom: 10, display: "flex", alignItems: "center", gap: 4, borderRadius: 100, padding: "4px 9px", color: CREAM, fontSize: 12, fontWeight: 700 }}>
-                    <Star size={11} fill={BRASS} color={BRASS} /> {formatRating(entry.rating)}
-                  </div>
-                </div>
-
-                <div style={{ padding: "0 14px 14px" }}>
-                  <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK, marginBottom: 2 }}>{entry.name}</div>
-                  {matched && <div style={{ fontSize: 11.5, color: MUTED, marginBottom: 9 }}>{matched.family} · {matched.glass}</div>}
-                  {entry.notes && <p style={{ margin: "0 0 9px", fontSize: 12.5, color: INK, lineHeight: 1.5 }}>&ldquo;{entry.notes}&rdquo;</p>}
-                  {entry.tasteTags.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 11 }}>
-                      {entry.tasteTags.map(k => CHECKIN_TASTE_META[k] && (
-                        <span key={k} style={{ fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 100, background: PAPER_DEEP, color: INK, border: `1px solid ${BORDER}` }}>
-                          {CHECKIN_TASTE_META[k].label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, borderTop: `1px solid ${BORDER}`, paddingTop: 10 }}>
-                    <button onClick={() => toggleCheer(entry.id)} className="press-scale" style={{
-                      display: "flex", alignItems: "center", gap: 6, border: `1px solid ${cheer.mine ? BRASS : BORDER}`, cursor: "pointer",
-                      background: cheer.mine ? "rgba(184,134,46,0.1)" : "none", color: cheer.mine ? BRASS : MUTED,
-                      borderRadius: 100, padding: "7px 12px", fontSize: 12, fontWeight: 700,
-                    }}>
-                      <Wine size={13} /> {cheer.count > 0 ? cheer.count : ""} Proost
-                    </button>
-                    <button onClick={() => toggleComments(entry.id)} className="press-scale" style={{
-                      display: "flex", alignItems: "center", gap: 6, border: `1px solid ${openComments === entry.id ? BOTTLE : BORDER}`, cursor: "pointer",
-                      background: openComments === entry.id ? BOTTLE : "none", color: openComments === entry.id ? CREAM : MUTED,
-                      borderRadius: 100, padding: "7px 12px", fontSize: 12, fontWeight: 700,
-                    }}>
-                      <MessageCircle size={13} /> {commentCounts[entry.id] > 0 ? commentCounts[entry.id] : ""} Reageren
-                    </button>
-                    {!entry.mine && (
-                      <button onClick={() => reportCheckin(entry.id)} disabled={reportedIds.has(entry.id)} title="Meld deze check-in" className="press-scale" style={{
-                        marginLeft: "auto", display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30,
-                        border: "none", cursor: reportedIds.has(entry.id) ? "default" : "pointer", background: "none",
-                        color: reportedIds.has(entry.id) ? SAGE : MUTED, flexShrink: 0,
-                      }}>
-                        {reportedIds.has(entry.id) ? <Check size={14} /> : <Flag size={14} />}
-                      </button>
-                    )}
-                  </div>
-
-                  {openComments === entry.id && (
-                    <div style={{ borderTop: `1px dashed ${BORDER}`, marginTop: 10, paddingTop: 10 }}>
-                      {(commentsByCheckin[entry.id] || []).map(c => (
-                        <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
-                          <Avatar name={commenterName(c.user_id)} photo={commenterPhoto(c.user_id)} size={24} />
-                          <div style={{ flex: 1, minWidth: 0, background: PAPER_DEEP, borderRadius: 12, padding: "6px 10px" }}>
-                            <span style={{ fontWeight: 700, fontSize: 12, ...(commenterIsMaster(c.user_id) ? masterTextStyle : {}) }}>{commenterName(c.user_id)}</span>{commenterIsMaster(c.user_id) && <span style={{ display: "inline-flex", verticalAlign: "-2px", marginLeft: 3 }}><MasterSeal size={12} border={1} /></span>}{" "}
-                            <span style={{ fontSize: 12.5, color: INK }}>{c.text}</span>
-                          </div>
-                          {c.user_id === myId && (
-                            <button onClick={() => deleteComment(entry.id, c.id)} style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, padding: 4, flexShrink: 0 }}>
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      {(commentsByCheckin[entry.id] || []).length === 0 && (
-                        <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>Nog geen reacties. Wees de eerste!</div>
-                      )}
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <input
-                          value={commentDraft}
-                          onChange={e => setCommentDraft(e.target.value)}
-                          onKeyDown={e => { if (e.key === "Enter") postComment(entry.id); }}
-                          placeholder="Schrijf een reactie…"
-                          style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "8px 14px", fontSize: 12.5, fontFamily: sans, background: PAPER, color: INK }}
-                        />
-                        <button onClick={() => postComment(entry.id)} disabled={!commentDraft.trim() || postingComment} style={{
-                          border: "none", cursor: commentDraft.trim() ? "pointer" : "default", background: commentDraft.trim() ? BOTTLE : BORDER,
-                          color: CREAM, borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                        }}>
-                          <Send size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {combinedFeed.map((entry, idx) => {
+            const dayLabel = feedDayLabel(entry);
+            const showDay = idx === 0 || feedDayLabel(combinedFeed[idx - 1]) !== dayLabel;
+            const dayHeader = showDay ? (
+              <div key={`d-${dayLabel}-${idx}`} style={{ padding: idx === 0 ? "18px 4px 10px" : "8px 4px 10px", fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED }}>{dayLabel}</div>
+            ) : null;
+            const item = renderFeedItem(entry);
+            return item ? <div key={`w-${entry.kind || "c"}-${entry.id}`}>{dayHeader}{item}</div> : null;
           })}
         </div>
       )}
-
       {openFriendId && (
         <FriendProfileSheet
           friendId={openFriendId}
