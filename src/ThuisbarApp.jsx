@@ -5842,6 +5842,37 @@ function AnimatedNumber({ value, format }) {
   return format ? format(display) : Math.round(display);
 }
 
+// Heb je dit ingrediënt in huis? Groen vinkje of een rood leeg rondje, zodat
+// je in één oogopslag ziet wat er ontbreekt.
+function OwnedMark({ owned, optional, size = 20 }) {
+  if (owned) return (
+    <span aria-label="In huis" style={{ width: size, height: size, borderRadius: "50%", background: SAGE, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <Check size={Math.round(size * 0.6)} strokeWidth={3.2} color={CREAM} />
+    </span>
+  );
+  return (
+    <span aria-label={optional ? "Optioneel, niet in huis" : "Ontbreekt"} style={{ width: size, height: size, borderRadius: "50%", boxSizing: "border-box", border: `2px ${optional ? "dashed" : "solid"} ${optional ? BORDER : BURGUNDY}`, flexShrink: 0, display: "inline-block" }} />
+  );
+}
+// Samenvatting boven de ingrediëntenlijst: alles in huis, of precies wat je mist.
+function MissingSummary({ missing, ingredientLabel }) {
+  if (missing.length === 0) return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 14, background: "rgba(92,122,82,0.14)", marginBottom: 10 }}>
+      <OwnedMark owned size={22} />
+      <span style={{ fontSize: 14, fontWeight: 700, color: INK }}>Je hebt alles in huis</span>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "11px 14px", borderRadius: 14, background: "rgba(122,46,42,0.10)", marginBottom: 10 }}>
+      <AlertTriangle size={19} color={BURGUNDY} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span style={{ fontSize: 14, lineHeight: 1.45, color: INK }}>
+        <strong style={{ color: BURGUNDY }}>Je mist {missing.length === 1 ? "1 ingrediënt" : `${missing.length} ingrediënten`}:</strong>{" "}
+        {joinNames(missing.map(m => ingredientLabel(m)))}
+      </span>
+    </div>
+  );
+}
+
 function StatusTag({ missingCount }) {
   const cfg = missingCount === 0
     ? { color: SAGE, label: "Maakbaar" }
@@ -6666,9 +6697,14 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
                       <div>
                         <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 16.5 }}>{recipe.name}</div>
                         <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{recipe.family} · {recipe.glass}</div>
+                        {missing.length > 0 && (
+                          <div style={{ fontSize: 12.5, color: BURGUNDY, fontWeight: 600, marginTop: 2, lineHeight: 1.35 }}>
+                            Mist: {missing.length <= 3 ? joinNames(missing.map(m => ingredientLabel(m))) : `${missing.slice(0, 2).map(m => ingredientLabel(m)).join(", ")} en ${missing.length - 2} meer`}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
                       <StatusTag missingCount={missing.length} />
                       {isOpen ? <ChevronUp size={17} color={MUTED} /> : <ChevronDown size={17} color={MUTED} />}
                     </div>
@@ -6677,8 +6713,9 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
                     <div className="accordion-reveal" style={{ padding: "2px 2px 20px" }}>
                       <ul style={{ margin: "0 0 10px", paddingLeft: 0, listStyle: "none", fontSize: 14 }}>
                         {recipe.ingredients.map((ing, i) => (
-                          <li key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", color: isOwned(ing) ? INK : BURGUNDY, borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none" }}>
-                            <span>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
+                          <li key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 0", color: isOwned(ing) || ing.optional ? INK : BURGUNDY, borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none" }}>
+                            <OwnedMark owned={isOwned(ing)} optional={ing.optional} size={17} />
+                            <span style={{ flex: 1, minWidth: 0, fontWeight: isOwned(ing) || ing.optional ? 400 : 600 }}>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
                             <span style={{ fontWeight: 600 }}>{ing.top ? "top op" : `${formatDutchNumber(ing.amount)} ${unitLabel(ing.unit, ing.amount)}`}</span>
                           </li>
                         ))}
@@ -7203,14 +7240,16 @@ function formatInhoud(ml) {
 }
 // Winkels waar je flessen koopt. Mitra, Dirck III en Drankgigant worden
 // wekelijks automatisch gecontroleerd (Edge Function `prijscheck`).
-// Drankdozijn en Gall & Gall blokkeren dat; daar zoeken we via Google
-// binnen hun site, zodat een link altijd werkt.
+// Drankdozijn en Gall & Gall blokkeren dat. Drankdozijn zoeken we via
+// Google binnen hun site; Gall & Gall (winkels door heel Nederland, dus
+// vaak het makkelijkst om even langs te gaan) via hun eigen zoekpagina,
+// zonder prijs in de app: die zie je in hun webshop of in de winkel.
 const WINKELS = {
   drankgigant: { naam: "Drankgigant", sub: "Webshop", zoek: (q) => `https://www.drankgigant.nl/catalogsearch/result/?q=${encodeURIComponent(q)}` },
   dirckiii: { naam: "Dirck III", sub: "Bezorgen vanaf 6 flessen, of ophalen in de winkel", zoek: (q) => `https://www.dirckiii.nl/catalogsearch/result/?q=${encodeURIComponent(q)}` },
   mitra: { naam: "Mitra", sub: "Webshop of ophalen in de winkel", zoek: (q) => `https://www.mitra.nl/zoeken?q=${encodeURIComponent(q)}` },
   drankdozijn: { naam: "Drankdozijn", sub: "Webshop", zoek: (q) => `https://www.google.com/search?q=${encodeURIComponent(`site:drankdozijn.nl ${q}`)}` },
-  gall: { naam: "Gall & Gall", sub: "Webshop of ophalen in de winkel", zoek: (q) => `https://www.google.com/search?q=${encodeURIComponent(`site:gall.nl ${q}`)}` },
+  gall: { naam: "Gall & Gall", sub: "Prijs bekijken in de webshop of winkel", zoek: (q) => `https://www.gall.nl/zoeken/?q=${encodeURIComponent(q)}` },
 };
 const WINKEL_HOSTS = /(^|\.)(drankgigant\.nl|dirckiii\.nl|mitra\.nl|drankdozijn\.nl|gall\.nl|google\.com)$/;
 // Alleen links naar deze winkels (of de Google-zoekopdracht) openen.
@@ -7276,6 +7315,28 @@ const NIVEAU_TAG = {
   goed: { color: BOTTLE, bg: "rgba(31,61,54,0.10)" },
   klassieker: { color: "#8F6A21", bg: "rgba(184,134,46,0.16)" },
 };
+
+// Gall & Gall bovenaan bij een fles: geen prijs (die halen we niet op), wel
+// direct naar hun zoekpagina — handig als je liever even langs de winkel
+// om de hoek gaat.
+function GallRow({ name }) {
+  return (
+    <button onClick={() => openShopUrl(WINKELS.gall.zoek(name))} style={{
+      display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 54, padding: 0, background: "none", border: "none",
+      cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+    }}>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14.5, fontWeight: 600 }}>
+          Gall &amp; Gall
+          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3, color: SAGE, background: "rgba(92,122,82,0.16)", borderRadius: 100, padding: "1px 7px" }}>Winkel in de buurt</span>
+        </span>
+        <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{WINKELS.gall.sub}</span>
+      </span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: BOTTLE }}>Bekijk</span>
+      <ExternalLink size={15} color={MUTED} style={{ marginLeft: 6, flexShrink: 0 }} />
+    </button>
+  );
+}
 
 function FlesKiezenSheet({ item, meta, options = [], chosenId, recipeNames, onChoose, onClose }) {
   useBodyScrollLock();
@@ -7364,10 +7425,11 @@ function FlesKiezenSheet({ item, meta, options = [], chosenId, recipeNames, onCh
                       </button>
                       {on && (
                         <div className="accordion-reveal" style={{ borderTop: `1px solid ${BORDER}`, padding: "2px 14px 4px" }}>
+                          {!o.offers.some(x => x.winkel === "gall") && <GallRow name={o.fles.naam} />}
                           {o.offers.map((x, i) => (
                             <button key={x.id} onClick={() => openShopUrl(x.url)} style={{
                               display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 54, padding: 0, background: "none", border: "none",
-                              borderTop: i > 0 ? `1px solid ${PAPER_DEEP}` : "none", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+                              borderTop: `1px solid ${PAPER_DEEP}`, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
                             }}>
                               <span style={{ flex: 1, minWidth: 0 }}>
                                 <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{shopLabel(x.winkel)}</span>
@@ -7398,15 +7460,13 @@ function FlesKiezenSheet({ item, meta, options = [], chosenId, recipeNames, onCh
               <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginTop: 8 }}>
                 Ook zoeken bij{" "}
                 <button onClick={() => openShopUrl(WINKELS.drankdozijn.zoek(searchName))} style={{ background: "none", border: "none", padding: 0, color: "#8F6A21", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: sans }}>Drankdozijn</button>
-                {" of "}
-                <button onClick={() => openShopUrl(WINKELS.gall.zoek(searchName))} style={{ background: "none", border: "none", padding: 0, color: "#8F6A21", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: sans }}>Gall &amp; Gall</button>
               </div>
             </>
           ) : (
             <>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Zoek bij</div>
               <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "0 14px" }}>
-                {["drankgigant", "dirckiii", "mitra", "drankdozijn", "gall"].map((k, i) => (
+                {["gall", "drankgigant", "dirckiii", "mitra", "drankdozijn"].map((k, i) => (
                   <button key={k} onClick={() => openShopUrl(WINKELS[k].zoek(searchName))} style={{
                     display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 56, padding: 0, background: "none", border: "none",
                     borderTop: i > 0 ? `1px solid ${PAPER_DEEP}` : "none", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
@@ -7650,6 +7710,42 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
             </div>
           );
         })}
+        {/* Gall & Gall: geen prijzen in de app, wel elke fles met één tik
+            opzoeken — voor wie liever langs de winkel gaat. */}
+        {(() => {
+          const gallKey = (r) => `gall-${r.item.key}`;
+          const todo = items.filter(r => !openedLinks.has(gallKey(r)));
+          const open = (r) => { setOpenedLinks(prev => new Set(prev).add(gallKey(r))); openShopUrl(WINKELS.gall.zoek(r.option.fles.naam)); };
+          return (
+            <div style={{ background: CREAM, borderRadius: 16, marginBottom: 10, overflow: "hidden", border: `1px solid ${BORDER}` }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "14px 14px 2px" }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: INK }}>Gall &amp; Gall</span>
+                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3, color: SAGE, background: "rgba(92,122,82,0.16)", borderRadius: 100, padding: "2px 8px" }}>Winkel in de buurt</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: MUTED, padding: "0 14px 6px", lineHeight: 1.45 }}>Prijs bekijken in de webshop of winkel · niet meegerekend in de vergelijking</div>
+              <div style={{ padding: "0 14px" }}>
+                {items.map(r => (
+                  <button key={r.item.key} onClick={() => open(r)} style={{
+                    display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 44, padding: 0, background: "none", border: "none",
+                    borderTop: `1px solid ${PAPER_DEEP}`, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+                  }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.option.fles.naam}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: BOTTLE }}>Bekijk</span>
+                    {openedLinks.has(gallKey(r)) ? <Check size={14} color={SAGE} strokeWidth={3} /> : <ExternalLink size={14} color={MUTED} />}
+                  </button>
+                ))}
+              </div>
+              <div style={{ padding: "10px 14px 14px" }}>
+                <button onClick={() => open(todo[0] || items[0])} className="press-scale" style={{
+                  width: "100%", minHeight: 46, borderRadius: 12, border: `1.5px solid ${BOTTLE}`, background: "none", color: BOTTLE,
+                  fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer",
+                }}>
+                  {todo.length === items.length ? "Opzoeken bij Gall & Gall" : todo.length ? `Volgende: ${todo[0].option.fles.naam}` : "Alles bekeken"}
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   };
@@ -8413,12 +8509,18 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               </div>
             </div>
           </div>
+          <MissingSummary missing={missing} ingredientLabel={ingredientLabel} />
           <ul style={{ margin: "0 0 14px", paddingLeft: 0, listStyle: "none", fontSize: 15.5 }}>
             {recipe.ingredients.map((ing, i) => {
               const scaled = scaleAmount(ing.amount, ing.unit, servings);
+              const owned = isOwned(ing);
               return (
-                <li key={i} className="ingredient-reveal" style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none", animationDelay: `${0.44 + Math.min(i, 8) * 0.05}s` }}>
-                  <span>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
+                <li key={i} className="ingredient-reveal" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none", animationDelay: `${0.44 + Math.min(i, 8) * 0.05}s` }}>
+                  <OwnedMark owned={owned} optional={ing.optional} />
+                  <span style={{ flex: 1, minWidth: 0, color: owned || ing.optional ? INK : BURGUNDY, fontWeight: owned || ing.optional ? 400 : 600 }}>
+                    {ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}
+                    {!owned && !ing.optional && <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, letterSpacing: 0.3, color: BURGUNDY, marginTop: 1 }}>Ontbreekt</span>}
+                  </span>
                   <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{ing.top && servings === 1 ? "top op" : `${formatDutchNumber(scaled)} ${unitLabel(ing.unit, scaled)}`}</span>
                 </li>
               );
