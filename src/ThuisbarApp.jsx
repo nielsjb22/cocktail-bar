@@ -20,6 +20,7 @@ import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACT
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
 import feestHeaderImg from "./assets/feest-header.jpg";
 import imageCatalog from "./data/images.json";
+import { brandMarkMarkup, BRAND_MARK_VIEWBOX } from "./brandMark.js";
 
 // Centrale foto-catalogus (zie CLAUDE.md "## Afbeeldingen"): één entry per
 // cocktail/drank-id met welk lokaal bestand erbij hoort (nog leeg tot de
@@ -1092,6 +1093,19 @@ function TechniqueAnimation({ technique }) {
   );
 }
 
+// Het logo (twee klinkende coupes) — dezelfde bron als het app-icoon en het
+// iOS-opstartscherm (src/brandMark.js). animated: de glazen lopen vol en
+// daarna verschijnt het "tink" (zie .brand-liquid / .brand-spark).
+function BrandMark({ width = 96, animated = false }) {
+  const idPrefix = "bm" + useId().replace(/[^a-zA-Z0-9]/g, "");
+  const markup = useMemo(() => brandMarkMarkup({ idPrefix, animated }), [idPrefix, animated]);
+  const [, , vw, vh] = BRAND_MARK_VIEWBOX.split(" ").map(Number);
+  return (
+    <svg viewBox={BRAND_MARK_VIEWBOX} width={width} height={Math.round(width * vh / vw)} role="img" aria-label="Mijn Thuisbar"
+      style={{ display: "block", overflow: "visible" }} dangerouslySetInnerHTML={{ __html: markup }} />
+  );
+}
+
 function SplashScreen({ onDone }) {
   // Op sommige iOS-toestellen (met name als PWA vanaf het beginscherm) reikt een
   // `position: fixed`-overlay niet helemaal tot de onderrand bij de home-indicator,
@@ -1115,20 +1129,7 @@ function SplashScreen({ onDone }) {
     <div className="splash-overlay" onClick={onDone} onAnimationEnd={(e) => { if (e.animationName === "splashFadeOverlay") onDone(); }}>
       <div className="splash-inner">
         <div className="splash-ring">
-          <svg viewBox="0 0 100 100" width="48" height="48">
-            <defs>
-              <clipPath id="splashBowlClip">
-                <path d="M22 22 L50 50 L78 22 Z" />
-              </clipPath>
-            </defs>
-            <g stroke="#DDB877" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none">
-              <path d="M22 22 L50 50 L78 22" />
-              <line x1="50" y1="50" x2="50" y2="80" />
-              <line x1="35" y1="80" x2="65" y2="80" />
-            </g>
-            <rect className="splash-liquid" x="18" y="14" width="64" height="36" fill="#B8862E" clipPath="url(#splashBowlClip)" />
-            <circle className="splash-drop" cx="50" cy="4" r="3" fill="#DDB877" />
-          </svg>
+          <BrandMark width={132} animated />
         </div>
         <h1 className="splash-title">Mijn Thuisbar</h1>
         <div className="splash-sub">Welkom in de wereld van de cocktail</div>
@@ -1177,7 +1178,7 @@ function GuestMenuView({ recipeIds }) {
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: MENU_SANS, textAlign: "center" }}>
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 48px) 24px calc(env(safe-area-inset-bottom) + 48px)" }}>
-        <Martini size={26} color={C.gold} strokeWidth={1.5} style={{ display: "block", margin: "0 auto 18px" }} aria-hidden="true" />
+        <div aria-hidden="true" style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><BrandMark width={48} /></div>
         <h1 style={{ fontFamily: MENU_SERIF, fontWeight: 500, fontSize: 42, lineHeight: 1.12, margin: "0 0 10px", color: C.text, overflowWrap: "anywhere" }}>
           {party.title || "Het menu van vanavond"}
         </h1>
@@ -1406,7 +1407,7 @@ function GuestSurveyView({ surveyId }) {
     const canStart = guestName.trim().length > 0;
     return (
       <div style={page}><div style={{ ...column, textAlign: "center", paddingTop: "calc(env(safe-area-inset-top) + 60px)" }}>
-        <Martini size={26} color={C.gold} strokeWidth={1.5} style={{ display: "block", margin: "0 auto 18px" }} aria-hidden="true" />
+        <div aria-hidden="true" style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><BrandMark width={48} /></div>
         <h1 style={{ ...serifH(40), lineHeight: 1.12, marginBottom: 10, overflowWrap: "anywhere" }}>{partyTitle}</h1>
         {partyLine && <p style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.body, margin: 0 }}>{partyLine}</p>}
         <div style={{ height: 1, background: C.gold, opacity: 0.45, margin: "30px 0 22px" }} />
@@ -1427,7 +1428,7 @@ function GuestSurveyView({ surveyId }) {
   if (step > QUESTIONS) {
     return (
       <div style={page}><div style={{ ...column, textAlign: "center", paddingTop: "calc(env(safe-area-inset-top) + 70px)" }}>
-        <Martini size={26} color={C.gold} strokeWidth={1.5} style={{ display: "block", margin: "0 auto 18px" }} aria-hidden="true" />
+        <div aria-hidden="true" style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><BrandMark width={48} /></div>
         <h1 style={{ ...serifH(38), lineHeight: 1.15, marginBottom: 10 }}>Bedankt, {guestName.trim()}</h1>
         <p style={{ fontSize: 15.5, lineHeight: 1.55, color: C.body, margin: 0 }}>
           Je antwoorden zijn naar de host gestuurd.{party.startsAt ? ` Tot ${formatMenuDate(party.startsAt)}.` : ""}
@@ -1983,8 +1984,8 @@ function AgeGateScreen({ onConfirm }) {
   return (
     <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)`, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div style={{ maxWidth: 380, width: "100%", textAlign: "center" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.1)", marginBottom: 20 }}>
-          <Martini color={BRASS} size={26} strokeWidth={1.5} />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+          <BrandMark width={84} />
         </div>
         {declined ? (
           <>
@@ -2060,8 +2061,8 @@ function AuthScreen() {
     <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)`, display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 24px", boxSizing: "border-box" }}>
       <div style={{ maxWidth: 380, margin: "0 auto", width: "100%" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 60, height: 60, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", marginBottom: 14 }}>
-            <Martini color={BRASS} size={28} strokeWidth={1.5} />
+          <div style={{ marginBottom: 14 }}>
+            <BrandMark width={92} />
           </div>
           <h1 style={{ fontFamily: systemFont, fontSize: 30, fontWeight: 700, color: CREAM, margin: 0 }}>Mijn Thuisbar</h1>
           <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "#B9C4B9", letterSpacing: 0.6, textTransform: "uppercase", fontWeight: 500 }}>

@@ -2,6 +2,7 @@
 // de deelbare afbeelding (1080×1920 PNG) en de printbare A5-PDF. Alles komt
 // uit de receptdata zelf, zodat elke cocktail — ook een minder bekende — een
 // ingrediëntregel, sterkte, allergeen-notitie en korte beschrijving krijgt.
+import { BRAND_MARK_VIEWBOX, BRAND_MARK_GLASSES, BRAND_MARK_SPARK } from "./brandMark.js";
 
 // ---------- Kleuren en lettertypes (gastenmenu, donkere stijl) ----------
 export const MENU_COLORS = {
@@ -304,7 +305,24 @@ export function buildIcs({ title, startsAt, address, description, url }) {
 // maat: 1080×1920 voor een WhatsApp-status/Instagram-story, 1748×2480 voor
 // A5 op 300 dpi. Alles schaalt mee met de breedte; past het niet, dan wordt
 // alles stapsgewijs kleiner tot het wel past, en daarna verticaal gecentreerd.
-const MARTINI_PATHS = ["M8 22h8", "M12 11v11", "m19 3-7 8-7-8Z"]; // lucide "martini", 24×24
+// Het logo (twee klinkende coupes, src/brandMark.js) als dunne gouden lijnen,
+// passend bij de rest van de menukaart. Tekent in een vak van size × size*0.88
+// met de linkerbovenhoek op (x, y).
+function drawBrandMark(ctx, x, y, size, color, lineWidth) {
+  const [vx, vy, vw] = BRAND_MARK_VIEWBOX.split(" ").map(Number);
+  const s = size / vw;
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(s, s); ctx.translate(-vx, -vy);
+  ctx.strokeStyle = color; ctx.lineWidth = lineWidth / s; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  for (const g of BRAND_MARK_GLASSES) {
+    ctx.save();
+    ctx.translate(g.ox, g.oy); ctx.rotate(g.rot * Math.PI / 180); ctx.translate(-g.ox, -g.oy);
+    ctx.stroke(new Path2D(g.bowl)); ctx.stroke(new Path2D(g.stem));
+    ctx.restore();
+  }
+  ctx.stroke(new Path2D(BRAND_MARK_SPARK));
+  ctx.restore();
+}
 
 async function ensureMenuFonts() {
   if (!document.fonts?.load) return;
@@ -344,7 +362,7 @@ function layoutMenu(ctx, { width, party, items, k }) {
   const serif = (px, italic = false) => `${italic ? "italic " : ""}500 ${px}px ${MENU_SERIF}`;
   const sans = (px, weight = 400) => `${weight} ${px}px ${MENU_SANS}`;
 
-  ops.push(["icon", { y, size: 30 * k }]); y += 30 * k + 22 * k;
+  ops.push(["icon", { y, size: 30 * k }]); y += 34 * k + 22 * k;
   text(party.title || "Het menu van vanavond", { font: serif(48 * k), color: C.text, size: 48 * k, lh: 1.15, gapAfter: 12 * k });
   const sub = partySubtitle(party);
   if (sub) text(sub, { font: serif(20 * k, true), color: C.body, size: 20 * k, lh: 1.35, gapAfter: 4 * k });
@@ -402,12 +420,7 @@ export async function renderMenuCanvas({ width, height, party, items }) {
       ctx.save(); ctx.globalAlpha = o.alpha; ctx.fillStyle = o.color;
       ctx.fillRect(o.x0, y, o.x1 - o.x0, Math.max(1, width / 1080 * 2)); ctx.restore();
     } else if (type === "icon") {
-      ctx.save();
-      const s = o.size / 24;
-      ctx.translate(cx - o.size / 2, y); ctx.scale(s, s);
-      ctx.strokeStyle = C.gold; ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
-      MARTINI_PATHS.forEach(d => ctx.stroke(new Path2D(d)));
-      ctx.restore();
+      drawBrandMark(ctx, cx - o.size * 0.625, y, o.size * 1.25, C.gold, o.size / 16);
     } else if (type === "strength") {
       ctx.font = o.font;
       const r = 4 * o.k, gap = 5 * o.k, dotsW = 3 * r * 2 + 2 * gap, space = 9 * o.k;
@@ -480,9 +493,7 @@ export async function renderMenuOgCanvas({ party, items }) {
     do { ctx.font = font(s); s -= 2; } while (ctx.measureText(str).width > maxW && s > 20);
     return s + 2;
   };
-  ctx.save(); ctx.translate(W / 2 - 18, 105); ctx.scale(1.5, 1.5);
-  ctx.strokeStyle = C.gold; ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
-  MARTINI_PATHS.forEach(d => ctx.stroke(new Path2D(d))); ctx.restore();
+  drawBrandMark(ctx, W / 2 - 27, 100, 54, C.gold, 2.4);
 
   const title = party.title || "Het menu van vanavond";
   const tSize = fit(title, s => `500 ${s}px ${MENU_SERIF}`, 84, W - 140);

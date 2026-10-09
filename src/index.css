@@ -200,36 +200,34 @@ button:focus-visible {
   gap: 16px;
 }
 .splash-ring {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  border: 1.5px solid #B8862E;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(184,134,46,0.08);
+  margin-bottom: 6px;
   animation: splashRingIn 1s cubic-bezier(.34,1.56,.64,1) both;
 }
 @keyframes splashRingIn {
   0% { transform: scale(0.5); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
-.splash-liquid {
+/* Logo in de intro: de coupes lopen vol, dan het "tink". */
+.splash-ring .brand-liquid {
   transform-box: fill-box;
   transform-origin: bottom;
-  animation: splashLiquidFill 1.4s cubic-bezier(.65,0,.35,1) 0.7s both;
+  animation: splashLiquidFill 1.2s cubic-bezier(.65,0,.35,1) 0.6s both;
 }
 @keyframes splashLiquidFill {
   0% { transform: scaleY(0); }
   100% { transform: scaleY(1); }
 }
-.splash-drop {
-  animation: splashDropFall 0.9s ease 0.1s both;
+.splash-ring .brand-spark {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: splashSpark 0.5s cubic-bezier(.34,1.56,.64,1) 1.75s both;
 }
-@keyframes splashDropFall {
-  0% { transform: translateY(-30px); opacity: 0; }
-  60% { opacity: 1; }
-  100% { transform: translateY(0); opacity: 0; }
+@keyframes splashSpark {
+  0% { transform: scale(0.3); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 .splash-title {
   font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
@@ -265,7 +263,7 @@ button:focus-visible {
   animation: splashTextIn 0.8s ease 1.6s both;
 }
 @media (prefers-reduced-motion: reduce) {
-  .splash-overlay, .splash-ring, .splash-liquid, .splash-drop, .splash-title, .splash-sub, .splash-skip-hint {
+  .splash-overlay, .splash-ring, .splash-ring .brand-liquid, .splash-ring .brand-spark, .splash-title, .splash-sub, .splash-skip-hint {
     animation-duration: 0.01ms !important;
   }
 }
@@ -273,7 +271,7 @@ button:focus-visible {
 /* Techniek-animaties (Verhaal-tab): kleine oneindig lopende SVG/CSS-lussen
    die laten zien hoe shaken/muddelen bewegen. Stirren gebruikt geen CSS
    transform-origin (op SVG-elementen niet betrouwbaar zonder transform-box,
-   zie splash-liquid hierboven) maar SVG's eigen animateTransform, dat via
+   zie .splash-ring .brand-liquid hierboven) maar SVG's eigen animateTransform, dat via
    React conditioneel wegvalt bij prefers-reduced-motion. */
 @keyframes shakeMotion {
   0%   { transform: rotate(-16deg) translateY(0); }
@@ -332,7 +330,7 @@ button:focus-visible {
 }
 
 /* Vul-animatie voor het glas-icoon (GlassArt) bij het kiezen van een cocktail,
-   dezelfde scaleY-vanaf-de-bodem-truc als .splash-liquid hierboven. */
+   dezelfde scaleY-vanaf-de-bodem-truc als .splash-ring .brand-liquid hierboven. */
 @keyframes glassLiquidFill {
   0%   { transform: scaleY(0); }
   100% { transform: scaleY(1); }

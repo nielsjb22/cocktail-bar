@@ -1,6 +1,6 @@
 // Genereert het iOS-opstartscherm (ios/App/App/Assets.xcassets/Splash.imageset)
-// in dezelfde stijl als de vroegere React-intro: gouden coupe-glas in een ring,
-// "Mijn Thuisbar" en "Welkom in de wereld van de cocktail".
+// in dezelfde stijl als de intro in de app: het logo (twee klinkende coupes,
+// uit src/brandMark.js), "Mijn Thuisbar" en "Welkom in de wereld van de cocktail".
 //
 // De achtergrondkleur (#0E1917) zit niet in het plaatje maar in
 // LaunchScreen.storyboard, zodat het op elk schermformaat naadloos aansluit;
@@ -14,6 +14,7 @@ import sharp from "sharp";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { brandMarkMarkup, BRAND_MARK_VIEWBOX } from "../src/brandMark.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = path.join(root, "ios/App/App/Assets.xcassets/Splash.imageset");
@@ -29,21 +30,10 @@ const svg = `
       <stop offset="0%" stop-color="#2A4B42" stop-opacity="0.85"/>
       <stop offset="100%" stop-color="#2A4B42" stop-opacity="0"/>
     </radialGradient>
-    <clipPath id="bowl"><path d="M22 22 L50 50 L78 22 Z"/></clipPath>
   </defs>
   <rect width="${W}" height="${H}" fill="url(#glow)"/>
 
-  <g transform="translate(${W / 2 - 50}, 40)">
-    <circle cx="50" cy="50" r="49.25" fill="#B8862E" fill-opacity="0.08" stroke="#B8862E" stroke-width="1.5"/>
-    <g transform="translate(26 26) scale(0.48)">
-      <rect x="18" y="14" width="64" height="36" fill="#B8862E" clip-path="url(#bowl)"/>
-      <g stroke="#DDB877" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none">
-        <path d="M22 22 L50 50 L78 22"/>
-        <line x1="50" y1="50" x2="50" y2="80"/>
-        <line x1="35" y1="80" x2="65" y2="80"/>
-      </g>
-    </g>
-  </g>
+  <svg x="${W / 2 - 62}" y="34" width="124" height="109" viewBox="${BRAND_MARK_VIEWBOX}">${brandMarkMarkup({ idPrefix: "ls" })}</svg>
 
   <text x="${W / 2}" y="196" text-anchor="middle"
         font-family="Playfair Display" font-style="italic" font-weight="600"
