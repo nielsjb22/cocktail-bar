@@ -3,7 +3,7 @@
   <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="0" y1="200" x2="0" y2="820"><stop offset="0" stop-color="#F0D49A"/><stop offset="1" stop-color="#C9973F"/></linearGradient>
   <linearGradient id="liq" gradientUnits="userSpaceOnUse" x1="0" y1="290" x2="0" y2="580"><stop offset="0" stop-color="#F3C969"/><stop offset="1" stop-color="#D98A2B"/></linearGradient>
 </defs>
-  <rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="0" fill="url(#bg)"/>
   <g transform="translate(512 512) scale(1.2) translate(-512 -460)"><g transform="rotate(12 290 695)">
     <path d="M140 330 q150 230 300 0z" fill="url(#liq)"/>
     <path d="M140 330 q150 230 300 0z" fill="none" stroke="url(#gold)" stroke-width="30" stroke-linejoin="round"/>
