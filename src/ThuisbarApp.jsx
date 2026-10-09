@@ -1605,95 +1605,6 @@ function GuestSurveyView({ surveyId }) {
   );
 }
 
-// Recepten en Cursus moeten zonder account te gebruiken zijn (Apple-eis) —
-// dit is de losse gast-variant van de app, alleen actief zolang session
-// null is. Draait op precies dezelfde recepten/voorraad/cursus-state en
-// -functies als de ingelogde app (die leven al hoger in ThuisbarApp, ook
-// zonder sessie), dus een gast kan gewoon zijn voorraad gebruiken en de
-// cursus doorlopen — alleen check-ins/vrienden/profiel vereisen inloggen.
-function GuestBrowseShell({
-  recipes, allIngredients, isOwned, ingredientLabel, onSound,
-  onAddToShoppingList, onAddToFeest, feestChosen,
-  recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite,
-  courseProgress, setCourseProgress, onGoLogin, shoppingKeys, onRemoveFromShoppingList,
-}) {
-  const [tab, setTab] = useState("ontdekken");
-  // Zelfde gedrag als de ingelogde app: een andere tab openen begint bovenaan.
-  useLayoutEffect(() => { window.scrollTo(0, 0); }, [tab]);
-  const [pendingRecipeId, setPendingRecipeId] = useState(null);
-  // Zonder account: dezelfde groene kop als in de app, met rechts Inloggen.
-  const loginButton = (
-    <button onClick={onGoLogin} className="press-scale" style={{
-      flexShrink: 0, marginRight: 6, background: HEADER_TEXT, color: "#132622", border: "none", borderRadius: 100,
-      padding: "8px 16px", fontFamily: sans, fontSize: 13.5, fontWeight: 700, cursor: "pointer",
-    }}>
-      Inloggen
-    </button>
-  );
-  const guestNotice = (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, background: PAPER_DEEP, borderRadius: 14, padding: "11px 14px", marginBottom: 20 }}>
-      <Lock size={15} color={BOTTLE} style={{ flexShrink: 0 }} />
-      <span style={{ fontSize: 12.5, color: INK, lineHeight: 1.4 }}>Inchecken, vrienden en je profiel vereisen een (gratis) account.</span>
-    </div>
-  );
-
-  return (
-    <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
-      <StatusBarBackdrop showAfter={0} dark />
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 20px calc(env(safe-area-inset-bottom) + 92px)" }}>
-        {tab === "ontdekken" ? (
-          <OntdekkenTab headerRight={loginButton} intro={guestNotice}
-            openRecipeId={pendingRecipeId} onOpenRecipeHandled={() => setPendingRecipeId(null)}
-            recommended={[]} favoriteFamily={null}
-            allIngredients={allIngredients} onOpenRecipe={setPendingRecipeId} onSound={onSound}
-            makenProps={{
-              recipes, isOwned, ingredientLabel, allIngredients,
-              onAddToShoppingList, onSound, onOpenRecipe: setPendingRecipeId, onAddToFeest, feestChosen,
-              shoppingKeys, onRemoveFromShoppingList, favoriteRecipeIds, onToggleFavorite,
-            }}
-            verhaalProps={{
-              recipes, ingredientLabel, allIngredients, isOwned,
-              recentRecipeIds, onViewRecipe, onSound,
-              favoriteRecipeIds, onToggleFavorite,
-              onAddToShoppingList, onAddToFeest, feestChosen,
-              onOpenCheckin: onGoLogin,
-            }}
-          />
-        ) : (
-          <>
-            <LargeTitleHeader title="Cursus" right={loginButton} />
-            {guestNotice}
-            <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={onSound}
-              recipes={recipes} allIngredients={allIngredients} onOpenRecipe={(id) => { setPendingRecipeId(id); setTab("ontdekken"); }} />
-          </>
-        )}
-      </div>
-
-      <div className="glass-light bottom-dock" style={{
-        position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 10,
-        border: "none", borderTop: "1px solid rgba(184,137,58,0.7)", boxShadow: "0 -6px 18px rgba(43,38,32,0.10)",
-      }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", padding: "9px 6px calc(env(safe-area-inset-bottom) + 9px)" }}>
-          {[{ id: "ontdekken", label: "Ontdekken", icon: Search }, { id: "cursus", label: "Cursus", icon: GraduationCap }].map(t => {
-            const Icon = t.icon;
-            const isActive = tab === t.id;
-            return (
-              <button key={t.id} onClick={() => setTab(t.id)} style={{
-                flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                background: "none", border: "none", cursor: "pointer", padding: "4px 2px",
-                fontFamily: sans, color: isActive ? BOTTLE : MUTED,
-              }}>
-                <Icon size={21} strokeWidth={isActive ? 2.1 : 1.7} />
-                <span style={{ fontSize: 10.5, fontWeight: isActive ? 700 : 500 }}>{t.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Deellinks (menu, smaaktest, vrienduitnodiging, wachtwoord-reset) moeten
 // naar de openbare webversie wijzen. In de iOS-app is window.location.origin
 // "capacitor://localhost" — een link waar een ontvanger niets mee kan. Daar
@@ -2020,9 +1931,9 @@ function AgeGateScreen({ onConfirm }) {
 // Login/registratie: dezelfde donkere "signage"-look als de masthead elders
 // in de app, zodat dit niet als een los, generiek inlogscherm aanvoelt maar
 // als het voorportaal van dezelfde Bar Register-huisstijl.
-function AuthScreen() {
+function AuthScreen({ initialMode = "login", onCancel }) {
   useMatchBodyBackground(BOTTLE_DARK);
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState(initialMode === "signup" ? "signup" : "login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -2059,6 +1970,13 @@ function AuthScreen() {
 
   return (
     <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)`, display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 24px", boxSizing: "border-box" }}>
+      {/* Gast die toch nog even verder wil kijken: terug naar de app. */}
+      {onCancel && (
+        <button onClick={onCancel} style={{
+          position: "fixed", top: "calc(env(safe-area-inset-top) + 6px)", left: 8, zIndex: 2, display: "flex", alignItems: "center", gap: 1,
+          minHeight: 44, padding: "0 10px 0 4px", background: "none", border: "none", cursor: "pointer", color: HEADER_ACCENT, fontFamily: sans, fontSize: 15.5, fontWeight: 600,
+        }}><ChevronLeft size={22} strokeWidth={2.2} /> Terug</button>
+      )}
       <div style={{ maxWidth: 380, margin: "0 auto", width: "100%" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
           <div style={{ marginBottom: 14 }}>
@@ -2460,6 +2378,8 @@ export default function ThuisbarApp() {
   // (Home ververst daarbij ook, Ontdekken sluit een open recept).
   const [ontdekkenTapTick, setOntdekkenTapTick] = useState(0);
   const navigateTo = (nextTab, { restore = false } = {}) => {
+    // Gast: wat echt een account nodig heeft, opent de zachte drempel.
+    if (session === null && GUEST_LOCKED_TABS[nextTab]) { requireAccount(GUEST_LOCKED_TABS[nextTab]); return; }
     if (nextTab === tab) {
       if (nextTab === "home") setHomeTapTick(t => t + 1);
       else {
@@ -2536,10 +2456,24 @@ export default function ThuisbarApp() {
   // Gast-modus (Recepten/Cursus zonder account) valt terug op AuthScreen
   // zodra een gast zelf op "Inloggen" tikt; na een geslaagde login weer
   // resetten zodat een latere uitlog-actie opnieuw in gast-modus opent.
+  // false, of "login"/"signup": welk formulier AuthScreen opent.
   const [wantsLogin, setWantsLogin] = useState(false);
   useEffect(() => { if (session) setWantsLogin(false); }, [session]);
+  const isGuest = session === null;
+  // Zachte drempel: tik je als gast op iets dat echt een account nodig heeft
+  // (vrienden, feestplanner, je profiel delen), dan schuift er een kort
+  // venster omhoog met wat je ermee krijgt — geen slotje of harde muur.
+  const [accountPrompt, setAccountPrompt] = useState(null);
+  const requireAccount = (reason = "algemeen") => { hapticFor("tick"); setAccountPrompt(reason); };
   const [profile, setProfile] = useState(null);
-  const [logboek, setLogboekState] = useState([]);
+  const [serverLogboek, setLogboekState] = useState([]);
+  // Gasten checken lokaal in (op dit toestel); bij het aanmaken van een
+  // account of inloggen gaan ze mee naar Supabase (zie hieronder).
+  const [guestCheckins, setGuestCheckinsStored] = useStorage("thuisbar-gast-checkins", []);
+  const guestCheckinsRef = useRef(guestCheckins);
+  guestCheckinsRef.current = guestCheckins;
+  const updateGuestCheckins = (fn) => { const next = fn(guestCheckinsRef.current); guestCheckinsRef.current = next; setGuestCheckinsStored(next); };
+  const logboek = session ? serverLogboek : guestCheckins;
   const [passwordRecovery, setPasswordRecovery] = useState(false);
   const push = usePushNotifications(session);
   const nativePush = useNativePush(session, (doel) => {
@@ -2654,9 +2588,38 @@ export default function ThuisbarApp() {
       .then(({ data }) => { if (!cancelled && data) setLogboekState(data.map(checkinRowToEntry)); });
     return () => { cancelled = true; };
   }, [session]);
+  // Check-ins die je als gast deed, gaan na het inloggen of aanmaken van een
+  // account mee naar je account (met hun oorspronkelijke datum). Pas als het
+  // opslaan gelukt is, verdwijnen ze van het toestel.
+  const migratingRef = useRef(false);
+  useEffect(() => {
+    if (!session || guestCheckins.length === 0 || migratingRef.current) return;
+    migratingRef.current = true;
+    const rows = guestCheckins.map(e => ({
+      user_id: session.user.id, recipe_id: e.recipeId || null, name: e.name, rating: e.rating, notes: e.notes, photo: e.photo,
+      location: e.location, location_lat: e.locationLat, location_lon: e.locationLon, taste_tags: e.tasteTags, created_at: e.createdAt,
+    }));
+    (async () => {
+      let { error } = await supabase.from("checkins").insert(rows);
+      if (error) ({ error } = await supabase.from("checkins").insert(rows.map(({ created_at, ...r }) => r))); // eslint-disable-line no-unused-vars
+      if (!error) { updateGuestCheckins(() => []); reloadLogboek(); }
+      else console.error("Gast-check-ins overzetten mislukt:", error);
+      migratingRef.current = false;
+    })();
+  }, [session, guestCheckins]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addLogEntry = async (entry) => {
-    if (!session) return;
+    if (session === undefined) return;
+    if (!session) {
+      const now = new Date().toISOString();
+      const local = {
+        id: `local-${Date.now()}`, date: now.slice(0, 10), createdAt: now, recipeId: entry.recipeId, name: entry.name,
+        rating: entry.rating, notes: entry.notes || "", photo: entry.photo || null, location: entry.location || "Thuis",
+        locationLat: entry.locationLat ?? null, locationLon: entry.locationLon ?? null, tasteTags: entry.tasteTags || [],
+      };
+      updateGuestCheckins(cur => [local, ...cur]);
+      return local.id;
+    }
     const { data } = await supabase.from("checkins").insert({
       user_id: session.user.id, recipe_id: entry.recipeId, name: entry.name, rating: entry.rating,
       notes: entry.notes, photo: entry.photo, location: entry.location,
@@ -2686,7 +2649,7 @@ export default function ThuisbarApp() {
   // opslaan niet (bijv. ontbrekende update-policy), dan terug naar wat er
   // in de database staat.
   const updateLogEntry = async (id, entry) => {
-    if (!session) return;
+    if (!session) { updateGuestCheckins(cur => cur.map(e => e.id === id ? { ...e, ...entry } : e)); return; }
     const patch = {
       recipe_id: entry.recipeId, name: entry.name, rating: entry.rating, notes: entry.notes, photo: entry.photo,
       location: entry.location, location_lat: entry.locationLat, location_lon: entry.locationLon, taste_tags: entry.tasteTags,
@@ -2702,6 +2665,7 @@ export default function ThuisbarApp() {
     setLogboekState(cur => cur.map(e => e.id === id ? checkinRowToEntry(data) : e));
   };
   const removeLogEntry = async (id) => {
+    if (!session) { updateGuestCheckins(cur => cur.filter(e => e.id !== id)); return; }
     setLogboekState(cur => cur.filter(e => e.id !== id));
     await supabase.from("checkins").delete().eq("id", id);
   };
@@ -2805,6 +2769,7 @@ export default function ThuisbarApp() {
   // recept-detail — dus niet via de bulk "gebruik dit menu"-actie van
   // de oude Smaakbalans, maar één-voor-één met eigen feedback.
   const addRecipeToFeest = async (id) => {
+    if (!session) { requireAccount("feest"); return; }
     const target = await resolveTargetParty();
     const current = target?.cocktail_ids || [];
     if (!target || current.includes(id)) return;
@@ -2954,7 +2919,7 @@ export default function ThuisbarApp() {
   // die cocktail gekozen. Via batchOpener zodat niet elke tussenlaag een
   // extra prop hoeft door te geven; in gastmodus is er geen Bar → geen knop.
   const [batchRequest, setBatchRequest] = useState(null);
-  batchOpener.current = session ? (id) => { setBatchRequest({ id, nonce: Date.now() }); navigateTo("schaler"); } : null;
+  batchOpener.current = (id) => { setBatchRequest({ id, nonce: Date.now() }); navigateTo("schaler"); };
   const clearShoppingList = () => setShoppingList([]);
   const buyShoppingItem = (item) => {
     if (item.id) setVoorraad(voorraadArr.includes(item.id) ? voorraadArr : [...voorraadArr, item.id]);
@@ -2983,22 +2948,10 @@ export default function ThuisbarApp() {
   if (surveyId) return <GuestSurveyView surveyId={surveyId} />;
   if (session === undefined) return <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)` }} />;
   if (passwordRecovery) return <PasswordRecoveryScreen onDone={() => setPasswordRecovery(false)} />;
-  // Recepten en Cursus moeten zonder account bruikbaar zijn (Apple-eis) —
-  // pas als een gast zelf op "Inloggen" tikt (of iets aanraakt dat echt een
-  // account vereist, zoals inchecken) tonen we alsnog AuthScreen.
-  if (session === null && !wantsLogin) {
-    return (
-      <GuestBrowseShell
-        recipes={allRecipes} allIngredients={allIngredients} isOwned={isOwned} ingredientLabel={ingredientLabel} onSound={chime}
-        onAddToShoppingList={addToShoppingList} onAddToFeest={addRecipeToFeest} feestChosen={feestChosen}
-        shoppingKeys={shoppingKeys} onRemoveFromShoppingList={removeFromShoppingList}
-        recentRecipeIds={recentRecipeIds} onViewRecipe={addRecentRecipe} favoriteRecipeIds={favoriteRecipeIds} onToggleFavorite={toggleFavoriteRecipe}
-        courseProgress={courseProgress} setCourseProgress={setCourseProgress}
-        onGoLogin={() => setWantsLogin(true)}
-      />
-    );
-  }
-  if (session === null) return <AuthScreen />;
+  // Zonder account krijg je dezelfde app (Apple 5.1.1: geen inlogmuur voor
+  // wat geen account nodig heeft). Pas als een gast zelf kiest voor
+  // inloggen of een account maken, tonen we AuthScreen — met een weg terug.
+  if (session === null && wantsLogin) return <AuthScreen initialMode={wantsLogin} onCancel={() => setWantsLogin(false)} />;
 
   return (
     <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
@@ -3017,6 +2970,12 @@ export default function ThuisbarApp() {
         <div style={{ position: "sticky", top: 0, zIndex: 20, background: BOTTLE_DARK, color: "#FBF6EA" }}>
           <div style={{ maxWidth: 960, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 6px) 14px 8px 20px", display: "flex", alignItems: "center", gap: 10, boxSizing: "border-box" }}>
             <h1 style={{ flex: 1, margin: 0, fontFamily: serif, fontSize: 24, fontWeight: 700, letterSpacing: 0.2, color: "#FBF6EA" }}>Mijn Thuisbar</h1>
+            {isGuest ? (
+              <button onClick={() => setWantsLogin("login")} className="press-scale" style={{
+                flexShrink: 0, background: HEADER_TEXT, color: "#132622", border: "none", borderRadius: 100,
+                padding: "8px 14px", fontFamily: sans, fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+              }}>Inloggen</button>
+            ) : (
             <button onClick={() => setShowNotifications(true)} aria-label={notifications.unread > 0 ? `Meldingen, ${notifications.unread} nieuw` : "Meldingen"} className="press-scale" style={{
               position: "relative", width: 44, height: 44, border: "none", background: "none", color: "#DDB877",
               display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
@@ -3028,6 +2987,7 @@ export default function ThuisbarApp() {
                 </span>
               )}
             </button>
+            )}
             <button onClick={() => openCheckin()} aria-label="Inchecken" className="press-scale" style={{
               width: 38, height: 38, borderRadius: "50%", border: "none", background: "#B8862E", color: "#132622",
               display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
@@ -3044,7 +3004,8 @@ export default function ThuisbarApp() {
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             logboek={logboek} recipes={allRecipes} allIngredients={allIngredients} active={tab === "home"}
             onOpenRecipe={openRecipeDetail} onOpenCheckin={openCheckin} onSound={chime}
-            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} nativePush={nativePush} highlightId={feedHighlight} />
+            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} nativePush={nativePush} highlightId={feedHighlight}
+            guest={isGuest} onRequireAccount={requireAccount} />
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
@@ -3075,11 +3036,12 @@ export default function ThuisbarApp() {
         <TabPanel id="bar" active={tab === "bar"} visited={visitedTabs.has("bar")} panelRef={panelRefs}>
           <BarTab onSelect={(id) => { if (id === "balans") setMaPartyId(null); navigateTo(id); }} shoppingCount={shoppingList.length} feestCount={feestChosen.length} active={tab === "bar"}
             voorraadCount={voorraad.size} customRecipesCount={customRecipes.length}
-            feestSubtitle={upcomingParties[0] ? `${upcomingParties[0].name} · ${formatPartyWhen(upcomingParties[0]).toLowerCase()}` : "Plan een avond"}
+            feestSubtitle={isGuest ? "Met een gratis account" : upcomingParties[0] ? `${upcomingParties[0].name} · ${formatPartyWhen(upcomingParties[0]).toLowerCase()}` : "Plan een avond"}
             courseProgress={courseProgress} />
         </TabPanel>
         <TabPanel id="profiel" active={tab === "profiel"} visited={visitedTabs.has("profiel")} panelRef={panelRefs}>
-          <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onUpdateEntry={updateLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest} onCheckedIn={handleCheckedIn}
+          <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onUpdateEntry={updateLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest} onCheckinRequestHandled={() => setCheckinRequest(null)} onCheckedIn={handleCheckedIn}
+            guest={isGuest} onRequireAccount={requireAccount}
             onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress} courseRank={courseRank}
             onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} />
         </TabPanel>
@@ -3121,6 +3083,7 @@ export default function ThuisbarApp() {
               }}
               onUnlink={() => setMaPartyId(null)}
               onUseInFeestplanner={async (ids, guests, partyId) => {
+                if (!session) { requireAccount("feest"); return; }
                 const target = (partyId && parties.parties.find(p => p.id === partyId)) || await resolveTargetParty({ guests });
                 if (!target) return;
                 parties.updateParty(target.id, { cocktail_ids: ids });
@@ -3161,7 +3124,8 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel", { restore: true })}>
-            <InstellingenTab soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={signOut} push={push} nativePush={nativePush} onNavigate={navigateTo} />
+            <InstellingenTab soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={signOut} push={push} nativePush={nativePush} onNavigate={navigateTo}
+              guest={isGuest} onLogin={() => setWantsLogin("login")} onSignup={() => setWantsLogin("signup")} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="privacybeleid" active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
@@ -3182,8 +3146,78 @@ export default function ThuisbarApp() {
       </div>
 
       <BottomDock tab={tab} setTab={navigateTo} shoppingCount={shoppingList.length} onCheckin={() => openCheckin()} />
+      {accountPrompt && (
+        <AccountPromptSheet reason={accountPrompt} checkinCount={guestCheckins.length} onClose={() => setAccountPrompt(null)}
+          onSignup={() => { setAccountPrompt(null); setWantsLogin("signup"); }}
+          onLogin={() => { setAccountPrompt(null); setWantsLogin("login"); }} />
+      )}
     </div>
   );
+}
+
+// Schermen die als gast de zachte drempel openen i.p.v. te navigeren
+// (waarde = welke uitleg het venster toont).
+const GUEST_LOCKED_TABS = { vrienden: "vrienden", feest: "feest", "account-verwijderen": "algemeen" };
+const ACCOUNT_PROMPT_COPY = {
+  algemeen: { title: "Maak een gratis account", text: "Alles wat je nu doet blijft gewoon werken. Met een account komt er dit bij:" },
+  vrienden: { title: "Drink samen met vrienden", text: "Volg wat je vrienden inchecken, proost op hun cocktails en check samen in." },
+  feest: { title: "Plan je feest", text: "Nodig gasten uit met een link, laat ze de smaaktest doen en stel samen het menu en de boodschappen samen." },
+  profiel: { title: "Je eigen profiel", text: "Met een account krijg je een naam en foto die je vrienden zien, en staan je check-ins veilig bewaard." },
+  bewaren: { title: "Bewaar je check-ins", text: "Je check-ins staan nu alleen op deze telefoon. Met een account staan ze veilig bewaard en kun je ze delen." },
+};
+const ACCOUNT_BENEFITS = [
+  { icon: Users, title: "Vrienden en feed", sub: "Zie wat je vrienden drinken en check samen in" },
+  { icon: ShieldCheck, title: "Check-ins veilig bewaard", sub: "Ook op een nieuwe telefoon; wat je al deed gaat mee" },
+  { icon: PartyPopper, title: "Feesten plannen", sub: "Gasten uitnodigen, smaaktest en menu delen" },
+];
+function AccountPromptSheet({ reason, checkinCount = 0, onClose, onSignup, onLogin }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const copy = ACCOUNT_PROMPT_COPY[reason] || ACCOUNT_PROMPT_COPY.algemeen;
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in" style={{
+        position: "relative", maxWidth: 560, width: "100%", margin: "0 auto", background: PAPER, borderRadius: "22px 22px 0 0",
+        boxShadow: "0 -12px 30px rgba(43,38,32,0.25)", padding: "0 22px calc(env(safe-area-inset-bottom) + 18px)",
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", touchAction: "none", paddingTop: 4 }}>
+          <BrandMark width={64} />
+          <div style={{ fontFamily: serif, fontSize: 24, fontWeight: 700, lineHeight: 1.2, marginTop: 12 }}>{copy.title}</div>
+          <p style={{ margin: "8px 0 0", fontSize: 14.5, color: MUTED, lineHeight: 1.5, maxWidth: 380 }}>{copy.text}</p>
+        </div>
+        <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, margin: "18px 0 0", padding: "4px 14px" }}>
+          {ACCOUNT_BENEFITS.map(({ icon: Icon, title, sub }, i) => (
+            <div key={title} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderTop: i ? `1px solid ${BORDER}` : "none" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(31,61,54,0.08)", color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={17} /></span>
+              <span style={{ textAlign: "left" }}>
+                <span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>{title}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>{sub}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        {checkinCount > 0 && (
+          <div style={{ fontSize: 12.5, color: MUTED, textAlign: "center", marginTop: 10 }}>
+            Je {checkinCount === 1 ? "check-in gaat" : `${checkinCount} check-ins gaan`} automatisch mee naar je account.
+          </div>
+        )}
+        <button onClick={onSignup} className="press-scale" style={{
+          width: "100%", minHeight: 50, marginTop: 16, borderRadius: 14, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT,
+          fontFamily: sans, fontSize: 16, fontWeight: 700, cursor: "pointer",
+        }}>Gratis account maken</button>
+        <button onClick={onLogin} className="press-scale" style={{
+          width: "100%", minHeight: 48, marginTop: 8, borderRadius: 14, border: `1.5px solid ${BOTTLE}`, background: "none", color: BOTTLE,
+          fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
+        }}>Ik heb al een account</button>
+        <button onClick={close} style={{
+          width: "100%", minHeight: 44, marginTop: 4, border: "none", background: "none", color: MUTED,
+          fontFamily: sans, fontSize: 14.5, fontWeight: 600, cursor: "pointer",
+        }}>Later</button>
+      </div>
+    </div>
+  ), document.body);
 }
 
 function Switch({ checked, onChange, disabled }) {
@@ -3201,9 +3235,20 @@ function Switch({ checked, onChange, disabled }) {
 // UX-herindeling (v2): Profiel IS nu het check-ins/inzichten-scherm zelf
 // (zoals Untappd) i.p.v. een lijstje dat er naar doorverwijst — de kaart en
 // instellingen hieronder wonen nu in LogboekTab resp. InstellingenTab.
-function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, nativePush, onNavigate }) {
+function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, nativePush, onNavigate, guest = false, onLogin, onSignup }) {
+  if (guest) { push = { supported: false }; nativePush = null; }
   return (
     <div>
+      {guest && (
+        <div style={{ background: CREAM, boxShadow: SHADOW_CARD, borderRadius: 16, padding: 16, marginBottom: 14 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: INK }}>Je gebruikt de app zonder account</div>
+          <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginTop: 3 }}>Je voorraad, check-ins en cursus staan op deze telefoon. Met een account komen vrienden, de feed en de feestplanner erbij.</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button onClick={onSignup} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Account maken</button>
+            <button onClick={onLogin} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: `1.5px solid ${BOTTLE}`, background: "none", color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Inloggen</button>
+          </div>
+        </div>
+      )}
       <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px" }}>
           <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
@@ -3296,6 +3341,7 @@ function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, nativeP
           <span style={{ flex: 1, fontWeight: 600 }}>Fotoverantwoording</span>
           <ChevronRight size={16} color={MUTED} />
         </button>
+        {!guest && <>
         <button onClick={onSignOut} style={{
           width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
           background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
@@ -3316,6 +3362,7 @@ function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, nativeP
           </span>
           <span style={{ flex: 1, fontWeight: 600 }}>Account verwijderen</span>
         </button>
+        </>}
       </div>
     </div>
   );
@@ -3336,7 +3383,7 @@ function PrivacyPolicyScreen() {
       <H>Waarvoor</H>
       <P>Uitsluitend om de app te laten werken: je eigen gegevens tonen, je voortgang bewaren, en — als je vrienden hebt toegevoegd — hun check-ins met je delen en andersom. Niets wordt gebruikt voor advertenties of doorverkocht aan derden.</P>
       <H>Waar</H>
-      <P>Je gegevens staan opgeslagen bij Supabase (databasehosting in de EU). Sommige instellingen (zoals je voorraad) staan lokaal op je toestel.</P>
+      <P>Je gegevens staan opgeslagen bij Supabase (databasehosting in de EU). Sommige instellingen (zoals je voorraad) staan lokaal op je toestel. Gebruik je de app zonder account, dan blijft alles (ook je check-ins) alleen op je toestel; maak je later een account, dan gaan je check-ins mee naar je account. Verwijder je de app zonder account, dan zijn deze gegevens weg.</P>
       <H>Delen met derden</H>
       <P>Alleen wat nodig is om de app te laten draaien (databasehosting, en — als je pushmeldingen aanzet — de meldingendienst van je besturingssysteem). Nooit voor marketingdoeleinden.</P>
       <H>Jouw rechten</H>
@@ -4112,7 +4159,38 @@ function FeedScore({ value }) {
   );
 }
 
-function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush, highlightId }) {
+const NO_IDS = [];
+// Home voor gasten: in plaats van de feed van vrienden een kaart die laat
+// zien wat inchecken is, en — zodra er check-ins zijn — dat die nu alleen op
+// deze telefoon staan. Vanaf drie check-ins wat nadrukkelijker.
+function GuestFeedCard({ count, onCheckin, onRequireAccount }) {
+  if (count === 0) return (
+    <div style={{ background: CREAM, borderRadius: 18, boxShadow: SHADOW_CARD, padding: 18, margin: "18px 0 6px" }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: BRASS_TEXT }}>Jouw feed</div>
+      <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 700, lineHeight: 1.25, marginTop: 4 }}>Check je eerste cocktail in</div>
+      <p style={{ margin: "6px 0 0", fontSize: 14, color: MUTED, lineHeight: 1.5 }}>Geef een cijfer, schrijf wat je proefde en verzamel stempels. Kan meteen, zonder account.</p>
+      <button onClick={onCheckin} className="press-scale" style={{ width: "100%", minHeight: 46, marginTop: 14, borderRadius: 12, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        <Plus size={17} strokeWidth={2.6} /> Inchecken
+      </button>
+      <button onClick={() => onRequireAccount?.("vrienden")} style={{ width: "100%", minHeight: 40, marginTop: 6, border: "none", background: "none", color: BOTTLE, fontFamily: sans, fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+        Met vrienden? Maak een gratis account
+      </button>
+    </div>
+  );
+  const strong = count >= 3;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, background: strong ? BOTTLE_DARK : CREAM, color: strong ? HEADER_TEXT : INK, borderRadius: 16, boxShadow: SHADOW_CARD, padding: "13px 14px", margin: "18px 0 4px" }}>
+      <ShieldCheck size={22} color={strong ? "#DDB877" : BOTTLE} style={{ flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14.5, fontWeight: 700 }}>{strong ? `Bewaar je ${count} check-ins` : "Je check-ins staan alleen op deze telefoon"}</div>
+        <div style={{ fontSize: 12.5, color: strong ? "#C9D2CB" : MUTED, marginTop: 2, lineHeight: 1.4 }}>Met een gratis account staan ze veilig en kun je ze met vrienden delen.</div>
+      </div>
+      <button onClick={() => onRequireAccount?.("bewaren")} className="press-scale" style={{ flexShrink: 0, minHeight: 36, padding: "0 13px", borderRadius: 100, border: "none", background: strong ? "#DDB877" : BOTTLE, color: strong ? "#132622" : CREAM, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Bewaren</button>
+    </div>
+  );
+}
+
+function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush, highlightId, guest = false, onRequireAccount }) {
   const [pushPromptHidden, setPushPromptHidden] = useStorage("thuisbar-push-prompt-weg", false);
   const [photoViewer, setPhotoViewer] = useState(null);
   const myId = session?.user?.id;
@@ -4200,7 +4278,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
   };
   const rankOf = (entry) => entry.mine ? courseRank : profileCourseRank(friendProfiles[entry.friendId]);
   const knownProfiles = useMemo(() => ({ ...friendProfiles, ...(profile?.id ? { [profile.id]: profile } : {}) }), [friendProfiles, profile]);
-  const checkinTags = useCheckinTags(feedIds, active, knownProfiles, logboek.length);
+  const checkinTags = useCheckinTags(guest ? NO_IDS : feedIds, active, knownProfiles, logboek.length);
   const tagInbox = useTagInbox(myId, active, logboek.length);
   const handleRefresh = async () => {
     onSound("pop");
@@ -4438,6 +4516,11 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             ))}
           </div>
         )}
+        {guest ? (
+          <button onClick={() => onRequireAccount?.("bewaren")} style={{ display: "flex", alignItems: "center", gap: 7, width: "calc(100% - 8px)", margin: "12px 4px 2px", padding: "10px 0 2px", border: "none", borderTop: `1px solid ${BORDER}`, background: "none", cursor: "pointer", fontFamily: sans, fontSize: 12.5, color: MUTED, textAlign: "left" }}>
+            <Lock size={13} style={{ flexShrink: 0 }} /> Alleen op deze telefoon · <span style={{ color: BOTTLE, fontWeight: 700 }}>Bewaar en deel met een account</span>
+          </button>
+        ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 18, margin: "12px 4px 2px", paddingTop: 10, borderTop: `1px solid ${BORDER}` }}>
           <button onClick={() => toggleCheer(entry.id)} className="press-scale" style={{
             display: "flex", alignItems: "center", gap: 6, border: "none", background: "none", padding: "4px 0", cursor: "pointer",
@@ -4452,6 +4535,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             <MessageCircle size={18} /> {nComments > 0 ? `${nComments} ${nComments === 1 ? "reactie" : "reacties"}` : "Reageren"}
           </button>
         </div>
+        )}
         <div style={{ padding: "0 4px" }}>
                   {openComments === entry.id && (
                     <div style={{ borderTop: `1px dashed ${BORDER}`, marginTop: 10, paddingTop: 10 }}>
@@ -4523,9 +4607,14 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
               <span style={{ fontSize: 12, fontWeight: f.today ? 700 : 500, color: f.today ? "#FBF6EA" : "#A9B8B0", maxWidth: 62, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.first}</span>
             </button>
           ))}
-          {friendRow.length === 0 && (
+          {friendRow.length === 0 && (guest ? (
+            <button onClick={() => onRequireAccount?.("vrienden")} style={{ alignSelf: "center", display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", padding: "0 0 0 4px", cursor: "pointer", textAlign: "left", fontFamily: sans }}>
+              <span style={{ width: 56, height: 56, borderRadius: "50%", border: "1.5px dashed rgba(251,246,234,0.35)", display: "flex", alignItems: "center", justifyContent: "center", color: "#DDB877", flexShrink: 0, marginTop: -18 }}><UserPlus size={20} /></span>
+              <span style={{ fontSize: 12.5, color: "#C9D2CB", lineHeight: 1.4 }}>Met een gratis account zie je hier wat je vrienden drinken. <span style={{ color: "#DDB877", fontWeight: 700 }}>Account maken</span></span>
+            </button>
+          ) : (
             <div style={{ alignSelf: "center", fontSize: 12.5, color: "#A9B8B0", lineHeight: 1.4, paddingLeft: 4 }}>Voeg vrienden toe via Profiel; hier zie je wie er vandaag iets drinkt.</div>
-          )}
+          ))}
         </div>
       </div>
 
@@ -4578,7 +4667,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
         </div>
       )}
 
-      {nativePush?.supported && nativePush.permission === "prompt" && !pushPromptHidden && (
+      {guest && <GuestFeedCard count={logboek.length} onCheckin={() => onOpenCheckin()} onRequireAccount={onRequireAccount} />}
+
+      {!guest && nativePush?.supported && nativePush.permission === "prompt" && !pushPromptHidden && (
         <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: 14, marginBottom: 22 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
             <span style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(184,134,46,0.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -4600,7 +4691,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
         </div>
       )}
 
-      {combinedFeed.length === 0 ? (
+      {combinedFeed.length === 0 ? (guest ? null :
         <div style={{ padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS }}>
           <p style={{ margin: 0, fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>
             Nog geen activiteit — check zelf iets in, of voeg vrienden toe via Profiel om te zien wat zij drinken.
@@ -13800,7 +13891,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onCheckedIn, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank}) {
+function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onCheckinRequestHandled, onCheckedIn, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank, guest = false, onRequireAccount}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -14007,7 +14098,10 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
       if (checkinRequest.photo) setPhoto(checkinRequest.photo);
     }
     setShowCheckinSheet(true);
-  }, [checkinRequest]);
+    // Afgehandeld: anders opent het venster opnieuw zodra dit scherm
+    // opnieuw wordt opgebouwd (bijv. na terugkomen van het inlogscherm).
+    onCheckinRequestHandled?.();
+  }, [checkinRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = useMemo(() => computeCheckinStats(logboek), [logboek]);
 
@@ -14065,8 +14159,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
       {isMaster && <MasterHeaderTitle number={masterNumber} />}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <input ref={photoInputRef} type="file" accept="image/*" onChange={handleProfilePhotoFile} style={{ display: "none" }} />
-        <button onClick={() => photoInputRef.current?.click()} disabled={profilePhotoBusy} className="press-scale" aria-label="Profielfoto wijzigen" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
-          <CourseRing name={profile?.name || "Jij"} photo={profile?.avatar_url} size={84} partsDone={courseRank?.partsDone || 0} master={!!courseRank?.master} dark={isMaster} />
+        <button onClick={() => (guest ? onRequireAccount?.("profiel") : photoInputRef.current?.click())} disabled={profilePhotoBusy} className="press-scale" aria-label={guest ? "Profiel maken" : "Profielfoto wijzigen"} style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
+          <CourseRing name={profile?.name || (guest ? "Gast" : "Jij")} photo={profile?.avatar_url} size={84} partsDone={courseRank?.partsDone || 0} master={!!courseRank?.master} dark={isMaster} />
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           {editingName ? (
@@ -14078,8 +14172,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
               <button onClick={saveName} className="press-scale" style={{ background: BOTTLE, color: CREAM, border: "none", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>Opslaan</button>
             </div>
           ) : (
-            <button onClick={startEditName} aria-label="Naam wijzigen" style={{ display: "block", maxWidth: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: isMaster ? HEADER_TEXT : INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "Jouw naam"}</div>
+            <button onClick={guest ? () => onRequireAccount?.("profiel") : startEditName} aria-label={guest ? "Profiel maken" : "Naam wijzigen"} style={{ display: "block", maxWidth: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: isMaster ? HEADER_TEXT : INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || (guest ? "Gast" : "Jouw naam")}</div>
             </button>
           )}
           {courseRank?.rank && <div style={{ margin: "5px 0 3px" }}><CourseRankLabel courseRank={courseRank} chip onDark={isMaster} /></div>}
@@ -14108,6 +14202,18 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
         ))}
       </div>
       </div>
+
+      {/* Gast: één nette kaart om een account te maken; de rest van het
+          profiel (check-ins, smaak, prestaties) werkt gewoon lokaal. */}
+      {guest && (
+        <div style={{ background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 18, padding: 16, marginBottom: 18 }}>
+          <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, lineHeight: 1.25 }}>Maak een gratis account</div>
+          <div style={{ fontSize: 13.5, color: "#C9D2CB", lineHeight: 1.5, marginTop: 4 }}>Vrienden en feed, je check-ins veilig bewaard en feesten plannen. Wat je nu al deed gaat mee.</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button onClick={() => onRequireAccount?.("algemeen")} className="press-scale" style={{ flex: 1, minHeight: 44, borderRadius: 12, border: "none", background: "#DDB877", color: "#132622", fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer" }}>Account maken</button>
+          </div>
+        </div>
+      )}
 
       {/* Tabbladen */}
       <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12, marginBottom: 18 }}>
@@ -14410,7 +14516,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                       </div>
 
                       <div style={{ ...cardStyle, overflow: "hidden" }}>
-                        {!editingEntryId && !adoptTag && optionRow(Users, "Met wie",
+                        {!editingEntryId && !adoptTag && !guest && optionRow(Users, "Met wie",
                           tagged.length > 0 ? (
                             <span style={{ display: "flex", alignItems: "center" }}>
                               {tagged.slice(0, 3).map((f, i) => (
