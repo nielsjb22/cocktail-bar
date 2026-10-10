@@ -1934,6 +1934,22 @@ function AgeGateScreen({ onConfirm }) {
 // Login/registratie: dezelfde donkere "signage"-look als de masthead elders
 // in de app, zodat dit niet als een los, generiek inlogscherm aanvoelt maar
 // als het voorportaal van dezelfde Bar Register-huisstijl.
+// Onzichtbare strook langs de linkerrand van het inlogscherm: vegen = terug.
+function AuthSwipeBack({ onBack }) {
+  const start = useRef(null);
+  return (
+    <div aria-hidden onTouchStart={(e) => { start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }; }}
+      onTouchEnd={(e) => {
+        const s0 = start.current; start.current = null;
+        if (!s0) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - s0.x, dy = Math.abs(t.clientY - s0.y);
+        if (dx > 70 && dy < 60) { hapticFor("tick"); onBack(); }
+      }}
+      style={{ position: "fixed", left: 0, top: 0, bottom: 0, width: 28, zIndex: 1 }} />
+  );
+}
+
 function AuthScreen({ initialMode = "login", onCancel }) {
   useMatchBodyBackground(BOTTLE_DARK);
   const [mode, setMode] = useState(initialMode === "signup" ? "signup" : "login");
@@ -1973,7 +1989,9 @@ function AuthScreen({ initialMode = "login", onCancel }) {
 
   return (
     <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)`, display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 24px", boxSizing: "border-box" }}>
-      {/* Gast die toch nog even verder wil kijken: terug naar de app. */}
+      {/* Gast die toch nog even verder wil kijken: terug naar de app (knop
+          of vanaf de linkerrand vegen). */}
+      {onCancel && <AuthSwipeBack onBack={onCancel} />}
       {onCancel && (
         <button onClick={onCancel} style={{
           position: "fixed", top: "calc(env(safe-area-inset-top) + 6px)", left: 8, zIndex: 2, display: "flex", alignItems: "center", gap: 1,
@@ -5713,6 +5731,10 @@ function useEdgeSwipeBack(onBack) {
     const x = e.touches[0].clientX;
     setSwipeDebug({ lastEvent: "touchstart", lastX: x, gateBlocked: !gestureEnabled, armed: false, delta: 0 });
     if (!gestureEnabled) return;
+    // Aanrakingen in een venster of schermvullende laag (portal) komen in
+    // React ook hier langs; die horen niet bij deze pagina — anders ging
+    // bijv. vegen in de bereidingsmodus terug naar het recept eronder.
+    if (contentRef.current && !contentRef.current.contains(e.target)) { drag.current.tracking = false; return; }
     drag.current.tracking = true;
     drag.current.armed = false;
     drag.current.dragging = false;
@@ -5821,10 +5843,10 @@ function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOn
 // of preview-laag — voor interne detailschermen die al hun eigen terugknop
 // tekenen (een open recept in Recept, een les in Cursus) en alleen de
 // vingerbeweging erbij nodig hebben.
-function EdgeSwipeBackArea({ onBack, children }) {
+function EdgeSwipeBackArea({ onBack, children, bleed = true, style }) {
   const { contentRef, handlers } = useEdgeSwipeBack(onBack);
   return (
-    <div ref={contentRef} {...handlers} style={{ ...EDGE_SWIPE_BLEED, touchAction: "pan-y" }}>
+    <div ref={contentRef} {...handlers} style={{ ...(bleed ? EDGE_SWIPE_BLEED : null), touchAction: "pan-y", ...style }}>
       {children}
     </div>
   );
@@ -8262,6 +8284,21 @@ function BereidModus({ recipe, ingredientLabel, allIngredients, initialServings 
   }
 
   const mins = Math.max(1, Math.round((Date.now() - startedAt.current) / 60000));
+  // Vegen tussen de stappen: naar rechts = vorige stap (bij de eerste stap:
+  // stoppen), naar links = volgende stap — net als door foto's bladeren.
+  const swipeStart = useRef(null);
+  const stepSwipe = {
+    onTouchStart: (e) => { swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; },
+    onTouchEnd: (e) => {
+      const s0 = swipeStart.current; swipeStart.current = null;
+      if (!s0) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - s0.x, dy = t.clientY - s0.y;
+      if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.7) return;
+      if (dx > 0) { if (idx > 0) go(-1); else onClose(); }
+      else { if (isLast) onSound?.("clink"); go(1); }
+    },
+  };
   return createPortal((
     <div style={{ position: "fixed", inset: 0, zIndex: 60, background: BEREID_BG, color: HEADER_TEXT, fontFamily: sans, display: "flex", flexDirection: "column" }}>
       {step.kind !== "proost" && (
@@ -8300,7 +8337,7 @@ function BereidModus({ recipe, ingredientLabel, allIngredients, initialServings 
         </>
       ) : (
         <>
-          <div ref={bodyRef} key={idx} className="tab-fade" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", padding: "26px 22px 16px" }}>
+          <div ref={bodyRef} key={idx} className="tab-fade" {...stepSwipe} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", padding: "26px 22px 16px", touchAction: "pan-y" }}>
             {body}
           </div>
           <div style={{ padding: "12px 20px calc(env(safe-area-inset-bottom) + 18px)", display: "flex", gap: 10 }}>
@@ -11668,10 +11705,14 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
           </button>
         ),
       });
+    } else if (pos >= 1 && !(linkedParty && pos === 1)) {
+      // Bij de vragen: terug (knop of vegen) = de vorige vraag, niet meteen
+      // het hele scherm uit.
+      setNavOverride({ label: "Vorige", title: "Menu-assistent", onBack: () => goTo(pos - 1) });
     } else {
       setNavOverride(null);
     }
-  }, [setNavOverride, showResult]);
+  }, [setNavOverride, showResult, pos]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => setNavOverride && setNavOverride(null), [setNavOverride]);
 
   const facts = useMemo(() => recipes.map(r => {
@@ -12615,6 +12656,7 @@ function SwipeStars({ value, onChange, onSound }) {
           if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); set(Math.min(5, (value || 0) + 0.5)); }
           if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); set(Math.max(0.5, (value || 1) - 0.5)); }
         }}
+        onTouchStart={(e) => e.stopPropagation()}
         onPointerDown={(e) => { dragRef.current = true; e.currentTarget.setPointerCapture?.(e.pointerId); set(valueAt(e.clientX)); }}
         onPointerMove={(e) => { if (dragRef.current) set(valueAt(e.clientX)); }}
         onPointerUp={() => { dragRef.current = false; }}
@@ -14516,7 +14558,16 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
         }}>
           <BodyScrollLock />
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoFile} style={{ display: "none" }} />
-          <div key={ciStep} className="ci-step-in" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          {/* Vanaf de linkerrand terugvegen: een substap terug naar het
+              formulier, het formulier zelf = Annuleer (met de vraag of het
+              weg mag als er iets is ingevuld). */}
+          <EdgeSwipeBackArea key={ciStep} bleed={false} style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: PAPER }}
+            onBack={() => {
+              if (ciStep === "friends" || ciStep === "location") { document.activeElement?.blur?.(); setCiStep("form"); }
+              else if (ciStep === "search" && nameInput.trim()) setCiStep("form");
+              else requestCancel();
+            }}>
+          <div className="ci-step-in" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
             {ciStep === "search" ? (
               <CheckinSearchStep recipes={recipes} allIngredients={allIngredients} recent={recentCocktails}
                 initialQuery={matchedRecipe ? "" : nameInput}
@@ -14657,6 +14708,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
               );
             })()}
           </div>
+          </EdgeSwipeBackArea>
 
           {stampNumber != null && (
             <div style={{ position: "absolute", inset: 0, zIndex: 5, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(20,16,10,0.4)" }}>
