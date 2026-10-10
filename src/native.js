@@ -33,7 +33,9 @@ let statusBarOnDark = false;
 let applyThemeStatusBar = () => {};
 function syncStatusBarWithTheme() {
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
-  const apply = (dark) => StatusBar.setStyle({ style: dark ? Style.Light : Style.Dark }).catch(() => {});
+  // Elk scherm heeft een donkergroene kop (ook in de lichte modus), dus de
+  // statusbalk heeft altijd lichte tekst nodig (Style.Dark = lichte tekst).
+  const apply = () => StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
   applyThemeStatusBar = () => apply(mq.matches);
   apply(mq.matches);
   mq.addEventListener("change", (e) => { if (!statusBarOnDark) apply(e.matches); });

@@ -7,13 +7,9 @@
    (dat overal `style={{ color: INK }}` etc. gebruikt, met INK = "var(--ink)")
    automatisch meeschakelt naar een donkere palet zodra het systeem op donker
    staat — zonder dat er in de duizenden losse stijlregels iets hoeft te
-   veranderen. :root hieronder = de lichte, huidige look; de media query
-   erna herdefinieert dezelfde namen voor prefers-color-scheme: dark. Het
-   "papier" wordt dan een donkerbruine ondergrond (niet grijs/zwart — dat
-   past niet bij de warme, vintage ledger-sfeer), kaarten krijgen een net
-   iets lichter donker vlak zodat ze zich nog aftekenen, en de accentkleuren
-   (brass/sage/burgundy) worden een fractie helderder zodat ze op een
-   donkere ondergrond even goed leesbaar blijven als op de lichte. */
+   veranderen. :root hieronder = de lichte look; de media query erna
+   herdefinieert dezelfde namen voor prefers-color-scheme: dark (houtskool
+   met messing, zie daar). */
 :root {
   --ink: #2B2620;
   --paper: #F3ECDD;
@@ -33,23 +29,27 @@
   --dock-bg: rgba(243,236,221,0.94);
 }
 @media (prefers-color-scheme: dark) {
+  /* Donkere modus "houtskool + messing": een neutrale, bijna zwarte
+     ondergrond (zoals de donkere modus van iOS), kaarten een tikje lichter,
+     de koppen blijven flessengroen en messing is de accentkleur. Foto's van
+     cocktails komen zo het best uit. */
   :root {
-    --ink: #EDE6D6;
-    --paper: #17130E;
-    --paper-deep: #201A13;
-    --bottle: #4B7C6A;
+    --ink: #F0EDE6;
+    --paper: #111312;
+    --paper-deep: #1A1D1C;
+    --bottle: #6FA58E;
     --bottle-dark: #0E1917;
     --brass: #D4A54A;
-    --burgundy: #C17A73;
+    --burgundy: #D58C83;
     --sage: #8FB37E;
-    --muted: #A39878;
-    --brass-text: #D4A54A;
-    --border: #362F22;
-    --cream: #221C14;
-    --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 10px 24px -8px rgba(0,0,0,0.6);
+    --muted: #9C9B95;
+    --brass-text: #DDB46A;
+    --border: #2A2E2C;
+    --cream: #1C1F1E;
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.45), 0 10px 24px -8px rgba(0,0,0,0.6);
     --shadow-hero: 0 8px 30px -6px rgba(0,0,0,0.6);
     --shadow-cta: 0 2px 10px -2px rgba(0,0,0,0.6);
-    --dock-bg: rgba(23,19,14,0.9);
+    --dock-bg: rgba(28,31,30,0.92);
   }
 }
 
@@ -571,7 +571,7 @@ button:focus-visible {
 
 @media (prefers-color-scheme: dark) {
   .glass-light {
-    background: rgba(23, 19, 14, 0.70);
+    background: rgba(28, 31, 30, 0.72);
     border-color: rgba(255, 255, 255, 0.14);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 10px 28px rgba(0, 0, 0, 0.5);
   }
@@ -779,13 +779,22 @@ html.kb-open .menu-assist-footer {
   display: none;
 }
 
+/* Hoofdknoppen staan in de lichte modus in donker flessengroen. Op de
+   bijna zwarte ondergrond van de donkere modus vallen die weg; daar krijgen
+   ze een lichtere groene tint (de koppen houden hun eigen kleur). */
+@media (prefers-color-scheme: dark) {
+  button[style*="background: var(--bottle-dark)"] {
+    background: #2A4D42 !important;
+  }
+}
+
 /* Actieve tab in de onderbalk: in donkere modus geen wit glas (dan was de
    groene tekst onleesbaar) maar een zacht licht vlak met lichte tekst. */
 @media (prefers-color-scheme: dark) {
   .dock-active {
     background: rgba(255, 255, 255, 0.10) !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
-    color: #EDE6D6;
+    color: #F0EDE6;
   }
 }
 

@@ -85,6 +85,9 @@ const SAGE = "var(--sage)";
 const MUTED = "var(--muted)";
 const BORDER = "var(--border)";
 const CREAM = "var(--cream)";
+// Tekst die altijd licht moet zijn: op foto's en op de donkergroene vlakken.
+// (CREAM zelf wordt in de donkere modus een donkere kaartkleur.)
+const ON_DARK_TEXT = "#FBF6EA";
 const CUSTOM_CAT = "Eigen ingrediënten";
 
 const serif = "'Playfair Display', Georgia, 'Times New Roman', serif";
@@ -1900,12 +1903,12 @@ function AgeGateScreen({ onConfirm }) {
         </div>
         {declined ? (
           <>
-            <h1 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: CREAM, margin: "0 0 12px" }}>Helaas</h1>
+            <h1 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 22, color: ON_DARK_TEXT, margin: "0 0 12px" }}>Helaas</h1>
             <p style={{ color: "#C7CFC5", fontSize: 14, lineHeight: 1.6, margin: 0 }}>Mijn Thuisbar draait om alcoholische dranken en is niet geschikt voor bezoekers onder de 18 jaar.</p>
           </>
         ) : (
           <>
-            <h1 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: CREAM, margin: "0 0 12px" }}>Even een check</h1>
+            <h1 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: ON_DARK_TEXT, margin: "0 0 12px" }}>Even een check</h1>
             <p style={{ color: "#C7CFC5", fontSize: 14, lineHeight: 1.6, margin: "0 0 26px" }}>
               Mijn Thuisbar draait om cocktails en alcoholische dranken. Ben je 18 jaar of ouder?
             </p>
@@ -1982,7 +1985,7 @@ function AuthScreen({ initialMode = "login", onCancel }) {
           <div style={{ marginBottom: 14 }}>
             <BrandMark width={92} />
           </div>
-          <h1 style={{ fontFamily: systemFont, fontSize: 30, fontWeight: 700, color: CREAM, margin: 0 }}>Mijn Thuisbar</h1>
+          <h1 style={{ fontFamily: systemFont, fontSize: 30, fontWeight: 700, color: ON_DARK_TEXT, margin: 0 }}>Mijn Thuisbar</h1>
           <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "#B9C4B9", letterSpacing: 0.6, textTransform: "uppercase", fontWeight: 500 }}>
             {mode === "login" ? "Log in bij je register" : mode === "signup" ? "Maak je eigen register aan" : "Wachtwoord opnieuw instellen"}
           </p>
@@ -2084,7 +2087,7 @@ function PasswordRecoveryScreen({ onDone }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 60, height: 60, borderRadius: "50%", border: `1.5px solid ${BRASS}`, background: "rgba(184,134,46,0.08)", marginBottom: 14 }}>
             <Lock color={BRASS} size={26} strokeWidth={1.5} />
           </div>
-          <h1 style={{ fontFamily: systemFont, fontSize: 26, fontWeight: 700, color: CREAM, margin: 0, textAlign: "center" }}>Nieuw wachtwoord</h1>
+          <h1 style={{ fontFamily: systemFont, fontSize: 26, fontWeight: 700, color: ON_DARK_TEXT, margin: 0, textAlign: "center" }}>Nieuw wachtwoord</h1>
         </div>
         <form onSubmit={submit} style={{ background: "rgba(251,247,236,0.06)", border: "1px solid rgba(184,134,46,0.25)", borderRadius: RADIUS + 4, padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
@@ -4665,7 +4668,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                   })} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: HEADER_TEXT, color: "#132622", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
                     Ook inchecken
                   </button>
-                  <button onClick={() => tagInbox.dismiss(tag.id)} style={{ minHeight: 42, padding: "0 16px", borderRadius: 12, border: "1px solid rgba(251,246,234,0.25)", background: "none", color: CREAM, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: sans }}>
+                  <button onClick={() => tagInbox.dismiss(tag.id)} style={{ minHeight: 42, padding: "0 16px", borderRadius: 12, border: "1px solid rgba(251,246,234,0.25)", background: "none", color: ON_DARK_TEXT, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: sans }}>
                     Niet nu
                   </button>
                 </div>
@@ -8551,7 +8554,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                     {photo && <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(19,38,34,0.9), rgba(19,38,34,0.1) 60%)" }} />
                     <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "10px 12px", textAlign: "left" }}>
-                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 14, color: CREAM, lineHeight: 1.2 }}>{r.name}</div>
+                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 14, color: ON_DARK_TEXT, lineHeight: 1.2 }}>{r.name}</div>
                       <div style={{ fontSize: 10.5, color: "#D9CBAE", marginTop: 2 }}>{r.family}</div>
                     </div>
                   </button>
@@ -8608,15 +8611,15 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               position: "absolute", top: 16, right: 16, zIndex: 2, width: 36, height: 36, borderRadius: "50%", padding: 0,
               border: favoriteRecipeIds.includes(recipe.id) ? "1px solid rgba(255,255,255,0.35)" : undefined,
               background: favoriteRecipeIds.includes(recipe.id) ? BURGUNDY : undefined,
-              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: CREAM,
+              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: ON_DARK_TEXT,
             }}>
-              <Heart size={16} fill={favoriteRecipeIds.includes(recipe.id) ? CREAM : "none"} />
+              <Heart size={16} fill={favoriteRecipeIds.includes(recipe.id) ? ON_DARK_TEXT : "none"} />
             </button>
             <div style={{ flex: "1 1 260px", position: "relative", zIndex: 1, padding: heroPhoto ? "26px" : 0 }}>
               <div className="hero-text-in" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.75)", marginBottom: 8, animationDelay: "0.1s" }}>{roleInfo.label}</div>
-              <h2 className="hero-text-in" style={{ fontFamily: serif, fontSize: 34, fontWeight: 700, color: CREAM, margin: "0 0 6px", animationDelay: "0.18s" }}>{recipe.name}</h2>
+              <h2 className="hero-text-in" style={{ fontFamily: serif, fontSize: 34, fontWeight: 700, color: ON_DARK_TEXT, margin: "0 0 6px", animationDelay: "0.18s" }}>{recipe.name}</h2>
               <div className="hero-text-in" style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginBottom: 16, animationDelay: "0.26s" }}>{recipe.family} · {recipe.glass}</div>
-              <p className="hero-text-in" style={{ fontFamily: systemFont, fontSize: 15.5, color: CREAM, margin: 0, lineHeight: 1.5, animationDelay: "0.36s" }}>"{getSfeerQuote(recipe, role)}"</p>
+              <p className="hero-text-in" style={{ fontFamily: systemFont, fontSize: 15.5, color: ON_DARK_TEXT, margin: 0, lineHeight: 1.5, animationDelay: "0.36s" }}>"{getSfeerQuote(recipe, role)}"</p>
             </div>
             {!heroPhoto && (
               <div className="glass-bounce-in" style={{ position: "relative", zIndex: 1, margin: "0 auto" }}>
@@ -9463,7 +9466,7 @@ function CursusTab({ progress, setProgress, onSound, recipes, allIngredients, on
           <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.75)", marginBottom: 6 }}>
             {allLessonsDone ? "Alle lessen voltooid" : `${totalLessons - completedCount} les${totalLessons - completedCount === 1 ? "" : "sen"} nog te gaan`}
           </div>
-          <h3 style={{ fontFamily: systemFont, fontSize: 21, fontWeight: 700, color: CREAM, margin: "0 0 8px" }}>Eindtoets: Van Basis tot Pro</h3>
+          <h3 style={{ fontFamily: systemFont, fontSize: 21, fontWeight: 700, color: ON_DARK_TEXT, margin: "0 0 8px" }}>Eindtoets: Van Basis tot Pro</h3>
           <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.9)", margin: "0 0 16px", lineHeight: 1.5, maxWidth: 480 }}>
             30 vragen door elkaar over alle zes delen. {examProgress?.completed ? `Beste score: ${examProgress.bestScore}/${examProgress.total}.` : allLessonsDone ? "Haal minstens 80% (24 van de 30) en je krijgt je diploma op je profiel." : "Gaat open zodra je alle zes delen hebt afgerond."}
           </p>
@@ -14380,7 +14383,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                       </div>
                     )}
                     <div className="glass-chip-dark" style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, borderRadius: 100, padding: "2px 7px" }}>
-                      <span style={{ fontSize: 12, color: CREAM, fontWeight: 700 }}>{formatRating(entry.rating)}</span>
+                      <span style={{ fontSize: 12, color: ON_DARK_TEXT, fontWeight: 700 }}>{formatRating(entry.rating)}</span>
                       <Star size={10} fill="#D8AE5E" color="#D8AE5E" />
                     </div>
                   </button>
@@ -15154,7 +15157,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                     </div>
                   )}
                   <div className="glass-chip-dark" style={{ position: "absolute", left: 6, bottom: 6, display: "flex", alignItems: "center", gap: 3, borderRadius: 100, padding: "2px 7px" }}>
-                    <span style={{ fontSize: 12, color: CREAM, fontWeight: 700 }}>{formatRating(entry.rating)}</span>
+                    <span style={{ fontSize: 12, color: ON_DARK_TEXT, fontWeight: 700 }}>{formatRating(entry.rating)}</span>
                     <Star size={10} fill="#D8AE5E" color="#D8AE5E" />
                   </div>
                   {withMeIds.has(String(entry.id)) && (
