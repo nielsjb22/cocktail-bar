@@ -13886,80 +13886,119 @@ function TasteRadar({ taste, size = 230, compare = null }) {
 
 // Details van één check-in (tik op een tegel in het fotoraster), met
 // verwijderen. Eigen lettertype expliciet: rendert via een portal.
-function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, who, whoAvatar, onClose, onRemove, onEdit = null }) {
+// Eén check-in bekijken (vanuit je profiel): dezelfde kaart als een post in
+// de feed, met daaronder het recept en de knoppen Bewerken en Delen.
+// Verwijderen staat bewust niet groot in beeld, maar onder ••• rechtsboven.
+function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, who, whoAvatar, onClose, onRemove, onEdit = null, onOpenRecipe = null, courseRank = null }) {
   useBodyScrollLock();
   const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [shareNote, setShareNote] = useState("");
   const img = entry.photo || (recipe && (localItemImageUrl("cocktail", recipe.id) || recipe.image)) || null;
   const tags = (entry.tasteTags || []).filter(k => CHECKIN_TASTE_META[k]);
-  const ingredientsLine = recipe ? recipe.ingredients.map(ing => ingredientLabel(ing)).join(" · ") : null;
+  const ingredientsLine = recipe ? recipe.ingredients.filter(i => !i.optional).map(ing => ingredientLabel(ing)).join(" · ") : null;
+  const tint = recipe ? recipeTint(recipe, allIngredients) : null;
+  const whenWhere = [entry.location, formatCheckinDate(entry.date)].filter(Boolean).join(" · ");
+  const share = async () => {
+    const text = `Ik heb een ${entry.name} geproefd: ${formatRating(entry.rating)} van de 5.${entry.notes ? ` "${entry.notes}"` : ""}`;
+    const res = await shareLink({ title: entry.name, text, url: publicAppUrl(), fallbackText: text });
+    if (res === "copied") { setShareNote("Link gekopieerd"); setTimeout(() => setShareNote(""), 2000); }
+  };
+  const btn = { flex: 1, height: 48, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer" };
   return createPortal((
     <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
       <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
       <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "88vh",
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", maxHeight: "92vh",
         background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
         display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: sans,
       }}>
         <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 20px 12px", flexShrink: 0, touchAction: "none" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 24, lineHeight: 1.15 }}>{entry.name}</div>
-            {recipe && <div style={{ fontSize: 13, color: MUTED, marginTop: 3 }}>{[recipe.family, recipe.glass].filter(Boolean).join(" · ")}</div>}
+        {/* Wie, waar en wanneer — zoals de kop van een post. */}
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 16px 10px", flexShrink: 0, touchAction: "none" }}>
+          <RankAvatar name={who} photo={whoAvatar} size={38} courseRank={courseRank} />
+          <div style={{ flex: 1, minWidth: 0, lineHeight: 1.25 }}>
+            <div style={{ fontWeight: 700, fontSize: 14.5 }}>{who}</div>
+            <div style={{ fontSize: 12.5, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{whenWhere}</div>
           </div>
-          <button onClick={close} aria-label="Sluiten" className="tap-target-44" onTouchStart={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK, flexShrink: 0 }}><X size={15} /></button>
+          <div style={{ position: "relative" }} onTouchStart={e => e.stopPropagation()}>
+            <button onClick={() => setMenuOpen(v => !v)} aria-label="Meer" style={{ width: 38, height: 38, borderRadius: "50%", border: "none", background: CREAM, boxShadow: SHADOW_CARD, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <MoreHorizontal size={19} />
+            </button>
+            {menuOpen && (
+              <>
+                <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 4 }} />
+                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 5, background: CREAM, borderRadius: 12, boxShadow: "0 8px 24px rgba(43,38,32,0.22)", border: `1px solid ${BORDER}`, overflow: "hidden", minWidth: 210 }}>
+                  <button onClick={() => { setMenuOpen(false); setConfirmDelete(true); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "13px 14px", border: "none", background: "none", cursor: "pointer", fontSize: 14.5, color: BURGUNDY, fontFamily: sans, textAlign: "left" }}>
+                    <Trash2 size={15} /> Check-in verwijderen
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <button onClick={close} aria-label="Sluiten" onTouchStart={e => e.stopPropagation()} style={{ width: 38, height: 38, borderRadius: "50%", border: "none", background: CREAM, boxShadow: SHADOW_CARD, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><X size={17} /></button>
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 20px" }}>
-          <div onClick={img ? () => setPhotoOpen(true) : undefined} style={{ borderRadius: 16, overflow: "hidden", aspectRatio: "4 / 3", background: PAPER_DEEP, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: img ? "zoom-in" : undefined }}>
-            {img ? <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
-              : recipe ? <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={140} radius={16} />
-              : <Martini size={40} color={BRASS} strokeWidth={1.3} />}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <div style={{ display: "flex", gap: 2 }}>
-              {[1, 2, 3, 4, 5].map(n => {
-                const f = Math.min(1, Math.max(0, entry.rating - (n - 1)));
-                return (
-                  <span key={n} style={{ position: "relative", width: 18, height: 18 }}>
-                    <Star size={18} color="#C9BC9C" strokeWidth={1.4} style={{ display: "block" }} />
-                    {f > 0 && <span style={{ position: "absolute", inset: 0, width: `${f * 100}%`, overflow: "hidden" }}><Star size={18} fill={BRASS} color={BRASS} strokeWidth={1.4} style={{ display: "block" }} /></span>}
-                  </span>
-                );
-              })}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 16px calc(env(safe-area-inset-bottom) + 18px)" }}>
+          {/* De post zelf */}
+          <div style={{ borderRadius: 20, background: CREAM, padding: 12, boxShadow: "0 1px 2px rgba(43,38,32,0.08), 0 8px 22px -12px rgba(43,38,32,0.3)" }}>
+            <div onClick={img ? () => setPhotoOpen(true) : undefined} style={{ position: "relative", width: "100%", aspectRatio: "8 / 7", borderRadius: 14, overflow: "hidden", cursor: img ? "zoom-in" : undefined, background: BOTTLE_DARK }}>
+              {img ? (
+                <img src={img} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
+              ) : (
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {recipe ? <GlassArt glass={recipe.glass} colors={tint} garnishes={inferGarnishes(recipe, allIngredients)} rim={inferRim(recipe, allIngredients)} foam={inferFoam(recipe, allIngredients)} iceStyle={inferIceStyle(recipe)} size={120} />
+                    : <Martini size={44} color="rgba(251,246,234,0.85)" strokeWidth={1.3} />}
+                </div>
+              )}
             </div>
-            <span style={{ fontWeight: 700, fontSize: 15 }}>{formatRating(entry.rating)}</span>
-          </div>
-          {tags.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-              {tags.map(k => <span key={k} style={{ fontSize: 12.5, fontWeight: 600, color: INK, background: PAPER_DEEP, borderRadius: 100, padding: "5px 11px" }}>{CHECKIN_TASTE_META[k].label}</span>)}
-            </div>
-          )}
-          <div style={{ background: PAPER_DEEP, borderRadius: 14, overflow: "hidden" }}>
-            {[
-              entry.notes ? { label: "Notitie", text: entry.notes } : null,
-              { label: "Wanneer en waar", text: `${formatCheckinDate(entry.date)}${entry.location ? ` · ${entry.location}` : ""}` },
-              ingredientsLine ? { label: "Ingrediënten", text: ingredientsLine } : null,
-            ].filter(Boolean).map((row, i) => (
-              <div key={row.label} style={{ margin: "0 14px", padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: MUTED }}>{row.label}</div>
-                <div style={{ fontSize: 14.5, lineHeight: 1.5, marginTop: 2, whiteSpace: "pre-wrap" }}>{row.text}</div>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 4px 0" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 22, lineHeight: 1.1, color: INK }}>{entry.name}</div>
+                {recipe && <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>{[recipe.family, recipe.glass].filter(Boolean).join(" · ")}</div>}
               </div>
-            ))}
+              <FeedScore value={entry.rating} />
+            </div>
+            {entry.notes && (
+              <p style={{ margin: "10px 4px 0", paddingTop: 10, borderTop: `1.5px dashed ${BORDER}`, fontSize: 14, lineHeight: 1.45, fontStyle: "italic", color: INK, whiteSpace: "pre-wrap" }}>&ldquo;{entry.notes}&rdquo;</p>
+            )}
+            {tags.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 4px 2px" }}>
+                {tags.map(k => <span key={k} style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 100, background: "rgba(31,61,54,0.08)", color: BOTTLE }}>{CHECKIN_TASTE_META[k].label}</span>)}
+              </div>
+            )}
           </div>
-          {onEdit && (
-            <button onClick={() => { onClose(); onEdit(entry); }} className="press-scale" style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: 18, height: 48, borderRadius: 14,
-              border: "none", background: BOTTLE, color: CREAM, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
-            }}><Pencil size={16} /> Bewerken</button>
+
+          {/* Naar het recept */}
+          {recipe && (
+            <button onClick={onOpenRecipe ? () => { close(); onOpenRecipe(recipe.id); } : undefined} disabled={!onOpenRecipe} className="press-scale" style={{
+              display: "flex", alignItems: "center", gap: 12, width: "100%", marginTop: 12, padding: "12px 14px", borderRadius: 18, border: "none",
+              background: CREAM, boxShadow: SHADOW_CARD, cursor: onOpenRecipe ? "pointer" : "default", textAlign: "left", fontFamily: sans, color: INK,
+            }}>
+              <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={46} radius={12} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontWeight: 700, fontSize: 15 }}>Bekijk het recept</span>
+                {ingredientsLine && <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{ingredientsLine}</span>}
+              </span>
+              <ChevronRight size={17} color={MUTED} style={{ flexShrink: 0 }} />
+            </button>
           )}
-          <button onClick={() => setConfirmDelete(true)} style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", marginTop: onEdit ? 10 : 18, height: 48, borderRadius: 14,
-            border: "none", background: PAPER_DEEP, color: BURGUNDY, fontFamily: sans, fontSize: 15, fontWeight: 600, cursor: "pointer",
-          }}><Trash2 size={16} /> Check-in verwijderen</button>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            {onEdit && (
+              <button onClick={() => { onClose(); onEdit(entry); }} className="press-scale" style={{ ...btn, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT }}>
+                <Pencil size={16} /> Bewerken
+              </button>
+            )}
+            <button onClick={share} className="press-scale" style={{ ...btn, border: `1.5px solid ${BOTTLE}`, background: "none", color: BOTTLE }}>
+              <Share2 size={16} /> {shareNote || "Delen"}
+            </button>
+          </div>
         </div>
       </div>
-      {photoOpen && <CheckinPhotoViewer entry={entry} matched={recipe} who={who} whoAvatar={whoAvatar} allIngredients={allIngredients} onClose={() => setPhotoOpen(false)} />}
+      {photoOpen && <CheckinPhotoViewer entry={entry} matched={recipe} who={who} whoAvatar={whoAvatar} allIngredients={allIngredients} onClose={() => setPhotoOpen(false)}
+        onOpenRecipe={onOpenRecipe ? (id) => { onClose(); onOpenRecipe(id); } : null} />}
       {confirmDelete && (
         <ConfirmDialog title="Check-in verwijderen?" message={`${entry.name} verdwijnt uit je logboek.`} confirmLabel="Verwijder"
           onCancel={() => setConfirmDelete(false)} onConfirm={() => { setConfirmDelete(false); onRemove(entry.id); close(); }} />
@@ -14640,7 +14679,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
       {openEntry && (
         <CheckinDetailSheet entry={openEntry} recipe={findMatch(openEntry)} allIngredients={allIngredients} ingredientLabel={ingredientLabel}
           who={profile?.name || "Jij"} whoAvatar={profile?.avatar_url}
-          onClose={() => setOpenEntryId(null)} onRemove={removeEntry} onEdit={startEditEntry} />
+          onClose={() => setOpenEntryId(null)} onRemove={removeEntry} onEdit={startEditEntry}
+          onOpenRecipe={onOpenRecipe} courseRank={courseRank} />
       )}
     </div>
   );
