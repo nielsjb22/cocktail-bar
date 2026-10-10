@@ -3005,7 +3005,7 @@ export default function ThuisbarApp() {
             logboek={logboek} recipes={allRecipes} allIngredients={allIngredients} active={tab === "home"}
             onOpenRecipe={openRecipeDetail} onOpenCheckin={openCheckin} onSound={chime}
             onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} nativePush={nativePush} highlightId={feedHighlight}
-            guest={isGuest} onRequireAccount={requireAccount} />
+            guest={isGuest} onRequireAccount={requireAccount} onOpenOwnProfile={() => navigateTo("profiel")} />
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
@@ -4190,7 +4190,7 @@ function GuestFeedCard({ count, onCheckin, onRequireAccount }) {
   );
 }
 
-function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush, highlightId, guest = false, onRequireAccount }) {
+function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush, highlightId, guest = false, onRequireAccount, onOpenOwnProfile }) {
   const [pushPromptHidden, setPushPromptHidden] = useStorage("thuisbar-push-prompt-weg", false);
   const [photoViewer, setPhotoViewer] = useState(null);
   const myId = session?.user?.id;
@@ -4427,6 +4427,8 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
     const tint = matched ? recipeTint(matched, allIngredients) : [PAPER_DEEP, BORDER];
     const who = entry.mine ? (profile?.name || "Jij") : (friendProfiles[entry.friendId]?.name || "Vriend");
     const whoAvatar = entry.mine ? profile?.avatar_url : friendProfiles[entry.friendId]?.avatar_url;
+    // Naam/foto van de schrijver: jijzelf → je profiel, een vriend → diens profiel.
+    const openAuthor = () => (entry.mine ? onOpenOwnProfile?.() : setOpenFriendId(entry.friendId));
     const photo = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
     const cheer = reactions[entry.id] || { count: 0, mine: false };
     const master = rankOf(entry)?.master;
@@ -4439,7 +4441,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           {/* Samen gedronken: de getagde vriend(en) schuiven als kleine
               avatar half over die van de schrijver heen. */}
           <span style={{ position: "relative", flexShrink: 0, marginRight: (checkinTags[entry.id]?.length || 0) > 0 ? 8 : 0 }}>
-            <RankAvatar name={who} photo={whoAvatar} size={36} courseRank={rankOf(entry)} />
+            <button onClick={openAuthor} aria-label={`Profiel van ${who}`} style={{ display: "block", background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%" }}>
+              <RankAvatar name={who} photo={whoAvatar} size={36} courseRank={rankOf(entry)} />
+            </button>
             {(checkinTags[entry.id] || []).slice(0, 2).map((t, i) => (
               <span key={t.id} style={{ position: "absolute", right: -10 - i * 12, bottom: -4, borderRadius: "50%", boxShadow: `0 0 0 2px ${CREAM}`, display: "flex" }}>
                 <Avatar name={t.name} photo={t.photo} size={20} />
@@ -4448,13 +4452,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           </span>
           <div style={{ flex: 1, minWidth: 0, lineHeight: 1.25, marginLeft: Math.max(0, ((checkinTags[entry.id]?.length || 0) - 1)) * 12 }}>
             <div style={{ fontSize: 14, color: INK, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              {entry.mine ? (
-                <span style={{ fontWeight: 700, ...(master ? masterTextStyle : {}) }}>{who}</span>
-              ) : (
-                <button onClick={() => setOpenFriendId(entry.friendId)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, fontSize: 14, color: INK, fontFamily: sans }}>
-                  <span style={master ? masterTextStyle : undefined}>{who}</span>
-                </button>
-              )}
+              <button onClick={openAuthor} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, fontSize: 14, color: INK, fontFamily: sans }}>
+                <span style={master ? masterTextStyle : undefined}>{who}</span>
+              </button>
               {rankOf(entry)?.rank && <CourseRankLabel courseRank={rankOf(entry)} />}
             </div>
             <div style={{ fontSize: 12, color: MUTED, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{withNames}{entry.location} · {feedRelTime(entry)}</div>
@@ -4482,7 +4482,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           )}
         </div>
 
-        <div onClick={photo ? () => setPhotoViewer({ entry, matched, who, whoAvatar }) : undefined}
+        <div onClick={photo ? () => setPhotoViewer({ entry, matched, who, whoAvatar, onOpenProfile: openAuthor }) : undefined}
           style={{ position: "relative", width: "100%", aspectRatio: "8 / 7", borderRadius: 14, overflow: "hidden", cursor: photo ? "zoom-in" : undefined, background: BOTTLE_DARK }}>
           {photo ? (
             <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
@@ -4499,7 +4499,15 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
 
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 4px 0" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 22, lineHeight: 1.1, color: INK }}>{entry.name}</div>
+            {/* Naam van de cocktail: tik = naar het recept. */}
+            {matched ? (
+              <button onClick={() => onOpenRecipe(matched.id)} style={{ display: "block", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: INK }}>
+                <span style={{ display: "inline", fontFamily: serif, fontWeight: 700, fontSize: 22, lineHeight: 1.1 }}>{entry.name}</span>
+                <ChevronRight size={18} color={MUTED} style={{ verticalAlign: "-2px", marginLeft: 2 }} />
+              </button>
+            ) : (
+              <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 22, lineHeight: 1.1, color: INK }}>{entry.name}</div>
+            )}
             {matched && <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>{matched.family} · {matched.glass}</div>}
           </div>
           <FeedScore value={entry.rating} />
@@ -4636,7 +4644,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
         </button>
       )}
 
-      {photoViewer && <CheckinPhotoViewer {...photoViewer} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)} />}
+      {photoViewer && <CheckinPhotoViewer {...photoViewer} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)} onOpenRecipe={onOpenRecipe} />}
       {tagInbox.items.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
           {tagInbox.items.map(({ tag, entry, tagger }) => {
@@ -14576,7 +14584,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
 // Vaste donkere kleuren (geen thema-variabelen): dit is altijd een donker scherm.
 const VIEWER_TEXT = "#FBF6EA";
 const VIEWER_MUTED = "rgba(251,246,234,0.65)";
-function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, onClose }) {
+function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, onClose, onOpenRecipe = null, onOpenProfile = null }) {
   useBodyScrollLock();
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -14647,6 +14655,8 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
       onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
       style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#000", display: "flex", flexDirection: "column", fontFamily: systemFont, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}>
       <div data-viewer-bar style={{ ...bar, padding: "calc(env(safe-area-inset-top) + 12px) 14px 12px 16px" }}>
+        {/* Wie: tik = naar het profiel. */}
+        <button onClick={onOpenProfile ? () => { onClose(); onOpenProfile(); } : undefined} disabled={!onOpenProfile} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, background: "none", border: "none", padding: 0, cursor: onOpenProfile ? "pointer" : "default", textAlign: "left", fontFamily: systemFont }}>
         <Avatar name={who} photo={whoAvatar} size={42} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: VIEWER_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{who}</div>
@@ -14655,6 +14665,7 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{[entry.location, entry.date].filter(Boolean).join(" · ")}</span>
           </div>
         </div>
+        </button>
         <button onClick={onClose} aria-label="Sluiten" style={{ background: "none", border: "none", padding: 8, cursor: "pointer", color: VIEWER_TEXT, display: "flex" }}>
           <X size={26} />
         </button>
@@ -14668,7 +14679,9 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
         )}
       </div>
 
-      <div data-viewer-bar style={{ ...bar, padding: "14px 18px calc(env(safe-area-inset-bottom) + 16px)" }}>
+      {/* Cocktail: tik = naar het recept. */}
+      <button data-viewer-bar onClick={matched && onOpenRecipe ? () => { onClose(); onOpenRecipe(matched.id); } : undefined} disabled={!(matched && onOpenRecipe)}
+        style={{ ...bar, width: "100%", border: "none", textAlign: "left", cursor: matched && onOpenRecipe ? "pointer" : "default", fontFamily: systemFont, padding: "14px 18px calc(env(safe-area-inset-bottom) + 16px)" }}>
         {matched ? <RecipeCircle recipe={matched} allIngredients={allIngredients} size={52} /> : (
           <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(251,246,234,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Martini size={22} color={VIEWER_TEXT} strokeWidth={1.4} />
@@ -14676,13 +14689,14 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 19, color: VIEWER_TEXT, lineHeight: 1.2 }}>{entry.name}</div>
-          {subtitle && <div style={{ fontSize: 13, color: VIEWER_MUTED, marginTop: 3 }}>{subtitle}</div>}
+          {subtitle && <div style={{ fontSize: 13, color: VIEWER_MUTED, marginTop: 3 }}>{subtitle}{matched && onOpenRecipe ? " · Bekijk recept" : ""}</div>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, background: "rgba(251,246,234,0.1)", borderRadius: 100, padding: "6px 11px" }}>
           <Star size={13} fill="#D8AE5E" color="#D8AE5E" />
           <span style={{ fontWeight: 700, fontSize: 14, color: VIEWER_TEXT }}>{formatRating(entry.rating)}</span>
         </div>
-      </div>
+        {matched && onOpenRecipe && <ChevronRight size={20} color={VIEWER_MUTED} style={{ flexShrink: 0 }} />}
+      </button>
     </div>
   ), document.body);
 }
@@ -15129,7 +15143,8 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
           {view === "samen" ? samenView : profielView}
         </EdgeSwipeBackArea>
       </div>
-      {photoViewer && <CheckinPhotoViewer entry={photoViewer.entry} matched={photoViewer.matched} who={name} whoAvatar={friendProfile?.avatar_url} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)} />}
+      {photoViewer && <CheckinPhotoViewer entry={photoViewer.entry} matched={photoViewer.matched} who={name} whoAvatar={friendProfile?.avatar_url} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)}
+        onOpenRecipe={onOpenRecipe ? (id) => { onClose(); onOpenRecipe(id); } : null} />}
       {confirmBlock && (
         <ConfirmDialog title={`${firstName} blokkeren?`}
           message={`Jullie zijn dan geen vrienden meer en ${firstName} kan je niet meer vinden of je check-ins zien.`}
