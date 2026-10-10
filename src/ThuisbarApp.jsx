@@ -6501,13 +6501,73 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   );
 }
 
+// Filters voor "Alle recepten" in één venster: kies wat je wilt en zie
+// meteen hoeveel recepten er overblijven.
+function RecipeFilterSheet({ value, families, glasses, spirits, focus, countFor, onApply, onClose, onSound }) {
+  useBodyScrollLock();
+  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
+  const [v, setV] = useState(value);
+  const sectionRefs = useRef({});
+  useEffect(() => {
+    const el = sectionRefs.current[focus];
+    if (el) setTimeout(() => el.scrollIntoView({ block: "start" }), 50);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggle = (key, item) => { onSound?.("tick"); setV(cur => ({ ...cur, [key]: cur[key].includes(item) ? cur[key].filter(x => x !== item) : [...cur[key], item] })); };
+  const opt = (label, on, onClick) => (
+    <button key={label} onClick={onClick} aria-pressed={on} className="press-scale" style={{
+      height: 38, padding: "0 14px", borderRadius: 100, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700,
+      border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : CREAM, color: on ? CREAM : INK,
+      display: "inline-flex", alignItems: "center", gap: 5,
+    }}>{on && <Check size={13} strokeWidth={3} color="#DDB877" />}{label}</button>
+  );
+  const head = (t, key) => <div ref={el => { if (key) sectionRefs.current[key] = el; }} style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED, margin: "18px 0 10px", scrollMarginTop: 10 }}>{t}</div>;
+  const n = countFor(v);
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
+      <div ref={panelRef} className="sheet-slide-in sheet-max-92" style={{
+        position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", background: PAPER, borderRadius: "22px 22px 0 0",
+        boxShadow: "0 -12px 30px rgba(43,38,32,0.25)", display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        <SheetGrabber {...dragHandlers} />
+        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", padding: "0 20px 6px", touchAction: "none" }}>
+          <span style={{ flex: 1, fontFamily: serif, fontSize: 23, fontWeight: 700 }}>Filters</span>
+          <button onClick={() => setV({ status: "alle", family: [], glass: [], spirit: [] })} style={{ background: "none", border: "none", padding: "8px 0 8px 10px", cursor: "pointer", color: BOTTLE, fontFamily: sans, fontSize: 14.5, fontWeight: 700 }}>Wis alles</button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 20px 8px" }}>
+          {head("Kan ik maken", "status")}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {[["alle", "Alles"], ["maken", "Kun je maken"], ["bijna", "Mist er 1"]].map(([k, l]) => opt(l, v.status === k, () => { onSound?.("tick"); setV(cur => ({ ...cur, status: k })); }))}
+          </div>
+          {head("Familie", "familie")}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{families.map(f => opt(f, v.family.includes(f), () => toggle("family", f)))}</div>
+          {head("Glas", "glas")}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{glasses.map(g => opt(g, v.glass.includes(g), () => toggle("glass", g)))}</div>
+          {head("Sterke drank", "drank")}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{spirits.map(sp => opt(sp, v.spirit.includes(sp), () => toggle("spirit", sp)))}</div>
+        </div>
+        <div style={{ padding: "12px 20px calc(env(safe-area-inset-bottom) + 14px)", borderTop: `1px solid ${BORDER}`, background: PAPER }}>
+          <button onClick={() => { onApply(v); close(); }} disabled={n === 0} className="press-scale" style={{
+            width: "100%", height: 50, borderRadius: 14, border: "none", background: n === 0 ? BORDER : BOTTLE_DARK, color: n === 0 ? MUTED : HEADER_TEXT,
+            fontFamily: sans, fontSize: 16, fontWeight: 700, cursor: n === 0 ? "default" : "pointer",
+          }}>{n === 0 ? "Geen recepten met deze filters" : `Toon ${n} ${n === 1 ? "recept" : "recepten"}`}</button>
+        </div>
+      </div>
+    </div>
+  ), document.body);
+}
+
 function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, onSound, onOpenRecipe, onAddToFeest, feestChosen, onBack, shoppingKeys, onRemoveFromShoppingList, favoriteRecipeIds, onToggleFavorite, onOpenCheckin }) {
   const [view, setView] = useState("ontdekken");
   const [openId, setOpenId] = useState(null);
   const [query, setQuery] = useState("");
-  const [familyFilter, setFamilyFilter] = useState("");
-  const [glassFilter, setGlassFilter] = useState("");
-  const [spiritFilter, setSpiritFilter] = useState("");
+  // Filters van "Alle recepten": meerdere keuzes per soort (lege lijst = alles).
+  const [familyFilter, setFamilyFilter] = useState([]);
+  const [glassFilter, setGlassFilter] = useState([]);
+  const [spiritFilter, setSpiritFilter] = useState([]);
+  const [statusFilter, setStatusFilter] = useState("alle"); // alle | maken | bijna
+  const [filterSheet, setFilterSheet] = useState(false);
+  const [restShown, setRestShown] = useState(40);
   const [justAddedId, setJustAddedId] = useState(null);
   const [justAddedFeestId, setJustAddedFeestId] = useState(null);
   const [sheetRecipeId, setSheetRecipeId] = useState(null);
@@ -6532,13 +6592,16 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
   const glasses = useMemo(() => [...new Set(recipes.map(r => r.glass).filter(Boolean))].sort(), [recipes]);
   const spirits = useMemo(() => [...new Set(recipes.map(r => getBaseSpirit(r, allIngredients)).filter(Boolean))].sort(), [recipes, allIngredients]);
 
-  const filtered = recipes.filter(r => {
-    if (query.trim() && !r.name.toLowerCase().includes(query.toLowerCase()) && !(r.family || "").toLowerCase().includes(query.toLowerCase())) return false;
-    if (familyFilter && r.family !== familyFilter) return false;
-    if (glassFilter && r.glass !== glassFilter) return false;
-    if (spiritFilter && getBaseSpirit(r, allIngredients) !== spiritFilter) return false;
+  const matchesFilters = (r, f) => {
+    const q = query.trim().toLowerCase();
+    if (q && !r.name.toLowerCase().includes(q) && !(r.family || "").toLowerCase().includes(q)
+      && !r.ingredients.some(i => ingredientLabel(i).toLowerCase().includes(q))) return false;
+    if (f.family.length && !f.family.includes(r.family)) return false;
+    if (f.glass.length && !f.glass.includes(r.glass)) return false;
+    if (f.spirit.length && !f.spirit.includes(getBaseSpirit(r, allIngredients))) return false;
     return true;
-  });
+  };
+  const filtered = recipes.filter(r => matchesFilters(r, { family: familyFilter, glass: glassFilter, spirit: spiritFilter }));
   const scored = filtered.map(r => {
     const required = r.ingredients.filter(i => !i.optional);
     const missing = required.filter(i => !isOwned(i));
@@ -6618,7 +6681,7 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
   });
   const openList = () => { setView("alle"); window.scrollTo(0, 0); };
   const backToOverview = () => {
-    setView("ontdekken"); setQuery(""); setFamilyFilter(""); setGlassFilter(""); setSpiritFilter(""); setOpenId(null);
+    setView("ontdekken"); setQuery(""); setFamilyFilter([]); setGlassFilter([]); setSpiritFilter([]); setStatusFilter("alle"); setRestShown(40); setOpenId(null);
     window.scrollTo(0, 0);
   };
 
@@ -6665,12 +6728,14 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
         </div>
       )}
 
+      {view === "ontdekken" && (
       <div style={{ position: "relative", marginBottom: 22 }}>
         <Search size={15} color={MUTED} style={{ position: "absolute", left: 12, top: 12 }} />
         <input value={query} onChange={e => { setQuery(e.target.value); if (e.target.value.trim() && view !== "alle") setView("alle"); }} placeholder="Zoek op naam of familie…"
           enterKeyHint="search" autoCapitalize="words"
           style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans }} />
       </div>
+      )}
 
       {view === "ontdekken" && (
         <div>
@@ -6764,105 +6829,109 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
         </div>
       )}
 
-      {view === "alle" && (
-        <div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22, alignItems: "center" }}>
-            <select value={familyFilter} onChange={e => setFamilyFilter(e.target.value)} style={selectStyle}>
-              <option value="">Alle families</option>
-              {families.map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-            <select value={glassFilter} onChange={e => setGlassFilter(e.target.value)} style={selectStyle}>
-              <option value="">Alle glazen</option>
-              {glasses.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-            <select value={spiritFilter} onChange={e => setSpiritFilter(e.target.value)} style={selectStyle}>
-              <option value="">Alle sterke dranken</option>
-              {spirits.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-
-          {scored.length === 0 && <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "30px 0" }}>Niets gevonden. Probeer andere filters.</p>}
-
-          <div>
-            {scored.map(({ recipe, missing }, idx) => {
-              const isOpen = openId === recipe.id;
-              return (
-                <div key={recipe.id} style={{ borderTop: idx === 0 ? `1px solid ${BORDER}` : "none", borderBottom: `1px solid ${BORDER}` }}>
-                  <button onClick={() => setOpenId(isOpen ? null : recipe.id)} style={{
-                    width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-                    background: "none", border: "none", cursor: "pointer", padding: "14px 2px", textAlign: "left"
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <GlassArt glass={recipe.glass} mono size={26} />
-                      <div>
-                        <div style={{ fontFamily: serif, fontWeight: 700, color: INK, fontSize: 16.5 }}>{recipe.name}</div>
-                        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{recipe.family} · {recipe.glass}</div>
-                        {missing.length > 0 && (
-                          <div style={{ fontSize: 12.5, color: BURGUNDY, fontWeight: 600, marginTop: 2, lineHeight: 1.35 }}>
-                            Mist: {missing.length <= 3 ? joinNames(missing.map(m => ingredientLabel(m))) : `${missing.slice(0, 2).map(m => ingredientLabel(m)).join(", ")} en ${missing.length - 2} meer`}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
-                      <StatusTag missingCount={missing.length} />
-                      {isOpen ? <ChevronUp size={17} color={MUTED} /> : <ChevronDown size={17} color={MUTED} />}
-                    </div>
-                  </button>
-                  {isOpen && (
-                    <div className="accordion-reveal" style={{ padding: "2px 2px 20px" }}>
-                      <ul style={{ margin: "0 0 10px", paddingLeft: 0, listStyle: "none", fontSize: 14 }}>
-                        {recipe.ingredients.map((ing, i) => (
-                          <li key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 0", color: isOwned(ing) || ing.optional ? INK : BURGUNDY, borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none" }}>
-                            <OwnedMark owned={isOwned(ing)} optional={ing.optional} size={17} />
-                            <span style={{ flex: 1, minWidth: 0, fontWeight: isOwned(ing) || ing.optional ? 400 : 600 }}>{ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}</span>
-                            <span style={{ fontWeight: 600 }}>{ing.top ? "top op" : `${formatDutchNumber(ing.amount)} ${unitLabel(ing.unit, ing.amount)}`}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <p style={{ fontSize: 13.5, color: MUTED, margin: "0 0 8px", lineHeight: 1.5 }}>{recipe.method}</p>
-                      {recipe.garnish && (
-                        <p style={{ fontSize: 13, color: BRASS_TEXT, margin: "0 0 12px", lineHeight: 1.5 }}><strong>Afwerking:</strong> {recipe.garnish}</p>
-                      )}
-                      {missing.length > 0 && (
-                        justAddedId === recipe.id ? (
-                          <span className="success-pop" style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, padding: "7px 0" }}>
-                            <Check size={14} strokeWidth={3} /> Toegevoegd: bekijk het Winkelmandje-tabblad
-                          </span>
-                        ) : (
-                          <button onClick={() => addMissing(recipe.id, missing.map(m => ({ ref: m, recipeNames: [recipe.name] })))}
-                            style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: 100, padding: "7px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                            <ShoppingCart size={13} /> Voeg ontbrekende toe aan winkelmandje
-                          </button>
-                        )
-                      )}
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-                        <button onClick={() => onOpenRecipe(recipe.id)} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BORDER}`, color: INK, borderRadius: 100, padding: "7px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                          <BookOpen size={13} /> Volledig recept
-                        </button>
-                        {justAddedFeestId === recipe.id ? (
-                          <span className="success-pop" style={{ display: "flex", alignItems: "center", gap: 6, color: SAGE, fontSize: 12.5, fontWeight: 700, padding: "7px 0" }}>
-                            <Check size={13} strokeWidth={3} /> Toegevoegd aan feestplanner
-                          </span>
-                        ) : (
-                          <button onClick={() => addFeest(recipe.id)} disabled={feestChosen?.includes(recipe.id)} style={{
-                            display: "flex", alignItems: "center", gap: 6, background: "none",
-                            border: `1px solid ${feestChosen?.includes(recipe.id) ? BORDER : BOTTLE}`,
-                            color: feestChosen?.includes(recipe.id) ? MUTED : BOTTLE, borderRadius: 100, padding: "7px 12px", fontSize: 12.5, fontWeight: 700,
-                            cursor: feestChosen?.includes(recipe.id) ? "default" : "pointer",
-                          }}>
-                            <PartyPopper size={13} /> {feestChosen?.includes(recipe.id) ? "In feestplanner" : "Feestplanner"}
-                          </button>
-                        )}
-                      </div>
-                    </div>
+      {view === "alle" && (() => {
+        // Gegroepeerd: wat je nu kunt maken, wat er nog 1 mist, de rest.
+        const groups = [
+          { key: "maken", title: "Kun je nu maken", items: scored.filter(x => x.missing.length === 0) },
+          { key: "bijna", title: "Mist 1 ingrediënt", items: scored.filter(x => x.missing.length === 1) },
+          { key: "rest", title: "Overige recepten", items: scored.filter(x => x.missing.length > 1) },
+        ].filter(g => g.items.length > 0 && (statusFilter === "alle" || g.key === statusFilter));
+        const chip = (label, active, onClick, drop = true) => (
+          <button onClick={onClick} className="press-scale" style={{
+            display: "inline-flex", alignItems: "center", gap: 4, height: 34, padding: "0 12px", borderRadius: 100, flexShrink: 0, cursor: "pointer",
+            fontFamily: sans, fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap",
+            background: active ? HERO_GOLD : "rgba(251,246,234,0.12)", color: active ? "#132622" : HEADER_TEXT,
+            border: `1px solid ${active ? HERO_GOLD : "rgba(251,246,234,0.22)"}`,
+          }}>{label}{drop && <ChevronDown size={14} strokeWidth={2.4} />}</button>
+        );
+        const sel = (list, word) => list.length === 0 ? word : list.length === 1 ? list[0] : `${word} · ${list.length}`;
+        const statusRow = ({ recipe, missing }, i, arr, group) => {
+          const done = missing.length === 1 && onList(missing[0]);
+          return (
+            <div key={recipe.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderTop: i ? `1px solid ${BORDER}` : "none" }}>
+              <button onClick={() => onOpenRecipe(recipe.id)} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK }}>
+                <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={54} radius={14} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontFamily: serif, fontSize: 17, fontWeight: 700, lineHeight: 1.2 }}>{recipe.name}</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: MUTED, margin: "2px 0 5px" }}>{[recipe.family, recipe.glass].filter(Boolean).join(" · ")}</span>
+                  {missing.length === 0 ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 100, background: "rgba(79,107,70,0.14)", color: "#4F6B46", fontSize: 12, fontWeight: 700 }}><Check size={12} strokeWidth={3} /> Kun je maken</span>
+                  ) : (
+                    <span style={{ display: "inline-block", padding: "3px 9px", borderRadius: 100, background: "rgba(122,46,42,0.10)", color: BURGUNDY, fontSize: 12, fontWeight: 700, lineHeight: 1.35 }}>
+                      Mist: {missing.length <= 2 ? joinNames(missing.map(m => ingredientLabel(m))) : `${ingredientLabel(missing[0])} en ${missing.length - 1} meer`}
+                    </span>
                   )}
+                </span>
+              </button>
+              {group === "bijna" ? (
+                <button onClick={() => toggleOnList(recipe.id, missing[0], [recipe.name])} aria-pressed={done} className="press-scale" style={{
+                  flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, height: 32, padding: "0 10px", borderRadius: 100, cursor: "pointer",
+                  border: `1px solid ${done ? SAGE : BOTTLE}`, background: done ? SAGE : "none", color: done ? CREAM : BOTTLE, fontFamily: sans, fontSize: 12.5, fontWeight: 700,
+                }}>{done ? <><Check size={13} strokeWidth={3} /> In mandje</> : <><Plus size={13} strokeWidth={2.6} /> Mandje</>}</button>
+              ) : <ChevronRight size={17} color={MUTED} style={{ flexShrink: 0 }} />}
+            </div>
+          );
+        };
+        return (
+        <div>
+          <HeaderBand style={{ marginTop: -18, paddingTop: 4, paddingBottom: 14 }}>
+            <div style={{ position: "relative" }}>
+              <Search size={17} color={MUTED} style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+              <input value={query} onChange={e => { setQuery(e.target.value); setRestShown(40); }} placeholder="Zoek op naam, ingrediënt of familie"
+                enterKeyHint="search" autoCapitalize="words" autoCorrect="off"
+                style={{ width: "100%", height: 44, padding: "0 36px 0 38px", borderRadius: 12, border: "none", outline: "none", fontSize: 16, boxSizing: "border-box", background: CREAM, color: INK, fontFamily: sans }} />
+              {query && (
+                <button onClick={() => setQuery("")} aria-label="Wis zoekterm" style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, border: "none", background: "none", color: MUTED, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={16} /></button>
+              )}
+            </div>
+            <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", margin: "12px -20px 0", padding: "0 20px", WebkitOverflowScrolling: "touch" }}>
+              {chip(statusFilter === "bijna" ? "Mist er 1" : "Kan ik maken", statusFilter !== "alle", () => { onSound("tick"); setStatusFilter(statusFilter === "alle" ? "maken" : "alle"); }, false)}
+              {chip(sel(familyFilter, "Familie"), familyFilter.length > 0, () => setFilterSheet("familie"))}
+              {chip(sel(glassFilter, "Glas"), glassFilter.length > 0, () => setFilterSheet("glas"))}
+              {chip(sel(spiritFilter, "Sterke drank"), spiritFilter.length > 0, () => setFilterSheet("drank"))}
+            </div>
+          </HeaderBand>
+
+          {groups.length === 0 && (
+            <div style={{ textAlign: "center", padding: "30px 10px" }}>
+              <p style={{ color: MUTED, fontSize: 14, margin: "0 0 10px" }}>Niets gevonden. Probeer andere filters.</p>
+              <button onClick={() => { setQuery(""); setFamilyFilter([]); setGlassFilter([]); setSpiritFilter([]); setStatusFilter("alle"); }} style={linkBtn}>Wis alle filters</button>
+            </div>
+          )}
+          {groups.map(g => {
+            const items = g.key === "rest" ? g.items.slice(0, restShown) : g.items;
+            return (
+              <div key={g.key} style={{ marginBottom: 6 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "10px 4px 10px" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED }}>{g.title}</span>
+                  <span style={{ fontSize: 12, color: MUTED }}>{g.items.length}</span>
                 </div>
-              );
-            })}
-          </div>
+                <div style={{ background: CREAM, borderRadius: 18, boxShadow: SHADOW_CARD, overflow: "hidden" }}>
+                  {items.map((x, i, arr) => statusRow(x, i, arr, g.key))}
+                </div>
+                {g.key === "rest" && g.items.length > restShown && (
+                  <button onClick={() => setRestShown(n => n + 60)} style={{ ...linkBtn, display: "block", width: "100%", textAlign: "center", padding: "12px 0" }}>
+                    Toon meer ({g.items.length - restShown})
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          {filterSheet && (
+            <RecipeFilterSheet focus={filterSheet} onClose={() => setFilterSheet(false)} onSound={onSound}
+              families={families} glasses={glasses} spirits={spirits}
+              value={{ status: statusFilter, family: familyFilter, glass: glassFilter, spirit: spiritFilter }}
+              countFor={(v) => recipes.filter(r => matchesFilters(r, v)).filter(r => {
+                if (v.status === "alle") return true;
+                const m = (scoredById.get(r.id)?.missing.length) ?? 99;
+                return v.status === "maken" ? m === 0 : m === 1;
+              }).length}
+              onApply={(v) => { setStatusFilter(v.status); setFamilyFilter(v.family); setGlassFilter(v.glass); setSpiritFilter(v.spirit); setRestShown(40); window.scrollTo(0, 0); }} />
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {sheetEntry && (
         <RecipeSheet recipe={sheetEntry.recipe} missing={sheetEntry.missing} ingredientLabel={ingredientLabel}
