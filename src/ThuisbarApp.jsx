@@ -5626,6 +5626,20 @@ const EDGE_ZONE = 90;
 // met de touch-handlers, en deed terugvegen op een iPhone dus helemaal niets
 // (alleen een veeg die toevallig pas na 20px begon werkte).
 const EDGE_SWIPE_BLEED = { marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20 };
+// Veeggebied van een subpagina loopt tot de onderkant van het scherm, ook
+// als de pagina kort is. De ruimte die de pagina onderaan vrijhoudt voor de
+// onderbalk (150px, zie de paginacontainer in ThuisbarApp) valt daarbinnen:
+// als padding erin en als negatieve marge eruit, zodat een korte pagina
+// niet ineens gaat scrollen.
+const SWIPE_FILL = {
+  minHeight: "100vh",
+  paddingBottom: "calc(env(safe-area-inset-bottom) + 150px)",
+  marginBottom: "calc(-1 * (env(safe-area-inset-bottom) + 150px))",
+  boxSizing: "border-box",
+};
+// Binnen een subpagina (bijv. een les in de Cursus): ruwweg schermhoog min
+// de kop, zonder extra scrollruimte te maken.
+const SWIPE_MIN_HEIGHT = "calc(100vh - env(safe-area-inset-bottom) - 210px)";
 
 // In een gewone Safari-tab (niet "toegevoegd aan beginscherm") heeft iOS zélf
 // ook een rand-swipe-terug-gebaar, dat exact dezelfde linkerrand claimt als
@@ -5822,7 +5836,9 @@ function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOn
           <div ref={scrimRef} aria-hidden style={{ position: "absolute", inset: 0, background: "rgba(15,12,9,0.16)", opacity: 1 }} />
         </div>
       )}
-      <div ref={contentRef} {...handlers} style={{ ...EDGE_SWIPE_BLEED, touchAction: "pan-y", position: "relative", background: PAPER }}>
+      {/* minHeight: ook bij een korte pagina loopt het veeggebied tot de
+          onderkant van het scherm, zodat terugvegen overal langs de rand werkt. */}
+      <div ref={contentRef} {...handlers} style={{ ...EDGE_SWIPE_BLEED, ...SWIPE_FILL, touchAction: "pan-y", position: "relative", background: PAPER }}>
         {/* Vaste navigatiebalk: terugknop links (vorige-schermnaam, net als
             echte iOS), gecentreerde titel van dít scherm — sticky zodat hij
             blijft staan terwijl de inhoud eronder scrollt, i.p.v. mee weg te
@@ -5846,7 +5862,7 @@ function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOn
 function EdgeSwipeBackArea({ onBack, children, bleed = true, style }) {
   const { contentRef, handlers } = useEdgeSwipeBack(onBack);
   return (
-    <div ref={contentRef} {...handlers} style={{ ...(bleed ? EDGE_SWIPE_BLEED : null), touchAction: "pan-y", ...style }}>
+    <div ref={contentRef} {...handlers} style={{ ...(bleed ? { ...EDGE_SWIPE_BLEED, minHeight: SWIPE_MIN_HEIGHT } : null), touchAction: "pan-y", ...style }}>
       {children}
     </div>
   );
