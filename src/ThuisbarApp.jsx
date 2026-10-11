@@ -13827,13 +13827,13 @@ function MapFullscreenSheet({ locations, coords, onClose }) {
 
 // Favorieten, meest gebruikte drank en check-ins per maand: gedeeld door
 // je eigen profiel en dat van een vriend (zelfde afleiding uit het logboek).
-function TasteDetails({ insights, logboek, recipes, allIngredients }) {
+function TasteDetails({ insights, logboek, recipes, allIngredients, onOpenRecipe = null }) {
   const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
   const favRecipe = insights.favoriteCocktail ? recipes.find(r => r.name.toLowerCase() === insights.favoriteCocktail.name.toLowerCase()) : null;
   const famName = insights.favoriteFamilyEntry?.[0];
   const famRecipe = famName ? (logboek.map(findMatch).filter(r => r && r.family === famName)[0] || recipes.find(r => r.family === famName)) : null;
   const favCards = [
-    insights.favoriteCocktail && { label: "Favoriete cocktail", title: insights.favoriteCocktail.name, recipe: favRecipe, serifTitle: true },
+    insights.favoriteCocktail && { label: "Favoriete cocktail", title: insights.favoriteCocktail.name, recipe: favRecipe, serifTitle: true, link: true },
     famName && { label: "Favoriete stijl", title: famName, recipe: famRecipe },
   ].filter(Boolean);
   const monthsWithData = insights.months.filter(m => m.count > 0).length;
@@ -13844,8 +13844,12 @@ function TasteDetails({ insights, logboek, recipes, allIngredients }) {
         <div style={{ marginBottom: 22 }}>
           <SectionLabel>Favorieten</SectionLabel>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-            {favCards.map(c => (
-              <div key={c.label} style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
+            {favCards.map(c => {
+              // Favoriete cocktail: tik = naar het recept.
+              const open = c.link && c.recipe && onOpenRecipe ? () => onOpenRecipe(c.recipe.id) : null;
+              return (
+              <div key={c.label} onClick={open || undefined} role={open ? "button" : undefined} className={open ? "press-scale" : undefined}
+                style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden", cursor: open ? "pointer" : undefined }}>
                 <div style={{ height: 96, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                   {c.recipe && (localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image)
                     ? <img src={localItemImageUrl("cocktail", c.recipe.id) || c.recipe.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
@@ -13853,10 +13857,14 @@ function TasteDetails({ insights, logboek, recipes, allIngredients }) {
                 </div>
                 <div style={{ padding: "10px 12px 12px" }}>
                   <div style={{ fontSize: 12, color: MUTED }}>{c.label}</div>
-                  <div style={{ fontFamily: c.serifTitle ? serif : systemFont, fontWeight: 700, fontSize: 16, color: INK, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 2 }}>
+                    <span style={{ flex: 1, minWidth: 0, fontFamily: c.serifTitle ? serif : systemFont, fontWeight: 700, fontSize: 16, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
+                    {open && <ChevronRight size={15} color={MUTED} style={{ flexShrink: 0 }} />}
+                  </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -14472,7 +14480,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
               )}
             </div>
 
-            <TasteDetails insights={insights} logboek={logboek} recipes={recipes} allIngredients={allIngredients} />
+            <TasteDetails insights={insights} logboek={logboek} recipes={recipes} allIngredients={allIngredients} onOpenRecipe={onOpenRecipe} />
           </>
         );
       })()}
@@ -14779,13 +14787,103 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
       });
     }
   };
+  // Inzoomen zoals in de Foto's-app: knijpen met twee vingers, dubbeltikken
+  // om in of uit te zoomen, en met één vinger verschuiven zolang je bent
+  // ingezoomd. Ingezoomd sluit vegen of tikken het scherm niet.
+  const imgRef = useRef(null);
+  const zoom = useRef({ s: 1, x: 0, y: 0, pinch: null, pan: null, lastTap: 0 });
+  const paintZoom = (animated) => {
+    const z = zoom.current, el = imgRef.current;
+    if (!el) return;
+    el.style.transition = animated ? "transform 0.22s ease" : "none";
+    el.style.transform = `translate(${z.x}px, ${z.y}px) scale(${z.s})`;
+  };
+  const clampPan = () => {
+    const z = zoom.current, el = imgRef.current;
+    if (!el) return;
+    const w = el.offsetWidth, h = el.offsetHeight;
+    const maxX = Math.max(0, (w * z.s - w) / 2), maxY = Math.max(0, (h * z.s - h) / 2);
+    z.x = Math.min(maxX, Math.max(-maxX, z.x));
+    z.y = Math.min(maxY, Math.max(-maxY, z.y));
+  };
+  const zoomTo = (target, cx, cy) => {
+    const z = zoom.current, el = imgRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    // Punt onder de vinger blijft op zijn plek staan.
+    const ox = cx - (r.left + r.width / 2), oy = cy - (r.top + r.height / 2);
+    const k = target / z.s;
+    z.x += ox * (1 - k); z.y += oy * (1 - k); z.s = target;
+    if (z.s <= 1.01) { z.s = 1; z.x = 0; z.y = 0; }
+    clampPan(); paintZoom(true);
+  };
+  const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const onZoomTouchStart = (e) => {
+    const z = zoom.current;
+    if (e.touches.length === 2) {
+      // Tweede vinger erbij: een eventuele veeg-om-te-sluiten afbreken.
+      if (drag.current?.moved) applyDrag(0, 150);
+      drag.current = null;
+      const r = imgRef.current?.getBoundingClientRect();
+      z.pinch = { d: dist(e.touches), s: z.s, x: z.x, y: z.y,
+        cx: (e.touches[0].clientX + e.touches[1].clientX) / 2 - (r ? r.left + r.width / 2 : 0),
+        cy: (e.touches[0].clientY + e.touches[1].clientY) / 2 - (r ? r.top + r.height / 2 : 0) };
+      z.pan = null;
+    } else if (e.touches.length === 1 && z.s > 1) {
+      z.pan = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, x: z.x, y: z.y };
+    }
+  };
+  const onZoomTouchMove = (e) => {
+    const z = zoom.current;
+    if (z.pinch && e.touches.length === 2) {
+      const p = z.pinch;
+      const next = Math.min(5, Math.max(0.8, p.s * dist(e.touches) / p.d));
+      const k = next / p.s;
+      // Het punt tussen de vingers blijft onder de vingers staan.
+      z.s = next; z.x = p.x + p.cx * (1 - k); z.y = p.y + p.cy * (1 - k);
+      paintZoom(false);
+    } else if (z.pan && e.touches.length === 1) {
+      z.x = z.pan.x + (e.touches[0].clientX - z.pan.x0);
+      z.y = z.pan.y + (e.touches[0].clientY - z.pan.y0);
+      clampPan(); paintZoom(false);
+    }
+  };
+  const onZoomTouchEnd = (e) => {
+    const z = zoom.current;
+    if (z.pinch && e.touches.length < 2) {
+      z.pinch = null;
+      if (z.s < 1.05) { z.s = 1; z.x = 0; z.y = 0; }
+      clampPan(); paintZoom(true);
+      justDragged.current = true; setTimeout(() => { justDragged.current = false; }, 300);
+      return;
+    }
+    if (z.pan) {
+      const moved = e.changedTouches[0] && Math.hypot(e.changedTouches[0].clientX - z.pan.x0, e.changedTouches[0].clientY - z.pan.y0) > 6;
+      z.pan = null;
+      if (moved) { justDragged.current = true; setTimeout(() => { justDragged.current = false; }, 300); return; }
+    }
+    // Dubbeltik: in- of uitzoomen.
+    if (e.touches.length === 0 && e.changedTouches.length === 1) {
+      const now = Date.now(), t = e.changedTouches[0];
+      if (now - z.lastTap < 300) {
+        z.lastTap = 0;
+        justDragged.current = true; setTimeout(() => { justDragged.current = false; }, 350);
+        z.touchZoomAt = now;
+        zoomTo(z.s > 1 ? 1 : 2.5, t.clientX, t.clientY);
+      } else z.lastTap = now;
+    }
+  };
+
   const onPointerDown = (e) => {
     if (e.target.closest("button")) return;
+    // Ingezoomd of met twee vingers bezig: niet vegen om te sluiten.
+    if (zoom.current.s > 1 || zoom.current.pinch) return;
     drag.current = { y: e.clientY, t: Date.now(), dy: 0, moved: false };
   };
   const onPointerMove = (e) => {
     const d = drag.current;
     if (!d) return;
+    if (zoom.current.s > 1 || zoom.current.pinch) { drag.current = null; return; }
     d.dy = e.clientY - d.y;
     if (!d.moved && Math.abs(d.dy) > 8) {
       d.moved = true;
@@ -14835,9 +14933,18 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
         </button>
       </div>
 
-      <div ref={photoRef} onClick={() => { if (!justDragged.current) onClose(); }} style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div ref={photoRef}
+        onTouchStart={onZoomTouchStart} onTouchMove={onZoomTouchMove} onTouchEnd={onZoomTouchEnd} onTouchCancel={onZoomTouchEnd}
+        onDoubleClick={(e) => { if (Date.now() - (zoom.current.touchZoomAt || 0) < 600) return; justDragged.current = true; setTimeout(() => { justDragged.current = false; }, 350); zoomTo(zoom.current.s > 1 ? 1 : 2.5, e.clientX, e.clientY); }}
+        onClick={() => {
+          // Enkele tik sluit (na een korte wachttijd, zodat een dubbeltik
+          // eerst kan inzoomen); ingezoomd sluit een tik niet.
+          if (justDragged.current || zoom.current.s > 1) return;
+          setTimeout(() => { if (!justDragged.current && zoom.current.s <= 1) onClose(); }, 280);
+        }}
+        style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         {src ? (
-          <img src={src} alt={entry.name} draggable={false} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block", pointerEvents: "none" }} />
+          <img ref={imgRef} src={src} alt={entry.name} draggable={false} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block", pointerEvents: "none", transformOrigin: "center center", willChange: "transform" }} />
         ) : (
           <Martini size={56} color={VIEWER_MUTED} strokeWidth={1.2} />
         )}
@@ -15057,7 +15164,8 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
       {together.events.length > 0 ? (
         <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "0 14px", marginBottom: 22 }}>
           {together.events.slice(0, 12).map((ev, i) => (
-            <div key={ev.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none" }}>
+            <div key={ev.key} onClick={ev.recipe && onOpenRecipe ? () => { onClose(); onOpenRecipe(ev.recipe.id); } : undefined} role={ev.recipe && onOpenRecipe ? "button" : undefined}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none", cursor: ev.recipe && onOpenRecipe ? "pointer" : undefined }}>
               {ev.recipe ? <RecipeCircle recipe={ev.recipe} allIngredients={allIngredients} size={44} radius={10} /> : <span style={{ width: 44, height: 44, borderRadius: 10, background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Martini size={18} color={MUTED} /></span>}
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontFamily: serif, fontSize: 15.5, fontWeight: 700, color: INK }}>{ev.name}</span>
@@ -15247,7 +15355,8 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
               </div>
             )}
           </div>
-          {insights && <TasteDetails insights={insights} logboek={logboek} recipes={recipes} allIngredients={allIngredients} />}
+          {insights && <TasteDetails insights={insights} logboek={logboek} recipes={recipes} allIngredients={allIngredients}
+            onOpenRecipe={onOpenRecipe ? (id) => { onClose(); onOpenRecipe(id); } : null} />}
         </>
       ) : (
         <>
@@ -15297,16 +15406,20 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
   );
 
   return createPortal((
-    <div ref={scrollRef} className="push-slide-in" style={{
-      position: "fixed", inset: 0, zIndex: 30, background: PAPER, overflowY: "auto", overscrollBehavior: "contain",
-      WebkitOverflowScrolling: "touch", fontFamily: sans, color: INK,
+    <div className="push-slide-in" style={{
+      position: "fixed", inset: 0, zIndex: 30, background: PAPER, display: "flex", flexDirection: "column", fontFamily: sans, color: INK,
     }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px calc(env(safe-area-inset-bottom) + 36px)", overflowX: "hidden" }}>
-        <EdgeSwipeBackArea onBack={view === "samen" ? () => setView("profiel") : onClose}>
-          {header}
-          {view === "samen" ? samenView : profielView}
-        </EdgeSwipeBackArea>
-      </div>
+      {/* De kop staat vast bovenaan; alleen de inhoud eronder scrolt (en
+          veert bij naar beneden trekken), zodat de kop nooit meebeweegt. */}
+      <EdgeSwipeBackArea bleed={false} style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+        onBack={view === "samen" ? () => setView("profiel") : onClose}>
+        <div style={{ padding: "0 20px", flexShrink: 0, position: "relative", zIndex: 2 }}>{header}</div>
+        <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+          <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px calc(env(safe-area-inset-bottom) + 36px)", overflowX: "hidden" }}>
+            {view === "samen" ? samenView : profielView}
+          </div>
+        </div>
+      </EdgeSwipeBackArea>
       {photoViewer && <CheckinPhotoViewer entry={photoViewer.entry} matched={photoViewer.matched} who={name} whoAvatar={friendProfile?.avatar_url} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)}
         onOpenRecipe={onOpenRecipe ? (id) => { onClose(); onOpenRecipe(id); } : null} />}
       {confirmBlock && (
