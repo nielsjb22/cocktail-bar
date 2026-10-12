@@ -7,3 +7,6 @@ thuisbar-netlify
 
 # Graphify
 graphify-out/
+
+# Gebouwde zip voor Netlify (niet in git)
+*.zip
