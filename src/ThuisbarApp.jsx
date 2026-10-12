@@ -19,7 +19,7 @@ import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, partyInfoQuery, menuStrength, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf, formatMenuDate } from "./menuCard";
 import { SURVEY_SPIRITS, SURVEY_LIQUEURS, SURVEY_MIXERS, SURVEY_TASTES, SURVEY_STYLES, SURVEY_STRENGTHS, SURVEY_ALLERGIES, CUSTOM_PREFIX, choiceLabel, emptyAnswers, legacyFieldsFromAnswers, ingredientPreferenceCounts, tallyChoices } from "./surveyOptions";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor, setStatusBarOnDark, setKeepAwake } from "./native";
-import { imageToJpegDataUrl, squareJpegDataUrl, uploadCheckinPhoto, removeCheckinPhoto } from "./checkinPhotos.js";
+import { imageToJpegDataUrl, squareJpegDataUrl, uploadCheckinPhoto, removeCheckinPhoto, removeOwnStorageFiles } from "./checkinPhotos.js";
 import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS, canonicalRecipeId, recipeIdAliases } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
 import feestHeaderImg from "./assets/feest-header.jpg";
@@ -2749,9 +2749,18 @@ export default function ThuisbarApp() {
     if (!session || deletingAccount) return;
     setDeletingAccount(true);
     setDeleteAccountError(null);
+    // Eerst je eigen bestanden in de opslag weghalen: Supabase weigert een
+    // account te verwijderen dat nog bestanden bezit.
+    await removeOwnStorageFiles(session.user.id);
     const { error } = await supabase.functions.invoke("delete-account", {});
     setDeletingAccount(false);
-    if (error) { setDeleteAccountError("Verwijderen is niet gelukt. Probeer het nog eens."); return; }
+    if (error) {
+      let detail = "";
+      try { detail = (await error.context?.json?.())?.error || ""; } catch { /* geen details */ }
+      console.error("Account verwijderen mislukt:", error, detail);
+      setDeleteAccountError(`Verwijderen is niet gelukt. Probeer het nog eens.${detail ? ` (${detail})` : ""}`);
+      return;
+    }
     await nativePush.forget();
     await supabase.auth.signOut();
   };

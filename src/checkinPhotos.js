@@ -78,3 +78,18 @@ export function removeCheckinPhoto(userId, photo) {
   if (!path.startsWith(`${userId}/`)) return;
   supabase.storage.from(CHECKIN_PHOTO_BUCKET).remove([path]).catch(() => {});
 }
+
+// Alle eigen bestanden (check-in-foto's en menukaart-afbeeldingen) weghalen,
+// vlak voor het verwijderen van je account.
+export async function removeOwnStorageFiles(userId) {
+  for (const bucket of [CHECKIN_PHOTO_BUCKET, "menukaarten"]) {
+    try {
+      for (let i = 0; i < 20; i++) {
+        const { data: files, error } = await supabase.storage.from(bucket).list(userId, { limit: 100 });
+        if (error || !files || files.length === 0) break;
+        const { error: rmError } = await supabase.storage.from(bucket).remove(files.map((f) => `${userId}/${f.name}`));
+        if (rmError) break;
+      }
+    } catch { /* bucket bestaat niet of geen rechten: doorgaan */ }
+  }
+}
