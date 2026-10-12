@@ -2752,11 +2752,16 @@ export default function ThuisbarApp() {
     // Eerst je eigen bestanden in de opslag weghalen: Supabase weigert een
     // account te verwijderen dat nog bestanden bezit.
     await removeOwnStorageFiles(session.user.id);
-    const { error } = await supabase.functions.invoke("delete-account", {});
+    // Via de database (functie verwijder_mijn_account); bestaat die nog niet,
+    // dan via de Edge Function zoals voorheen.
+    let { error } = await supabase.rpc("verwijder_mijn_account");
+    if (error && /verwijder_mijn_account|PGRST202|does not exist|schema cache/i.test(`${error.code} ${error.message}`)) {
+      ({ error } = await supabase.functions.invoke("delete-account", {}));
+    }
     setDeletingAccount(false);
     if (error) {
       let detail = "";
-      try { detail = (await error.context?.json?.())?.error || ""; } catch { /* geen details */ }
+      try { detail = error.context?.json ? (await error.context.json())?.error || "" : error.message || ""; } catch { detail = error.message || ""; }
       console.error("Account verwijderen mislukt:", error, detail);
       setDeleteAccountError(`Verwijderen is niet gelukt. Probeer het nog eens.${detail ? ` (${detail})` : ""}`);
       return;
