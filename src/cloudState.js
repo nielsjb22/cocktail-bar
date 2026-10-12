@@ -4,14 +4,10 @@
 //
 // Werking:
 // - Lokaal blijft alles in Preferences staan (werkt ook offline en als gast).
-// - Bij inloggen: per onderdeel lokaal en account samenvoegen.
-//   * Nog nooit voor dit account gesynchroniseerd op dit toestel (bijv. je
-//     gebruikte de app als gast, of in de browser vóór deze update):
-//     SAMENVOEGEN, er gaat niets verloren (lijsten: alles van beide,
-//     cursus: per les het beste resultaat).
-//   * Wel eerder gesynchroniseerd: de nieuwste versie wint.
-//   * Lokale gegevens van een ánder account op dit toestel worden nooit
-//     naar jouw account gekopieerd; dan geldt wat in jouw account staat.
+// - Bij inloggen met hetzelfde account als de vorige keer: de nieuwste
+//   versie wint.
+// - Bij een ander of nog onbekend account terwijl er al iets op het toestel
+//   staat: eerst vragen of dat bij dit account hoort (zie startSync).
 // - Elke wijziging gaat na een korte pauze naar je account.
 
 import { Preferences } from "@capacitor/preferences";
@@ -123,44 +119,108 @@ export async function noteLocalChange(key, value) {
   pending.set(key, setTimeout(() => { pending.delete(key); upload(key, value); }, 1200));
 }
 
-// Bij inloggen (en bij terugkomen in de app): samenvoegen met je account.
+// Vraag aan de gebruiker (in de app: window.confirm). Te vervangen in tests.
+let askUser = (text) => (typeof window !== "undefined" && window.confirm ? window.confirm(text) : false);
+export function setAsk(fn) { askUser = fn; }
+
+const STASH_KEY = "thuisbar-sync-stash"; // { [ownerId]: { [key]: value } }
+
+function describe(values) {
+  const parts = [];
+  const n = (k) => (Array.isArray(values[k]) ? values[k].length : 0);
+  if (n("thuisbar-voorraad")) parts.push(`${n("thuisbar-voorraad")} flessen in je voorraad`);
+  if (n("thuisbar-favoriete-recepten")) parts.push(`${n("thuisbar-favoriete-recepten")} favoriete recepten`);
+  if (n("thuisbar-shopping-list")) parts.push(`${n("thuisbar-shopping-list")} dingen op je boodschappenlijst`);
+  const lessen = Object.values(values["thuisbar-cursus-voortgang"] || {}).filter((l) => l?.completed).length;
+  if (lessen) parts.push(`${lessen} afgeronde lessen`);
+  if (n("thuisbar-custom-recipes")) parts.push(`${n("thuisbar-custom-recipes")} eigen recepten`);
+  return parts.length ? parts.join(", ") : "gegevens";
+}
+
+async function readStash() {
+  try { return JSON.parse((await Preferences.get({ key: STASH_KEY })).value || "{}") || {}; } catch { return {}; }
+}
+
+// Bij inloggen (en bij terugkomen in de app): lokaal en account bijwerken.
+// - Zelfde account als de vorige keer op dit toestel: de nieuwste versie wint.
+// - Ander of onbekend account, en er staat iets op het toestel: eerst VRAGEN
+//   of dat bij dit account hoort. Ja = samenvoegen (niets gaat verloren).
+//   Nee = het toestel toont alleen dit account; wat er stond wordt apart
+//   bewaard en komt terug als de eigenaar weer inlogt.
 export async function startSync(uid) {
   if (!uid) { userId = null; return; }
   userId = uid;
   await loadMeta();
   const { data: rows, error } = await supabase.from("user_state").select("key, value, updated_at").eq("user_id", uid);
   if (error) { console.warn("Synchroniseren niet beschikbaar:", error.message); return; }
+  if (userId !== uid) return;
   const remote = new Map((rows || []).map((r) => [r.key, r]));
   const sameUser = meta.userId === uid;
-  const otherUser = meta.userId && meta.userId !== uid;
+
+  const local = {};
+  for (const key of Object.keys(SYNC_KEYS)) {
+    try { const raw = (await Preferences.get({ key })).value; local[key] = raw == null ? null : JSON.parse(raw); } catch { local[key] = null; }
+  }
+  const localHasData = Object.values(local).some((v) => !isEmpty(v));
+  const stash = await readStash();
+
+  // Voegt het toestel iets toe aan wat al in het account staat?
+  const addsSomething = Object.entries(SYNC_KEYS).some(([key, kind]) => {
+    const r = remote.get(key)?.value ?? null;
+    return JSON.stringify(mergeValues(kind, local[key], r)) !== JSON.stringify(r) && !isEmpty(local[key]);
+  });
+
+  let mode = "newest";
+  if (!sameUser) {
+    if (localHasData && addsSomething) {
+      const wat = describe(local) + (meta.userId ? " van een ander account" : "");
+      const vraag = remote.size === 0
+        ? `Op deze telefoon staat al ${wat}.\n\nHoort dit bij dit account? Kies OK om het aan dit account te koppelen, of Annuleren om met een leeg account te beginnen.`
+        : `Op deze telefoon staat ook ${wat}, dat nog niet in dit account zit.\n\nKies OK om het samen te voegen met dit account, of Annuleren om alleen te gebruiken wat al in dit account staat.`;
+      mode = askUser(vraag) ? "merge" : "account";
+    } else {
+      mode = "account";
+    }
+    if (mode === "account" && localHasData) {
+      // Niet weggooien: apart bewaren voor de vorige eigenaar.
+      const owner = meta.userId || "onbekend";
+      stash[owner] = { ...(stash[owner] || {}), ...Object.fromEntries(Object.entries(local).filter(([, v]) => !isEmpty(v))) };
+      await Preferences.set({ key: STASH_KEY, value: JSON.stringify(stash) });
+    }
+  }
+  const mine = stash[uid] || null;
 
   for (const [key, kind] of Object.entries(SYNC_KEYS)) {
-    let local = null;
-    try { const raw = (await Preferences.get({ key })).value; local = raw == null ? null : JSON.parse(raw); } catch { local = null; }
     const r = remote.get(key);
+    const l = local[key];
     let next;
     let push = false;
-    if (otherUser) {
-      // Lokale gegevens zijn van iemand anders: alleen jouw account tonen.
-      next = r ? r.value : (Array.isArray(local) ? [] : {});
+    if (mode === "merge") {
+      next = mergeValues(kind, l, r?.value ?? null);
+      push = !isEmpty(next) && JSON.stringify(next) !== JSON.stringify(r?.value ?? null);
+    } else if (mode === "account") {
+      if (r) next = r.value;
+      else if (mine && !isEmpty(mine[key])) { next = mine[key]; push = true; }
+      else next = Array.isArray(l) ? [] : (l && typeof l === "object" ? {} : l);
     } else if (!r) {
-      next = local;
-      push = !isEmpty(local);
-    } else if (!sameUser) {
-      next = mergeValues(kind, local, r.value);
-      push = JSON.stringify(next) !== JSON.stringify(r.value);
+      next = l;
+      push = !isEmpty(l);
     } else {
       const localAt = meta.keys[key] || 0;
       const remoteAt = Date.parse(r.updated_at) || 0;
-      if (localAt > remoteAt) { next = local; push = JSON.stringify(local) !== JSON.stringify(r.value); }
+      if (localAt > remoteAt) { next = l; push = JSON.stringify(l) !== JSON.stringify(r.value); }
       else next = r.value;
     }
-    if (next != null && JSON.stringify(next) !== JSON.stringify(local)) {
+    if (next != null && JSON.stringify(next) !== JSON.stringify(l)) {
       await Preferences.set({ key, value: JSON.stringify(next) });
       emit(key, next);
     }
     if (push) await upload(key, next);
     meta.keys[key] = push ? Date.now() : (r ? Date.parse(r.updated_at) || Date.now() : meta.keys[key] || 0);
+  }
+  if (mine && mode === "account") {
+    delete stash[uid];
+    await Preferences.set({ key: STASH_KEY, value: JSON.stringify(stash) });
   }
   meta.userId = uid;
   saveMeta();
