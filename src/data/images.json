@@ -227,11 +227,11 @@
   {
     "id": "baileys_coffee",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "baileys_coffee.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-whipped-cream-coffee-with-biscuits-34269427/",
+    "maker": "Anhelina Vasylyk",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bamboo",
@@ -452,11 +452,11 @@
   {
     "id": "bombardino",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "bombardino.webp",
+    "bronUrl": "https://www.pexels.com/photo/colorful-latte-with-whipped-cream-and-bokeh-lights-34922539/",
+    "maker": "mohammad mohebbi",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bombay_punch",
@@ -516,8 +516,8 @@
     "id": "brandy_smash",
     "type": "cocktail",
     "bestand": "brandy_smash.webp",
-    "bronUrl": "https://www.pexels.com/photo/mint-leaves-on-top-of-the-glass-of-soda-9271563/",
-    "maker": "Amar  Preciado",
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-with-yellow-liquid-4929367/",
+    "maker": "Jiban Game",
     "licentie": "Pexels License",
     "niveau": "passend"
   },
@@ -605,11 +605,11 @@
   {
     "id": "cafe_amaretto",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "cafe_amaretto.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-coffee-drink-with-whipped-cream-12181626/",
+    "maker": "Cihan Yüce",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "caipirinha",
@@ -632,11 +632,11 @@
   {
     "id": "calypso_coffee",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "calypso_coffee.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-glass-of-liquor-9977091/",
+    "maker": "Oswald Yaw El-Saboath",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "camomile_collins",
@@ -1604,11 +1604,11 @@
   {
     "id": "hot_apple_toddy",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "hot_apple_toddy.webp",
+    "bronUrl": "https://www.pexels.com/photo/cinnamon-drink-on-a-clear-drinking-glass-5430753/",
+    "maker": "Polina ⠀",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "hot_buttered_rum",
@@ -1622,11 +1622,11 @@
   {
     "id": "hot_chocolate_brandy",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "hot_chocolate_brandy.webp",
+    "bronUrl": "https://www.pexels.com/photo/chocolate-drink-with-whipped-cream-15149193/",
+    "maker": "Doğu Tuncer",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "hot_toddy",
@@ -1713,8 +1713,8 @@
     "id": "industry_sour",
     "type": "cocktail",
     "bestand": "industry_sour.webp",
-    "bronUrl": "https://www.pexels.com/photo/elegant-lemon-cocktail-with-candy-garnish-29465139/",
-    "maker": "Jason Keeton",
+    "bronUrl": "https://www.pexels.com/photo/a-green-cocktail-sitting-on-top-of-a-wooden-board-27837787/",
+    "maker": "Marcelo Verfe",
     "licentie": "Pexels License",
     "niveau": "passend"
   },
@@ -1784,11 +1784,11 @@
   {
     "id": "jagertee",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "jagertee.webp",
+    "bronUrl": "https://www.pexels.com/photo/cozy-winter-tea-with-orange-and-candlelight-30705548/",
+    "maker": "Katja B",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "jalisco_swizzle",
@@ -1919,11 +1919,11 @@
   {
     "id": "keoke_coffee",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "keoke_coffee.webp",
+    "bronUrl": "https://www.pexels.com/photo/iced-coffee-served-at-cafe-22089041/",
+    "maker": "Jrfotosgrand Fotografia",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kings_fizz",
@@ -3359,11 +3359,11 @@
   {
     "id": "spanish_coffee",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "spanish_coffee.webp",
+    "bronUrl": "https://www.pexels.com/photo/iced-coffee-served-at-cafe-22092265/",
+    "maker": "Wallace Silva",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "spiced_apple",
@@ -3854,11 +3854,11 @@
   {
     "id": "warm_apple_cinnamon",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "warm_apple_cinnamon.webp",
+    "bronUrl": "https://www.pexels.com/photo/refreshing-apple-tea-with-sliced-apples-on-table-29632177/",
+    "maker": "Rahime Gül",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "washington_apple",
@@ -3980,11 +3980,11 @@
   {
     "id": "witte_gluhwein",
     "type": "cocktail",
-    "bestand": null,
-    "bronUrl": null,
-    "maker": null,
-    "licentie": null,
-    "niveau": null
+    "bestand": "witte_gluhwein.webp",
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-with-brown-liquid-on-brown-wooden-table-3409351/",
+    "maker": "Lena Khrupina",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "woo_woo",

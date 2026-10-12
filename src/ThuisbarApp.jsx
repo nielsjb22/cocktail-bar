@@ -14941,15 +14941,34 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
         </div>
       )}
 
-      {/* Tabbladen */}
-      <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12, marginBottom: 18 }}>
-        {[["checkins", "Check-ins"], ["smaak", "Smaak"], ["prestaties", "Prestaties"]].map(([id, label]) => (
-          <button key={id} role="tab" aria-selected={profileTab === id} onClick={() => setProfileTab(id)} style={{
-            flex: 1, height: 34, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 700,
-            background: profileTab === id ? BOTTLE : "transparent", color: profileTab === id ? HEADER_TEXT : MUTED,
-          }}>{label}</button>
-        ))}
-      </div>
+      {/* Tabbladen: één rij, zoals Instagram. Foto's en Posts zijn allebei je
+          check-ins (raster of onder elkaar); de keuze wordt onthouden. */}
+      {(() => {
+        const activeTab = profileTab === "checkins" ? (ciView === "doorscrollen" ? "posts" : "fotos") : profileTab;
+        const pick = (id) => {
+          if (id === activeTab) return;
+          onSound("tick");
+          if (id === "fotos" || id === "posts") { setProfileTab("checkins"); setCiView(id === "posts" ? "doorscrollen" : "overzicht"); }
+          else setProfileTab(id);
+        };
+        return (
+          <div role="tablist" style={{ display: "flex", borderBottom: "1px solid rgba(43,38,32,0.14)", marginBottom: 14 }}>
+            {[["fotos", "Foto's", LayoutGrid], ["posts", "Posts", Rows2], ["smaak", "Smaak", Heart], ["prestaties", "Prestaties", Award]].map(([id, label, Icon]) => {
+              const on = activeTab === id;
+              return (
+                <button key={id} role="tab" aria-selected={on} onClick={() => pick(id)} style={{
+                  flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 0 8px", marginBottom: -1,
+                  background: "none", border: "none", borderBottom: `2.5px solid ${on ? BRASS : "transparent"}`, cursor: "pointer",
+                  fontFamily: sans, fontSize: 12.5, fontWeight: on ? 800 : 700, color: on ? INK : MUTED,
+                }}>
+                  <Icon size={19} strokeWidth={on ? 2.2 : 1.9} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* ---------- Tab: Check-ins ---------- */}
       {profileTab === "checkins" && (
@@ -14967,21 +14986,6 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                   <Flame size={13} /> {insights.streak} dagen op rij
                 </span>
               )}
-            </div>
-            <div role="tablist" aria-label="Weergave van je check-ins" style={{ display: "flex", padding: 4, borderRadius: 14, background: PAPER_DEEP, marginBottom: 12 }}>
-              {[["overzicht", "Overzicht", LayoutGrid], ["doorscrollen", "Doorscrollen", Rows2]].map(([key, label, Icon]) => {
-                const on = ciView === key;
-                return (
-                  <button key={key} role="tab" aria-selected={on} onClick={() => { if (!on) { onSound("tick"); setCiView(key); } }} style={{
-                    flex: 1, minHeight: 40, borderRadius: 11, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 14.5,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                    background: on ? CREAM : "transparent", boxShadow: on ? "0 1px 3px rgba(43,38,32,0.14)" : "none",
-                    color: on ? BOTTLE : MUTED, fontWeight: on ? 800 : 700,
-                  }}>
-                    <Icon size={16} strokeWidth={2} /> {label}
-                  </button>
-                );
-              })}
             </div>
             {ciView === "doorscrollen" ? (
               <div>
