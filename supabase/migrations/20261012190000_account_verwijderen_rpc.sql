@@ -71,6 +71,7 @@ begin
       execute 'delete from public.content_reports where reporter_id = $1' using v_uid;
     end;
   end if;
+  if to_regclass('public.user_state') is not null then execute 'delete from public.user_state where user_id = $1' using v_uid; end if;
   if to_regclass('public.app_beheerders') is not null then execute 'delete from public.app_beheerders where user_id = $1' using v_uid; end if;
   if to_regclass('public.profiles') is not null then execute 'delete from public.profiles where id = $1' using v_uid; end if;
 

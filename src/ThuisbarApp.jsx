@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext, useId, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
+import { subscribe, noteLocalChange, startSync, stopSync } from "./cloudState.js";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -157,10 +158,13 @@ function useStorage(key, fallback) {
     });
     return () => { cancelled = true; };
   }, [key]);
+  // Bijgewerkt vanuit je account (cloudState.js).
+  useEffect(() => subscribe(key, setValue), [key]);
 
   const persist = (next) => {
     setValue(next);
     Preferences.set({ key, value: JSON.stringify(next) }).catch(e => console.error("Opslaan mislukt:", e));
+    noteLocalChange(key, next);
   };
   return [value, persist];
 }
@@ -2531,7 +2535,17 @@ export default function ThuisbarApp() {
     else if (tab === "home") navigateTo("home");
     else { navigateTo("home"); setHomeTapTick(t => t + 1); }
   });
+  // Voorraad, favorieten, cursus enz. samen met je account bijhouden.
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) return;
+    startSync(uid);
+    const onVisible = () => { if (document.visibilityState === "visible") startSync(uid); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [session?.user?.id]);
   const signOut = async () => {
+    stopSync();
     await nativePush.forget();
     await supabase.auth.signOut();
   };
