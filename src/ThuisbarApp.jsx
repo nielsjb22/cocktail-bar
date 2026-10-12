@@ -8223,11 +8223,55 @@ function WinkelmandjeTab({ shoppingList, recipes, allIngredients, onRemove, onBu
 const BEREID_BG = "#132622";
 const BEREID_MUTED = "#A9B8B0";
 const BEREID_GOLD = "#DDB877";
-function bereidTimerFor(text) {
+// Shaketijd per cocktail, voor de beste textuur en verdunning:
+// gewone sour 12 s, room/zuivel 15 s, espresso 18 s (schuimlaag), eiwit
+// eerst 15 s dry shake zonder ijs, over crushed ijs een korte whip shake,
+// en de Ramos Gin Fizz extra lang.
+const DAIRY_IDS = new Set(["heavy_cream", "milk", "coconut_cream", "irish_cream", "whipped_cream"]);
+function shakeProfile(recipe) {
+  const ids = new Set((recipe.ingredients || []).map(i => i.id));
+  const m = (recipe.method || "").toLowerCase();
+  const dryInMethod = /dry shake|zonder ijs (shaken|om het eiwit)/.test(m);
+  const hasWhite = ids.has("egg_white") || ids.has("aquafaba");
+  if (recipe.id === "ramos_gin_fizz" || /minstens een minuut/.test(m)) {
+    return { dry: 30, wet: 60, why: "Extra lang: zo krijgt de fizz zijn dikke schuimkraag." };
+  }
+  if (dryInMethod || (hasWhite && !ids.has("egg_yolk"))) {
+    return dryInMethod
+      ? { dry: 15, wet: 12, why: "Met ijs nog eens hard shaken: nu wordt hij koud en goed verdund." }
+      : { dry: null, wet: 15, why: "Extra lang voor een mooie schuimlaag." };
+  }
+  if (ids.has("egg_yolk") || ids.has("egg_nog") || /heel ei|hele ei/.test(m)) {
+    return { dry: null, wet: 15, why: "Ei mengt pas goed na een lange, harde shake." };
+  }
+  if (ids.has("espresso") || /espresso/.test(m)) {
+    return { dry: null, wet: 18, why: "Extra hard en lang voor de romige schuimlaag." };
+  }
+  if ([...ids].some(id => DAIRY_IDS.has(id))) {
+    return { dry: null, wet: 15, why: "Iets langer voor een romige structuur." };
+  }
+  // Geshaket mét crushed ijs en ongezeefd ingeschonken: korte whip shake.
+  // (Shaken met gewoon ijs en zeven óver crushed ijs blijft een normale shake.)
+  if (/shake[^.]*met crushed|ongezeefd|whip shake/.test(m)) {
+    return { dry: null, wet: 5, why: "Kort (whip shake): het crushed ijs gaat mee het glas in en verdunt verder." };
+  }
+  return { dry: null, wet: 12, why: "Hard shaken tot de shaker ijskoud aanvoelt." };
+}
+function stirSeconds(text) {
   const l = text.toLowerCase();
-  if (/shake|schud/.test(l)) return 12;
-  if (/\broer/.test(l) && !/\bbouw/.test(l)) return /roer kort/.test(l) ? 10 : 30;
+  if (/roer kort/.test(l)) return { sec: 10, why: "Kort roeren, alleen om te mengen." };
+  if (/in het glas|in een rocks|over (een groot )?ijsblok/.test(l)) return { sec: 20, why: "Roeren in het glas: tot het koud is, zonder te veel te verdunnen." };
+  return { sec: 30, why: "Rustig roeren tot het ijskoud is, zonder luchtbellen." };
+}
+function bereidTimerFor(text, recipe) {
+  const l = text.toLowerCase();
+  if (/shake|schud/.test(l)) { const p = shakeProfile(recipe || {}); return { sec: p.wet, why: p.why, kind: "shake" }; }
+  if (/\broer/.test(l) && !/\bbouw/.test(l)) { const st = stirSeconds(text); return { ...st, kind: "roer" }; }
   return null;
+}
+function formatTimerClock(sec) {
+  const v = Math.max(0, Math.round(sec || 0));
+  return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, "0")}`;
 }
 function buildBereidSteps(recipe) {
   const t = inferTechniques(recipe.method);
@@ -8241,10 +8285,24 @@ function buildBereidSteps(recipe) {
     if (m) { parts.push(m[1].replace(/[,\s]+$/, "") + "."); parts.push(m[2].charAt(0).toUpperCase() + m[2].slice(1)); }
     else parts.push(text);
   });
+  const profile = shakeProfile(recipe);
+  let dryDone = false;
   parts.forEach(text => {
-    const timer = bereidTimerFor(text);
-    const pour = !timer && /^(dubbel\s+)?(zeef|zeven|giet|schenk)/i.test(text);
-    steps.push({ kind: "tekst", text, timer, label: timer === 12 ? "Shaken" : timer ? "Roeren" : pour ? "Afschenken" : "Bereiden" });
+    const tm = bereidTimerFor(text, recipe);
+    // Eiwit: eerst een eigen stap "Dry shake" zonder ijs, dan met ijs.
+    // De losse "shake dan met ijs"-zin zit al in de stap hierboven.
+    if (tm?.kind === "shake" && dryDone) return;
+    if (tm?.kind === "shake" && profile.dry && !dryDone) {
+      dryDone = true;
+      steps.push({ kind: "tekst", label: "Dry shake", timer: profile.dry,
+        text: "Shake eerst zonder ijs, met de deksel stevig dicht.", why: "Zonder ijs klopt het eiwit op tot een stevig schuim." });
+      steps.push({ kind: "tekst", label: "Shaken", timer: profile.wet,
+        text: "Vul de shaker met ijs en shake nog eens stevig.", why: tm.why });
+      return;
+    }
+    const pour = !tm && /^(dubbel\s+)?(zeef|zeven|giet|schenk)/i.test(text);
+    steps.push({ kind: "tekst", text, timer: tm?.sec || null, why: tm?.why || null,
+      label: tm?.kind === "shake" ? (tm.sec <= 5 ? "Whip shake" : "Shaken") : tm ? "Roeren" : pour ? "Afschenken" : "Bereiden" });
   });
   if (recipe.garnish && !/^geen garnering/i.test(recipe.garnish.trim())) steps.push({ kind: "tekst", label: "Afwerken", text: recipe.garnish });
   steps.push({ kind: "proost" });
@@ -8389,9 +8447,10 @@ function BereidModus({ recipe, ingredientLabel, allIngredients, initialServings 
               <circle cx="125" cy="125" r={R} fill="none" stroke="rgba(251,246,234,0.12)" strokeWidth="12" />
               <circle cx="125" cy="125" r={R} fill="none" stroke={BRASS} strokeWidth="12" strokeLinecap="round"
                 strokeDasharray={`${C * frac} ${C}`} transform="rotate(-90 125 125)" style={{ transition: "stroke-dasharray 0.2s linear" }} />
-              <text x="125" y="130" textAnchor="middle" fontFamily="'Playfair Display', Georgia, serif" fontWeight="700" fontSize="64" fill={HEADER_TEXT}>0:{String(left ?? step.timer).padStart(2, "0")}</text>
+              <text x="125" y="130" textAnchor="middle" fontFamily="'Playfair Display', Georgia, serif" fontWeight="700" fontSize="64" fill={HEADER_TEXT}>{formatTimerClock(left ?? step.timer)}</text>
               <text x="125" y="164" textAnchor="middle" fontFamily={sans} fontWeight="600" fontSize="14" fill={BEREID_MUTED}>{left === 0 ? "klaar" : `van ${step.timer} seconden`}</text>
             </svg>
+            {step.why && <p style={{ textAlign: "center", fontFamily: sans, fontSize: 14.5, lineHeight: 1.45, color: BEREID_MUTED, margin: "10px auto 0", maxWidth: 300 }}>{step.why}</p>}
             <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 16 }}>
               <button onClick={running ? () => setRunning(false) : startTimer} style={{ display: "flex", alignItems: "center", gap: 8, height: 48, padding: "0 22px", borderRadius: 100, border: "none", background: running ? "rgba(251,246,234,0.1)" : HEADER_TEXT, color: running ? HEADER_TEXT : BEREID_BG, fontFamily: sans, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
                 {running ? "Pauze" : left > 0 && left < step.timer ? "Verder" : "Start timer"}
