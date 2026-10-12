@@ -1,13 +1,22 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "url";
-import { dirname } from "path";
+import { dirname, resolve } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   root: __dirname,
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      // Tweede pagina: /privacy (link voor App Store Connect).
+      input: {
+        main: resolve(__dirname, "index.html"),
+        privacy: resolve(__dirname, "privacy/index.html"),
+      },
+    },
+  },
   server: {
     port: Number(process.env.PORT) || 5174,
     strictPort: false,

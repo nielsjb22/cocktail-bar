@@ -9,6 +9,7 @@ import { Capacitor } from "@capacitor/core";
 import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck, Play } from "lucide-react";
 import L from "leaflet";
 import { useMapEngine, createAppleMap } from "./appleMaps";
+import { PRIVACY_BIJGEWERKT, PRIVACY_INTRO, PRIVACY_SECTIES, privacyContactTekst } from "./privacyPolicy";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { INGREDIENT_INFO } from "./data/ingredientInfo";
@@ -1925,11 +1926,17 @@ function AgeGateScreen({ onConfirm }) {
             }}>
               Nee, ik ben jonger dan 18
             </button>
+            <p style={{ color: "#C7CFC5", fontSize: 12.5, textAlign: "center", margin: "18px 0 0", opacity: 0.8 }}>Geniet met mate.</p>
           </>
         )}
       </div>
     </div>
   );
+}
+
+// Kleine, rustige regel onder recepten: hoort bij een app over alcohol.
+function MatigheidRegel({ style }) {
+  return <p style={{ fontSize: 12, color: MUTED, textAlign: "center", margin: "6px 0 0", ...style }}>Geniet met mate. Alleen voor 18+.</p>;
 }
 
 // Login/registratie: dezelfde donkere "signage"-look als de masthead elders
@@ -3398,20 +3405,16 @@ function PrivacyPolicyScreen() {
   const H = ({ children }) => <h3 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: BOTTLE, margin: "22px 0 8px" }}>{children}</h3>;
   return (
     <div>
-      <p style={{ fontSize: 12, color: MUTED, marginBottom: 20 }}>Laatst bijgewerkt: {new Date().toISOString().slice(0, 10)}</p>
-      <P>Mijn Thuisbar is een persoonlijke app voor het bijhouden van je thuisbar, cocktailrecepten en check-ins met vrienden. Dit beleid legt uit welke gegevens de app verzamelt en waarvoor.</P>
-      <H>Welke gegevens</H>
-      <P>E-mailadres en naam (voor je account), een optionele profielfoto, je voorraad en eigen recepten, je check-ins (cocktailnaam, foto, locatie, beoordeling, notities), en — als je die functie gebruikt — vriendschappen, reacties en proosts op check-ins van jou en anderen. Bij een gedeelde smaaktest voor een feest worden ook de antwoorden van je gasten (smaakvoorkeuren, optioneel hun naam) opgeslagen.</P>
-      <H>Waarvoor</H>
-      <P>Uitsluitend om de app te laten werken: je eigen gegevens tonen, je voortgang bewaren, en — als je vrienden hebt toegevoegd — hun check-ins met je delen en andersom. Niets wordt gebruikt voor advertenties of doorverkocht aan derden.</P>
-      <H>Waar</H>
-      <P>Je gegevens staan opgeslagen bij Supabase (databasehosting in de EU). Sommige instellingen (zoals je voorraad) staan lokaal op je toestel. Gebruik je de app zonder account, dan blijft alles (ook je check-ins) alleen op je toestel; maak je later een account, dan gaan je check-ins mee naar je account. Verwijder je de app zonder account, dan zijn deze gegevens weg.</P>
-      <H>Delen met derden</H>
-      <P>Alleen wat nodig is om de app te laten draaien (databasehosting, en — als je pushmeldingen aanzet — de meldingendienst van je besturingssysteem). Nooit voor marketingdoeleinden.</P>
-      <H>Jouw rechten</H>
-      <P>Je kan je gegevens op elk moment verwijderen via Instellingen → Account verwijderen. Dat verwijdert je profiel, check-ins, vriendschappen en meldingen-inschrijvingen definitief.</P>
+      <p style={{ fontSize: 12, color: MUTED, marginBottom: 20 }}>Laatst bijgewerkt: {PRIVACY_BIJGEWERKT}</p>
+      <P>{PRIVACY_INTRO}</P>
+      {PRIVACY_SECTIES.map(sec => (
+        <div key={sec.kop}>
+          <H>{sec.kop}</H>
+          <P>{sec.tekst}</P>
+        </div>
+      ))}
       <H>Contact</H>
-      <P>Vragen over dit beleid? Neem contact op via de contactgegevens in de App Store-vermelding van Mijn Thuisbar.</P>
+      <P>{privacyContactTekst()}</P>
     </div>
   );
 }
@@ -6397,6 +6400,7 @@ function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMi
               <ChevronRight size={18} color={MUTED} />
             </button>
           )}
+          <MatigheidRegel />
         </div>
 
         {/* Knoppenbalk */}
@@ -8839,6 +8843,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               )}
             </div>
           </div>
+          <MatigheidRegel style={{ marginTop: 22 }} />
           {/* Bereidingsmodus: vaste knop onderaan het recept. */}
           <div style={{ position: "sticky", bottom: "calc(env(safe-area-inset-bottom) + 96px)", zIndex: 6, marginTop: 24, pointerEvents: "none" }}>
             <button onClick={() => { onSound("pop"); setBereidOpen(true); }} className="press-scale" style={{
