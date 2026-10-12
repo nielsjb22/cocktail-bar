@@ -4641,7 +4641,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           <FeedScore value={entry.rating} />
         </div>
         {entry.notes && (
-          <p style={{ margin: "10px 4px 0", paddingTop: 10, borderTop: `1.5px dashed ${BORDER}`, fontSize: 14, lineHeight: 1.45, fontStyle: "italic", color: INK }}>&ldquo;{entry.notes}&rdquo;</p>
+          <p style={{ margin: "10px 4px 0", paddingTop: 11, borderTop: `1.5px dashed ${BORDER}`, fontFamily: sans, fontSize: 15, lineHeight: 1.5, color: INK, whiteSpace: "pre-wrap" }}>{entry.notes}</p>
         )}
         {entry.tasteTags.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 4px 0" }}>
@@ -14231,7 +14231,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
               <FeedScore value={entry.rating} />
             </div>
             {entry.notes && (
-              <p style={{ margin: "10px 4px 0", paddingTop: 10, borderTop: `1.5px dashed ${BORDER}`, fontSize: 14, lineHeight: 1.45, fontStyle: "italic", color: INK, whiteSpace: "pre-wrap" }}>&ldquo;{entry.notes}&rdquo;</p>
+              <p style={{ margin: "10px 4px 0", paddingTop: 11, borderTop: `1.5px dashed ${BORDER}`, fontFamily: sans, fontSize: 15, lineHeight: 1.5, color: INK, whiteSpace: "pre-wrap" }}>{entry.notes}</p>
             )}
             {tags.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 4px 2px" }}>
