@@ -40,3 +40,7 @@ Bij CC BY / CC BY-SA altijd maker + licentie in images.json.
 ## graphify
 
 Gebruik graphify alleen als ik erom vraag. Is het commando niet beschikbaar, ga dan door zonder.
+
+## Database: testers hebben al accounts
+- Er mag nooit gebruikersdata verloren gaan. Migraties altijd veilig en herhaalbaar schrijven: `create table if not exists`, `add column if not exists`, `create or replace`, alleen `drop policy/trigger if exists` direct gevolgd door opnieuw aanmaken.
+- Nooit `drop table`, `truncate`, `delete from` of kolommen verwijderen zonder dat de gebruiker daar expliciet om vraagt; meld het vooraf als een wijziging data kan raken.
