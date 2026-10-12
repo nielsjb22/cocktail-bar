@@ -1,4 +1,6 @@
 import { EXTRA_INGREDIENTS, EXTRA_RECIPES, EXTRA_STORIES, EXTRA_FUN_FACTS, EXTRA_STEPS } from "./data/recipesExtra.js";
+import { RECIPES_2, STORIES_2, FUN_FACTS_2, STEPS_2 } from "./data/recipesExtra2.js";
+import { INGREDIENTS_3, RECIPES_3, STORIES_3, FUN_FACTS_3, STEPS_3 } from "./data/recipesExtra3.js";
 // Prijzen: bottleMl/bottlePrice = indicatieve flesprijs (voor "koop dit"-berekeningen),
 // unitPrice = indicatief per stuk (vers/garnering, geen flessenlogica). Gebaseerd op
 // drankdozijn.nl-richtprijzen, momentopname september 2026, geen live koppeling, dus
@@ -2970,8 +2972,8 @@ export const STEPS = {
 
 // Uitbreiding (src/data/recipesExtra.js): achteraan toegevoegd, bestaande
 // id's blijven ongewijzigd.
-INGREDIENTS.push(...EXTRA_INGREDIENTS);
-RECIPES.push(...EXTRA_RECIPES);
-Object.assign(STORIES, EXTRA_STORIES);
-Object.assign(FUN_FACTS, EXTRA_FUN_FACTS);
-Object.assign(STEPS, EXTRA_STEPS);
+INGREDIENTS.push(...EXTRA_INGREDIENTS, ...INGREDIENTS_3);
+RECIPES.push(...EXTRA_RECIPES, ...RECIPES_2, ...RECIPES_3);
+Object.assign(STORIES, EXTRA_STORIES, STORIES_2, STORIES_3);
+Object.assign(FUN_FACTS, EXTRA_FUN_FACTS, FUN_FACTS_2, FUN_FACTS_3);
+Object.assign(STEPS, EXTRA_STEPS, STEPS_2, STEPS_3);

@@ -93,12 +93,20 @@ export const DRANK_SPECS = {
   coconut_rum: { omschrijving: "Kokoslikeur op rumbasis", eis: "Kokosrum zoals Malibu Original (± 21%). Geen kokosroom en geen kokossiroop." },
   bitter_lemon: { omschrijving: "Bittere citroenfrisdrank met kinine", eis: "Bitter lemon, bv. Schweppes of Fever-Tree. Geen gewone citroenlimonade." },
   energy_drink: { omschrijving: "Energiedrank met cafeïne", eis: "Energiedrank zoals Red Bull. De suikervrije variant kan ook." },
+  pisang_ambon: { omschrijving: "Groene bananenlikeur", eis: "Pisang Ambon van Bols (± 17%)." },
+  white_port: { omschrijving: "Witte port", eis: "Witte port (branco), bv. droog of extra droog. Geen ruby of tawny." },
+  rose_wine: { omschrijving: "Roséwijn", eis: "Droge, fruitige rosé." },
+  cider: { omschrijving: "Appelcider met alcohol", eis: "Droge of halfdroge appelcider (± 4,5–5,5%), bv. Strongbow of Magners. Geen alcoholvrije of gearomatiseerde cider." },
+  apple_juice: { omschrijving: "Appelsap", eis: "Ongezoet appelsap; troebel is lekkerder dan helder." },
+  ice_tea: { omschrijving: "IJsthee", eis: "IJsthee zoals Lipton Ice Tea, of zelfgezette, afgekoelde zwarte thee met wat suiker." },
+  black_tea: { omschrijving: "Vers gezette zwarte thee", eis: "Zwarte thee, bv. Engelse melange of Earl Grey." },
+  hot_chocolate: { omschrijving: "Warme chocolademelk", eis: "Chocolademelk, bv. Chocomel, of melk met cacao en suiker." },
 };
 
 // Welke boodschappen je in de drankwinkel haalt (met link naar Drankdozijn)
 // en welke in de supermarkt (géén Drankdozijn-link).
 const DRANKWINKEL_CATS = new Set(["Sterke drank", "Likeuren & versterkte wijnen", "Bitters"]);
-const DRANKWINKEL_EXTRA = new Set(["prosecco", "white_wine", "red_wine", "sake", "peach_schnapps"]);
+const DRANKWINKEL_EXTRA = new Set(["prosecco", "white_wine", "red_wine", "rose_wine", "sake", "peach_schnapps"]);
 export function shopGroupFor(meta) {
   if (!meta) return "supermarkt";
   if (DRANKWINKEL_CATS.has(meta.cat) || DRANKWINKEL_EXTRA.has(meta.id)) return "drankwinkel";

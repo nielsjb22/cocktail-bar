@@ -152,6 +152,15 @@ export const INGREDIENT_ALIASES = {
   coconut_rum: ["Malibu", "Malibu Original", "Bacardi Coconut", "Koko Kanu", "kokosrum", "coconut rum", "kokoslikeur", "coconut liqueur"],
   bitter_lemon: ["Schweppes Bitter Lemon", "Fever-Tree Bitter Lemon", "Royal Club Bitter Lemon", "Thomas Henry Bitter Lemon", "bitter lemon", "bitterlemon"],
   energy_drink: ["Red Bull", "Red Bull Sugarfree", "Monster", "Rockstar", "Burn", "Bullit", "Golden Power", "energiedrank", "energy drink", "energydrank"],
+  // Toegevoegd oktober 2026 (portie 3)
+  pisang_ambon: ["Bols Pisang Ambon", "Pisang", "pisang ambon", "groene bananenlikeur"],
+  white_port: ["witte port", "white port", "Porto branco", "Taylor's Chip Dry", "Sandeman Apitiv", "Graham's Fine White", "lagrima port"],
+  rose_wine: ["rosé", "rosé wijn", "rose wijn", "rosewijn", "roséwijn", "rosé wine", "provence rosé", "Whispering Angel", "Mateus"],
+  cider: ["Strongbow", "Somersby", "Apple Bandit", "Magners", "Kopparberg", "Jillz", "appelcider", "apple cider", "cidre", "sidra", "hard cider"],
+  apple_juice: ["Appelsientje Appel", "Riedel Appel", "Hero appelsap", "appelsap", "appel sap", "apple juice", "troebel appelsap", "appelsapje"],
+  ice_tea: ["Lipton", "Lipton Ice Tea", "ice tea", "icetea", "ijsthee", "Fuze Tea", "Arizona", "iced tea", "thee perzik"],
+  black_tea: ["zwarte thee", "Pickwick", "Earl Grey", "English Breakfast", "black tea", "thee", "theezakje", "Engelse melange"],
+  hot_chocolate: ["Chocomel", "chocolademelk", "warme chocolademelk", "chocomelk", "hot chocolate", "Nesquik", "Van Houten cacao", "warme chocolade"],
 };
 
 // Lijkt erop, maar is niet hetzelfde: wel tonen (je kunt hem toevoegen),
@@ -166,13 +175,12 @@ export const NEAR_ALIASES = [
   { id: "fernet_branca", terms: ["Branca Menta"], note: "Fernet met extra munt: zoeter en frisser dan gewone Fernet-Branca." },
   { id: "suze", terms: ["Salers", "Avèze", "Aveze"], note: "Ook een gentiaan-aperitief, vergelijkbaar met Suze." },
   { id: "sour_apple_liqueur", terms: ["Apfelkorn", "Berentzen Apfelkorn"], note: "Appel op graanbasis: minder zuur en minder groen dan sour apple." },
-  { id: "banana_liqueur", terms: ["Pisang Ambon"], note: "Bananenlikeur, maar groen gekleurd en met wat kruiden." },
   { id: "sloe_gin", terms: ["bessenjenever", "Coebergh", "Bols Bessen"], note: "Bessenjenever is zoeter en bessiger dan sloe gin." },
   { id: "ginger_wine", terms: ["Domaine de Canton", "gemberlikeur", "ginger liqueur"], note: "Gemberlikeur is zoeter en sterker dan gemberwijn." },
   { id: "creme_de_cacao", terms: ["crème de cacao bruin", "creme de cacao brown", "dark crème de cacao"], note: "Smaakt hetzelfde, maar kleurt de cocktail bruin." },
   { id: "creme_de_violette", terms: ["Parfait Amour"], note: "Paarse likeur met viooltjes, maar ook sinaasappel en vanille." },
   { id: "passion_fruit_liqueur", terms: ["Alizé", "Alize"], note: "Passievrucht op cognacbasis: zachter van smaak." },
-  { id: "port", terms: ["tawny port", "witte port", "white port"], note: "Een andere stijl port: de recepten gaan uit van ruby." },
+  { id: "port", terms: ["tawny port"], note: "Een andere stijl port: de recepten gaan uit van ruby." },
   { id: "sherry", terms: ["cream sherry", "Harveys Bristol Cream", "Pedro Ximénez", "PX sherry", "oloroso"], note: "Zoetere sherry: de recepten gaan uit van droge fino of amontillado." },
   { id: "lillet_blanc", terms: ["Cocchi Americano", "Lillet Rosé", "Lillet Rouge"], note: "Vergelijkbaar wijnaperitief; Cocchi Americano is iets bitterder." },
   { id: "absinthe", terms: ["Pernod", "Ricard", "pastis", "ouzo", "sambuca", "anisette"], note: "Anijs zoals absint, maar zoeter en minder sterk: prima om een glas mee te spoelen." },
@@ -199,11 +207,9 @@ export const NEAR_ALIASES = [
 // Herkend, maar in geen enkel recept nodig: geef uitleg in plaats van
 // een lege lijst.
 export const UNUSED_TERMS = [
-  { terms: ["Lipton", "ice tea", "icetea", "ijsthee", "Fuze Tea"], note: "IJsthee gebruiken we in geen enkel recept." },
   { terms: ["Spa Blauw", "Spa Reine", "plat water", "mineraalwater", "kraanwater", "water"], note: "Plat water hoef je niet in je voorraad bij te houden." },
   { terms: ["ijs", "ijsblokjes", "crushed ijs", "ijsklontjes"], note: "IJs hoef je niet bij te houden: dat gaan we ervan uit dat je in huis hebt." },
   { terms: ["Jägermeister", "Jagermeister", "Jäger", "Berenburg", "Beerenburg", "Sonnema", "Schrobbelèr", "Schrobbeler", "Kruidenbitter"], note: "Kruidenbitter zit nog in geen recept." },
   { terms: ["Safari", "Hpnotiq", "Kuemmerling", "Flügel", "Corenwyn"], note: "Deze drank zit nog in geen recept." },
   { terms: ["cassis frisdrank", "Fanta Cassis", "Raak Cassis", "cassislimonade"], note: "Cassis-frisdrank zit in geen recept. Bedoel je crème de cassis (likeur)?" },
-  { terms: ["rosé", "rosé wijn", "rose wijn"], note: "Roséwijn zit nog in geen recept." },
 ];

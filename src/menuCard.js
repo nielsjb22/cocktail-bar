@@ -46,7 +46,7 @@ function shortName(ing, meta) {
 // gedeeld door het totale volume. Zo is een Old Fashioned "Sterk", een
 // Whiskey Sour "Middel" en een Gin-Tonic "Licht". Een glas met heel veel
 // alcohol (Long Island-achtig) is altijd Sterk.
-const ABV_BY_ID = { prosecco: 0.12, white_wine: 0.12, red_wine: 0.13, beer: 0.05, stout: 0.045, sake: 0.15, absinthe: 0.6, peach_schnapps: 0.2 };
+const ABV_BY_ID = { prosecco: 0.12, white_wine: 0.12, red_wine: 0.13, beer: 0.05, stout: 0.045, sake: 0.15, rose_wine: 0.12, cider: 0.05, absinthe: 0.6, peach_schnapps: 0.2 };
 const ABV_BY_CAT = { "Sterke drank": 0.4, "Likeuren & versterkte wijnen": 0.2 };
 function alcoholEstimate(recipe, findMeta) {
   let alcohol = 0, total = 0;

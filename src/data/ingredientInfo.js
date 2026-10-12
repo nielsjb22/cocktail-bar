@@ -159,4 +159,12 @@ export const INGREDIENT_INFO = {
   coconut_rum: { zin: "Zoete kokoslikeur op basis van rum, zoals Malibu.", smaak: ["kokos", "zoet", "tropisch"], bewaren: LIKEUR_BEWAREN },
   bitter_lemon: { zin: "Bruisende citroenfrisdrank met een bittertje van kinine.", smaak: ["citroen", "bitter", "bruisend"], bewaren: "Koel bewaren. Open: dop erop en binnen een dag of twee op." },
   energy_drink: { zin: "Bruisende frisdrank met cafeïne en suiker, zoals Red Bull.", smaak: ["zoet", "fruitig", "bruisend"], tip: "<b>Let op met alcohol.</b> Cafeïne maskeert hoe dronken je je voelt; wissel af met water.", bewaren: "Goed gekoeld schenken. Open blik meteen opdrinken." },
+  pisang_ambon: { zin: "Felgroene Nederlandse likeur met banaan en een vleugje kruiden.", smaak: ["banaan", "zoet", "tropisch"], bewaren: LIKEUR_BEWAREN },
+  white_port: { zin: "Port van witte druiven, lichter en frisser dan rode port.", smaak: ["droog fruit", "noten", "fris"], tip: "<b>Koud drinken.</b> Bewaar de fles open in de koelkast.", bewaren: "Open in de koelkast, een paar weken goed." },
+  rose_wine: { zin: "Gewone roséwijn; voor cocktails een droge, fruitige.", smaak: ["rood fruit", "fris", "droog"], bewaren: "Open: in de koelkast, met de kurk of dop erop, drie à vijf dagen." },
+  cider: { zin: "Licht bruisende appeldrank met alcohol (± 5%).", smaak: ["appel", "fris", "bruisend"], bewaren: "Koel en donker. Open meteen gebruiken." },
+  apple_juice: { zin: "Sap van appels.", smaak: ["appel", "zoet", "fris"], bewaren: "Open in de koelkast, binnen een paar dagen." },
+  ice_tea: { zin: "Gezoete koude thee, zoals Lipton Ice Tea.", smaak: ["thee", "zoet", "citroen"], bewaren: "Open: dop erop, in de koelkast en binnen een paar dagen op." },
+  black_tea: { zin: "Vers gezette zwarte thee.", smaak: ["thee", "licht bitter", "warm"], tip: "<b>Niet te lang laten trekken:</b> drie à vier minuten, anders wordt hij bitter." },
+  hot_chocolate: { zin: "Warme chocolademelk, zoals Chocomel.", smaak: ["chocolade", "zoet", "romig"], bewaren: "Open pak in de koelkast, binnen een paar dagen op." },
 };

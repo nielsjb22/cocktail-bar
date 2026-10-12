@@ -418,7 +418,9 @@ const LIQUID_COLOR_RULES = [
   { ids: ["coffee_liqueur", "espresso", "hot_coffee"], colors: ["#3B2A1E", "#7A5230"] },
   { ids: ["blue_curacao"], colors: ["#1B4F72", "#6FB1D6"] },
   { ids: ["limoncello"], colors: ["#E2C93A", "#F4E9A0"] },
-  { ids: ["creme_de_menthe", "green_chartreuse", "midori", "melon_liqueur"], colors: ["#3D5C3A", "#8FAE55"] },
+  { ids: ["rose_wine"], colors: ["#C8706E", "#F2CFC8"] },
+  { ids: ["hot_chocolate"], colors: ["#4A2E1E", "#8A5A3A"] },
+  { ids: ["creme_de_menthe", "green_chartreuse", "midori", "melon_liqueur", "pisang_ambon"], colors: ["#3D5C3A", "#8FAE55"] },
   { ids: ["tomato_juice"], colors: ["#6E2620", "#B5433A"] },
   { ids: ["grenadine", "cranberry_juice", "campari", "creme_de_cassis", "raspberry_syrup", "creme_de_mure", "sloe_gin", "chambord"], colors: ["#7A2E2A", "#D9707A"] },
   { ids: ["orange_juice", "aperol", "peach_puree", "peach_schnapps", "apricot_brandy"], colors: ["#B8622E", "#F0A85A"] },
@@ -448,16 +450,18 @@ const ZOET_WEIGHTS = {
   coconut_cream: 0.8, pineapple_juice: 0.4, cranberry_juice: 0.25, orange_juice: 0.25, grapefruit_juice: 0.15,
   peach_puree: 0.45, passion_fruit_puree: 0.35, passion_fruit_juice: 0.35, lemonade: 0.45, ginger_beer: 0.25, ginger_ale: 0.25,
   grapefruit_soda: 0.35, tonic: 0.15, prosecco: 0.1,
+  limoncello: 0.8, elderflower_liqueur: 0.7, licor_43: 0.8, spiced_rum: 0.1, coconut_rum: 0.5, bitter_lemon: 0.4,
+  energy_drink: 0.5, pisang_ambon: 0.7, white_port: 0.3, cider: 0.2, apple_juice: 0.35, ice_tea: 0.35, hot_chocolate: 0.4,
 };
 const ZUUR_WEIGHTS = {
   lemon_juice: 1, lime_juice: 1, grapefruit_juice: 0.5, cranberry_juice: 0.25, orange_juice: 0.15,
   pineapple_juice: 0.2, olive_brine: 0.3, passion_fruit_puree: 0.3, passion_fruit_juice: 0.3, passion_fruit_liqueur: 0.15,
-  grapefruit_soda: 0.2, tomato_juice: 0.2,
+  grapefruit_soda: 0.2, tomato_juice: 0.2, limoncello: 0.1, bitter_lemon: 0.15, apple_juice: 0.1, cider: 0.1,
 };
 const BITTER_WEIGHTS = {
   campari: 1, aperol: 0.65, amaro_nonino: 0.7, cynar: 0.8, fernet_branca: 1, yellow_chartreuse: 0.4,
   green_chartreuse: 0.5, coffee_liqueur: 0.25, espresso: 0.6, hot_coffee: 0.5, stout: 0.35, tonic: 0.15,
-  dry_vermouth: 0.2, sweet_vermouth: 0.1, grapefruit_juice: 0.15,
+  dry_vermouth: 0.2, sweet_vermouth: 0.1, grapefruit_juice: 0.15, bitter_lemon: 0.2, black_tea: 0.3,
   angostura: 6, peychauds: 6, orange_bitters: 5,
 };
 function toBucket(points) {
@@ -532,6 +536,10 @@ const INGREDIENT_KEYWORDS = {
   grapefruit_juice: ["grapefruitsap"], tomato_juice: ["tomatensap"], peach_puree: ["perzikpuree"],
   passion_fruit_puree: ["passievruchtpuree"], passion_fruit_juice: ["passievruchtsap"], espresso: ["espresso"], hot_coffee: ["koffie"],
   hot_water: ["heet water"], peach_schnapps: ["perzikschnapps"],
+  limoncello: ["limoncello"], elderflower_liqueur: ["vlierbloesemlikeur"], licor_43: ["licor 43"],
+  spiced_rum: ["spiced rum", "rum"], coconut_rum: ["kokosrum"], bitter_lemon: ["bitter lemon"], energy_drink: ["energiedrank"],
+  pisang_ambon: ["pisang ambon"], white_port: ["witte port"], rose_wine: ["rosé"], cider: ["cider"],
+  apple_juice: ["appelsap"], ice_tea: ["ijsthee"], black_tea: ["thee"], hot_chocolate: ["chocolademelk"],
   heavy_cream: ["slagroom"], whipped_cream: ["slagroom"], egg_yolk: ["eidooier", "dooier"],
   lemon_juice: ["citroensap", "citroen"], lime_juice: ["limoensap", "limoen"],
   sugar_syrup: ["suikersiroop", "suiker"], honey_syrup: ["honingsiroop", "honing"],
@@ -5570,10 +5578,10 @@ const MERK_SOORTEN = [
   { label: "Tequila", ids: ["tequila_blanco", "mezcal"] },
   { label: "Brandy", ids: ["cognac", "calvados", "pisco", "grappa"] },
   { label: "Likeur", cat: "Likeuren & versterkte wijnen" },
-  { label: "Frisdrank", ids: ["tonic", "cola", "lemonade", "bitter_lemon", "ginger_beer", "ginger_ale", "soda_water", "grapefruit_soda", "energy_drink"] },
-  { label: "Sap", ids: ["orange_juice", "pineapple_juice", "cranberry_juice", "grapefruit_juice", "lemon_juice", "lime_juice", "tomato_juice", "passion_fruit_juice"] },
+  { label: "Frisdrank", ids: ["tonic", "cola", "lemonade", "bitter_lemon", "ginger_beer", "ginger_ale", "soda_water", "grapefruit_soda", "energy_drink", "ice_tea"] },
+  { label: "Sap", ids: ["orange_juice", "pineapple_juice", "cranberry_juice", "grapefruit_juice", "lemon_juice", "lime_juice", "tomato_juice", "passion_fruit_juice", "apple_juice"] },
   { label: "Siroop", ids: ["sugar_syrup", "grenadine", "orgeat", "honey_syrup", "raspberry_syrup", "elderflower_cordial", "vanilla_syrup", "agave_nectar"] },
-  { label: "Wijn & bier", ids: ["prosecco", "white_wine", "red_wine", "beer", "stout", "sake"] },
+  { label: "Wijn & bier", ids: ["prosecco", "white_wine", "red_wine", "rose_wine", "beer", "stout", "cider", "sake"] },
 ];
 
 function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAantal, onAdjustAantal, onToggle, onAddCustom, onRemoveCustom,
@@ -7429,7 +7437,7 @@ function analyzeBatchRecipe(recipe, allIngredients) {
   const hasDairy = rows.some(r => BATCH_DAIRY.has(idOf(r)));
   const hasBubbles = rows.some(r => BATCH_BUBBLES.has(idOf(r)));
   const hasFresh = rows.some(r => BATCH_FRESH.has(idOf(r)));
-  const hot = recipe.family === "Warme dranken" || rows.some(r => ["hot_water", "hot_coffee", "espresso"].includes(idOf(r)));
+  const hot = recipe.family === "Warme dranken" || rows.some(r => ["hot_water", "hot_coffee", "espresso", "hot_chocolate", "black_tea"].includes(idOf(r)));
   const stirred = (techniques.includes("stirred") || ["Spirit-forward", "Stirred-down"].includes(recipe.family)) && !techniques.includes("shaken");
   const shaken = techniques.includes("shaken");
   // Waarom (niet) in een kan/fles — null = het kan.
@@ -11755,7 +11763,7 @@ const MA_QUESTION_COUNT = 7;
 // een paar mixers die je los koopt. Sap, frisdrank en citroenen zijn gewone
 // boodschappen en tellen niet mee.
 const MENU_BOTTLE_CATS = new Set(["Sterke drank", "Likeuren & versterkte wijnen", "Bitters"]);
-const MENU_BOTTLE_EXTRA = new Set(["prosecco", "white_wine", "red_wine", "sake", "peach_schnapps", "beer", "stout"]);
+const MENU_BOTTLE_EXTRA = new Set(["prosecco", "white_wine", "red_wine", "rose_wine", "sake", "peach_schnapps", "beer", "stout", "cider"]);
 // Bekende klassiekers (wat de meeste gasten kennen); de rest telt als
 // "minder bekend" voor het schuifje bekend/verrassend.
 const MENU_CLASSICS = new Set([
@@ -11847,7 +11855,7 @@ function menuRecipeFacts(recipe, allIngredients, isOwned) {
   const hasDairy = [...ids].some(id => ["heavy_cream", "whipped_cream", "milk", "egg_yolk", "irish_cream", "butter"].includes(id));
   const hasHomemade = [...ids].some(id => MENU_HOMEMADE_SYRUPS.has(id));
   const hasFreshJuice = required.some(ing => MENU_FRESH_JUICES.has(findIngredientMeta(ing, allIngredients)?.id || ing.id));
-  const hot = [...ids].some(id => ["hot_water", "hot_coffee", "espresso"].includes(id)) || recipe.family === "Warme dranken";
+  const hot = [...ids].some(id => ["hot_water", "hot_coffee", "espresso", "hot_chocolate", "black_tea"].includes(id)) || recipe.family === "Warme dranken";
   // Vooraf te batchen: geen vers sap, ei, room of koffie en niets om te
   // muddelen/laagjes te gieten. Bruis (tonic, soda) mag: dat gaat er bij
   // het serveren pas bij.
