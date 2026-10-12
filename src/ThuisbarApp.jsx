@@ -9,6 +9,7 @@ import { Capacitor } from "@capacitor/core";
 import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck, Play, Copy } from "lucide-react";
 import L from "leaflet";
 import { useMapEngine, createAppleMap } from "./appleMaps";
+import { buildIngredientIndex, searchIngredients, unusedHint, normalizeTerm } from "./ingredientSearch";
 import { PRIVACY_BIJGEWERKT, PRIVACY_INTRO, PRIVACY_SECTIES, privacyContactTekst } from "./privacyPolicy";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
@@ -5558,6 +5559,22 @@ function FlesSheet({ ing, owned, usedIn, makeableWith, level, aantal, onSetLevel
   ), document.body);
 }
 
+// Onbekend merk: eerst de soort, dan de precieze drank. Zo telt ook een
+// fles die we nog niet kennen mee bij de juiste recepten.
+const MERK_SOORTEN = [
+  { label: "Rum", ids: ["white_rum", "dark_rum", "cachaca"] },
+  { label: "Wodka", ids: ["vodka", "vanilla_vodka"] },
+  { label: "Gin", ids: ["gin", "sloe_gin", "genever"] },
+  { label: "Whisky", ids: ["bourbon", "rye", "scotch", "irish_whiskey"] },
+  { label: "Tequila", ids: ["tequila_blanco", "mezcal"] },
+  { label: "Brandy", ids: ["cognac", "calvados", "pisco", "grappa"] },
+  { label: "Likeur", cat: "Likeuren & versterkte wijnen" },
+  { label: "Frisdrank", ids: ["tonic", "cola", "lemonade", "ginger_beer", "ginger_ale", "soda_water", "grapefruit_soda"] },
+  { label: "Sap", ids: ["orange_juice", "pineapple_juice", "cranberry_juice", "grapefruit_juice", "lemon_juice", "lime_juice", "tomato_juice", "passion_fruit_juice"] },
+  { label: "Siroop", ids: ["sugar_syrup", "grenadine", "orgeat", "honey_syrup", "raspberry_syrup", "elderflower_cordial", "vanilla_syrup", "agave_nectar"] },
+  { label: "Wijn & bier", ids: ["prosecco", "white_wine", "red_wine", "beer", "stout", "sake"] },
+];
+
 function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAantal, onAdjustAantal, onToggle, onAddCustom, onRemoveCustom,
   niveaus = {}, onSetNiveau, onAddPack, onUndoPack, onAddToShoppingList, shoppingKeys, onOpenFullRecipe, onSound, onOpenMaken = null }) {
   const [query, setQuery] = useState("");
@@ -5592,17 +5609,48 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
 
   const cats = [...CATEGORY_ORDER, ...(allIngredients.some(i => i.cat === CUSTOM_CAT) ? [CUSTOM_CAT] : [])];
   const q = query.trim().toLowerCase();
-  const visible = allIngredients.filter(i => (cat === "Alles" || i.cat === cat) && (!q || i.name.toLowerCase().includes(q)));
-  const owned = visible.filter(i => voorraad.has(i.id)).sort((a, b) => (usage.get(b.id)?.length || 0) - (usage.get(a.id)?.length || 0));
+  // Slim zoeken: merk, Engelse naam, spreektaal en tikfouten; plus merken
+  // die je zelf aan een drank hebt gekoppeld.
+  const [eigenMerken, setEigenMerken] = useStorage("thuisbar-eigen-merken", []);
+  const searchIndex = useMemo(() => buildIngredientIndex(allIngredients, eigenMerken), [allIngredients, eigenMerken]);
+  const matches = useMemo(() => (q ? searchIngredients(query, searchIndex).filter(m => cat === "Alles" || m.ing.cat === cat) : []), [q, query, searchIndex, cat]);
+  const matchById = useMemo(() => new Map(matches.map(m => [m.ing.id, m])), [matches]);
+  const visible = q ? matches.map(m => m.ing) : allIngredients.filter(i => cat === "Alles" || i.cat === cat);
+  const byUse = (a, b) => (usage.get(b.id)?.length || 0) - (usage.get(a.id)?.length || 0);
+  const owned = visible.filter(i => voorraad.has(i.id)).sort(q ? () => 0 : byUse);
   const notOwned = visible.filter(i => !voorraad.has(i.id))
-    .sort((a, b) => ((gains.get(b.id) || 0) - (gains.get(a.id) || 0)) || ((usage.get(b.id)?.length || 0) - (usage.get(a.id)?.length || 0)));
-  const exactMatch = q && allIngredients.some(i => i.name.toLowerCase() === q);
+    .sort(q ? () => 0 : (a, b) => ((gains.get(b.id) || 0) - (gains.get(a.id) || 0)) || byUse(a, b));
+  const exactMatch = q && allIngredients.some(i => normalizeTerm(i.name) === normalizeTerm(query));
+  const didYouMean = matches[0]?.fuzzy ? (matches[0].via || matches[0].matchedName) : null;
+  const unused = q && matches.length === 0 ? unusedHint(query) : null;
+  const recipeHit = q && matches.length === 0 && q.length >= 3 ? recipes.find(r => normalizeTerm(r.name) === normalizeTerm(query)) || null : null;
+  const [merkSoort, setMerkSoort] = useState(null);
+  const [merkKeuze, setMerkKeuze] = useState(null);
+  useEffect(() => { setMerkSoort(null); setMerkKeuze(null); }, [q]);
   const bottleCount = allIngredients.filter(i => voorraad.has(i.id)).length;
 
   const showToast = (t) => { clearTimeout(toastTimer.current); setToast(t); toastTimer.current = setTimeout(() => setToast(null), 5000); };
-  const toggle = (id) => {
-    if (!voorraad.has(id)) { onSound("tick"); onSetNiveau(id, null); } else onSound("remove");
+  // Melding na toevoegen: wat levert deze fles op?
+  const addedToast = (id, viaName) => {
+    const ing = allIngredients.find(i => i.id === id);
+    const newOnes = (usage.get(id) || []).filter(r => { const m = missingByRecipe.get(r.id) || []; return m.length === 1 && m[0] === id; });
+    const head = viaName && normalizeTerm(viaName) !== normalizeTerm(ing?.name) ? `${viaName} → ${ing?.name}` : ing?.name;
+    showToast({
+      text: `${head} toegevoegd`,
+      title: newOnes.length > 0 ? `Je kunt nu ${newOnes.length} extra cocktail${newOnes.length === 1 ? "" : "s"} maken` : null,
+      names: newOnes.slice(0, 2).map(r => r.name), more: Math.max(0, newOnes.length - 2),
+      undo: [id],
+    });
+  };
+  const toggle = (id, viaName = null) => {
+    if (!voorraad.has(id)) { onSound("tick"); onSetNiveau(id, null); addedToast(id, viaName); } else onSound("remove");
     onToggle(id);
+  };
+  const addAsKnown = (id) => {
+    const term = query.trim();
+    if (term && !eigenMerken.some(m => normalizeTerm(m.term) === normalizeTerm(term))) setEigenMerken([...eigenMerken, { term, id }]);
+    if (!voorraad.has(id)) toggle(id, term); else addedToast(id, term);
+    setQuery("");
   };
   const addPack = (pack) => {
     const added = pack.ids.filter(id => !voorraad.has(id) && allIngredients.some(i => i.id === id));
@@ -5626,6 +5674,7 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
   }) : [];
 
   const renderRow = (ing, i, isIn) => {
+    const hit = q ? matchById.get(ing.id) : null;
     const used = usage.get(ing.id)?.length || 0;
     const gain = gains.get(ing.id) || 0;
     const level = niveaus[ing.id];
@@ -5636,6 +5685,12 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
           <div style={{ width: 44, height: 44, borderRadius: 11, overflow: "hidden", flexShrink: 0 }}><ItemArt ing={ing} /></div>
           <div style={{ flex: 1, minWidth: 0, padding: "11px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, alignSelf: "stretch", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <div style={{ fontSize: 15.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ing.name}</div>
+            {hit?.via && (
+              <span style={{ alignSelf: "flex-start", maxWidth: "100%", marginTop: 3, fontSize: 11.5, fontWeight: 700, color: hit.near ? MUTED : "#7E5D1C", background: hit.near ? PAPER_DEEP : "rgba(184,134,46,0.14)", borderRadius: 100, padding: "2px 8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", boxSizing: "border-box" }}>
+                {hit.near ? `Lijkt op: ${hit.via}` : hit.learned ? `Jouw ${hit.via}` : `o.a. ${hit.via}`}
+              </span>
+            )}
+            {hit?.near && hit.note && <div style={{ fontSize: 12, color: MUTED, marginTop: 3, lineHeight: 1.35, whiteSpace: "normal" }}>{hit.note}</div>}
             {isIn ? (
               <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>
                 {low && <span style={{ color: BURGUNDY, fontWeight: 600 }}>{level === "op" ? "Op" : "Bijna op"} · </span>}
@@ -5649,7 +5704,7 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
             )}
           </div>
         </button>
-        <button onClick={() => toggle(ing.id)} aria-pressed={isIn} aria-label={isIn ? `${ing.name} uit voorraad halen` : `${ing.name} in voorraad zetten`}
+        <button onClick={() => toggle(ing.id, hit?.via || null)} aria-pressed={isIn} aria-label={isIn ? `${ing.name} uit voorraad halen` : `${ing.name} in voorraad zetten`}
           style={{ width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}>
           <span className={isIn ? "success-pop" : undefined} style={{ width: 28, height: 28, borderRadius: "50%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", background: isIn ? SAGE : "transparent", border: isIn ? "none" : `1.5px solid ${BORDER}` }}>
             {isIn && <Check size={16} strokeWidth={3} color={CREAM} />}
@@ -5703,9 +5758,58 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
         })}
       </div>
 
-      {q && !exactMatch && (
+      {didYouMean && (
+        <div style={{ margin: "12px 4px 0", fontSize: 14, color: MUTED }}>
+          Bedoel je <button onClick={() => setQuery(didYouMean)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700, color: BOTTLE, textDecoration: "underline" }}>{didYouMean}</button>?
+        </div>
+      )}
+      {q && matches.length === 0 && (recipeHit || unused) && (
+        <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, background: PAPER_DEEP, fontSize: 14, lineHeight: 1.45, color: INK }}>
+          {recipeHit ? (
+            <>
+              <strong>{recipeHit.name}</strong> is een cocktail.{" "}
+              <button onClick={() => setSheetRecipe(recipeHit)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700, color: BOTTLE, textDecoration: "underline" }}>Bekijk wat je ervoor nodig hebt</button>
+            </>
+          ) : unused.note}
+        </div>
+      )}
+      {q && matches.length === 0 && !recipeHit && !unused && q.length >= 3 && (() => {
+        const soort = MERK_SOORTEN.find(t => t.label === merkSoort);
+        const keuzes = soort ? (soort.ids ? soort.ids.map(id => allIngredients.find(i => i.id === id)).filter(Boolean) : allIngredients.filter(i => i.cat === soort.cat)) : [];
+        const gekozen = merkKeuze ? allIngredients.find(i => i.id === merkKeuze) : null;
+        const chip = (on, label, onClick, small) => (
+          <button key={label} onClick={onClick} aria-pressed={on} style={{
+            minHeight: small ? 36 : 40, padding: small ? "0 12px" : "0 15px", borderRadius: 100, cursor: "pointer", fontFamily: sans, fontSize: small ? 13.5 : 14, fontWeight: 700,
+            border: on ? "none" : `1px solid ${BORDER}`, background: on ? (small ? BRASS : BOTTLE) : (small ? CREAM : PAPER_DEEP), color: on ? "#FBF6EA" : INK,
+          }}>{label}</button>
+        );
+        return (
+          <div style={{ marginTop: 12, padding: 16, borderRadius: 16, background: CREAM, boxShadow: SHADOW_CARD }}>
+            <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, color: INK }}>‘{query.trim()}’ kennen we nog niet</div>
+            <div style={{ fontSize: 14, color: MUTED, marginTop: 4, lineHeight: 1.45 }}>Wat voor drank is het? Dan telt hij mee bij de juiste recepten.</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+              {MERK_SOORTEN.map(t => chip(merkSoort === t.label, t.label, () => { onSound("tick"); setMerkSoort(merkSoort === t.label ? null : t.label); setMerkKeuze(null); }))}
+            </div>
+            {soort && (
+              <>
+                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: MUTED, margin: "14px 0 8px" }}>Welke {soort.label.toLowerCase()}?</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 210, overflowY: "auto" }}>
+                  {keuzes.map(i => chip(merkKeuze === i.id, i.name.replace(/\s*\(.*\)\s*$/, ""), () => { onSound("tick"); setMerkKeuze(i.id); }, true))}
+                </div>
+              </>
+            )}
+            {gekozen && (
+              <button onClick={() => addAsKnown(gekozen.id)} className="press-scale" style={{ width: "100%", minHeight: 48, marginTop: 14, borderRadius: 14, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontFamily: sans, fontSize: 15, fontWeight: 800, cursor: "pointer" }}>
+                Toevoegen als {gekozen.name}
+              </button>
+            )}
+            {gekozen && <div style={{ fontSize: 12.5, color: MUTED, textAlign: "center", marginTop: 8 }}>De app onthoudt dat ‘{query.trim()}’ bij {gekozen.name.toLowerCase()} hoort.</div>}
+          </div>
+        );
+      })()}
+      {q && !exactMatch && matches.length === 0 && (
         <button onClick={addCustom} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 52, marginTop: 12, padding: "0 14px", borderRadius: 14, border: "none", background: CREAM, boxShadow: SHADOW_CARD, color: BOTTLE, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
-          <Plus size={18} /> ‘{query.trim()}’ toevoegen
+          <Plus size={18} /> {matches.length > 0 ? `Toch ‘${query.trim()}’ als eigen fles toevoegen` : `‘${query.trim()}’ als eigen fles toevoegen`}
         </button>
       )}
 
@@ -5715,6 +5819,11 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
         {listCard(notOwned.map((ing, i) => renderRow(ing, i, false)))}
       </>)}
       {visible.length === 0 && !q && <p style={{ color: MUTED, fontSize: 14, textAlign: "center", padding: "30px 0" }}>Nog niets in deze categorie.</p>}
+      {q && !exactMatch && matches.length > 0 && (
+        <button onClick={addCustom} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 52, marginTop: 16, padding: "0 14px", borderRadius: 14, border: "none", background: CREAM, boxShadow: SHADOW_CARD, color: BOTTLE, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
+          <Plus size={18} /> {matches.length > 0 ? `Toch ‘${query.trim()}’ als eigen fles toevoegen` : `‘${query.trim()}’ als eigen fles toevoegen`}
+        </button>
+      )}
 
       {!q && (
         <div style={{ marginTop: 22, padding: "16px", borderRadius: 16, background: "#1F3A33", color: "#F3ECDD", boxShadow: SHADOW_CARD }}>
@@ -5734,8 +5843,16 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
           display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 8px 16px", minHeight: 44, borderRadius: 14, background: "#1F2A26", color: "#F3ECDD",
           boxShadow: "0 10px 26px rgba(0,0,0,0.3)", fontFamily: sans,
         }}>
-          <Check size={16} color="#9CC28E" strokeWidth={3} />
-          <span style={{ flex: 1, fontSize: 14 }}>{toast.text}</span>
+          <Check size={16} color="#9CC28E" strokeWidth={3} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1, minWidth: 0, fontSize: 14 }}>
+            <span style={{ display: "block" }}>{toast.text}</span>
+            {toast.title && <span style={{ display: "block", fontFamily: serif, fontSize: 16.5, fontWeight: 700, marginTop: 2 }}>{toast.title}</span>}
+            {toast.names?.length > 0 && onOpenMaken && (
+              <button onClick={() => { setToast(null); onOpenMaken(); }} style={{ background: "none", border: "none", padding: "4px 0 0", cursor: "pointer", fontFamily: sans, fontSize: 13, fontWeight: 700, color: "#F1D9A6", textAlign: "left" }}>
+                Bekijk: {toast.names.join(", ")}{toast.more ? ` +${toast.more}` : ""} ›
+              </button>
+            )}
+          </span>
           {toast.undo && <button onClick={() => { onUndoPack(toast.undo); onSound("pop"); setToast(null); }} style={{ minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: "rgba(243,236,221,0.12)", color: "#F1D9A6", fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Ongedaan maken</button>}
         </div>
       ), document.body)}

@@ -228,7 +228,7 @@ export const INGREDIENTS = [
   { id: "melon_liqueur", name: "Meloenlikeur (Midori)", cat: "Likeuren & versterkte wijnen", bottleMl: 700, bottlePrice: 16 },
 
   // Mixers (aanvulling)
-  { id: "lemonade", name: "Limonade (frisdrank)", cat: "Mixers", bottleMl: 1000, bottlePrice: 1.5 },
+  { id: "lemonade", name: "Citroenlimonade (Sprite, 7Up)", cat: "Mixers", bottleMl: 1000, bottlePrice: 1.5 },
 
   // Zuivel & room (aanvulling)
   { id: "milk", name: "Melk", cat: "Zuivel & room", bottleMl: 1000, bottlePrice: 1.2 },
