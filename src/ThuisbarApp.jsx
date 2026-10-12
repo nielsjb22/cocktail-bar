@@ -6,7 +6,7 @@ import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
-import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck, Play, Copy } from "lucide-react";
+import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck, Play, Copy, LayoutGrid, Rows2 } from "lucide-react";
 import L from "leaflet";
 import { useMapEngine, createAppleMap } from "./appleMaps";
 import { buildIngredientIndex, searchIngredients, unusedHint, normalizeTerm } from "./ingredientSearch";
@@ -14814,6 +14814,19 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
   const isMaster = !!courseRank?.master;
   const masterNumber = useMasterNumber(isMaster ? (profile?.course_completed_at || null) : null);
   const [openEntryId, setOpenEntryId] = useState(null);
+  // Check-ins als Overzicht (raster) of Doorscrollen (posts onder elkaar);
+  // de laatste keuze blijft bewaard. Tik op een foto in het raster = naar
+  // die post in de doorscrolweergave.
+  const [ciView, setCiView] = useStorage("thuisbar-profiel-weergave", "overzicht");
+  const [scrollToPost, setScrollToPost] = useState(null);
+  useEffect(() => {
+    if (!scrollToPost || ciView !== "doorscrollen") return;
+    const t = setTimeout(() => {
+      document.getElementById(`ci-post-${scrollToPost}`)?.scrollIntoView({ block: "start", behavior: "auto" });
+      setScrollToPost(null);
+    }, 40);
+    return () => clearTimeout(t);
+  }, [scrollToPost, ciView]);
   const openEntry = logboek.find(e => e.id === openEntryId) || null;
   const monthKey = new Date().toISOString().slice(0, 7);
   const thisMonthCount = logboek.filter(e => (e.date || "").slice(0, 7) === monthKey).length;
@@ -14946,13 +14959,66 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                 </span>
               )}
             </div>
+            <div role="tablist" aria-label="Weergave van je check-ins" style={{ display: "flex", padding: 4, borderRadius: 14, background: PAPER_DEEP, marginBottom: 12 }}>
+              {[["overzicht", "Overzicht", LayoutGrid], ["doorscrollen", "Doorscrollen", Rows2]].map(([key, label, Icon]) => {
+                const on = ciView === key;
+                return (
+                  <button key={key} role="tab" aria-selected={on} onClick={() => { if (!on) { onSound("tick"); setCiView(key); } }} style={{
+                    flex: 1, minHeight: 40, borderRadius: 11, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 14.5,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                    background: on ? CREAM : "transparent", boxShadow: on ? "0 1px 3px rgba(43,38,32,0.14)" : "none",
+                    color: on ? BOTTLE : MUTED, fontWeight: on ? 800 : 700,
+                  }}>
+                    <Icon size={16} strokeWidth={2} /> {label}
+                  </button>
+                );
+              })}
+            </div>
+            {ciView === "doorscrollen" ? (
+              <div>
+                {logboek.map(entry => {
+                  const matched = findMatch(entry);
+                  const photo = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
+                  return (
+                    <div key={entry.id} id={`ci-post-${entry.id}`} style={{ scrollMarginTop: "calc(env(safe-area-inset-top) + 64px)", marginBottom: 14, borderRadius: 20, background: CREAM, padding: 12, boxShadow: SHADOW_CARD }}>
+                      <button onClick={() => setOpenEntryId(entry.id)} aria-label={`${entry.name} openen`} style={{ display: "block", width: "100%", padding: 0, border: "none", background: BOTTLE_DARK, borderRadius: 14, overflow: "hidden", aspectRatio: "8 / 7", cursor: "pointer", position: "relative" }}>
+                        {photo ? (
+                          <img src={photo} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
+                        ) : matched ? (
+                          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><RecipeCircle recipe={matched} allIngredients={allIngredients} size={120} /></span>
+                        ) : (
+                          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Martini size={44} color="rgba(251,246,234,0.85)" strokeWidth={1.3} /></span>
+                        )}
+                      </button>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 4px 0" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {matched && onOpenRecipe ? (
+                            <button onClick={() => onOpenRecipe(matched.id)} style={{ display: "block", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: INK }}>
+                              <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 21, lineHeight: 1.1 }}>{entry.name}</span>
+                              <ChevronRight size={17} color={MUTED} style={{ verticalAlign: "-2px", marginLeft: 2 }} />
+                            </button>
+                          ) : (
+                            <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 21, lineHeight: 1.1, color: INK }}>{entry.name}</div>
+                          )}
+                          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>{[entry.location, feedRelTime(entry)].filter(Boolean).join(" · ")}</div>
+                        </div>
+                        <FeedScore value={entry.rating} />
+                      </div>
+                      {entry.notes && (
+                        <p style={{ margin: "10px 4px 0", paddingTop: 11, borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 15, lineHeight: 1.5, color: INK, whiteSpace: "pre-wrap" }}>{entry.notes}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
               {logboek.map(entry => {
                 const matched = findMatch(entry);
                 const own = entry.photo;
                 const recipeImg = matched && (localItemImageUrl("cocktail", matched.id) || matched.image);
                 return (
-                  <button key={entry.id} onClick={() => setOpenEntryId(entry.id)} aria-label={`${entry.name}, ${formatRating(entry.rating)} sterren`} style={{
+                  <button key={entry.id} onClick={() => { onSound("tick"); setScrollToPost(entry.id); setCiView("doorscrollen"); }} aria-label={`${entry.name}, ${formatRating(entry.rating)} sterren`} style={{
                     position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", borderRadius: 10, padding: 0, cursor: "pointer", background: PAPER_DEEP,
                   }}>
                     {own || recipeImg ? (
@@ -14975,6 +15041,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                 );
               })}
             </div>
+            )}
           </>
         )
       )}
