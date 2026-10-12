@@ -3855,6 +3855,186 @@ function TagAdoptStrip({ adopted, myRating, onAdopt, onView, dark = false, style
   );
 }
 
+// ---------- Vrienden bij een recept ----------
+// Check-ins van vrienden (en jezelf) bij één recept: cijfer, beschrijving en
+// de post zelf. Per recept even onthouden, zodat heen en weer gaan direct is.
+const friendRecipeCache = new Map();
+function useFriendRecipeCheckins(recipe) {
+  const key = recipe ? `${recipe.id}|${recipe.name}` : "";
+  const [data, setData] = useState(() => friendRecipeCache.get(key) || null);
+  useEffect(() => {
+    if (!recipe) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const myId = sess?.session?.user?.id;
+        if (!myId) { if (!cancelled) setData(null); return; }
+        const [{ data: fr }, { data: blocks }] = await Promise.all([
+          supabase.from("friendships").select("requester_id, addressee_id").eq("status", "accepted").or(`requester_id.eq.${myId},addressee_id.eq.${myId}`),
+          supabase.from("blocked_users").select("blocked_id").eq("blocker_id", myId),
+        ]);
+        const blocked = new Set((blocks || []).map(b => b.blocked_id));
+        const friendIds = [...new Set((fr || []).map(f => (f.requester_id === myId ? f.addressee_id : f.requester_id)))].filter(id => id && !blocked.has(id));
+        const ids = [myId, ...friendIds];
+        const nameEsc = recipe.name.replace(/[,()"]/g, " ");
+        const { data: rows } = await supabase.from("checkins").select("*").in("user_id", ids)
+          .or(`recipe_id.eq.${recipe.id},name.ilike.${nameEsc}`).order("created_at", { ascending: false }).limit(60);
+        const friendRows = (rows || []).filter(r => r.user_id !== myId);
+        const userIds = [...new Set(friendRows.map(r => r.user_id))];
+        const { data: profs } = userIds.length ? await supabase.from("profiles").select("id, name, avatar_url").in("id", userIds) : { data: [] };
+        const profById = Object.fromEntries((profs || []).map(p => [p.id, p]));
+        // Per vriend alleen de laatste check-in van dit recept.
+        const seen = new Set();
+        const friends = [];
+        friendRows.forEach(r => {
+          if (seen.has(r.user_id)) return;
+          seen.add(r.user_id);
+          friends.push({ entry: checkinRowToEntry(r), userId: r.user_id, name: profById[r.user_id]?.name || "Vriend", avatar: profById[r.user_id]?.avatar_url || null });
+        });
+        const mineRow = (rows || []).find(r => r.user_id === myId) || null;
+        const rated = friends.filter(f => f.entry.rating > 0);
+        const avg = rated.length ? rated.reduce((a, f) => a + f.entry.rating, 0) / rated.length : 0;
+        const result = { friends, count: friends.length, checkins: friendRows.length, avg, mine: mineRow ? checkinRowToEntry(mineRow) : null };
+        friendRecipeCache.set(key, result);
+        if (!cancelled) setData(result);
+      } catch { /* geen internet: dan tonen we gewoon niets */ }
+    })();
+    return () => { cancelled = true; };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return data;
+}
+function formatAvg(v) { return (Math.round(v * 10) / 10).toFixed(1).replace(".", ","); }
+function firstNameOf(n) { return (n || "Vriend").split(" ")[0]; }
+
+// Regel bovenaan een recept: "Sem, Lisa en 2 anderen dronken deze · 4,3".
+// compact = in het korte receptvenster.
+function FriendsRecipeRow({ recipe, allIngredients, onOpenRecipe, onMake, compact = false, style }) {
+  const data = useFriendRecipeCheckins(recipe);
+  const [open, setOpen] = useState(false);
+  if (!data || data.count === 0) return null;
+  const names = data.friends.map(f => firstNameOf(f.name));
+  const who = data.count <= 2 ? joinNames(names) : `${names.slice(0, 2).join(", ")}`;
+  const rest = data.count > 2 ? ` en ${data.count - 2} ${data.count - 2 === 1 ? "ander" : "anderen"}` : "";
+  const best = [...data.friends].sort((a, b) => b.entry.rating - a.entry.rating)[0];
+  const avatars = (size, ring) => (
+    <span style={{ display: "flex", flexShrink: 0 }}>
+      {data.friends.slice(0, 3).map((f, i) => (
+        <span key={f.userId} style={{ marginLeft: i ? -Math.round(size * 0.3) : 0, borderRadius: "50%", boxShadow: `0 0 0 2px ${ring}`, display: "flex" }}>
+          <Avatar name={f.name} photo={f.avatar} size={size} />
+        </span>
+      ))}
+    </span>
+  );
+  return (
+    <div style={style}>
+      {compact ? (
+        <button onClick={() => setOpen(true)} className="press-scale" style={{
+          display: "flex", alignItems: "center", gap: 10, width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 14,
+          border: "none", background: "rgba(31,61,54,0.07)", cursor: "pointer", fontFamily: sans, color: INK, textAlign: "left",
+        }}>
+          {avatars(24, PAPER)}
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5 }}>
+            <strong>{data.count} {data.count === 1 ? "vriend" : "vrienden"}</strong>{data.avg > 0 ? <> · gemiddeld <strong>{formatAvg(data.avg)}</strong> ★</> : null}
+          </span>
+          <ChevronRight size={16} color={BOTTLE} />
+        </button>
+      ) : (
+        <>
+          <button onClick={() => setOpen(true)} className="press-scale" style={{
+            display: "flex", alignItems: "center", gap: 12, width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 16,
+            border: "none", background: CREAM, boxShadow: SHADOW_CARD, cursor: "pointer", fontFamily: sans, color: INK, textAlign: "left",
+          }}>
+            {avatars(30, CREAM)}
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 14, lineHeight: 1.35 }}><strong>{who}</strong>{rest} {data.count === 1 ? "dronk" : "dronken"} deze</span>
+              {data.avg > 0 && (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 13, color: MUTED }}>
+                  <RatingStars value={data.avg} size={11} /><strong style={{ color: INK }}>{formatAvg(data.avg)}</strong> {data.count === 1 ? "" : "gemiddeld"}
+                </span>
+              )}
+            </span>
+            <ChevronRight size={17} color={MUTED} />
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "8px 2px 0", fontSize: 13, color: MUTED }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: BRASS, flexShrink: 0 }} />
+            {data.mine
+              ? <span>Jij gaf <strong style={{ color: INK }}>{formatRating(data.mine.rating)}</strong></span>
+              : best?.entry.rating > 0 ? <span>Nog niet geproefd · <strong style={{ color: INK }}>{firstNameOf(best.name)} gaf een {formatRating(best.entry.rating)}</strong></span> : <span>Nog niet geproefd</span>}
+          </div>
+        </>
+      )}
+      {open && <FriendsRecipeSheet recipe={recipe} data={data} allIngredients={allIngredients} onOpenRecipe={onOpenRecipe} onMake={onMake} onClose={() => setOpen(false)} />}
+    </div>
+  );
+}
+
+// Venster: cijfer en post per vriend, met jouw eigen cijfer ernaast.
+function FriendsRecipeSheet({ recipe, data, allIngredients, onClose, onMake }) {
+  const [viewer, setViewer] = useState(null);
+  const [closing, setClosing] = useState(false);
+  const close = () => { setClosing(true); setTimeout(onClose, 200); };
+  const matched = recipe;
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div onClick={close} className="sheet-backdrop-in" style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.45)", opacity: closing ? 0 : 1, transition: "opacity 0.2s" }} />
+      <div className="sheet-slide-in" style={{
+        position: "relative", maxHeight: "82vh", display: "flex", flexDirection: "column", background: PAPER, borderRadius: "22px 22px 0 0",
+        transform: closing ? "translateY(100%)" : "none", transition: "transform 0.2s ease-in",
+      }}>
+        <div style={{ padding: "8px 16px 0", flexShrink: 0 }}>
+          <div style={{ width: 36, height: 5, borderRadius: 3, background: BORDER, margin: "0 auto 12px" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, fontFamily: serif, fontSize: 22, fontWeight: 700 }}>Vrienden over deze cocktail</div>
+            <button onClick={close} aria-label="Sluiten" style={{ width: 34, height: 34, borderRadius: "50%", border: "none", background: CREAM, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={16} /></button>
+          </div>
+          <div style={{ display: "flex", gap: 10, margin: "12px 0 14px" }}>
+            <div style={{ flex: 1, padding: 12, borderRadius: 14, background: BOTTLE_DARK, color: HEADER_TEXT }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1, color: "#DDB877" }}>VRIENDEN</div>
+              <span style={{ fontFamily: serif, fontSize: 28, fontWeight: 700 }}>{data.avg > 0 ? formatAvg(data.avg) : "–"}</span>
+              <span style={{ fontSize: 12.5, color: "#C9D2CB" }}> · {data.checkins} check-in{data.checkins === 1 ? "" : "s"}</span>
+            </div>
+            <button onClick={data.mine ? () => setViewer({ entry: data.mine, who: "Jij", avatar: null }) : onMake ? () => { close(); setTimeout(onMake, 220); } : undefined}
+              style={{ flex: 1, padding: 12, borderRadius: 14, background: CREAM, border: "none", boxShadow: `inset 0 0 0 1px ${BORDER}`, textAlign: "left", cursor: "pointer", fontFamily: sans, color: INK }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1, color: "var(--brass-text)" }}>JIJ</div>
+              {data.mine ? (
+                <><span style={{ fontFamily: serif, fontSize: 28, fontWeight: 700 }}>{formatRating(data.mine.rating)}</span><span style={{ fontSize: 12.5, color: MUTED }}> · bekijk</span></>
+              ) : (
+                <><div style={{ fontFamily: serif, fontSize: 21, fontWeight: 700, color: MUTED }}>Nog niet</div>{onMake && <div style={{ fontSize: 12.5, fontWeight: 700, color: BOTTLE, marginTop: 2 }}>Maak 'm →</div>}</>
+              )}
+            </button>
+          </div>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: "0 16px calc(env(safe-area-inset-bottom) + 18px)" }}>
+          <div style={{ background: CREAM, borderRadius: 18, boxShadow: SHADOW_CARD, overflow: "hidden" }}>
+            {data.friends.map((f, i) => (
+              <button key={f.userId} onClick={() => setViewer({ entry: f.entry, who: f.name, avatar: f.avatar })} className="list-row-tap" style={{
+                display: "flex", gap: 12, width: "100%", padding: "14px 16px", border: "none", borderTop: i ? `1px solid ${BORDER}` : "none",
+                background: "none", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+              }}>
+                <Avatar name={f.name} photo={f.avatar} size={40} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                    <strong style={{ fontSize: 15 }}>{firstNameOf(f.name)}</strong>
+                    <span style={{ fontSize: 12.5, color: MUTED }}>{feedRelTime(f.entry)}</span>
+                  </span>
+                  <span style={{ display: "block", fontSize: 14, color: f.entry.notes ? INK : MUTED, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.entry.notes || "Geen beschrijving"}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 2, marginTop: 5, fontSize: 12.5, fontWeight: 700, color: BOTTLE }}>Bekijk post <ChevronRight size={13} /></span>
+                </span>
+                <span style={{ textAlign: "right", flexShrink: 0 }}>
+                  <span style={{ display: "block", fontFamily: serif, fontSize: 24, fontWeight: 700, lineHeight: 1 }}>{formatAvg(f.entry.rating)}</span>
+                  <span style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}><RatingStars value={f.entry.rating} size={10} /></span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      {viewer && <CheckinPhotoViewer entry={viewer.entry} matched={matched} who={viewer.who} whoAvatar={viewer.avatar} allIngredients={allIngredients} onClose={() => setViewer(null)} />}
+    </div>
+  ), document.body);
+}
+
 // Aantal openstaande vriendschapsverzoeken aan jou (rood bolletje bij het
 // vriendenicoon op je profiel). Opnieuw tellen bij wisselen van tab en als
 // de app weer op de voorgrond komt.
@@ -6438,6 +6618,8 @@ function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMi
             })}
           </div>
 
+          <FriendsRecipeRow compact recipe={recipe} allIngredients={allIngredients} style={{ marginBottom: 14 }} />
+
           {/* Ingrediënten */}
           <div style={{ ...card, marginBottom: 14 }}>
             {recipe.ingredients.map((ing, i) => {
@@ -8847,6 +9029,9 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             )}
           </div>
           ); })()}
+
+          <FriendsRecipeRow recipe={recipe} allIngredients={allIngredients}
+            onMake={() => { onSound("pop"); setBereidOpen(true); }} style={{ margin: "-8px 0 24px" }} />
 
           <div style={{ marginBottom: 24 }}>
             <SectionLabel>Het verhaal</SectionLabel>
