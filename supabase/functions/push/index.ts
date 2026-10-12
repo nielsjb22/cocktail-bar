@@ -6,7 +6,7 @@ import { SignJWT, importPKCS8 } from "npm:jose@5";
 // Wordt aangeroepen door database-triggers (zie migratie push_meldingen) met
 // de nieuwe rij van checkin_tags, checkin_reactions, checkin_comments,
 // course_milestones, course_milestone_reactions, course_milestone_comments,
-// friendships of checkins. Deze functie bepaalt wie de melding krijgt, kijkt
+// friendships, checkins of content_reports. Deze functie bepaalt wie de melding krijgt, kijkt
 // naar ieders voorkeuren en blokkades, en verstuurt.
 //
 // Secrets bij de functie:
@@ -38,7 +38,7 @@ const RANG_NAMEN: Record<string, string> = {
   leerling: "Leerling", barback: "Barback", thuisbartender: "Thuisbartender", bartender: "Bartender", meester: "Meester",
 };
 
-type Voorkeur = "tags" | "reacties" | "vriendschap" | "rangen" | "checkins";
+type Voorkeur = "tags" | "reacties" | "vriendschap" | "rangen" | "checkins" | "beheer";
 type Melding = {
   ontvangers: string[];
   afzender: string;
@@ -210,6 +210,15 @@ async function bepaalMelding(tabel: string, actie: string, rij: any, oud: any): 
     }
     return null;
   }
+  if (tabel === "content_reports" && actie === "INSERT") {
+    // Iemand meldt een check-in: de beheerder(s) moeten binnen 24 uur kijken.
+    const { data: beheerders } = await admin.from("app_beheerders").select("user_id");
+    const c = rij.target_type === "checkin" ? await checkin(rij.target_id) : null;
+    return {
+      ontvangers: (beheerders || []).map((b) => b.user_id), afzender: rij.reporter_id, voorkeur: "beheer", doel: "meldingen-beheren",
+      tekst: () => `Nieuwe melding: een check-in${c?.name ? ` (${c.name})` : ""} is gerapporteerd. Bekijk hem binnen 24 uur.`,
+    };
+  }
   if (tabel === "checkins" && actie === "INSERT") {
     // Tags worden net na de check-in opgeslagen; even wachten, zodat wie
     // getagd is alleen de tag-melding krijgt en niet twee.
@@ -240,8 +249,8 @@ Deno.serve(async (req) => {
     let ontvangers = [...new Set(melding.ontvangers)].filter((id) => id && id !== melding.afzender);
     if (ontvangers.length === 0) return Response.json({ verstuurd: 0 });
 
-    // Blokkades, in beide richtingen.
-    const { data: blokken } = await admin.from("blocked_users").select("blocker_id, blocked_id")
+    // Blokkades, in beide richtingen (niet voor beheermeldingen).
+    const { data: blokken } = melding.voorkeur === "beheer" ? { data: [] } : await admin.from("blocked_users").select("blocker_id, blocked_id")
       .or(`blocker_id.eq.${melding.afzender},blocked_id.eq.${melding.afzender}`);
     const geblokkeerd = new Set((blokken || []).map((b) => (b.blocker_id === melding.afzender ? b.blocked_id : b.blocker_id)));
     ontvangers = ontvangers.filter((id) => !geblokkeerd.has(id));
@@ -250,6 +259,7 @@ Deno.serve(async (req) => {
     const { data: voorkeuren } = await admin.from("push_voorkeuren").select("*").in("user_id", ontvangers);
     const perGebruiker = new Map((voorkeuren || []).map((v) => [v.user_id, v]));
     ontvangers = ontvangers.filter((id) => {
+      if (melding.voorkeur === "beheer") return true;
       const v = perGebruiker.get(id);
       return v ? v[melding.voorkeur] === true : melding.voorkeur !== "checkins";
     });

@@ -39,6 +39,12 @@ Deno.serve(async (req) => {
     await admin.from("course_milestones").delete().eq("user_id", userId);
     await admin.from("checkin_comments").delete().eq("user_id", userId);
     await admin.from("checkins").delete().eq("user_id", userId);
+    // Foto's van check-ins in de opslag (map <user-id>/).
+    for (let i = 0; i < 20; i++) {
+      const { data: files } = await admin.storage.from("checkin-fotos").list(userId, { limit: 100 });
+      if (!files || files.length === 0) break;
+      await admin.storage.from("checkin-fotos").remove(files.map((f) => `${userId}/${f.name}`));
+    }
     await admin.from("friendships").delete().or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
     await admin.from("party_survey_responses").delete().eq("survey_id", userId); // no-op indien geen match, veilig
     const { data: surveys } = await admin.from("party_surveys").select("id").eq("host_user_id", userId);

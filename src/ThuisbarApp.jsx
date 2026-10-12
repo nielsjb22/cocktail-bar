@@ -19,7 +19,8 @@ import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, partyInfoQuery, menuStrength, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf, formatMenuDate } from "./menuCard";
 import { SURVEY_SPIRITS, SURVEY_LIQUEURS, SURVEY_MIXERS, SURVEY_TASTES, SURVEY_STYLES, SURVEY_STRENGTHS, SURVEY_ALLERGIES, CUSTOM_PREFIX, choiceLabel, emptyAnswers, legacyFieldsFromAnswers, ingredientPreferenceCounts, tallyChoices } from "./surveyOptions";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor, setStatusBarOnDark, setKeepAwake } from "./native";
-import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS } from "./recipes.js";
+import { imageToJpegDataUrl, squareJpegDataUrl, uploadCheckinPhoto, removeCheckinPhoto } from "./checkinPhotos.js";
+import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS, canonicalRecipeId, recipeIdAliases } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
 import feestHeaderImg from "./assets/feest-header.jpg";
 import imageCatalog from "./data/images.json";
@@ -130,6 +131,7 @@ const PUSH_SCREEN_TITLES = {
   privacybeleid: "Privacybeleid",
   "account-verwijderen": "Account verwijderen",
   fotoverantwoording: "Fotoverantwoording",
+  "meldingen-beheren": "Meldingen",
 };
 const PUSH_SCREENS = new Set(Object.keys(PUSH_SCREEN_TITLES));
 
@@ -1165,7 +1167,7 @@ function GuestMenuView({ recipeIds }) {
   useMatchBodyBackground(C.bg);
   const party = useMemo(() => readPartyFromSearch(window.location.search), []);
   const items = useMemo(() => recipeIds
-    .map(id => RECIPES.find(r => r.id === id)).filter(Boolean)
+    .map(id => RECIPES.find(r => r.id === canonicalRecipeId(id))).filter(Boolean)
     .map(r => menuCocktailInfo(r, INGREDIENTS, getTasteProfile(r, INGREDIENTS))), [recipeIds]);
   const skipped = recipeIds.length - items.length;
   const subtitle = partySubtitle(party);
@@ -1402,7 +1404,7 @@ function GuestSurveyView({ surveyId }) {
     ["Soort", answers.styles.map(k => SURVEY_STYLES.find(s => s.key === k)?.label.toLowerCase()).filter(Boolean)],
     ["Sterkte", answers.strength ? [SURVEY_STRENGTHS.find(s => s.key === answers.strength)?.label] : []],
     ["Allergie", answers.allergies.map(k => SURVEY_ALLERGIES.find(s => s.key === k)?.label.toLowerCase())],
-    ["Favorieten", answers.favorites.map(id => RECIPES.find(r => r.id === id)?.name).filter(Boolean)],
+    ["Favorieten", answers.favorites.map(id => RECIPES.find(r => r.id === canonicalRecipeId(id))?.name).filter(Boolean)],
   ].filter(([, v]) => v.length > 0);
 
   const primaryBtn = { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 54, borderRadius: 100, border: "none", background: C.gold, color: C.bg, fontFamily: MENU_SANS, fontSize: 16, fontWeight: 700, cursor: "pointer" };
@@ -1591,7 +1593,7 @@ function GuestSurveyView({ surveyId }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 30 }}>
           {answers.favorites.map(id => (
             <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: 40, padding: "0 4px 0 14px", borderRadius: 100, border: `1px solid ${C.gold}`, background: "rgba(198,161,91,0.16)", fontSize: 15 }}>
-              <span style={{ fontFamily: MENU_SERIF, fontWeight: 500 }}>{RECIPES.find(r => r.id === id)?.name}</span>
+              <span style={{ fontFamily: MENU_SERIF, fontWeight: 500 }}>{RECIPES.find(r => r.id === canonicalRecipeId(id))?.name}</span>
               <button type="button" aria-label="Verwijderen" onClick={() => setAnswers(a => ({ ...a, favorites: a.favorites.filter(x => x !== id) }))} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, border: "none", background: "transparent", color: C.body, cursor: "pointer" }}>
                 <X size={14} />
               </button>
@@ -1875,7 +1877,7 @@ function useNativePush(session, onOpen) {
 
 function checkinRowToEntry(row) {
   return {
-    id: row.id, date: (row.created_at || "").slice(0, 10), createdAt: row.created_at || null, recipeId: row.recipe_id, name: row.name,
+    id: row.id, date: (row.created_at || "").slice(0, 10), createdAt: row.created_at || null, recipeId: canonicalRecipeId(row.recipe_id), name: row.name,
     // PostgREST geeft numeric-kolommen als string terug (i.p.v. number), dus
     // expliciet parsen — anders breekt elke rekensom/vergelijking verderop.
     rating: Number(row.rating), notes: row.notes || "", photo: row.photo || null, location: row.location || "Thuis",
@@ -2486,6 +2488,11 @@ export default function ThuisbarApp() {
   const [courseProgress, setCourseProgress] = useStorage("thuisbar-cursus-voortgang", {});
   const [recentRecipeIds, setRecentRecipeIds] = useStorage("thuisbar-recent-recepten", []);
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useStorage("thuisbar-favoriete-recepten", []);
+  // Samengevoegde dubbele recepten: oude id's in favorieten omzetten.
+  useEffect(() => {
+    if (!Array.isArray(favoriteRecipeIds) || !favoriteRecipeIds.some(id => canonicalRecipeId(id) !== id)) return;
+    setFavoriteRecipeIds([...new Set(favoriteRecipeIds.map(canonicalRecipeId))]);
+  }, [favoriteRecipeIds]);
   const [soundEnabled, setSoundEnabled] = useStorage("thuisbar-geluid", true);
 
   // session: undefined = nog aan het checken, null = uitgelogd, object = ingelogd.
@@ -2520,6 +2527,7 @@ export default function ThuisbarApp() {
     // Naar de feed (ververst meteen, zodat de tag of reactie er staat) of
     // naar Vrienden voor een vriendschapsverzoek.
     if (doel === "vrienden") navigateTo("vrienden");
+    else if (doel === "meldingen-beheren") navigateTo("meldingen-beheren");
     else if (tab === "home") navigateTo("home");
     else { navigateTo("home"); setHomeTapTick(t => t + 1); }
   });
@@ -2640,6 +2648,7 @@ export default function ThuisbarApp() {
       location: e.location, location_lat: e.locationLat, location_lon: e.locationLon, taste_tags: e.tasteTags, created_at: e.createdAt,
     }));
     (async () => {
+      for (const r of rows) r.photo = await uploadCheckinPhoto(session.user.id, r.photo);
       let { error } = await supabase.from("checkins").insert(rows);
       if (error) ({ error } = await supabase.from("checkins").insert(rows.map(({ created_at, ...r }) => r))); // eslint-disable-line no-unused-vars
       if (!error) { updateGuestCheckins(() => []); reloadLogboek(); }
@@ -2652,17 +2661,22 @@ export default function ThuisbarApp() {
     if (session === undefined) return;
     if (!session) {
       const now = new Date().toISOString();
+      // Op het toestel iets kleiner bewaren; na het aanmaken van een account
+      // gaat hij mee naar de opslag.
+      let localPhoto = entry.photo || null;
+      if (localPhoto?.startsWith("data:")) { try { localPhoto = await imageToJpegDataUrl(localPhoto, 1080, 0.8); } catch { /* origineel houden */ } }
       const local = {
         id: `local-${Date.now()}`, date: now.slice(0, 10), createdAt: now, recipeId: entry.recipeId, name: entry.name,
-        rating: entry.rating, notes: entry.notes || "", photo: entry.photo || null, location: entry.location || "Thuis",
+        rating: entry.rating, notes: entry.notes || "", photo: localPhoto, location: entry.location || "Thuis",
         locationLat: entry.locationLat ?? null, locationLon: entry.locationLon ?? null, tasteTags: entry.tasteTags || [],
       };
       updateGuestCheckins(cur => [local, ...cur]);
       return local.id;
     }
+    const photoUrl = await uploadCheckinPhoto(session.user.id, entry.photo);
     const { data } = await supabase.from("checkins").insert({
       user_id: session.user.id, recipe_id: entry.recipeId, name: entry.name, rating: entry.rating,
-      notes: entry.notes, photo: entry.photo, location: entry.location,
+      notes: entry.notes, photo: photoUrl, location: entry.location,
       location_lat: entry.locationLat, location_lon: entry.locationLon, taste_tags: entry.tasteTags,
       ...(entry.createdAt ? { created_at: entry.createdAt } : {}),
     }).select().single();
@@ -2691,11 +2705,13 @@ export default function ThuisbarApp() {
   // in de database staat.
   const updateLogEntry = async (id, entry) => {
     if (!session) { updateGuestCheckins(cur => cur.map(e => e.id === id ? { ...e, ...entry } : e)); return; }
+    const oldPhoto = logboek.find(e => e.id === id)?.photo;
+    setLogboekState(cur => cur.map(e => e.id === id ? { ...e, ...entry } : e));
+    const photoUrl = await uploadCheckinPhoto(session.user.id, entry.photo);
     const patch = {
-      recipe_id: entry.recipeId, name: entry.name, rating: entry.rating, notes: entry.notes, photo: entry.photo,
+      recipe_id: entry.recipeId, name: entry.name, rating: entry.rating, notes: entry.notes, photo: photoUrl,
       location: entry.location, location_lat: entry.locationLat, location_lon: entry.locationLon, taste_tags: entry.tasteTags,
     };
-    setLogboekState(cur => cur.map(e => e.id === id ? { ...e, ...entry } : e));
     const { data, error } = await supabase.from("checkins").update(patch).eq("id", id).eq("user_id", session.user.id).select().single();
     if (error || !data) {
       console.error("Check-in bijwerken mislukt:", error);
@@ -2704,11 +2720,14 @@ export default function ThuisbarApp() {
       return;
     }
     setLogboekState(cur => cur.map(e => e.id === id ? checkinRowToEntry(data) : e));
+    if (oldPhoto && oldPhoto !== data.photo) removeCheckinPhoto(session.user.id, oldPhoto);
   };
   const removeLogEntry = async (id) => {
     if (!session) { updateGuestCheckins(cur => cur.filter(e => e.id !== id)); return; }
+    const oldPhoto = logboek.find(e => e.id === id)?.photo;
     setLogboekState(cur => cur.filter(e => e.id !== id));
-    await supabase.from("checkins").delete().eq("id", id);
+    const { error } = await supabase.from("checkins").delete().eq("id", id);
+    if (!error) removeCheckinPhoto(session.user.id, oldPhoto);
   };
   const updateProfileName = async (name) => {
     if (!session) return;
@@ -3185,6 +3204,11 @@ export default function ThuisbarApp() {
             <PhotoCreditsScreen />
           </SecondaryTabScreen>
         </TabPanel>
+        <TabPanel id="meldingen-beheren" active={tab === "meldingen-beheren"} visited={visitedTabs.has("meldingen-beheren")} panelRef={panelRefs}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES["meldingen-beheren"]} onBack={() => navigateTo("instellingen", { restore: true })}>
+            <ReportsAdminScreen active={tab === "meldingen-beheren"} />
+          </SecondaryTabScreen>
+        </TabPanel>
       </div>
 
       <BottomDock tab={tab} setTab={navigateTo} shoppingCount={shoppingList.length} onCheckin={() => openCheckin()} />
@@ -3279,6 +3303,14 @@ function Switch({ checked, onChange, disabled }) {
 // instellingen hieronder wonen nu in LogboekTab resp. InstellingenTab.
 function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, nativePush, onNavigate, guest = false, onLogin, onSignup }) {
   if (guest) { push = { supported: false }; nativePush = null; }
+  // Alleen beheerders (tabel app_beheerders) zien "Gemelde check-ins".
+  const [isBeheerder, setIsBeheerder] = useState(false);
+  useEffect(() => {
+    if (guest) return;
+    let cancelled = false;
+    supabase.rpc("ben_ik_beheerder").then(({ data }) => { if (!cancelled) setIsBeheerder(data === true); });
+    return () => { cancelled = true; };
+  }, [guest]);
   return (
     <div>
       {guest && (
@@ -3383,6 +3415,19 @@ function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, nativeP
           <span style={{ flex: 1, fontWeight: 600 }}>Fotoverantwoording</span>
           <ChevronRight size={16} color={MUTED} />
         </button>
+        {isBeheerder && (
+          <button onClick={() => onNavigate("meldingen-beheren")} style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+            background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
+            borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 14.5, color: INK,
+          }}>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BURGUNDY, flexShrink: 0 }}>
+              <Flag size={16} strokeWidth={1.8} />
+            </span>
+            <span style={{ flex: 1, fontWeight: 600 }}>Gemelde check-ins</span>
+            <ChevronRight size={16} color={MUTED} />
+          </button>
+        )}
         {!guest && <>
         <button onClick={onSignOut} style={{
           width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
@@ -3436,9 +3481,76 @@ function PrivacyPolicyScreen() {
 // handmatig bij te werken lijst, dus loopt vanzelf mee zodra fetch-image.mjs
 // nieuwe foto's toevoegt. Alleen entries met een echt bestand én attributie
 // worden getoond (illustraties/eigen werk hebben geen externe bron nodig).
+// Beheer: gemelde check-ins bekijken en afhandelen. Apple verwacht dat
+// gemelde content binnen 24 uur bekeken wordt; een nieuwe melding geeft de
+// beheerder een pushmelding (functie Push).
+function ReportsAdminScreen({ active }) {
+  const [items, setItems] = useState(null);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const load = async () => {
+    const { data, error: err } = await supabase.rpc("beheer_meldingen");
+    if (err) { setError(err.message); setItems([]); return; }
+    setError(null);
+    setItems(data || []);
+  };
+  useEffect(() => { if (active) load(); }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+  const handle = async (item, uitkomst) => {
+    if (uitkomst === "verwijderd" && !window.confirm(`De check-in "${item.checkin_naam || "onbekend"}" van ${item.eigenaar_naam || "deze gebruiker"} definitief verwijderen?`)) return;
+    setBusy(item.melding_id);
+    const { error: err } = await supabase.rpc("beheer_melding_afhandelen", { p_melding_id: item.melding_id, p_uitkomst: uitkomst });
+    setBusy(null);
+    if (err) { setError(err.message); return; }
+    setItems(cur => (cur || []).filter(x => x.melding_id !== item.melding_id));
+  };
+  const when = (iso) => {
+    const d = new Date(iso);
+    const uren = Math.floor((Date.now() - d.getTime()) / 3600000);
+    return uren < 1 ? "net gemeld" : uren < 24 ? `${uren} uur geleden` : d.toLocaleDateString("nl-NL", { day: "numeric", month: "long" });
+  };
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, margin: "0 0 16px" }}>
+        Bekijk elke melding binnen 24 uur. Is er niets aan de hand, tik dan op "Niets aan de hand". Hoort de check-in niet in de app, verwijder hem dan.
+      </p>
+      {error && <div style={{ fontSize: 13, color: BURGUNDY, marginBottom: 12 }}>Laden lukte niet: {error}</div>}
+      {items === null ? (
+        <p style={{ fontSize: 13.5, color: MUTED, textAlign: "center", padding: "30px 0" }}>Laden...</p>
+      ) : items.length === 0 ? (
+        <div style={{ background: CREAM, boxShadow: SHADOW_CARD, borderRadius: 16, padding: "26px 20px", textAlign: "center" }}>
+          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: INK }}>Geen open meldingen</div>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: MUTED }}>Alles is afgehandeld.</p>
+        </div>
+      ) : items.map(item => (
+        <div key={item.melding_id} style={{ background: CREAM, boxShadow: SHADOW_CARD, borderRadius: 16, padding: 14, marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 12 }}>
+            {item.checkin_foto ? (
+              <img src={item.checkin_foto} alt="" style={{ width: 84, height: 84, borderRadius: 12, objectFit: "cover", flexShrink: 0, background: PAPER_DEEP }} />
+            ) : (
+              <div style={{ width: 84, height: 84, borderRadius: 12, background: PAPER_DEEP, flexShrink: 0 }} />
+            )}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 15.5, color: INK }}>{item.bestaat_nog ? (item.checkin_naam || "Check-in") : "Check-in bestaat niet meer"}</div>
+              <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Van {item.eigenaar_naam || "onbekend"} · {when(item.gemeld_op)}</div>
+              <div style={{ fontSize: 12.5, color: BURGUNDY, marginTop: 2, fontWeight: 600 }}>{item.aantal}x gemeld{item.melders ? ` door ${item.melders}` : ""}</div>
+            </div>
+          </div>
+          {item.checkin_notitie && <div style={{ fontSize: 14, color: INK, lineHeight: 1.5, marginTop: 10, whiteSpace: "pre-wrap" }}>{item.checkin_notitie}</div>}
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button disabled={busy === item.melding_id} onClick={() => handle(item, "ok")} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: `1.5px solid ${BOTTLE}`, background: "none", color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Niets aan de hand</button>
+            {item.bestaat_nog && (
+              <button disabled={busy === item.melding_id} onClick={() => handle(item, "verwijderd")} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: BURGUNDY, color: "#FBF6EA", fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Verwijderen</button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PhotoCreditsScreen() {
   const nameFor = (type, id) => {
-    if (type === "cocktail") return RECIPES.find((r) => r.id === id)?.name || id;
+    if (type === "cocktail") return RECIPES.find((r) => r.id === canonicalRecipeId(id))?.name || id;
     return INGREDIENTS.find((i) => i.id === id)?.name || id;
   };
   const credited = imageCatalog
@@ -3889,7 +4001,7 @@ function useFriendRecipeCheckins(recipe) {
         const ids = [myId, ...friendIds];
         const nameEsc = recipe.name.replace(/[,()"]/g, " ");
         const { data: rows } = await supabase.from("checkins").select("*").in("user_id", ids)
-          .or(`recipe_id.eq.${recipe.id},name.ilike.${nameEsc}`).order("created_at", { ascending: false }).limit(60);
+          .or(`recipe_id.in.(${recipeIdAliases(recipe.id).join(",")}),name.ilike.${nameEsc}`).order("created_at", { ascending: false }).limit(60);
         const friendRows = (rows || []).filter(r => r.user_id !== myId);
         const userIds = [...new Set(friendRows.map(r => r.user_id))];
         const { data: profs } = userIds.length ? await supabase.from("profiles").select("id, name, avatar_url").in("id", userIds) : { data: [] };
@@ -4298,7 +4410,7 @@ function useNotifications(session, logboek, refreshKey) {
       const rankName = (id) => COURSE_RANKS.find(r => r.id === id)?.name || id;
       reactions.forEach(r => byId[r.checkin_id] && out.push({ key: `r:${r.checkin_id}:${r.user_id}`, kind: "proost", actor: r.user_id, at: r.created_at || byId[r.checkin_id].createdAt, drink: byId[r.checkin_id].name, recipeId: byId[r.checkin_id].recipeId }));
       comments.forEach(c => byId[c.checkin_id] && out.push({ key: `c:${c.id}`, kind: "reactie", actor: c.user_id, at: c.created_at, drink: byId[c.checkin_id].name, recipeId: byId[c.checkin_id].recipeId, text: c.text }));
-      tags.forEach(t => out.push({ key: `t:${t.id}`, kind: "tag", actor: t.tagger_id, at: t.created_at, drink: tagCk[t.checkin_id]?.name || "een cocktail", recipeId: tagCk[t.checkin_id]?.recipe_id }));
+      tags.forEach(t => out.push({ key: `t:${t.id}`, kind: "tag", actor: t.tagger_id, at: t.created_at, drink: tagCk[t.checkin_id]?.name || "een cocktail", recipeId: canonicalRecipeId(tagCk[t.checkin_id]?.recipe_id) }));
       requests.forEach(f => out.push({ key: `f:${f.id}`, kind: "verzoek", actor: f.requester_id, at: f.created_at }));
       friendRanks.forEach(m => out.push({ key: `m:${m.id}`, kind: "rang", actor: m.user_id, at: m.created_at, rank: m.rank, rankLabel: rankName(m.rank) }));
       msReactions.forEach(r => msById[r.milestone_id] && out.push({ key: `mr:${r.milestone_id}:${r.user_id}`, kind: "proost-rang", actor: r.user_id, at: r.created_at, rankLabel: rankName(msById[r.milestone_id].rank) }));
@@ -4355,7 +4467,7 @@ function NotificationsScreen({ notifications, recipes, allIngredients, onClose, 
   const fresh = notifications.items.filter(n => snapshot.has(n.key));
   const older = notifications.items.filter(n => !snapshot.has(n.key));
   const row = (n, isNew) => {
-    const recipe = n.recipeId ? recipes.find(r => r.id === n.recipeId) : null;
+    const recipe = n.recipeId ? recipes.find(r => r.id === canonicalRecipeId(n.recipeId)) : null;
     const onTap = n.kind === "verzoek" ? onOpenFriends : onClose;
     return (
       <button key={n.key} onClick={onTap} style={{
@@ -4612,7 +4724,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
     onSound("pop");
     await supabase.from("content_reports").insert({ reporter_id: myId, target_type: "checkin", target_id: checkinId });
   };
-  const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
+  const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === canonicalRecipeId(entry.recipeId)) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
 
   const commenterName = (uid) => (uid === myId ? (profile?.name || "Jij") : (friendProfiles[uid]?.name || "Vriend"));
   const commenterPhoto = (uid) => (uid === myId ? profile?.avatar_url : friendProfiles[uid]?.avatar_url);
@@ -6480,7 +6592,7 @@ function RecipePicker({ recipes, value, onChange, listId, style }) {
   const wrapRef = useRef(null);
   const dropdownMaxH = useDropdownMaxHeight(wrapRef, open, 240);
   const sorted = useMemo(() => [...recipes].sort((a, b) => a.name.localeCompare(b.name)), [recipes]);
-  const current = recipes.find(r => r.id === value);
+  const current = recipes.find(r => r.id === canonicalRecipeId(value));
   const text = draft !== null ? draft : (current?.name || "");
 
   const filtered = useMemo(() => {
@@ -7535,7 +7647,7 @@ function BatchCalculatorTab({ recipes, ingredientLabel, allIngredients, isOwned,
   }, [request?.nonce]);
   useEffect(() => { setAdded(false); }, [recipeId, mode, glasses, kanMl, flesMl]);
 
-  const recipe = recipes.find(r => r.id === recipeId) || recipes[0];
+  const recipe = recipes.find(r => r.id === canonicalRecipeId(recipeId)) || recipes[0];
   const info = useMemo(() => recipe ? analyzeBatchRecipe(recipe, allIngredients) : null, [recipe, allIngredients]);
   if (!recipe || !info) return <p style={{ color: MUTED }}>Nog geen recepten.</p>;
 
@@ -8864,7 +8976,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   // hetzelfde recept nogmaals opent (bijv. via Winkelmandje of Feestplanner),
   // terwijl het alleen de allereerste keer een "nieuw scherm"-gevoel moet geven.
   const animatedRecipeIdsRef = useRef(new Set());
-  const recipe = recipes.find(r => r.id === selectedId) || null;
+  const recipe = recipes.find(r => r.id === canonicalRecipeId(selectedId)) || null;
   const missing = recipe ? recipe.ingredients.filter(ing => !ing.optional).filter(ing => !isOwned(ing)) : [];
   const role = recipe ? getMenuRole(recipe) : null;
   const roleInfo = role ? MENU_ROLES[role] : null;
@@ -9543,7 +9655,7 @@ function PracticeLessonBody({ lesson, recipes, allIngredients, onOpenRecipe, onC
   const label = (text, color = "#8F6A21") => (
     <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color, marginBottom: 8, fontFamily: sans }}>{text}</div>
   );
-  const recipe = lesson.tryIt?.recipeId ? (recipes || []).find(r => r.id === lesson.tryIt.recipeId) : null;
+  const recipe = lesson.tryIt?.recipeId ? (recipes || []).find(r => r.id === canonicalRecipeId(lesson.tryIt.recipeId)) : null;
   return (
     <div style={{ fontFamily: sans }}>
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>
@@ -10110,7 +10222,7 @@ function getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals) {
 // voortgangsbalk ("14 te kopen" / "Alles in huis") zonder de hele
 // inkooplijst-UI te dupliceren.
 function computePartyMenu(party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal) {
-  const chosenRecipes = (party.cocktail_ids || []).map(id => recipes.find(r => r.id === id)).filter(Boolean);
+  const chosenRecipes = (party.cocktail_ids || []).map(id => recipes.find(r => r.id === canonicalRecipeId(id))).filter(Boolean);
   const guests = party.guests || 8;
   const drinksPerGuest = party.drinks_per_guest || 2;
   const totalDrinks = Math.max(1, guests) * Math.max(1, drinksPerGuest);
@@ -10827,7 +10939,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
   }, [surveyResponses]);
   const surveyMentionedCocktails = useMemo(() => {
     const ids = [...new Set(surveyResponses.flatMap(r => r.favorite_cocktail_ids || []))];
-    return ids.map(id => recipes.find(r => r.id === id)?.name).filter(Boolean);
+    return ids.map(id => recipes.find(r => r.id === canonicalRecipeId(id))?.name).filter(Boolean);
   }, [surveyResponses, recipes]);
   const surveyGroupPersonalityKey = useMemo(() => {
     const entries = Object.entries(surveyTasteTotals).sort((a, b) => b[1] - a[1]);
@@ -10850,7 +10962,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
     onSound("shuffle");
     setChosen(top);
   };
-  const suggestionSheetRecipe = suggestionSheetId ? recipes.find(r => r.id === suggestionSheetId) : null;
+  const suggestionSheetRecipe = suggestionSheetId ? recipes.find(r => r.id === canonicalRecipeId(suggestionSheetId)) : null;
   const addMissing = (recipeId, refs) => {
     onAddToShoppingList(refs);
     onSound("tick");
@@ -10866,7 +10978,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
 
   const shareMenu = async (ids) => {
     onSound("share");
-    const names = ids.map(id => recipes.find(r => r.id === id)?.name).filter(Boolean);
+    const names = ids.map(id => recipes.find(r => r.id === canonicalRecipeId(id))?.name).filter(Boolean);
     // Linkvoorbeeld-afbeelding voor WhatsApp: in de app eerst uploaden naar
     // Supabase Storage (bucket "menukaarten"). Lukt dat niet (bucket nog niet
     // aangemaakt, geen netwerk) of duurt het te lang, dan delen we gewoon
@@ -12725,7 +12837,7 @@ function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, f
   } else if (step === 6) {
     title = "Moeten er cocktails op?";
     sub = "Zoveel als je wilt, uit alle recepten. De assistent vult de rest aan.";
-    const favs = [...new Set([...favoriteRecipeIds, ...recentRecipeIds])].filter(id => !a.mustHave.includes(id)).map(id => recipes.find(r => r.id === id)).filter(Boolean).slice(0, 6);
+    const favs = [...new Set([...favoriteRecipeIds, ...recentRecipeIds])].filter(id => !a.mustHave.includes(id)).map(id => recipes.find(r => r.id === canonicalRecipeId(id))).filter(Boolean).slice(0, 6);
     body = (
       <>
         <RecipePicker recipes={recipes.filter(r => !a.mustHave.includes(r.id))} value={null} listId="menu-assistent-must"
@@ -13826,7 +13938,7 @@ function computeCheckinStats(logboek) {
 function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqueCount) {
   const matched = logboek.map(e => ({
     entry: e,
-    recipe: e.recipeId ? recipes.find(r => r.id === e.recipeId) : recipes.find(r => r.name.toLowerCase() === e.name.trim().toLowerCase()),
+    recipe: e.recipeId ? recipes.find(r => r.id === canonicalRecipeId(e.recipeId)) : recipes.find(r => r.name.toLowerCase() === e.name.trim().toLowerCase()),
   }));
   const withRecipe = matched.filter(x => x.recipe);
 
@@ -14356,7 +14468,7 @@ function MapFullscreenSheet({ locations, coords, engine, mapkit, onClose }) {
 // Favorieten, meest gebruikte drank en check-ins per maand: gedeeld door
 // je eigen profiel en dat van een vriend (zelfde afleiding uit het logboek).
 function TasteDetails({ insights, logboek, recipes, allIngredients, onOpenRecipe = null }) {
-  const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
+  const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === canonicalRecipeId(entry.recipeId)) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
   const favRecipe = insights.favoriteCocktail ? recipes.find(r => r.name.toLowerCase() === insights.favoriteCocktail.name.toLowerCase()) : null;
   const famName = insights.favoriteFamilyEntry?.[0];
   const famRecipe = famName ? (logboek.map(findMatch).filter(r => r && r.family === famName)[0] || recipes.find(r => r.family === famName)) : null;
@@ -14599,29 +14711,14 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
     if (trimmed && trimmed !== profile?.name) onUpdateName(trimmed);
     setEditingName(false);
   };
-  const handleProfilePhotoFile = (e) => {
+  const handleProfilePhotoFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     setProfilePhotoBusy(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        const maxW = 240;
-        const scale = Math.min(1, maxW / img.width);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        onUpdatePhoto(canvas.toDataURL("image/jpeg", 0.75));
-        setProfilePhotoBusy(false);
-      };
-      img.onerror = () => setProfilePhotoBusy(false);
-      img.src = ev.target.result;
-    };
-    reader.onerror = () => setProfilePhotoBusy(false);
-    reader.readAsDataURL(file);
+    try { onUpdatePhoto(await squareJpegDataUrl(file, 480, 0.82)); }
+    catch (err) { console.warn("Profielfoto laden mislukt:", err); }
+    setProfilePhotoBusy(false);
   };
   const [nameInput, setNameInput] = useState("");
   const [activeAchievementId, setActiveAchievementId] = useState(null);
@@ -14654,37 +14751,23 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
     const seen = new Set();
     const list = [];
     for (const entry of logboek) {
-      const r = entry.recipeId ? recipes.find(x => x.id === entry.recipeId) : recipes.find(x => x.name.toLowerCase() === entry.name.toLowerCase());
+      const r = entry.recipeId ? recipes.find(x => x.id === canonicalRecipeId(entry.recipeId)) : recipes.find(x => x.name.toLowerCase() === entry.name.toLowerCase());
       if (r && !seen.has(r.id)) { seen.add(r.id); list.push(r); }
       if (list.length >= 8) break;
     }
     return list;
   }, [logboek, recipes]);
 
-  const handlePhotoFile = (e) => {
+  const handlePhotoFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     setPhotoBusy(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        const maxW = 480;
-        const scale = Math.min(1, maxW / img.width);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        setPhoto(canvas.toDataURL("image/jpeg", 0.62));
-        setPhotoBusy(false);
-      };
-      img.onerror = () => setPhotoBusy(false);
-      img.src = ev.target.result;
-    };
-    reader.onerror = () => setPhotoBusy(false);
-    reader.readAsDataURL(file);
+    try { setPhoto(await imageToJpegDataUrl(file, 1440, 0.82)); }
+    catch (err) { console.warn("Foto laden mislukt:", err); }
+    setPhotoBusy(false);
   };
+
   // Eigen foto heeft voorrang; anders alvast de foto van het gekozen recept
   // laten zien, zodat het beeldvlak nooit leeg oogt zodra er een cocktail is
   // gekozen — tikken vervangt 'm altijd door een eigen foto.
@@ -14816,7 +14899,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
     [logboek, recipes, allIngredients, isOwned, stats.uniques]
   );
 
-  const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === entry.recipeId) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
+  const findMatch = (entry) => entry.recipeId ? recipes.find(r => r.id === canonicalRecipeId(entry.recipeId)) : recipes.find(r => r.name.toLowerCase() === entry.name.toLowerCase());
   // Profiel in drie tabbladen (Check-ins · Smaak · Prestaties); bewust niet
   // onthouden over sessies heen — altijd beginnen bij Check-ins.
   const [profileTab, setProfileTab] = useState("checkins");
@@ -15652,7 +15735,7 @@ function Avatar({ name, photo, size = 38 }) {
 // (zelfde cocktail los ingecheckt) en iets wat de vriend lekker vindt en jij
 // nog niet hebt gehad. Alles uit bestaande check-ins en tags afgeleid.
 function computeTogether({ myLog, herLog, pairTags, myId, recipes }) {
-  const findMatch = (e) => e.recipeId ? recipes.find(r => r.id === e.recipeId) : recipes.find(r => r.name.toLowerCase() === e.name.toLowerCase());
+  const findMatch = (e) => e.recipeId ? recipes.find(r => r.id === canonicalRecipeId(e.recipeId)) : recipes.find(r => r.name.toLowerCase() === e.name.toLowerCase());
   const myById = Object.fromEntries(myLog.map(e => [String(e.id), e]));
   const herById = Object.fromEntries(herLog.map(e => [String(e.id), e]));
   const seen = new Set();
@@ -15766,7 +15849,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
   const firstName = name.split(" ")[0];
   const friendRank = profileCourseRank(friendProfile);
   const friendMasterNumber = useMasterNumber(friendRank.master ? friendProfile?.course_completed_at : null);
-  const findMatch = (e) => e.recipeId ? recipes.find(r => r.id === e.recipeId) : recipes.find(r => r.name.toLowerCase() === e.name.toLowerCase());
+  const findMatch = (e) => e.recipeId ? recipes.find(r => r.id === canonicalRecipeId(e.recipeId)) : recipes.find(r => r.name.toLowerCase() === e.name.toLowerCase());
   const withMeIds = useMemo(() => new Set((together?.events || []).map(ev => ev.herEntryId).filter(x => x != null).map(String)), [together]);
   const monthName = (iso) => iso ? new Date(iso).toLocaleDateString("nl-NL", { month: "long" }) : "";
   const shortDate = (d) => {
@@ -16603,27 +16686,14 @@ function EigenRecepten({ customRecipes, allIngredients, recipes, isOwned, recent
   const moveRow = (from, to) => { const rows = form.rows.slice(); const [x] = rows.splice(from, 1); rows.splice(to, 0, x); set({ rows }); };
   const setStep = (i, text) => set({ steps: steps.map((s, j) => j === i ? text : s) });
 
-  const handlePhoto = (e) => {
+  const handlePhoto = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     setPhotoBusy(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        const size = 480, s = Math.min(img.width, img.height);
-        const canvas = document.createElement("canvas");
-        canvas.width = size; canvas.height = size;
-        canvas.getContext("2d").drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
-        set({ photo: canvas.toDataURL("image/jpeg", 0.62) });
-        setPhotoBusy(false);
-      };
-      img.onerror = () => setPhotoBusy(false);
-      img.src = ev.target.result;
-    };
-    reader.onerror = () => setPhotoBusy(false);
-    reader.readAsDataURL(file);
+    try { set({ photo: await squareJpegDataUrl(file, 800, 0.8) }); }
+    catch (err) { console.warn("Foto laden mislukt:", err); }
+    setPhotoBusy(false);
   };
 
   const draft = buildRecipe();

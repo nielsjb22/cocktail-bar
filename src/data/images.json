@@ -45,15 +45,6 @@
     "niveau": "passend"
   },
   {
-    "id": "airmail",
-    "type": "cocktail",
-    "bestand": "airmail.webp",
-    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-glass-in-dimly-lit-tokyo-bar-34989165/",
-    "maker": "Szymon Shields",
-    "licentie": "Pexels License",
-    "niveau": "passend"
-  },
-  {
     "id": "alaska",
     "type": "cocktail",
     "bestand": "alaska.webp",
@@ -918,15 +909,6 @@
     "niveau": "passend"
   },
   {
-    "id": "death_in_afternoon",
-    "type": "cocktail",
-    "bestand": "death_in_afternoon.webp",
-    "bronUrl": "https://www.pexels.com/photo/glasses-of-cold-drinks-on-wooden-table-7376996/",
-    "maker": "Arina Krasnikova",
-    "licentie": "Pexels License",
-    "niveau": "passend"
-  },
-  {
     "id": "death_in_the_afternoon",
     "type": "cocktail",
     "bestand": "death_in_the_afternoon.webp",
@@ -1022,15 +1004,6 @@
     "bestand": "earls_punch.webp",
     "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-with-yellow-liquid-and-black-straw-5415798/",
     "maker": "elif tekkaya",
-    "licentie": "Pexels License",
-    "niveau": "passend"
-  },
-  {
-    "id": "east_side_cocktail",
-    "type": "cocktail",
-    "bestand": "east_side_cocktail.webp",
-    "bronUrl": "https://www.pexels.com/photo/refreshing-green-cocktail-in-martini-glass-35087284/",
-    "maker": "Gerardo Pantoja",
     "licentie": "Pexels License",
     "niveau": "passend"
   },
@@ -3344,15 +3317,6 @@
     "bestand": "south_side.webp",
     "bronUrl": "https://www.pexels.com/photo/refreshing-brazilian-cocktail-with-herbal-garnish-32435264/",
     "maker": "Rafaela Freire",
-    "licentie": "Pexels License",
-    "niveau": "passend"
-  },
-  {
-    "id": "southside",
-    "type": "cocktail",
-    "bestand": "southside.webp",
-    "bronUrl": "https://www.pexels.com/photo/a-drink-in-a-glass-with-green-leaf-2691360/",
-    "maker": "Madison Inouye",
     "licentie": "Pexels License",
     "niveau": "passend"
   },

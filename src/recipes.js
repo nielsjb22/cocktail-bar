@@ -2977,3 +2977,27 @@ RECIPES.push(...EXTRA_RECIPES, ...RECIPES_2, ...RECIPES_3);
 Object.assign(STORIES, EXTRA_STORIES, STORIES_2, STORIES_3);
 Object.assign(FUN_FACTS, EXTRA_FUN_FACTS, FUN_FACTS_2, FUN_FACTS_3);
 Object.assign(STEPS, EXTRA_STEPS, STEPS_2, STEPS_3);
+
+// Dubbele recepten samengevoegd (oktober 2026). Het dubbele id blijft
+// bestaan als alias, zodat oude check-ins, favorieten en feestmenu's met
+// dat id gewoon het samengevoegde recept tonen. Van elk paar is het beste
+// verhaal bewaard.
+export const RECIPE_ALIASES = {
+  death_in_afternoon: "death_in_the_afternoon",
+  airmail: "air_mail",
+  southside: "south_side",
+  east_side_cocktail: "eastside",
+};
+const BETTER_STORY_FROM = { death_in_the_afternoon: "death_in_afternoon", air_mail: "airmail", south_side: "southside", eastside: "east_side_cocktail" };
+for (const [keep, from] of Object.entries(BETTER_STORY_FROM)) if (STORIES[from]) STORIES[keep] = STORIES[from];
+for (const dup of Object.keys(RECIPE_ALIASES)) {
+  const i = RECIPES.findIndex(r => r.id === dup);
+  if (i >= 0) RECIPES.splice(i, 1);
+  delete STORIES[dup]; delete STEPS[dup]; delete FUN_FACTS[dup];
+}
+export function canonicalRecipeId(id) {
+  return (id && RECIPE_ALIASES[id]) || id;
+}
+export function recipeIdAliases(id) {
+  return [id, ...Object.keys(RECIPE_ALIASES).filter(a => RECIPE_ALIASES[a] === id)];
+}

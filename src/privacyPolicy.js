@@ -6,7 +6,7 @@ export const PRIVACY_BIJGEWERKT = "12 oktober 2026";
 
 // Vul hier het contactadres in; zolang het leeg is, verwijst de tekst naar
 // de App Store-vermelding.
-export const CONTACT_EMAIL = "";
+export const CONTACT_EMAIL = "nielsbenedictus@ziggo.nl";
 
 export const PRIVACY_INTRO =
   "Mijn Thuisbar is een persoonlijke app voor het bijhouden van je thuisbar, cocktailrecepten en check-ins met vrienden. Dit beleid legt uit welke gegevens de app verzamelt en waarvoor.";
