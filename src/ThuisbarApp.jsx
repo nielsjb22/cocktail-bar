@@ -6,7 +6,7 @@ import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
-import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck, Play } from "lucide-react";
+import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck, Play, Copy } from "lucide-react";
 import L from "leaflet";
 import { useMapEngine, createAppleMap } from "./appleMaps";
 import { PRIVACY_BIJGEWERKT, PRIVACY_INTRO, PRIVACY_SECTIES, privacyContactTekst } from "./privacyPolicy";
@@ -2654,6 +2654,7 @@ export default function ThuisbarApp() {
       user_id: session.user.id, recipe_id: entry.recipeId, name: entry.name, rating: entry.rating,
       notes: entry.notes, photo: entry.photo, location: entry.location,
       location_lat: entry.locationLat, location_lon: entry.locationLon, taste_tags: entry.tasteTags,
+      ...(entry.createdAt ? { created_at: entry.createdAt } : {}),
     }).select().single();
     if (data) {
       supabase.functions.invoke("notify-friends", { body: { userId: session.user.id, cocktailName: entry.name } }).catch(() => {});
@@ -3150,7 +3151,7 @@ export default function ThuisbarApp() {
         </TabPanel>
         <TabPanel id="vrienden" active={tab === "vrienden"} visited={visitedTabs.has("vrienden")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.vrienden} onBack={() => navigateTo("profiel", { restore: true })}>
-            <VriendenTab session={session} profile={profile} recipes={allRecipes} allIngredients={allIngredients} onSound={chime} active={tab === "vrienden"} myLogboek={logboek} onOpenRecipe={openRecipeDetail} />
+            <VriendenTab session={session} profile={profile} recipes={allRecipes} allIngredients={allIngredients} onSound={chime} active={tab === "vrienden"} myLogboek={logboek} onOpenRecipe={openRecipeDetail} onOpenCheckin={openCheckin} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
@@ -3767,7 +3768,7 @@ function useCheckinTags(checkinIds, active, knownProfiles, reloadKey) {
     if (!active || checkinIds.length === 0) { setTags({}); return; }
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase.from("checkin_tags").select("checkin_id, tagged_user_id").in("checkin_id", checkinIds);
+      const { data, error } = await supabase.from("checkin_tags").select("id, checkin_id, tagger_id, tagged_user_id, adopted_checkin_id").in("checkin_id", checkinIds);
       if (cancelled || error || !data) return;
       const names = {}, photos = {};
       Object.values(knownProfiles || {}).forEach(p => { if (p?.id) { names[p.id] = p.name; photos[p.id] = p.avatar_url || null; } });
@@ -3778,13 +3779,82 @@ function useCheckinTags(checkinIds, active, knownProfiles, reloadKey) {
       }
       if (cancelled) return;
       const map = {};
-      data.forEach(t => { (map[t.checkin_id] = map[t.checkin_id] || []).push({ id: t.tagged_user_id, name: names[t.tagged_user_id] || "een vriend", photo: photos[t.tagged_user_id] || null }); });
+      data.forEach(t => { (map[t.checkin_id] = map[t.checkin_id] || []).push({
+        id: t.tagged_user_id, name: names[t.tagged_user_id] || "een vriend", photo: photos[t.tagged_user_id] || null,
+        tagId: t.id, taggerId: t.tagger_id, adoptedCheckinId: t.adopted_checkin_id ?? null,
+      }); });
       setTags(map);
     })();
     return () => { cancelled = true; };
   }, [key, active, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
   return tags;
 }
+// Verzoek om een check-in waarin je getagd bent over te nemen: zelfde
+// cocktail, plek, tijd en (desgewenst) foto; je eigen cijfer kies je zelf.
+function adoptCheckinRequest(entry, tag, taggerName) {
+  const first = (taggerName || "je vriend").split(" ")[0];
+  return {
+    name: entry.name, location: entry.location, photo: entry.photo || null,
+    locationLat: entry.locationLat ?? null, locationLon: entry.locationLon ?? null,
+    adoptTag: {
+      id: tag.id, checkinId: entry.id, taggerId: tag.tagger_id, taggerName: first,
+      taggerRating: entry.rating || 0, taggerPhoto: entry.photo || null, createdAt: entry.createdAt || null,
+    },
+  };
+}
+
+// "Vandaag 21:14", "Gisteren 22:05" of "3 okt 21:14".
+function adoptWhenLabel(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const time = d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+  const today = new Date(); const y = new Date(); y.setDate(today.getDate() - 1);
+  const same = (a, b) => a.toDateString() === b.toDateString();
+  if (same(d, today)) return `Vandaag ${time}`;
+  if (same(d, y)) return `Gisteren ${time}`;
+  return `${d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" })} ${time}`;
+}
+
+// Blok op een post waarin jij getagd bent: "Jij was erbij · Overnemen", of
+// na het overnemen "Overgenomen · jij gaf 4,0 · Bekijk". Alleen jij ziet het.
+function TagAdoptStrip({ adopted, myRating, onAdopt, onView, dark = false, style }) {
+  if (adopted) {
+    return (
+      <button onClick={onView || undefined} disabled={!onView} className={onView ? "press-scale" : undefined} style={{
+        display: "flex", alignItems: "center", gap: 10, width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 14,
+        border: "none", background: dark ? "rgba(251,246,234,0.08)" : "rgba(31,61,54,0.08)", cursor: onView ? "pointer" : "default",
+        fontFamily: sans, textAlign: "left", ...style,
+      }}>
+        <span style={{ width: 26, height: 26, borderRadius: "50%", background: dark ? "#DDB877" : BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Check size={15} strokeWidth={2.8} color={dark ? "#132622" : "#FBF6EA"} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0, fontWeight: 700, fontSize: 14, color: dark ? ON_DARK_TEXT : BOTTLE }}>
+          Overgenomen{myRating ? ` · jij gaf ${formatRating(myRating)}` : ""}
+        </span>
+        {onView && <span style={{ display: "inline-flex", alignItems: "center", gap: 1, fontSize: 13, fontWeight: 700, color: dark ? "#DDB877" : BOTTLE }}>Bekijk<ChevronRight size={15} /></span>}
+      </button>
+    );
+  }
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10, padding: "10px 10px 10px 12px", borderRadius: 14,
+      background: dark ? "rgba(221,184,119,0.12)" : "rgba(184,134,46,0.12)", boxShadow: `inset 0 0 0 1px ${dark ? "rgba(221,184,119,0.35)" : "rgba(184,134,46,0.35)"}`, ...style,
+    }}>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontWeight: 700, fontSize: 14, color: dark ? ON_DARK_TEXT : INK }}>Jij was erbij</span>
+        <span style={{ display: "block", fontSize: 12.5, color: dark ? "#C9D2CB" : MUTED, marginTop: 1 }}>Zet deze cocktail ook in jouw logboek</span>
+      </span>
+      <button onClick={onAdopt} className="press-scale" style={{
+        minHeight: 40, padding: "0 14px", borderRadius: 100, border: "none", cursor: "pointer", flexShrink: 0,
+        background: dark ? "#DDB877" : BOTTLE_DARK, color: dark ? "#132622" : HEADER_TEXT,
+        display: "inline-flex", alignItems: "center", gap: 6, fontFamily: sans, fontSize: 13.5, fontWeight: 800,
+      }}>
+        <Copy size={14} strokeWidth={2.2} /> Overnemen
+      </button>
+    </div>
+  );
+}
+
 // Aantal openstaande vriendschapsverzoeken aan jou (rood bolletje bij het
 // vriendenicoon op je profiel). Opnieuw tellen bij wisselen van tab en als
 // de app weer op de voorgrond komt.
@@ -4481,7 +4551,16 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
     const photo = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
     const cheer = reactions[entry.id] || { count: 0, mine: false };
     const master = rankOf(entry)?.master;
-    const withNames = checkinTags[entry.id]?.length > 0 ? `met ${joinNames(checkinTags[entry.id].map(t => (t.name || "een vriend").split(" ")[0]))} · ` : "";
+    const withNames = checkinTags[entry.id]?.length > 0 ? `met ${joinNames(checkinTags[entry.id].map(t => t.id === myId ? "jou" : (t.name || "een vriend").split(" ")[0]))} · ` : "";
+    // Jij bent getagd in deze post van een vriend: overnemen, of al overgenomen.
+    const myTag = !entry.mine && !guest && myId ? (checkinTags[entry.id] || []).find(t => t.id === myId && t.tagId) : null;
+    const myAdopted = myTag?.adoptedCheckinId != null ? logboek.find(e => String(e.id) === String(myTag.adoptedCheckinId)) || null : null;
+    const adopt = myTag ? {
+      adopted: myTag.adoptedCheckinId != null,
+      myRating: myAdopted?.rating || null,
+      onAdopt: () => onOpenCheckin(adoptCheckinRequest(entry, { id: myTag.tagId, tagger_id: myTag.taggerId }, who)),
+      onView: myAdopted ? () => setPhotoViewer({ entry: myAdopted, matched: findMatch(myAdopted), who: profile?.name || "Jij", whoAvatar: profile?.avatar_url }) : null,
+    } : null;
     const nComments = commentCounts[entry.id] || 0;
     return (
       <div style={{ marginBottom: 16, borderRadius: 20, background: CREAM, padding: master ? "15px 12px 12px" : 12, boxShadow: master ? "0 0 0 1px rgba(184,134,46,0.55), 0 8px 22px -12px rgba(43,38,32,0.3)" : "0 1px 2px rgba(43,38,32,0.08), 0 8px 22px -12px rgba(43,38,32,0.3)", position: "relative", overflow: "hidden" }}>
@@ -4531,7 +4610,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           )}
         </div>
 
-        <div onClick={photo ? () => setPhotoViewer({ entry, matched, who, whoAvatar, onOpenProfile: openAuthor }) : undefined}
+        <div onClick={photo ? () => setPhotoViewer({ entry, matched, who, whoAvatar, onOpenProfile: openAuthor, adopt }) : undefined}
           style={{ position: "relative", width: "100%", aspectRatio: "8 / 7", borderRadius: 14, overflow: "hidden", cursor: photo ? "zoom-in" : undefined, background: BOTTLE_DARK }}>
           {photo ? (
             <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />
@@ -4573,6 +4652,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
             ))}
           </div>
         )}
+        {adopt && <TagAdoptStrip {...adopt} style={{ margin: "12px 0 0" }} />}
         {guest ? (
           <button onClick={() => onRequireAccount?.("bewaren")} style={{ display: "flex", alignItems: "center", gap: 7, width: "calc(100% - 8px)", margin: "12px 4px 2px", padding: "10px 0 2px", border: "none", borderTop: `1px solid ${BORDER}`, background: "none", cursor: "pointer", fontFamily: sans, fontSize: 12.5, color: MUTED, textAlign: "left" }}>
             <Lock size={13} style={{ flexShrink: 0 }} /> Alleen op deze telefoon · <span style={{ color: BOTTLE, fontWeight: 700 }}>Bewaar en deel met een account</span>
@@ -4708,11 +4788,8 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button onClick={() => onOpenCheckin({
-                    name: entry.name, location: entry.location, photo: entry.photo,
-                    adoptTag: { id: tag.id, checkinId: entry.id, taggerId: tag.tagger_id, taggerName: taggerName.split(" ")[0] },
-                  })} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: HEADER_TEXT, color: "#132622", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
-                    Ook inchecken
+                  <button onClick={() => onOpenCheckin(adoptCheckinRequest(entry, tag, taggerName))} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: HEADER_TEXT, color: "#132622", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
+                    Overnemen
                   </button>
                   <button onClick={() => tagInbox.dismiss(tag.id)} style={{ minHeight: 42, padding: "0 16px", borderRadius: 12, border: "1px solid rgba(251,246,234,0.25)", background: "none", color: ON_DARK_TEXT, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: sans }}>
                     Niet nu
@@ -4778,6 +4855,7 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
           myLogboek={logboek}
           myProfile={profile}
           onOpenRecipe={onOpenRecipe}
+          onOpenCheckin={onOpenCheckin}
           onBlocked={() => setOpenFriendId(null)}
           onClose={() => setOpenFriendId(null)}
         />
@@ -14259,9 +14337,11 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
     setCiStep("form");
     setShowCheckinSheet(true);
   };
-  const addEntry = () => {
+  // opts.rating: "Direct opslaan" bij overnemen gebruikt het cijfer van de ander.
+  const addEntry = (opts) => {
+    const score = typeof opts?.rating === "number" && opts.rating > 0 ? opts.rating : rating;
     let name = nameInput.trim();
-    if (!name || rating === 0) return;
+    if (!name || score === 0) return;
     // Vangnet: half getypte naam ("Sex On") die bij precies één recept past
     // → dat recept gebruiken, i.p.v. een losse, afgekapte naam op te slaan.
     let recipeForEntry = matchedRecipe;
@@ -14273,7 +14353,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
     if (editingEntryId) {
       onUpdateEntry(editingEntryId, {
         recipeId: recipeForEntry ? recipeForEntry.id : null,
-        name, rating, notes: notes.trim(), photo, location: location.trim() || "Thuis",
+        name, rating: score, notes: notes.trim(), photo, location: location.trim() || "Thuis",
         locationLat: locationCoords?.lat ?? null, locationLon: locationCoords?.lon ?? null,
         tasteTags: tasteTags,
       });
@@ -14285,10 +14365,12 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
     const checkinNumber = logboek.length + 1;
     const saved = Promise.resolve(onAddEntry({
       recipeId: recipeForEntry ? recipeForEntry.id : null,
-      name, rating, notes: notes.trim(), photo, location: location.trim() || "Thuis",
+      name, rating: score, notes: notes.trim(), photo, location: location.trim() || "Thuis",
       locationLat: locationCoords?.lat ?? null, locationLon: locationCoords?.lon ?? null,
       tasteTags: tasteTags,
       tagUserIds: taggedIds, adoptTag,
+      // Overnemen: zelfde moment als de check-in van je vriend.
+      createdAt: adoptTag?.createdAt || null,
     }));
     onSound("chime");
     setStampNumber(checkinNumber);
@@ -14344,6 +14426,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
     if (checkinRequest.adoptTag) {
       setAdoptTag(checkinRequest.adoptTag);
       if (checkinRequest.location) setLocation(checkinRequest.location);
+      if (checkinRequest.locationLat != null && checkinRequest.locationLon != null) setLocationCoords({ lat: checkinRequest.locationLat, lon: checkinRequest.locationLon });
       if (checkinRequest.photo) setPhoto(checkinRequest.photo);
     }
     setShowCheckinSheet(true);
@@ -14700,7 +14783,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                   {/* Rechtsboven: Plaats (pas actief met cocktail + cijfer). Typ je
                       in de notitie, dan staat daar Gereed om het toetsenbord te
                       sluiten. */}
-                  <CheckinTopBar leftLabel="Annuleer" onLeft={requestCancel} title={editingEntryId ? "Check-in bewerken" : "Check-in"}
+                  <CheckinTopBar leftLabel="Annuleer" onLeft={requestCancel} title={editingEntryId ? "Check-in bewerken" : adoptTag ? "Overnemen" : "Check-in"}
                     rightLabel={notesFocused ? "Gereed" : editingEntryId ? "Opslaan" : "Plaats"}
                     rightDisabled={notesFocused ? false : !canSubmit}
                     onRight={notesFocused ? () => document.activeElement?.blur?.() : addEntry} />
@@ -14724,13 +14807,19 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                       </div>
 
                       {adoptTag && (
-                        <div style={{ padding: "12px 14px", borderRadius: 14, background: PAPER_DEEP, fontSize: 13.5, lineHeight: 1.45, color: INK, fontFamily: systemFont }}>
-                          Je checkt in met <strong>{adoptTag.taggerName || "je vriend"}</strong>. Je cijfer en notitie zijn alleen van jou; aan de check-in van {adoptTag.taggerName || "je vriend"} verandert niets.
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, background: "rgba(184,134,46,0.14)", boxShadow: "inset 0 0 0 1px rgba(184,134,46,0.35)", fontSize: 13.5, lineHeight: 1.4, color: INK, fontFamily: systemFont }}>
+                          <Copy size={16} color={BRASS} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+                          <span>Overgenomen van <strong>{adoptTag.taggerName || "je vriend"}</strong> · plek, tijd en gezelschap staan al goed. Je cijfer en notitie zijn alleen van jou.</span>
                         </div>
                       )}
 
                       <div style={{ ...cardStyle, padding: "14px 8px 14px" }}>
                         <SwipeStars value={rating} onChange={setRating} onSound={onSound} />
+                        {adoptTag?.taggerRating > 0 && (
+                          <div style={{ textAlign: "center", fontFamily: systemFont, fontSize: 13, color: MUTED, marginTop: 6 }}>
+                            Jouw eigen cijfer ({adoptTag.taggerName || "je vriend"} gaf {formatRating(adoptTag.taggerRating)})
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ ...cardStyle, padding: "4px 14px 14px" }}>
@@ -14743,6 +14832,9 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                           {photo ? (
                             <div style={{ position: "relative", width: 74, height: 74, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}>
                               <img src={photo} alt="Je foto" onClick={() => fileInputRef.current?.click()} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }} />
+                              {adoptTag && photo === adoptTag.taggerPhoto && (
+                                <span style={{ position: "absolute", left: 4, bottom: 4, padding: "2px 6px", borderRadius: 6, background: "rgba(19,38,34,0.8)", color: "#FBF6EA", fontSize: 10, fontWeight: 700, fontFamily: systemFont, pointerEvents: "none" }}>{adoptTag.taggerName}</span>
+                              )}
                               <button onClick={() => setPhoto(null)} aria-label="Foto verwijderen" style={{
                                 position: "absolute", right: 4, top: 4, width: 24, height: 24, borderRadius: "50%", border: "none",
                                 background: "rgba(20,16,10,0.6)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0,
@@ -14756,6 +14848,11 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                             }}>
                               <Camera size={20} color={BOTTLE} />
                               {photoBusy ? "Bezig…" : "Foto"}
+                            </button>
+                          )}
+                          {adoptTag && photo && photo === adoptTag.taggerPhoto && (
+                            <button onClick={() => fileInputRef.current?.click()} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: systemFont, fontSize: 13, lineHeight: 1.4, color: MUTED, alignSelf: "center" }}>
+                              Foto van {adoptTag.taggerName} gebruiken,<br /><strong style={{ color: BOTTLE }}>of maak een eigen foto</strong>
                             </button>
                           )}
                         </div>
@@ -14797,10 +14894,32 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                             </span>
                           ) : <span style={{ fontSize: 14.5, color: MUTED, fontFamily: systemFont }}>Niemand</span>,
                           () => setCiStep("friends"), false)}
+                        {adoptTag && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 54, padding: "8px 14px", borderBottom: `1px solid ${BORDER}`, fontFamily: systemFont }}>
+                            <Users size={19} color={BOTTLE} style={{ flexShrink: 0 }} />
+                            <span style={{ fontSize: 15.5, fontWeight: 600, color: INK }}>Met wie</span>
+                            <span style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 14.5, color: MUTED }}>{adoptTag.taggerName || "je vriend"}</span>
+                          </div>
+                        )}
+                        {adoptTag?.createdAt && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 54, padding: "8px 14px", borderBottom: `1px solid ${BORDER}`, fontFamily: systemFont }}>
+                            <Clock size={19} color={BOTTLE} style={{ flexShrink: 0 }} />
+                            <span style={{ fontSize: 15.5, fontWeight: 600, color: INK }}>Wanneer</span>
+                            <span style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 14.5, color: MUTED }}>{adoptWhenLabel(adoptTag.createdAt)}</span>
+                          </div>
+                        )}
                         {optionRow(MapPin, "Locatie",
                           <span style={{ fontSize: 14.5, color: MUTED, fontFamily: systemFont, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{location.trim() || "Thuis"}</span>,
                           () => setCiStep("location"), true)}
                       </div>
+                      {adoptTag && adoptTag.taggerRating > 0 && rating === 0 && (
+                        <button onClick={() => addEntry({ rating: adoptTag.taggerRating })} disabled={!nameInput.trim()} style={{
+                          background: "none", border: "none", padding: "6px 0", cursor: "pointer", fontFamily: systemFont,
+                          fontSize: 14.5, fontWeight: 700, color: BOTTLE, textAlign: "center",
+                        }}>
+                          Direct opslaan met hetzelfde cijfer ({formatRating(adoptTag.taggerRating)})
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>
@@ -14847,7 +14966,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
 // Vaste donkere kleuren (geen thema-variabelen): dit is altijd een donker scherm.
 const VIEWER_TEXT = "#FBF6EA";
 const VIEWER_MUTED = "rgba(251,246,234,0.65)";
-function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, onClose, onOpenRecipe = null, onOpenProfile = null }) {
+function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, onClose, onOpenRecipe = null, onOpenProfile = null, adopt = null }) {
   useBodyScrollLock();
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -15041,6 +15160,14 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
         )}
       </div>
 
+      {adopt && (
+        <div data-viewer-bar style={{ ...bar, padding: "12px 14px 0" }}>
+          <TagAdoptStrip dark adopted={adopt.adopted} myRating={adopt.myRating}
+            onAdopt={() => { onClose(); adopt.onAdopt(); }}
+            onView={adopt.onView ? () => { onClose(); setTimeout(adopt.onView, 60); } : null}
+            style={{ flex: 1 }} />
+        </div>
+      )}
       {/* Cocktail: tik = naar het recept. */}
       <button data-viewer-bar onClick={matched && onOpenRecipe ? () => { onClose(); onOpenRecipe(matched.id); } : undefined} disabled={!(matched && onOpenRecipe)}
         style={{ ...bar, width: "100%", border: "none", textAlign: "left", cursor: matched && onOpenRecipe ? "pointer" : "default", fontFamily: systemFont, padding: "14px 18px calc(env(safe-area-inset-bottom) + 16px)" }}>
@@ -15131,7 +15258,7 @@ function computeTogether({ myLog, herLog, pairTags, myId, recipes }) {
 // Profiel van een vriend: zelfde opbouw als je eigen profiel (ring, rang,
 // kerncijfers, Check-ins · Smaak · Prestaties), schermvullend, plus "Samen".
 // Melden en blokkeren zitten achter de ··· rechtsboven.
-function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, onClose, session, onBlocked, myLogboek = [], onOpenRecipe, myProfile = null }) {
+function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, onClose, session, onBlocked, myLogboek = [], onOpenRecipe, myProfile = null, onOpenCheckin = null }) {
   const [logboek, setLogboek] = useState(null);
   const [pairTags, setPairTags] = useState([]);
   const myId = session?.user?.id;
@@ -15511,8 +15638,18 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
           </div>
         </div>
       </EdgeSwipeBackArea>
-      {photoViewer && <CheckinPhotoViewer entry={photoViewer.entry} matched={photoViewer.matched} who={name} whoAvatar={friendProfile?.avatar_url} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)}
-        onOpenRecipe={onOpenRecipe ? (id) => { onClose(); onOpenRecipe(id); } : null} />}
+      {photoViewer && (() => {
+        // Getagd in deze check-in van je vriend: overnemen kan ook hier.
+        const t = myId ? pairTags.find(x => x.tagger_id === friendId && x.tagged_user_id === myId && String(x.checkin_id) === String(photoViewer.entry.id)) : null;
+        const mine = t?.adopted_checkin_id != null ? myLogboek.find(e => String(e.id) === String(t.adopted_checkin_id)) : null;
+        const adopt = t && onOpenCheckin ? {
+          adopted: t.adopted_checkin_id != null, myRating: mine?.rating || null,
+          onAdopt: () => { onClose(); onOpenCheckin(adoptCheckinRequest(photoViewer.entry, t, name)); },
+          onView: null,
+        } : null;
+        return <CheckinPhotoViewer entry={photoViewer.entry} matched={photoViewer.matched} who={name} whoAvatar={friendProfile?.avatar_url} allIngredients={allIngredients} onClose={() => setPhotoViewer(null)}
+          onOpenRecipe={onOpenRecipe ? (id) => { onClose(); onOpenRecipe(id); } : null} adopt={adopt} />;
+      })()}
       {confirmBlock && (
         <ConfirmDialog title={`${firstName} blokkeren?`}
           message={`Jullie zijn dan geen vrienden meer en ${firstName} kan je niet meer vinden of je check-ins zien.`}
@@ -15527,7 +15664,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
 // (twee kanten: requester/addressee, status pending/accepted), de feed leest
 // gewoon uit dezelfde `checkins`-tabel als je eigen logboek — RLS zorgt dat je
 // alléén rijen van geaccepteerde vrienden binnenkrijgt, niet van iedereen.
-function VriendenTab({ session, profile, recipes, allIngredients, onSound, active, myLogboek = [], onOpenRecipe }) {
+function VriendenTab({ session, profile, recipes, allIngredients, onSound, active, myLogboek = [], onOpenRecipe, onOpenCheckin = null }) {
   const myId = session.user.id;
   const [friendships, setFriendships] = useState([]);
   const [profilesById, setProfilesById] = useState({});
@@ -15731,6 +15868,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
           myLogboek={myLogboek}
           myProfile={profile}
           onOpenRecipe={onOpenRecipe}
+          onOpenCheckin={onOpenCheckin}
           onBlocked={() => { setOpenFriendId(null); loadFriendships(); }}
           onClose={() => setOpenFriendId(null)}
         />
