@@ -2482,6 +2482,7 @@ export default function ThuisbarApp() {
   // Check-ins staan niet meer lokaal maar in Supabase, want die moeten nu ook
   // door vrienden gelezen kunnen worden (de feed) — dat kan localStorage niet.
   const [session, setSession] = useState(undefined);
+  const friendRequestCount = useFriendRequestCount(session?.user?.id, tab);
   // Gast-modus (Recepten/Cursus zonder account) valt terug op AuthScreen
   // zodra een gast zelf op "Inloggen" tikt; na een geslaagde login weer
   // resetten zodat een latere uitlog-actie opnieuw in gast-modus opent.
@@ -3072,7 +3073,8 @@ export default function ThuisbarApp() {
           <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onUpdateEntry={updateLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest} onCheckinRequestHandled={() => setCheckinRequest(null)} onCheckedIn={handleCheckedIn}
             guest={isGuest} onRequireAccount={requireAccount}
             onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress} courseRank={courseRank}
-            onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} />
+            onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"}
+            friendRequestCount={friendRequestCount} />
         </TabPanel>
 
         <TabPanel id="voorraad" active={tab === "voorraad"} visited={visitedTabs.has("voorraad")} panelRef={panelRefs}>
@@ -3783,6 +3785,28 @@ function useCheckinTags(checkinIds, active, knownProfiles, reloadKey) {
   }, [key, active, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
   return tags;
 }
+// Aantal openstaande vriendschapsverzoeken aan jou (rood bolletje bij het
+// vriendenicoon op je profiel). Opnieuw tellen bij wisselen van tab en als
+// de app weer op de voorgrond komt.
+function useFriendRequestCount(myId, tab) {
+  const [count, setCount] = useState(0);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === "visible") setTick(t => t + 1); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+  useEffect(() => {
+    if (!myId) { setCount(0); return; }
+    let cancelled = false;
+    supabase.from("friendships").select("id", { count: "exact", head: true })
+      .eq("addressee_id", myId).eq("status", "pending")
+      .then(({ count: n, error }) => { if (!cancelled && !error) setCount(n || 0); });
+    return () => { cancelled = true; };
+  }, [myId, tab, tick]);
+  return count;
+}
+
 // Openstaande tags voor jou: iemand heeft je getagd en je hebt de check-in
 // nog niet overgenomen of weggetikt.
 function useTagInbox(myId, active, reloadKey) {
@@ -14116,7 +14140,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onCheckinRequestHandled, onCheckedIn, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank, guest = false, onRequireAccount}) {
+function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onCheckinRequestHandled, onCheckedIn, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank, guest = false, onRequireAccount, friendRequestCount = 0}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -14375,7 +14399,18 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
           Je gegevens staan eronder op de lichte achtergrond (een groen vlak
           eronder was te zwaar); alleen een Meester houdt de donkere kaart. */}
       <LargeTitleHeader title="Profiel" right={<>
-        <HeaderIconButton onClick={onGoVrienden} label="Vrienden"><Users size={22} strokeWidth={1.8} /></HeaderIconButton>
+        <HeaderIconButton onClick={onGoVrienden} label={friendRequestCount > 0 ? `Vrienden, ${friendRequestCount} ${friendRequestCount === 1 ? "nieuw verzoek" : "nieuwe verzoeken"}` : "Vrienden"}>
+          <span style={{ position: "relative", display: "flex" }}>
+            <Users size={22} strokeWidth={1.8} />
+            {friendRequestCount > 0 && (
+              <span style={{
+                position: "absolute", top: -6, right: -9, minWidth: 18, height: 18, padding: "0 5px", boxSizing: "border-box",
+                borderRadius: 9, background: "#D93A30", color: "#FFFFFF", fontSize: 11, fontWeight: 800, fontFamily: sans,
+                display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 0 2px var(--bottle-dark)",
+              }}>{friendRequestCount > 9 ? "9+" : friendRequestCount}</span>
+            )}
+          </span>
+        </HeaderIconButton>
         <HeaderIconButton onClick={onGoInstellingen} label="Instellingen"><Settings size={22} strokeWidth={1.8} /></HeaderIconButton>
       </>} />
       {/* Identiteit: foto met XP-ring, naam (tik = wijzigen), niveau.
