@@ -1,3 +1,4 @@
+import { EXTRA_INGREDIENTS, EXTRA_RECIPES, EXTRA_STORIES, EXTRA_FUN_FACTS, EXTRA_STEPS } from "./data/recipesExtra.js";
 // Prijzen: bottleMl/bottlePrice = indicatieve flesprijs (voor "koop dit"-berekeningen),
 // unitPrice = indicatief per stuk (vers/garnering, geen flessenlogica). Gebaseerd op
 // drankdozijn.nl-richtprijzen, momentopname september 2026, geen live koppeling, dus
@@ -2966,3 +2967,11 @@ export const STEPS = {
     "Garneer met een reepje sinaasappelschil, getwist boven het glas.",
   ],
 };
+
+// Uitbreiding (src/data/recipesExtra.js): achteraan toegevoegd, bestaande
+// id's blijven ongewijzigd.
+INGREDIENTS.push(...EXTRA_INGREDIENTS);
+RECIPES.push(...EXTRA_RECIPES);
+Object.assign(STORIES, EXTRA_STORIES);
+Object.assign(FUN_FACTS, EXTRA_FUN_FACTS);
+Object.assign(STEPS, EXTRA_STEPS);

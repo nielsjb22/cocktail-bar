@@ -85,6 +85,14 @@ export const DRANK_SPECS = {
   white_wine: { omschrijving: "Droge witte wijn", eis: "Droge witte wijn." },
   red_wine: { omschrijving: "Rode wijn", eis: "Droge, fruitige rode wijn." },
   sake: { omschrijving: "Japanse rijstwijn", eis: "Sake (junmai is prima)." },
+  // Toegevoegd oktober 2026
+  limoncello: { omschrijving: "Italiaanse citroenlikeur", eis: "Limoncello (citroenschil, suiker, alcohol; ± 25–32%). Geen limoncello-crème en geen citroensiroop." },
+  elderflower_liqueur: { omschrijving: "Vlierbloesemlikeur", eis: "Vlierbloesemlikeur met alcohol, bv. St-Germain (± 20%). Geen vlierbloesemsiroop: die heeft geen alcohol." },
+  licor_43: { omschrijving: "Spaanse vanillelikeur", eis: "Licor 43 Original (31%). Geen Licor 43 Horchata of Chocolate." },
+  spiced_rum: { omschrijving: "Rum met vanille en kruiden", eis: "Spiced rum, bv. Captain Morgan Original Spiced Gold, Kraken of Sailor Jerry (± 35–40%)." },
+  coconut_rum: { omschrijving: "Kokoslikeur op rumbasis", eis: "Kokosrum zoals Malibu Original (± 21%). Geen kokosroom en geen kokossiroop." },
+  bitter_lemon: { omschrijving: "Bittere citroenfrisdrank met kinine", eis: "Bitter lemon, bv. Schweppes of Fever-Tree. Geen gewone citroenlimonade." },
+  energy_drink: { omschrijving: "Energiedrank met cafeïne", eis: "Energiedrank zoals Red Bull. De suikervrije variant kan ook." },
 };
 
 // Welke boodschappen je in de drankwinkel haalt (met link naar Drankdozijn)

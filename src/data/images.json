@@ -4030,5 +4030,68 @@
     "maker": "",
     "licentie": "",
     "niveau": "illustratie"
+  },
+  {
+    "id": "limoncello",
+    "type": "drank",
+    "bestand": "limoncello.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "elderflower_liqueur",
+    "type": "drank",
+    "bestand": "elderflower_liqueur.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "licor_43",
+    "type": "drank",
+    "bestand": "licor_43.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "spiced_rum",
+    "type": "drank",
+    "bestand": "spiced_rum.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "coconut_rum",
+    "type": "drank",
+    "bestand": "coconut_rum.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "bitter_lemon",
+    "type": "drank",
+    "bestand": "bitter_lemon.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "energy_drink",
+    "type": "drank",
+    "bestand": "energy_drink.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
   }
 ]

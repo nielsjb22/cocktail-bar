@@ -417,6 +417,7 @@ const LIQUID_COLOR_RULES = [
   { ids: ["heavy_cream", "whipped_cream", "coconut_cream", "milk", "irish_cream", "creme_de_cacao"], colors: ["#C9AD7A", "#F3ECDD"] },
   { ids: ["coffee_liqueur", "espresso", "hot_coffee"], colors: ["#3B2A1E", "#7A5230"] },
   { ids: ["blue_curacao"], colors: ["#1B4F72", "#6FB1D6"] },
+  { ids: ["limoncello"], colors: ["#E2C93A", "#F4E9A0"] },
   { ids: ["creme_de_menthe", "green_chartreuse", "midori", "melon_liqueur"], colors: ["#3D5C3A", "#8FAE55"] },
   { ids: ["tomato_juice"], colors: ["#6E2620", "#B5433A"] },
   { ids: ["grenadine", "cranberry_juice", "campari", "creme_de_cassis", "raspberry_syrup", "creme_de_mure", "sloe_gin", "chambord"], colors: ["#7A2E2A", "#D9707A"] },
@@ -5562,14 +5563,14 @@ function FlesSheet({ ing, owned, usedIn, makeableWith, level, aantal, onSetLevel
 // Onbekend merk: eerst de soort, dan de precieze drank. Zo telt ook een
 // fles die we nog niet kennen mee bij de juiste recepten.
 const MERK_SOORTEN = [
-  { label: "Rum", ids: ["white_rum", "dark_rum", "cachaca"] },
+  { label: "Rum", ids: ["white_rum", "dark_rum", "spiced_rum", "coconut_rum", "cachaca"] },
   { label: "Wodka", ids: ["vodka", "vanilla_vodka"] },
   { label: "Gin", ids: ["gin", "sloe_gin", "genever"] },
   { label: "Whisky", ids: ["bourbon", "rye", "scotch", "irish_whiskey"] },
   { label: "Tequila", ids: ["tequila_blanco", "mezcal"] },
   { label: "Brandy", ids: ["cognac", "calvados", "pisco", "grappa"] },
   { label: "Likeur", cat: "Likeuren & versterkte wijnen" },
-  { label: "Frisdrank", ids: ["tonic", "cola", "lemonade", "ginger_beer", "ginger_ale", "soda_water", "grapefruit_soda"] },
+  { label: "Frisdrank", ids: ["tonic", "cola", "lemonade", "bitter_lemon", "ginger_beer", "ginger_ale", "soda_water", "grapefruit_soda", "energy_drink"] },
   { label: "Sap", ids: ["orange_juice", "pineapple_juice", "cranberry_juice", "grapefruit_juice", "lemon_juice", "lime_juice", "tomato_juice", "passion_fruit_juice"] },
   { label: "Siroop", ids: ["sugar_syrup", "grenadine", "orgeat", "honey_syrup", "raspberry_syrup", "elderflower_cordial", "vanilla_syrup", "agave_nectar"] },
   { label: "Wijn & bier", ids: ["prosecco", "white_wine", "red_wine", "beer", "stout", "sake"] },

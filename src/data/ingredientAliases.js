@@ -143,13 +143,21 @@ export const INGREDIENT_ALIASES = {
   cinnamon_stick: ["kaneelstokjes", "kaneelstokje", "pijpkaneel", "kaneel", "cinnamon"],
   butter: ["roomboter", "boter", "butter"],
   marmalade: ["marmelade", "sinaasappelmarmelade", "orange marmalade"],
+
+  // ---------- Toegevoegd oktober 2026 ----------
+  limoncello: ["Limoncello di Capri", "Villa Massa", "Pallini", "Luxardo Limoncello", "De Kuyper Limoncello", "Bols Limoncello", "Limoncello di Sorrento", "citroenlikeur", "lemon liqueur"],
+  elderflower_liqueur: ["St-Germain", "St Germain", "Saint Germain", "Giffard Fleur de Sureau", "De Kuyper Elderflower", "Bols Elderflower", "Briottet Sureau", "vlierbloesemlikeur", "elderflower liqueur", "fleur de sureau"],
+  licor_43: ["Licor 43", "Cuarenta y Tres", "Licor 43 Original", "43", "vanillelikeur", "vanilla liqueur"],
+  spiced_rum: ["Captain Morgan", "Captain Morgan Spiced", "Captain Morgan Original Spiced Gold", "Kraken", "Sailor Jerry", "Bacardi Spiced", "Bacardi Oakheart", "Old Monk", "Chairman's Reserve Spiced", "Bumbu", "spiced rum", "kruidige rum"],
+  coconut_rum: ["Malibu", "Malibu Original", "Bacardi Coconut", "Koko Kanu", "kokosrum", "coconut rum", "kokoslikeur", "coconut liqueur"],
+  bitter_lemon: ["Schweppes Bitter Lemon", "Fever-Tree Bitter Lemon", "Royal Club Bitter Lemon", "Thomas Henry Bitter Lemon", "bitter lemon", "bitterlemon"],
+  energy_drink: ["Red Bull", "Red Bull Sugarfree", "Monster", "Rockstar", "Burn", "Bullit", "Golden Power", "energiedrank", "energy drink", "energydrank"],
 };
 
 // Lijkt erop, maar is niet hetzelfde: wel tonen (je kunt hem toevoegen),
 // met een eerlijke uitleg erbij.
 export const NEAR_ALIASES = [
-  { id: "dark_rum", terms: ["Captain Morgan", "Captain Morgan Spiced", "Captain Morgan Original Spiced Gold", "Kraken", "Sailor Jerry", "Bacardi Spiced", "Bacardi Oakheart", "Old Monk", "spiced rum"], note: "Spiced rum: het dichtst bij donkere rum, maar zoeter en met vanille en kruiden." },
-  { id: "white_rum", terms: ["Malibu", "kokosrum", "coconut rum", "Bacardi Coconut", "Bacardi Razz", "Bacardi Lemon"], note: "Rum met smaak: telt niet als witte rum, de smaak gaat overheersen." },
+  { id: "white_rum", terms: ["Bacardi Razz", "Bacardi Lemon"], note: "Rum met smaak: telt niet als witte rum, de smaak gaat overheersen." },
   { id: "vodka", terms: ["Absolut Citron", "Smirnoff Ice", "Absolut Raspberri", "flavoured vodka"], note: "Wodka met een smaakje: werkt alleen als die smaak bij de cocktail past." },
   { id: "sweet_vermouth", terms: ["Martini Bianco", "Cinzano Bianco", "bianco vermouth", "Martini Rosato"], note: "Bianco is zoet maar wit: niet hetzelfde als rode zoete vermout." },
   { id: "campari", terms: ["Martini Bitter", "Martini Riserva Bitter", "Luxardo Bitter", "Contratto Bitter", "Cappelletti", "Select Aperitivo"], note: "Een andere rode Italiaanse bitter: vergelijkbaar, maar net anders van smaak." },
@@ -157,7 +165,6 @@ export const NEAR_ALIASES = [
   { id: "amaro_nonino", terms: ["Averna", "Montenegro", "Amaro Montenegro", "Ramazzotti", "Amaro Lucano", "Braulio", "Meletti", "amaro"], note: "Een andere amaro: werkt vaak, maar de recepten zijn gemaakt met Amaro Nonino." },
   { id: "fernet_branca", terms: ["Branca Menta"], note: "Fernet met extra munt: zoeter en frisser dan gewone Fernet-Branca." },
   { id: "suze", terms: ["Salers", "Avèze", "Aveze"], note: "Ook een gentiaan-aperitief, vergelijkbaar met Suze." },
-  { id: "galliano", terms: ["Licor 43", "Cuarenta y Tres"], note: "Ook vanille, maar zonder de anijs van Galliano." },
   { id: "sour_apple_liqueur", terms: ["Apfelkorn", "Berentzen Apfelkorn"], note: "Appel op graanbasis: minder zuur en minder groen dan sour apple." },
   { id: "banana_liqueur", terms: ["Pisang Ambon"], note: "Bananenlikeur, maar groen gekleurd en met wat kruiden." },
   { id: "sloe_gin", terms: ["bessenjenever", "Coebergh", "Bols Bessen"], note: "Bessenjenever is zoeter en bessiger dan sloe gin." },
@@ -180,13 +187,11 @@ export const NEAR_ALIASES = [
   { id: "lemon_juice", terms: ["citroensap uit een fles", "Realemon"], note: "Sap uit een fles: werkt, maar vers geperst smaakt beter." },
   { id: "sugar_syrup", terms: ["suiker", "kristalsuiker", "witte suiker"], note: "Van suiker maak je snel suikersiroop: 1 deel suiker op 1 deel warm water." },
   { id: "honey_syrup", terms: ["honing", "honey"], note: "Van honing maak je honingsiroop: 1 deel honing op 1 deel warm water." },
-  { id: "elderflower_cordial", terms: ["St-Germain", "St Germain", "vlierbloesemlikeur", "elderflower liqueur"], note: "Vlierbloesemlikeur met alcohol: zoeter, gebruik iets minder." },
   { id: "tabasco", terms: ["sriracha", "chilisaus"], note: "Andere hete saus: werkt, met een iets andere smaak." },
   { id: "espresso", terms: ["cold brew", "oploskoffie", "Nescafé"], note: "Werkt in nood, maar mist de crema van verse espresso." },
   { id: "beer", terms: ["Desperados", "witbier", "weizen", "Hoegaarden", "radler"], note: "Een ander soort bier: de recepten gaan uit van pils." },
   { id: "stout", terms: ["porter"], note: "Porter lijkt veel op stout, iets lichter van smaak." },
   { id: "prosecco", terms: ["Asti", "Asti Spumante", "sekt", "dolce", "rosé bubbels"], note: "Zoetere bubbels: de recepten gaan uit van brut of extra dry." },
-  { id: "tonic", terms: ["bitter lemon", "Schweppes Bitter Lemon", "Royal Club Bitter Lemon"], note: "Bitter lemon zit in geen recept; tonic komt het dichtst in de buurt." },
   { id: "lemonade", terms: ["Fanta Lemon", "Schweppes Lemon", "citroenfrisdrank"], note: "Citroenfrisdrank: werkt in de meeste recepten met limonade." },
   { id: "orange_juice", terms: ["Fanta", "Fanta Orange", "sinas", "sinaasappelfrisdrank", "orange soda", "Royal Club Sinas"], note: "Sinaasappelfrisdrank zit in geen recept; sinaasappelsap komt het dichtst in de buurt." },
 ];
@@ -194,12 +199,10 @@ export const NEAR_ALIASES = [
 // Herkend, maar in geen enkel recept nodig: geef uitleg in plaats van
 // een lege lijst.
 export const UNUSED_TERMS = [
-  { terms: ["Red Bull", "Monster", "energiedrank", "energy drink"], note: "Energiedrank gebruiken we in geen enkel recept." },
   { terms: ["Lipton", "ice tea", "icetea", "ijsthee", "Fuze Tea"], note: "IJsthee gebruiken we in geen enkel recept." },
   { terms: ["Spa Blauw", "Spa Reine", "plat water", "mineraalwater", "kraanwater", "water"], note: "Plat water hoef je niet in je voorraad bij te houden." },
   { terms: ["ijs", "ijsblokjes", "crushed ijs", "ijsklontjes"], note: "IJs hoef je niet bij te houden: dat gaan we ervan uit dat je in huis hebt." },
   { terms: ["Jägermeister", "Jagermeister", "Jäger", "Berenburg", "Beerenburg", "Sonnema", "Schrobbelèr", "Schrobbeler", "Kruidenbitter"], note: "Kruidenbitter zit nog in geen recept." },
-  { terms: ["Limoncello"], note: "Limoncello zit nog in geen recept." },
   { terms: ["Safari", "Hpnotiq", "Kuemmerling", "Flügel", "Corenwyn"], note: "Deze drank zit nog in geen recept." },
   { terms: ["cassis frisdrank", "Fanta Cassis", "Raak Cassis", "cassislimonade"], note: "Cassis-frisdrank zit in geen recept. Bedoel je crème de cassis (likeur)?" },
   { terms: ["rosé", "rosé wijn", "rose wijn"], note: "Roséwijn zit nog in geen recept." },

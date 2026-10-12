@@ -151,4 +151,12 @@ export const INGREDIENT_INFO = {
   butter: { zin: "Gewone ongezouten roomboter.", smaak: ["romig", "vol"], bewaren: "Koelkast." },
   marmalade: { zin: "Sinaasappelmarmelade met stukjes schil, bittertje inbegrepen.", smaak: ["sinaasappel", "bitterzoet"], bewaren: "Open in de koelkast." },
   lemonade: { zin: "Bruisende citroenlimonade, zoals Sprite of 7Up.", smaak: ["citroen", "zoet", "bruisend"], bewaren: "Open: dop erop en binnen een dag of twee op." },
+  // Toegevoegd oktober 2026
+  limoncello: { zin: "Zoete Italiaanse likeur van citroenschil.", smaak: ["citroen", "zoet", "fris"], tip: "<b>Bewaar hem in de vriezer.</b> Ijskoud is hij het lekkerst, en door de suiker en alcohol bevriest hij niet.", bewaren: LIKEUR_BEWAREN },
+  elderflower_liqueur: { zin: "Bloemige likeur van vlierbloesem, licht zoet.", smaak: ["bloemig", "zoet", "fris"], bewaren: LIKEUR_BEWAREN, vervangen: "Vlierbloesemsiroop met een scheutje wodka, maar dan zoeter en minder fijn." },
+  licor_43: { zin: "Spaanse likeur met vanille en citrus, gemaakt met 43 ingrediënten.", smaak: ["vanille", "zoet", "citrus"], bewaren: LIKEUR_BEWAREN },
+  spiced_rum: { zin: "Rum met vanille en kruiden, zoeter dan gewone donkere rum.", smaak: ["vanille", "kruidig", "zoet"], bewaren: STERK_BEWAREN, vervangen: "Donkere rum met een paar druppels vanillesiroop." },
+  coconut_rum: { zin: "Zoete kokoslikeur op basis van rum, zoals Malibu.", smaak: ["kokos", "zoet", "tropisch"], bewaren: LIKEUR_BEWAREN },
+  bitter_lemon: { zin: "Bruisende citroenfrisdrank met een bittertje van kinine.", smaak: ["citroen", "bitter", "bruisend"], bewaren: "Koel bewaren. Open: dop erop en binnen een dag of twee op." },
+  energy_drink: { zin: "Bruisende frisdrank met cafeïne en suiker, zoals Red Bull.", smaak: ["zoet", "fruitig", "bruisend"], tip: "<b>Let op met alcohol.</b> Cafeïne maskeert hoe dronken je je voelt; wissel af met water.", bewaren: "Goed gekoeld schenken. Open blik meteen opdrinken." },
 };
