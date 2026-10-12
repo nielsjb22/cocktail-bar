@@ -153,6 +153,14 @@ input:focus, select:focus, textarea:focus {
   border-color: #B8862E !important;
   box-shadow: 0 0 0 3px rgba(184,134,46,0.16);
 }
+/* Velden zonder eigen rand (zoekbalken in een afgeronde pil): geen
+   rechthoekige focusring om het kale veld; de pil zelf licht op. */
+input[style*="border: none"]:focus, textarea[style*="border: none"]:focus {
+  box-shadow: none;
+}
+.search-pill:focus-within {
+  box-shadow: 0 0 0 3px rgba(184,134,46,0.22);
+}
 button:focus-visible {
   outline: 2px solid #B8862E;
   outline-offset: 2px;
