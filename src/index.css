@@ -155,11 +155,21 @@ input:focus, select:focus, textarea:focus {
 }
 /* Velden zonder eigen rand (zoekbalken in een afgeronde pil): geen
    rechthoekige focusring om het kale veld; de pil zelf licht op. */
-input[style*="border: none"]:focus, textarea[style*="border: none"]:focus {
-  box-shadow: none;
+input[style*="border: none"]:focus, textarea[style*="border: none"]:focus,
+input[style*="border-style: none"]:focus, textarea[style*="border-style: none"]:focus,
+.search-pill input:focus, .search-pill input:focus-visible, input[enterkeyhint="search"]:focus {
+  box-shadow: none !important;
+  outline: none !important;
+  border-color: transparent !important;
+}
+/* Zoekbalk: geen ring of kader bij aantikken, alleen iets lichter. */
+.search-pill, .search-pill input {
+  -webkit-tap-highlight-color: transparent;
 }
 .search-pill:focus-within {
-  box-shadow: 0 0 0 3px rgba(184,134,46,0.22);
+  box-shadow: none;
+  outline: none;
+  filter: brightness(1.03);
 }
 button:focus-visible {
   outline: 2px solid #B8862E;

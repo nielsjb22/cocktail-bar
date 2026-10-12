@@ -14758,6 +14758,28 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
     return list;
   }, [logboek, recipes]);
 
+  // Op de iPhone via de camera-plugin: een nieuwe foto komt dan ook in je
+  // eigen fotobibliotheek (zoals bij Untappd). Kies je een bestaande foto,
+  // dan staat die er al. In de browser gewoon het bestandsvenster.
+  const pickCheckinPhoto = async () => {
+    if (photoBusy) return;
+    if (!Capacitor.isNativePlatform()) { fileInputRef.current?.click(); return; }
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+      const shot = await Camera.getPhoto({
+        resultType: CameraResultType.DataUrl, source: CameraSource.Prompt, saveToGallery: true,
+        quality: 92, width: 2048, correctOrientation: true,
+        promptLabelHeader: "Foto", promptLabelPhoto: "Kies uit je foto's", promptLabelPicture: "Maak een foto", promptLabelCancel: "Annuleren",
+      });
+      if (!shot?.dataUrl) return;
+      setPhotoBusy(true);
+      setPhoto(await imageToJpegDataUrl(shot.dataUrl, 1440, 0.82));
+    } catch (err) {
+      // Annuleren geeft ook een fout; alleen echte fouten loggen.
+      if (!/cancel/i.test(String(err?.message || err))) console.warn("Foto kiezen mislukt:", err);
+    }
+    setPhotoBusy(false);
+  };
   const handlePhotoFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -15355,7 +15377,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                         <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
                           {photo ? (
                             <div style={{ position: "relative", width: 74, height: 74, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}>
-                              <img src={photo} alt="Je foto" onClick={() => fileInputRef.current?.click()} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }} />
+                              <img src={photo} alt="Je foto" onClick={() => pickCheckinPhoto()} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }} />
                               {adoptTag && photo === adoptTag.taggerPhoto && (
                                 <span style={{ position: "absolute", left: 4, bottom: 4, padding: "2px 6px", borderRadius: 6, background: "rgba(19,38,34,0.8)", color: "#FBF6EA", fontSize: 10, fontWeight: 700, fontFamily: systemFont, pointerEvents: "none" }}>{adoptTag.taggerName}</span>
                               )}
@@ -15365,7 +15387,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                               }}><X size={13} color="#FBF6EA" /></button>
                             </div>
                           ) : (
-                            <button onClick={() => fileInputRef.current?.click()} disabled={photoBusy} className="press-scale" style={{
+                            <button onClick={() => pickCheckinPhoto()} disabled={photoBusy} className="press-scale" style={{
                               width: 74, height: 74, borderRadius: 12, border: `1.5px dashed ${BORDER}`, background: PAPER,
                               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
                               cursor: "pointer", color: MUTED, fontFamily: systemFont, fontSize: 12, fontWeight: 600, flexShrink: 0,
@@ -15375,7 +15397,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                             </button>
                           )}
                           {adoptTag && photo && photo === adoptTag.taggerPhoto && (
-                            <button onClick={() => fileInputRef.current?.click()} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: systemFont, fontSize: 13, lineHeight: 1.4, color: MUTED, alignSelf: "center" }}>
+                            <button onClick={() => pickCheckinPhoto()} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: systemFont, fontSize: 13, lineHeight: 1.4, color: MUTED, alignSelf: "center" }}>
                               Foto van {adoptTag.taggerName} gebruiken,<br /><strong style={{ color: BOTTLE }}>of maak een eigen foto</strong>
                             </button>
                           )}
@@ -15786,7 +15808,18 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
   const [logboek, setLogboek] = useState(null);
   const [pairTags, setPairTags] = useState([]);
   const myId = session?.user?.id;
-  const [tab, setTab] = useState("checkins");
+  const [tab, setTab] = useState("fotos");
+  // Zelfde opzet als je eigen profiel: Foto's (raster) en Posts (onder
+  // elkaar). Tik je op een foto, dan spring je naar die post.
+  const [scrollToPost, setScrollToPost] = useState(null);
+  useEffect(() => {
+    if (!scrollToPost || tab !== "posts") return;
+    const t = setTimeout(() => {
+      document.getElementById(`fr-post-${scrollToPost}`)?.scrollIntoView({ block: "start", behavior: "auto" });
+      setScrollToPost(null);
+    }, 30);
+    return () => clearTimeout(t);
+  }, [scrollToPost, tab]);
   const [view, setView] = useState("profiel");
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
@@ -16021,19 +16054,67 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
         </button>
       )}
 
-      <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12, marginBottom: 16 }}>
-        {[["checkins", "Check-ins"], ["smaak", "Smaak"], ["prestaties", "Prestaties"]].map(([id, lbl]) => (
-          <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} style={{
-            flex: 1, height: 34, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 600,
-            background: tab === id ? CREAM : "transparent", color: tab === id ? INK : MUTED,
-            boxShadow: tab === id ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
-          }}>{lbl}</button>
-        ))}
+      <div role="tablist" style={{ display: "flex", borderBottom: "1px solid rgba(43,38,32,0.14)", marginBottom: 14 }}>
+        {[["fotos", "Foto's", LayoutGrid], ["posts", "Posts", Rows2], ["smaak", "Smaak", Heart], ["prestaties", "Prestaties", Award]].map(([id, lbl, Icon]) => {
+          const on = tab === id;
+          return (
+            <button key={id} role="tab" aria-selected={on} onClick={() => setTab(id)} style={{
+              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 0 8px", marginBottom: -1,
+              background: "none", border: "none", borderBottom: `2.5px solid ${on ? BRASS : "transparent"}`, cursor: "pointer",
+              fontFamily: sans, fontSize: 12.5, fontWeight: on ? 800 : 700, color: on ? INK : MUTED,
+            }}>
+              <Icon size={19} strokeWidth={on ? 2.2 : 1.9} />
+              {lbl}
+            </button>
+          );
+        })}
       </div>
 
       {!logboek ? (
         <p style={{ color: MUTED, fontSize: 13.5, textAlign: "center", padding: "40px 0" }}>Bezig met laden…</p>
-      ) : tab === "checkins" ? (
+      ) : tab === "posts" && logboek.length > 0 ? (
+        <div>
+          {logboek.map(entry => {
+            const matched = findMatch(entry);
+            const photo = entry.photo || (matched && (localItemImageUrl("cocktail", matched.id) || matched.image)) || null;
+            return (
+              <div key={entry.id} id={`fr-post-${entry.id}`} style={{ scrollMarginTop: 12, marginBottom: 14, borderRadius: 20, background: CREAM, padding: 12, boxShadow: SHADOW_CARD }}>
+                <button onClick={() => setPhotoViewer({ entry, matched })} aria-label={`${entry.name} openen`} style={{ display: "block", width: "100%", padding: 0, border: "none", background: BOTTLE_DARK, borderRadius: 14, overflow: "hidden", aspectRatio: "8 / 7", cursor: "pointer", position: "relative" }}>
+                  {photo ? (
+                    <img src={photo} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
+                  ) : matched ? (
+                    <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><RecipeCircle recipe={matched} allIngredients={allIngredients} size={120} /></span>
+                  ) : (
+                    <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Martini size={44} color="rgba(251,246,234,0.85)" strokeWidth={1.3} /></span>
+                  )}
+                  {withMeIds.has(String(entry.id)) && (
+                    <span title="Samen met jou" style={{ position: "absolute", right: 10, top: 10, borderRadius: "50%", boxShadow: `0 0 0 2px ${CREAM}` }}>
+                      <Avatar name={myProfile?.name || "Jij"} photo={myProfile?.avatar_url} size={26} />
+                    </span>
+                  )}
+                </button>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 4px 0" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {matched && onOpenRecipe ? (
+                      <button onClick={() => { onClose(); onOpenRecipe(matched.id); }} style={{ display: "block", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: INK }}>
+                        <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 21, lineHeight: 1.1 }}>{entry.name}</span>
+                        <ChevronRight size={17} color={MUTED} style={{ verticalAlign: "-2px", marginLeft: 2 }} />
+                      </button>
+                    ) : (
+                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 21, lineHeight: 1.1, color: INK }}>{entry.name}</div>
+                    )}
+                    <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>{[entry.location, feedRelTime(entry)].filter(Boolean).join(" · ")}</div>
+                  </div>
+                  <FeedScore value={entry.rating} />
+                </div>
+                {entry.notes && (
+                  <p style={{ margin: "10px 4px 0", paddingTop: 11, borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 15, lineHeight: 1.5, color: INK, whiteSpace: "pre-wrap" }}>{entry.notes}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (tab === "fotos" || tab === "posts") ? (
         logboek.length === 0 ? (
           <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, padding: "26px 20px", textAlign: "center", fontSize: 14, color: MUTED }}>{firstName} heeft nog niets ingecheckt.</div>
         ) : (
@@ -16043,7 +16124,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
               const recipeImg = matched && (localItemImageUrl("cocktail", matched.id) || matched.image);
               const src = entry.photo || recipeImg;
               return (
-                <button key={entry.id} onClick={() => setPhotoViewer({ entry, matched })} aria-label={`${entry.name}, ${formatRating(entry.rating)} sterren`} style={{
+                <button key={entry.id} onClick={() => { setScrollToPost(entry.id); setTab("posts"); }} aria-label={`${entry.name}, ${formatRating(entry.rating)} sterren`} style={{
                   position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", borderRadius: 10, padding: 0, cursor: "pointer", background: PAPER_DEEP,
                 }}>
                   {src ? (
