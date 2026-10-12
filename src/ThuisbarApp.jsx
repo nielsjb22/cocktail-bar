@@ -2558,6 +2558,9 @@ export default function ThuisbarApp() {
     supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+      // Uitgelogd: de app helemaal opnieuw laden, zodat er niets van het
+      // vorige account in het geheugen blijft (feed, vrienden, meldingen).
+      if (event === "SIGNED_OUT") { window.location.reload(); return; }
       setSession(s);
     });
     return () => sub.subscription.unsubscribe();
