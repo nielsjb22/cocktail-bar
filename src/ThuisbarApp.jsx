@@ -8,6 +8,7 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
 import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck, Play } from "lucide-react";
 import L from "leaflet";
+import { useMapEngine, createAppleMap } from "./appleMaps";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { INGREDIENT_INFO } from "./data/ingredientInfo";
@@ -13666,14 +13667,29 @@ function PlaceAutocomplete({ value, onChange, placeholder, inline }) {
   );
 }
 
-// Echte, interactieve kaart (Leaflet + OpenStreetMap-tegels) i.p.v. een
-// gestileerd plaatje — "Thuis" wordt overgeslagen (geen adres om op te
-// zoeken), de rest krijgt een echte pin zodra de coördinaten binnen zijn.
+// Pinnen voor de kaart: alleen locaties waarvan de coördinaten bekend zijn.
+function mapPoints(locations, coords) {
+  return locations.map(loc => {
+    const key = loc.name.trim().toLowerCase();
+    const c = loc.lat != null ? { lat: loc.lat, lon: loc.lon } : coords[key];
+    if (!c) return null;
+    return { key, lat: c.lat, lon: c.lon, title: loc.name, subtitle: `${loc.count} check-in${loc.count === 1 ? "" : "s"}` };
+  }).filter(Boolean);
+}
+
+// Echte, interactieve kaart i.p.v. een gestileerd plaatje — "Thuis" wordt
+// overgeslagen (geen adres om op te zoeken), de rest krijgt een echte pin
+// zodra de coördinaten binnen zijn. Apple Maps (MapKit JS) als dat lukt,
+// anders Leaflet + OpenStreetMap-tegels als terugval.
 function CocktailMap({ locations }) {
   const mapElRef = useRef(null);
   const mapRef = useRef(null);
+  const appleRef = useRef(null);
   const markersRef = useRef(new Map());
   const [coords, setCoords] = useState({});
+  const { engine, mapkit } = useMapEngine();
+  const points = useMemo(() => mapPoints(locations, coords), [locations, coords]);
+  const pointsKey = points.map(p => `${p.key}:${p.lat}:${p.lon}:${p.subtitle}`).join("|");
 
   // Alleen nog opzoeken wat geen coördinaten al meekreeg vanuit de plek-
   // kiezer bij het inchecken (die levert lat/lon meteen mee, net als Maps).
@@ -13698,8 +13714,17 @@ function CocktailMap({ locations }) {
 
   const [expanded, setExpanded] = useState(false);
 
+  // Apple Maps: bij elke wijziging in de pinnen opnieuw opbouwen (goedkoop,
+  // en zo zit de uitsnede altijd om alle pinnen heen).
   useEffect(() => {
-    if (!mapElRef.current || mapRef.current) return;
+    if (engine !== "apple" || !mapElRef.current) return;
+    appleRef.current = createAppleMap(mapkit, mapElRef.current, points, { interactive: false, fallbackCenter: GRONINGEN });
+    return () => { appleRef.current?.destroy(); appleRef.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine, mapkit, pointsKey]);
+
+  useEffect(() => {
+    if (engine !== "leaflet" || !mapElRef.current || mapRef.current) return;
     // Dit is alleen nog een niet-interactieve voorvertoning — pinchen/slepen
     // op deze kleine kaart ving voorheen de scroll-gestiek van de hele pagina
     // af (Leaflet claimt touch-events zodra 'm interactief is). Alle
@@ -13729,10 +13754,10 @@ function CocktailMap({ locations }) {
     ro.observe(mapElRef.current);
     setTimeout(() => mapRef.current?.invalidateSize(), 250);
     return () => { ro.disconnect(); mapRef.current?.remove(); mapRef.current = null; };
-  }, []);
+  }, [engine]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (engine !== "leaflet" || !mapRef.current) return;
     markersRef.current.forEach(m => m.remove());
     markersRef.current.clear();
     const pinIcon = L.divIcon({
@@ -13748,9 +13773,10 @@ function CocktailMap({ locations }) {
         .bindPopup(`<strong>${escapeHtml(loc.name)}</strong><br/>${loc.count} check-in${loc.count === 1 ? "" : "s"}`);
       markersRef.current.set(key, marker);
     });
-  }, [locations, coords]);
+  }, [locations, coords, engine]);
 
   const flyToLocation = (name) => {
+    if (appleRef.current) { appleRef.current.flyTo(name.trim().toLowerCase()); return; }
     const marker = markersRef.current.get(name.trim().toLowerCase());
     if (!marker || !mapRef.current) return;
     mapRef.current.flyTo(marker.getLatLng(), 14, { duration: 0.8 });
@@ -13764,7 +13790,12 @@ function CocktailMap({ locations }) {
       <button onClick={() => setExpanded(true)} aria-label="Kaart vergroten" style={{
         display: "block", width: "100%", border: "none", padding: 0, margin: 0, cursor: "pointer", background: "none",
       }}>
-        <div ref={mapElRef} className="thuisbar-map" style={{ height: 190, borderRadius: "14px 14px 0 0", touchAction: "pan-y" }} />
+        {/* key per engine: Leaflet en MapKit krijgen elk een schoon element. */}
+        <div key={engine} ref={mapElRef} className="thuisbar-map" style={{
+          height: 190, borderRadius: "14px 14px 0 0", overflow: "hidden", touchAction: "pan-y", background: PAPER_DEEP,
+          // Apple-voorvertoning: tikken gaat naar de knop (schermvullend openen).
+          pointerEvents: engine === "leaflet" ? undefined : "none",
+        }} />
       </button>
       {pending && <div style={{ fontSize: 10.5, color: MUTED, padding: "6px 15px 0" }}>Locaties opzoeken op de kaart…</div>}
       <div style={{ padding: "13px 15px" }}>
@@ -13784,7 +13815,7 @@ function CocktailMap({ locations }) {
         })}
         <div style={{ marginTop: 11, fontSize: 11, color: MUTED }}>{locations.length} {locations.length === 1 ? "locatie" : "locaties"} bijgehouden</div>
       </div>
-      {expanded && <MapFullscreenSheet locations={locations} coords={coords} onClose={() => setExpanded(false)} />}
+      {expanded && <MapFullscreenSheet locations={locations} coords={coords} engine={engine} mapkit={mapkit} onClose={() => setExpanded(false)} />}
     </div>
   );
 }
@@ -13793,11 +13824,15 @@ function CocktailMap({ locations }) {
 // kaart — eigen mount/unmount i.p.v. de niet-interactieve voorvertoning
 // hierboven toggelen, want Leaflet's interactiviteit kun je niet na init
 // meer aan-/uitzetten zonder de hele kaart opnieuw op te bouwen.
-function MapFullscreenSheet({ locations, coords, onClose }) {
+function MapFullscreenSheet({ locations, coords, engine, mapkit, onClose }) {
   useBodyScrollLock();
   const elRef = useRef(null);
   useEffect(() => {
-    if (!elRef.current) return;
+    if (!elRef.current || engine === "loading") return;
+    if (engine === "apple") {
+      const m = createAppleMap(mapkit, elRef.current, mapPoints(locations, coords), { interactive: true, fallbackCenter: GRONINGEN });
+      return () => m.destroy();
+    }
     const map = L.map(elRef.current, { attributionControl: true, zoomControl: true }).setView([GRONINGEN.lat, GRONINGEN.lon], 12);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -13820,7 +13855,7 @@ function MapFullscreenSheet({ locations, coords, onClose }) {
     if (bounds.length > 0) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     setTimeout(() => map.invalidateSize(), 60);
     return () => map.remove();
-  }, [locations, coords]);
+  }, [locations, coords, engine, mapkit]);
 
   return createPortal((
     <div className="tab-fade" style={{ position: "fixed", inset: 0, zIndex: 40, background: PAPER, display: "flex", flexDirection: "column" }}>
