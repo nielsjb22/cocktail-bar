@@ -25,12 +25,16 @@ export const PRIVACY_SECTIES = [
     tekst: "De app leert van wat alle gebruikers samen doen, altijd anoniem: welke cocktails mensen met een vergelijkbare smaak hoog waarderen (voor de tips onder \"Voor jou\"), welke merknamen mensen aan een drank koppelen, en naar welke cocktails mensen zoeken die nog niet in de app staan. Daarbij worden alleen tellingen gebruikt; niemand kan zien wie wat deed, en een uitkomst telt pas mee als meerdere mensen hetzelfde deden. Je voorraad, favorieten, boodschappenlijst en cursusvoortgang worden bij je account bewaard, zodat ze op al je apparaten hetzelfde zijn.",
   },
   {
+    kop: "De bartender en flessen scannen (AI)",
+    tekst: "Gebruik je de bartender of scan je je flessen, dan gaan je vraag of foto, de namen van de flessen in je voorraad, je smaakprofiel (bijvoorbeeld \"houdt van fris en bitter\") en een lijst recepten uit de app naar Claude, een AI-dienst van Anthropic, om een antwoord te maken. Je naam, e-mailadres, vrienden en check-ins gaan niet mee. Vragen en foto's worden niet door ons bewaard; we houden alleen bij hoeveel vragen en scans je per dag doet, voor de daglimiet. Anthropic gebruikt deze gegevens niet om zijn AI te trainen. Je geeft hier eenmalig toestemming voor en kunt die altijd intrekken in Profiel → Instellingen. Zonder toestemming werkt de rest van de app gewoon.",
+  },
+  {
     kop: "Waar",
     tekst: "Je gegevens staan opgeslagen bij Supabase (databasehosting in de EU). Sommige instellingen (zoals je voorraad) staan lokaal op je toestel. Gebruik je de app zonder account, dan blijft alles (ook je check-ins) alleen op je toestel; maak je later een account, dan gaan je check-ins mee naar je account. Verwijder je de app zonder account, dan zijn deze gegevens weg.",
   },
   {
     kop: "Delen met derden",
-    tekst: "Alleen wat nodig is om de app te laten draaien: databasehosting (Supabase), de kaart op je profiel (Apple Maps; daarvoor worden de locaties van je check-ins naar Apple gestuurd om ze op de kaart te tonen), het opzoeken van plaatsnamen bij een locatie (OpenStreetMap), en — als je pushmeldingen aanzet — de meldingendienst van Apple. Nooit voor marketingdoeleinden.",
+    tekst: "Alleen wat nodig is om de app te laten draaien: databasehosting (Supabase), de kaart op je profiel (Apple Maps; daarvoor worden de locaties van je check-ins naar Apple gestuurd om ze op de kaart te tonen), het opzoeken van plaatsnamen bij een locatie (OpenStreetMap), de AI-dienst van Anthropic als je de bartender of het scannen gebruikt (zie hierboven), en — als je pushmeldingen aanzet — de meldingendienst van Apple. Nooit voor marketingdoeleinden.",
   },
   {
     kop: "Alcohol",
