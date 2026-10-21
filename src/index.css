@@ -21,6 +21,7 @@
   --sage: #5C7A52;
   --muted: #625A4C;
   --brass-text: #7E5D1C;
+  --sage-text: #3F5A36;
   --border: #DED2B8;
   --cream: #FBF6EA;
   --shadow-card: 0 1px 2px rgba(43,38,32,0.06), 0 8px 20px -12px rgba(43,38,32,0.28);
@@ -44,6 +45,7 @@
     --sage: #8FB37E;
     --muted: #9C9B95;
     --brass-text: #DDB46A;
+    --sage-text: #9DC48B;
     --border: #2A2E2C;
     --cream: #1C1F1E;
     --shadow-card: 0 1px 2px rgba(0,0,0,0.45), 0 10px 24px -8px rgba(0,0,0,0.6);
@@ -795,6 +797,45 @@ html.kb-open .checkin-footer {
    (zoekveld bij "Moet er iets per se in?"). */
 html.kb-open .menu-assist-footer {
   display: none;
+}
+
+/* Invoervelden, vinkjes, datumkiezers en scrollbalken van het systeem
+   volgen het thema. Zonder dit tekende iOS in donkere modus zwarte letters
+   in velden zonder eigen tekstkleur, op een bijna zwarte achtergrond. */
+:root { color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+}
+input, textarea, select { caret-color: var(--brass); }
+::placeholder { color: var(--muted); opacity: 0.8; }
+/* Inlogvelden zijn altijd licht (op de groene achtergrond). */
+input[style*="rgba(251, 247, 236"]::placeholder { color: #7A7264; opacity: 1; }
+
+/* Donkere modus: vlakken in flessengroen, salie of bordeaux worden daar
+   licht van kleur, en lichte tekst erop viel weg (bijv. de actieve chip
+   "Alles", "Verwijder"). Daar krijgen ze een diepere tint met lichte tekst. */
+@media (prefers-color-scheme: dark) {
+  [style*="background: var(--bottle)"], [style*="background-color: var(--bottle)"] {
+    background: #356B58 !important; color: #F0EDE6 !important; border-color: #356B58 !important;
+  }
+  [style*="background: var(--sage)"], [style*="background-color: var(--sage)"] {
+    background: #4A6B40 !important; color: #F0EDE6 !important;
+  }
+  [style*="background: var(--burgundy)"], [style*="background-color: var(--burgundy)"] {
+    background: #9A4038 !important; color: #FBF6EA !important;
+  }
+  :is([style*="background: var(--bottle)"], [style*="background: var(--sage)"], [style*="background: var(--burgundy)"]) :is([style*="color: var(--cream)"], [style*="color: var(--paper)"]) {
+    color: #F0EDE6 !important;
+  }
+  :is([style*="background: var(--bottle)"], [style*="background: var(--sage)"], [style*="background: var(--burgundy)"]) svg[stroke="var(--cream)"] {
+    stroke: #F0EDE6;
+  }
+}
+
+/* Flesillustraties hebben een crèmekleurige ondergrond; in donkere modus
+   iets gedimd, zodat ze niet als felle vlakken uit de lijst springen. */
+@media (prefers-color-scheme: dark) {
+  img.item-art { filter: sepia(0.16) saturate(1.05) brightness(0.8) contrast(1.04) !important; }
 }
 
 /* Hoofdknoppen staan in de lichte modus in donker flessengroen. Op de

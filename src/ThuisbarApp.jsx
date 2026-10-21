@@ -87,6 +87,7 @@ const BOTTLE = "var(--bottle)";
 const BOTTLE_DARK = "var(--bottle-dark)";
 const BRASS = "var(--brass)";
 const BRASS_TEXT = "var(--brass-text)";
+const SAGE_TEXT = "var(--sage-text)";
 const BURGUNDY = "var(--burgundy)";
 const SAGE = "var(--sage)";
 const MUTED = "var(--muted)";
@@ -2093,21 +2094,21 @@ function AuthScreen({ initialMode = "login", onCancel }) {
               <label style={{ fontSize: 12, color: "#B9C4B9", display: "block", marginBottom: 5 }}>Naam</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Hoe je vrienden je kennen" autoComplete="name"
                 autoCapitalize="words" enterKeyHint="next"
-                style={{ ...fieldStyle(), background: "rgba(251,247,236,0.92)" }} />
+                style={{ ...fieldStyle(), background: "rgba(251,247,236,0.92)", color: "#2B2620" }} />
             </div>
           )}
           <div>
             <label style={{ fontSize: 12, color: "#B9C4B9", display: "block", marginBottom: 5 }}>E-mail</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jij@voorbeeld.nl" autoComplete="email" required
               inputMode="email" autoCapitalize="none" autoCorrect="off" enterKeyHint={mode === "forgot" ? "send" : "next"}
-              style={{ ...fieldStyle(), background: "rgba(251,247,236,0.92)" }} />
+              style={{ ...fieldStyle(), background: "rgba(251,247,236,0.92)", color: "#2B2620" }} />
           </div>
           {mode !== "forgot" && (
             <div>
               <label style={{ fontSize: 12, color: "#B9C4B9", display: "block", marginBottom: 5 }}>Wachtwoord</label>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minstens 6 tekens" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={6}
                 enterKeyHint="done"
-                style={{ ...fieldStyle(), background: "rgba(251,247,236,0.92)" }} />
+                style={{ ...fieldStyle(), background: "rgba(251,247,236,0.92)", color: "#2B2620" }} />
             </div>
           )}
 
@@ -2190,7 +2191,7 @@ function PasswordRecoveryScreen({ onDone }) {
             <label style={{ fontSize: 12, color: "#B9C4B9", display: "block", marginBottom: 5 }}>Nieuw wachtwoord</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minstens 6 tekens" autoComplete="new-password" required minLength={6}
               enterKeyHint="done"
-              style={{ ...fieldStyle(), background: "rgba(251,247,236,0.92)" }} />
+              style={{ ...fieldStyle(), background: "rgba(251,247,236,0.92)", color: "#2B2620" }} />
           </div>
           {error && <p style={{ color: "#E8A0A0", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>{error}</p>}
           <button type="submit" disabled={busy} style={{
@@ -5201,7 +5202,7 @@ function BottleScanSheet({ allIngredients, voorraad, onAdd, onClose, onSearchMan
                       <span style={{ display: "block", fontSize: 15.5, fontWeight: 600 }}>{r.ing.name}</span>
                       <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.merk ? `Etiket: ${r.merk}` : "Etiket niet leesbaar"}</span>
                     </label>
-                    {r.al ? badge("Al in voorraad", PAPER_DEEP, MUTED) : r.zeker ? badge("Zeker", "rgba(92,122,82,0.16)", "#3F5A36") : badge("Twijfel", "rgba(184,134,46,0.18)", "#7E5D1C")}
+                    {r.al ? badge("Al in voorraad", PAPER_DEEP, MUTED) : r.zeker ? badge("Zeker", "rgba(92,122,82,0.16)", SAGE_TEXT) : badge("Twijfel", "rgba(184,134,46,0.18)", BRASS_TEXT)}
                   </div>
                   {r.alternatief && byId.has(r.alternatief) && (
                     <div style={{ paddingLeft: 34 }}>
@@ -6088,7 +6089,7 @@ function shapeForIngredient(ing) {
 function ItemArt({ ing }) {
   const localSrc = localItemImageUrl("drank", ing.id);
   if (localSrc) {
-    return <img src={localSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />;
+    return <img className="item-art" src={localSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />;
   }
   const art = CATEGORY_ART[ing.cat] || CATEGORY_ART["Vers"];
   const shape = shapeForIngredient(ing);
@@ -6510,7 +6511,7 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
           <div style={{ flex: 1, minWidth: 0, padding: "11px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, alignSelf: "stretch", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <div style={{ fontSize: 15.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ing.name}</div>
             {hit?.via && (
-              <span style={{ alignSelf: "flex-start", maxWidth: "100%", marginTop: 3, fontSize: 11.5, fontWeight: 700, color: hit.near ? MUTED : "#7E5D1C", background: hit.near ? PAPER_DEEP : "rgba(184,134,46,0.14)", borderRadius: 100, padding: "2px 8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", boxSizing: "border-box" }}>
+              <span style={{ alignSelf: "flex-start", maxWidth: "100%", marginTop: 3, fontSize: 11.5, fontWeight: 700, color: hit.near ? MUTED : BRASS_TEXT, background: hit.near ? PAPER_DEEP : "rgba(184,134,46,0.14)", borderRadius: 100, padding: "2px 8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", boxSizing: "border-box" }}>
                 {hit.near ? `Lijkt op: ${hit.via}` : hit.learned ? `Jouw ${hit.via}` : `o.a. ${hit.via}`}
               </span>
             )}
@@ -6522,7 +6523,7 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
                 {(() => { const t = used > 0 ? `gebruikt in ${used} cocktail${used === 1 ? "" : "s"}` : "nog in geen cocktail"; return low || level === "half" ? t : t[0].toUpperCase() + t.slice(1); })()}
               </div>
             ) : gain > 0 ? (
-              <span style={{ alignSelf: "flex-start", marginTop: 3, fontSize: 11.5, fontWeight: 700, color: "#8A6420", background: "rgba(184,134,46,0.18)", borderRadius: 100, padding: "2px 8px" }}>+{gain} cocktail{gain === 1 ? "" : "s"}</span>
+              <span style={{ alignSelf: "flex-start", marginTop: 3, fontSize: 11.5, fontWeight: 700, color: BRASS_TEXT, background: "rgba(184,134,46,0.18)", borderRadius: 100, padding: "2px 8px" }}>+{gain} cocktail{gain === 1 ? "" : "s"}</span>
             ) : (
               <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{used > 0 ? `Gebruikt in ${used} cocktail${used === 1 ? "" : "s"}` : "Nog in geen cocktail"}</div>
             )}
@@ -8017,7 +8018,7 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
         <Search size={15} color={MUTED} style={{ position: "absolute", left: 12, top: 12 }} />
         <input value={query} onChange={e => { setQuery(e.target.value); if (e.target.value.trim() && view !== "alle") setView("alle"); }} placeholder="Zoek op naam of familie…"
           enterKeyHint="search" autoCapitalize="words"
-          style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans }} />
+          style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans, color: INK }} />
       </div>
       )}
 
@@ -8766,7 +8767,7 @@ function chosenOption(options, chosenId) {
 const NIVEAU_TAG = {
   voordelig: { color: SAGE, bg: "rgba(92,122,82,0.16)" },
   goed: { color: BOTTLE, bg: "rgba(31,61,54,0.10)" },
-  klassieker: { color: "#8F6A21", bg: "rgba(184,134,46,0.16)" },
+  klassieker: { color: BRASS_TEXT, bg: "rgba(184,134,46,0.16)" },
 };
 
 // Gall & Gall bovenaan bij een fles: geen prijs (die halen we niet op), wel
@@ -8912,7 +8913,7 @@ function FlesKiezenSheet({ item, meta, options = [], chosenId, recipeNames, onCh
               )}
               <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginTop: 8 }}>
                 Ook zoeken bij{" "}
-                <button onClick={() => openShopUrl(WINKELS.drankdozijn.zoek(searchName))} style={{ background: "none", border: "none", padding: 0, color: "#8F6A21", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: sans }}>Drankdozijn</button>
+                <button onClick={() => openShopUrl(WINKELS.drankdozijn.zoek(searchName))} style={{ background: "none", border: "none", padding: 0, color: BRASS_TEXT, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: sans }}>Drankdozijn</button>
               </div>
             </>
           ) : (
@@ -10272,7 +10273,7 @@ function QuizBlock({ quiz, title = "Vragen", onFinish, onClose, nextAction = nul
             </div>
           ) : (
             <>
-              <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "#8F6A21", marginBottom: 8 }}>In de praktijk</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: BRASS_TEXT, marginBottom: 8 }}>In de praktijk</div>
               <p style={{ fontFamily: serif, fontWeight: 700, fontSize: 21, lineHeight: 1.3, color: INK, margin: "0 0 18px" }}>{q.q}</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                 {orders[idx].map((oi, n) => {
@@ -10368,7 +10369,7 @@ function LessonArt({ lesson, variant = "thumb" }) {
 // een veelgemaakte fout en iets om zelf te maken (met recept en check-in).
 const PRACTICE_TONES = { rood: BURGUNDY, bruin: "#8A6A4A", groen: "#4F6B46" };
 function PracticeLessonBody({ lesson, recipes, allIngredients, onOpenRecipe, onCheckin }) {
-  const label = (text, color = "#8F6A21") => (
+  const label = (text, color = BRASS_TEXT) => (
     <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color, marginBottom: 8, fontFamily: sans }}>{text}</div>
   );
   const recipe = lesson.tryIt?.recipeId ? (recipes || []).find(r => r.id === canonicalRecipeId(lesson.tryIt.recipeId)) : null;
@@ -10822,7 +10823,7 @@ function CursusTab({ progress, setProgress, onSound, recipes, allIngredients, on
       }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 400px 200px at 100% 0%, rgba(255,255,255,0.14), transparent 60%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.75)", marginBottom: 6 }}>
+          <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.85)", marginBottom: 6 }}>
             {allLessonsDone ? "Alle lessen voltooid" : `${totalLessons - completedCount} les${totalLessons - completedCount === 1 ? "" : "sen"} nog te gaan`}
           </div>
           <h3 style={{ fontFamily: systemFont, fontSize: 21, fontWeight: 700, color: ON_DARK_TEXT, margin: "0 0 8px" }}>Eindtoets: Van Basis tot Pro</h3>
@@ -13744,7 +13745,7 @@ function AutoGrowTextField({ value, onChange, placeholder, bare, onFocus, onBlur
 }
 
 function fieldStyle() {
-  return { width: "100%", padding: "9px 10px", borderRadius: 10, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans };
+  return { width: "100%", padding: "9px 10px", borderRadius: 10, border: `1px solid ${BORDER}`, fontSize: 14, boxSizing: "border-box", background: CREAM, fontFamily: sans, color: INK };
 }
 
 // Zelfde reden als IngredientAutocomplete: vrij kunnen typen én uit het
@@ -14508,7 +14509,7 @@ function CourseRankLabel({ courseRank, chip = false, onDark = false }) {
         </span>
       );
     }
-    return <span style={{ fontSize: 11.5, fontWeight: 700, color: "#8F6A21", whiteSpace: "nowrap" }}>{courseRank.rank.name}</span>;
+    return <span style={{ fontSize: 11.5, fontWeight: 700, color: BRASS_TEXT, whiteSpace: "nowrap" }}>{courseRank.rank.name}</span>;
   }
   return (
     <span style={{
@@ -15819,7 +15820,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <span style={{ fontSize: 14, color: INK }}><strong>{thisMonthCount}</strong> deze maand</span>
               {insights.streak >= 2 && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "#8F6A21", background: "rgba(184,134,46,0.14)", borderRadius: 100, padding: "4px 10px" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: BRASS_TEXT, background: "rgba(184,134,46,0.14)", borderRadius: 100, padding: "4px 10px" }}>
                   <Flame size={13} /> {insights.streak} dagen op rij
                 </span>
               )}
@@ -16680,7 +16681,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
               </span>
               <span style={{ textAlign: "right", fontSize: 12.5, lineHeight: 1.45, flexShrink: 0, color: INK }}>
                 <span style={{ display: "block" }}>Jij <strong>{ev.me != null ? formatRating(ev.me) : "–"}</strong></span>
-                <span style={{ display: "block", color: "#8F6A21" }}>{firstName} <strong>{ev.her != null ? formatRating(ev.her) : "–"}</strong></span>
+                <span style={{ display: "block", color: BRASS_TEXT }}>{firstName} <strong>{ev.her != null ? formatRating(ev.her) : "–"}</strong></span>
               </span>
             </div>
           ))}
@@ -17406,9 +17407,9 @@ function EigenIngredientRow({ row, index, count, meta, owned, onChange, onRemove
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginTop: 1 }}>
-          {isNew ? <span style={{ color: "#8A6420", fontWeight: 600 }}>Nieuw ingrediënt · {EIGEN_NEW_CATS.find(c => c.cat === row.newCat)?.label || row.newCat}</span>
+          {isNew ? <span style={{ color: BRASS_TEXT, fontWeight: 600 }}>Nieuw ingrediënt · {EIGEN_NEW_CATS.find(c => c.cat === row.newCat)?.label || row.newCat}</span>
             : owned ? <span style={{ color: SAGE, fontWeight: 600 }}>✓ in huis</span> : <span style={{ color: MUTED }}>niet in huis</span>}
-          <button onClick={() => onChange({ optional: !row.optional })} aria-pressed={!!row.optional} style={{ minHeight: 26, padding: "0 8px", borderRadius: 100, border: `1px solid ${row.optional ? BRASS : BORDER}`, background: row.optional ? "rgba(184,134,46,0.16)" : "transparent", color: row.optional ? "#8A6420" : MUTED, fontFamily: sans, fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>optioneel</button>
+          <button onClick={() => onChange({ optional: !row.optional })} aria-pressed={!!row.optional} style={{ minHeight: 26, padding: "0 8px", borderRadius: 100, border: `1px solid ${row.optional ? BRASS : BORDER}`, background: row.optional ? "rgba(184,134,46,0.16)" : "transparent", color: row.optional ? BRASS_TEXT : MUTED, fontFamily: sans, fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>optioneel</button>
         </div>
       </div>
       {row.unit !== "top" && (
