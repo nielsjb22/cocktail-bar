@@ -1,27 +1,30 @@
-// Genereert het app-icoon (twee klinkende coupes, "Proost") voor iOS en web.
-// Het logo zelf komt uit src/brandMark.js; het resultaat staat ook als
-// assets/icon/app-icon.svg. Draai: node scripts/generate-app-icon.mjs
+// Genereert het app-icoon (martiniglas in een gouden ring op flessengroen)
+// voor iOS en web. Het resultaat staat ook als assets/icon/app-icon.svg.
+// Draai: node scripts/generate-app-icon.mjs
 import sharp from "sharp";
 import { writeFileSync, mkdirSync } from "node:fs";
-import { brandMarkMarkup } from "../src/brandMark.js";
 
-const DEFS = `<defs>
-  <radialGradient id="bg" cx="30%" cy="22%" r="95%"><stop offset="0" stop-color="#2C5247"/><stop offset="1" stop-color="#11211C"/></radialGradient>
-</defs>`;
-const motif = brandMarkMarkup({ idPrefix: "icon" });
+const MOTIF = `
+  <circle cx="512" cy="512" r="336" fill="none" stroke="#B8862E" stroke-width="14" opacity="0.55"/>
+  <g stroke="#DDB877" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M328 336 L512 536 L696 336 Z"/>
+    <line x1="512" y1="536" x2="512" y2="720"/>
+    <line x1="400" y1="720" x2="624" y2="720"/>
+  </g>
+  <circle cx="608" cy="384" r="18" fill="#DDB877"/>`;
 
-// Motief (ongeveer 196..827 x 190..730) schalen rond het midden en
-// verticaal centreren. scale 1.2 voor het gewone icoon; kleiner voor
-// "maskable" (Android knipt daar tot een cirkel van 80%).
-const iconSvg = (scale, rx = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">${DEFS}
+// scale 1 voor het gewone icoon; kleiner voor "maskable" (Android knipt
+// daar tot een cirkel van 80%).
+const iconSvg = (scale = 1, rx = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs><radialGradient id="bg" cx="30%" cy="20%" r="90%"><stop offset="0%" stop-color="#2A4B42"/><stop offset="100%" stop-color="#132622"/></radialGradient></defs>
   <rect width="1024" height="1024" rx="${rx}" fill="url(#bg)"/>
-  <g transform="translate(512 512) scale(${scale}) translate(-512 -460)">${motif}</g>
+  <g transform="translate(512 512) scale(${scale}) translate(-512 -512)">${MOTIF}</g>
 </svg>`;
 
 mkdirSync("assets/icon", { recursive: true });
-const main = iconSvg(1.2);
+const main = iconSvg();
 writeFileSync("assets/icon/app-icon.svg", main);
-writeFileSync("public/favicon.svg", iconSvg(1.2, 230));
+writeFileSync("public/favicon.svg", iconSvg(1, 230));
 
 const png = (svg, size, out, { flatten = false } = {}) => {
   let img = sharp(Buffer.from(svg), { density: 300 }).resize(size, size);
@@ -32,7 +35,7 @@ await png(main, 1024, "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-51
 await png(main, 180, "public/apple-touch-icon.png", { flatten: true });
 await png(main, 192, "public/icon-192.png", { flatten: true });
 await png(main, 512, "public/icon-512.png", { flatten: true });
-await png(iconSvg(1.2, 230), 32, "public/favicon-32.png");
-await png(iconSvg(0.95), 512, "public/icon-maskable-512.png", { flatten: true });
-await png(iconSvg(0.95), 192, "public/icon-maskable-192.png", { flatten: true });
+await png(iconSvg(1, 230), 32, "public/favicon-32.png");
+await png(iconSvg(0.85), 512, "public/icon-maskable-512.png", { flatten: true });
+await png(iconSvg(0.85), 192, "public/icon-maskable-192.png", { flatten: true });
 console.log("App-icoon gegenereerd.");
