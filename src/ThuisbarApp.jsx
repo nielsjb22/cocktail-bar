@@ -1169,9 +1169,9 @@ function TechniqueAnimation({ technique }) {
   );
 }
 
-// Het logo (twee klinkende coupes) — dezelfde bron als het app-icoon en het
-// iOS-opstartscherm (src/brandMark.js). animated: de glazen lopen vol en
-// daarna verschijnt het "tink" (zie .brand-liquid / .brand-spark).
+// Het logo (martiniglas in een gouden ring) — dezelfde bron als het
+// iOS-opstartscherm (src/brandMark.js). animated: de kom loopt vol en
+// daarna verschijnt de olijf (zie .brand-liquid / .brand-spark).
 function BrandMark({ width = 96, animated = false }) {
   const idPrefix = "bm" + useId().replace(/[^a-zA-Z0-9]/g, "");
   const markup = useMemo(() => brandMarkMarkup({ idPrefix, animated }), [idPrefix, animated]);

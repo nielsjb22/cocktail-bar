@@ -230,7 +230,7 @@ button:focus-visible {
   0% { transform: scale(0.5); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
-/* Logo in de intro: de coupes lopen vol, dan het "tink". */
+/* Logo in de intro: de kom loopt vol, dan verschijnt de olijf. */
 .splash-ring .brand-liquid {
   transform-box: fill-box;
   transform-origin: bottom;

@@ -2,7 +2,7 @@
 // de deelbare afbeelding (1080×1920 PNG) en de printbare A5-PDF. Alles komt
 // uit de receptdata zelf, zodat elke cocktail — ook een minder bekende — een
 // ingrediëntregel, sterkte, allergeen-notitie en korte beschrijving krijgt.
-import { BRAND_MARK_VIEWBOX, BRAND_MARK_GLASSES, BRAND_MARK_SPARK } from "./brandMark.js";
+import { BRAND_MARK_VIEWBOX, BRAND_MARK_LINES, BRAND_MARK_RING, BRAND_MARK_OLIVE } from "./brandMark.js";
 
 // ---------- Kleuren en lettertypes (gastenmenu, donkere stijl) ----------
 export const MENU_COLORS = {
@@ -305,22 +305,20 @@ export function buildIcs({ title, startsAt, address, description, url }) {
 // maat: 1080×1920 voor een WhatsApp-status/Instagram-story, 1748×2480 voor
 // A5 op 300 dpi. Alles schaalt mee met de breedte; past het niet, dan wordt
 // alles stapsgewijs kleiner tot het wel past, en daarna verticaal gecentreerd.
-// Het logo (twee klinkende coupes, src/brandMark.js) als dunne gouden lijnen,
-// passend bij de rest van de menukaart. Tekent in een vak van size × size*0.88
-// met de linkerbovenhoek op (x, y).
+// Het logo (martiniglas in een ring, src/brandMark.js) als dunne gouden
+// lijnen, passend bij de rest van de menukaart. Tekent gecentreerd in een vak
+// van size × size*0.88 met de linkerbovenhoek op (x, y).
 function drawBrandMark(ctx, x, y, size, color, lineWidth) {
-  const [vx, vy, vw] = BRAND_MARK_VIEWBOX.split(" ").map(Number);
-  const s = size / vw;
+  const [vx, vy, vw, vh] = BRAND_MARK_VIEWBOX.split(" ").map(Number);
+  const s = Math.min(size / vw, (size * 0.88) / vh);
   ctx.save();
-  ctx.translate(x, y); ctx.scale(s, s); ctx.translate(-vx, -vy);
-  ctx.strokeStyle = color; ctx.lineWidth = lineWidth / s; ctx.lineCap = "round"; ctx.lineJoin = "round";
-  for (const g of BRAND_MARK_GLASSES) {
-    ctx.save();
-    ctx.translate(g.ox, g.oy); ctx.rotate(g.rot * Math.PI / 180); ctx.translate(-g.ox, -g.oy);
-    ctx.stroke(new Path2D(g.bowl)); ctx.stroke(new Path2D(g.stem));
-    ctx.restore();
-  }
-  ctx.stroke(new Path2D(BRAND_MARK_SPARK));
+  ctx.translate(x + (size - vw * s) / 2, y); ctx.scale(s, s); ctx.translate(-vx, -vy);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lineWidth / s; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.save(); ctx.globalAlpha *= 0.6; ctx.lineWidth = lineWidth / s * 0.45;
+  ctx.beginPath(); ctx.arc(BRAND_MARK_RING.cx, BRAND_MARK_RING.cy, BRAND_MARK_RING.r, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+  for (const d of BRAND_MARK_LINES) ctx.stroke(new Path2D(d));
+  ctx.beginPath(); ctx.arc(BRAND_MARK_OLIVE.cx, BRAND_MARK_OLIVE.cy, BRAND_MARK_OLIVE.r * 1.3, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 

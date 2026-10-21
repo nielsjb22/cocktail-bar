@@ -1,5 +1,5 @@
 // Genereert het iOS-opstartscherm (ios/App/App/Assets.xcassets/Splash.imageset)
-// in dezelfde stijl als de intro in de app: het logo (twee klinkende coupes,
+// in dezelfde stijl als de intro in de app: het logo (martiniglas in een gouden ring,
 // uit src/brandMark.js), "Mijn Thuisbar" en "Welkom in de wereld van de cocktail".
 //
 // De achtergrondkleur (#0E1917) zit niet in het plaatje maar in
@@ -33,7 +33,7 @@ const svg = `
   </defs>
   <rect width="${W}" height="${H}" fill="url(#glow)"/>
 
-  <svg x="${W / 2 - 62}" y="34" width="124" height="109" viewBox="${BRAND_MARK_VIEWBOX}">${brandMarkMarkup({ idPrefix: "ls" })}</svg>
+  <svg x="${W / 2 - 58}" y="28" width="116" height="116" viewBox="${BRAND_MARK_VIEWBOX}">${brandMarkMarkup({ idPrefix: "ls" })}</svg>
 
   <text x="${W / 2}" y="196" text-anchor="middle"
         font-family="Playfair Display" font-style="italic" font-weight="600"

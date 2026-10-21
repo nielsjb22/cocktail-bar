@@ -1,49 +1,43 @@
-// Het logo van de app: twee klinkende coupes ("Proost"). Eén bron voor het
-// app-icoon (scripts/generate-app-icon.mjs), het iOS-opstartscherm
-// (scripts/make-launch-screen.mjs), het deelplaatje en de schermen in de app
-// (intro, leeftijdscheck, inloggen) — zodat het logo overal gelijk is.
+// Het logo van de app: een martiniglas met olijf in een gouden ring, met
+// goudglans (zelfde als het app-icoon, scripts/generate-app-icon.mjs). Eén
+// bron voor het iOS-opstartscherm (scripts/make-launch-screen.mjs), het
+// deelplaatje, de menukaart en de schermen in de app (intro, leeftijdscheck,
+// inloggen, smaaktest) — zodat het logo overal gelijk is.
 //
 // Coördinaten in het 1024-raster van het app-icoon. BRAND_MARK_VIEWBOX is
 // het stuk rond het motief zelf (zonder achtergrond).
-export const BRAND_MARK_VIEWBOX = "170 160 684 600";
+export const BRAND_MARK_VIEWBOX = "164 164 696 696";
+
+const RING = { cx: 512, cy: 512, r: 336 };
+const BOWL = "M328 336 L512 536 L696 336 Z";
+const STEM = "M512 536 L512 720 M400 720 L624 720";
+const OLIVE = { cx: 608, cy: 384, r: 18 };
+// Drank in de kom (alleen bij de intro-animatie zichtbaar).
+const LIQUID = "M362 372 L662 372 L512 536 Z";
+
+// Losse lijnen van het logo, voor tekenen op een canvas (menukaart).
+export const BRAND_MARK_LINES = [BOWL, STEM];
+export const BRAND_MARK_RING = RING;
+export const BRAND_MARK_OLIVE = OLIVE;
 
 // idPrefix: unieke id's per keer dat het logo op een pagina staat.
-// animated: vloeistof loopt vol en de "tink"-streepjes verschijnen
+// animated: de kom loopt vol en daarna verschijnt de olijf
 // (klassen brand-liquid en brand-spark, zie index.css).
-// De losse lijnen van het logo, voor tekenen op een canvas (menukaart):
-// per glas de kom en de steel+voet, met de draaiing van dat glas.
-export const BRAND_MARK_GLASSES = [[290, 12], [734, -12]].map(([cx, rot]) => {
-  const w = 150, top = 330, depth = 230, stem = 250, base = 95, py = top + depth / 2 + stem;
-  return {
-    rot, ox: cx, oy: py,
-    bowl: `M${cx - w} ${top} q${w} ${depth} ${2 * w} 0z`,
-    stem: `M${cx} ${top + depth / 2}v${stem}M${cx - base} ${top + depth / 2 + stem + 5}h${2 * base}`,
-  };
-});
-export const BRAND_MARK_SPARK = "M512 200v70M440 226l30 52M584 226l-30 52";
-
 export function brandMarkMarkup({ idPrefix = "bm", animated = false } = {}) {
-  const gold = `${idPrefix}-gold`, liq = `${idPrefix}-liq`;
-  const coupe = (cx, rot, n) => {
-    const w = 150, top = 330, depth = 230, stem = 250, base = 95, py = top + depth / 2 + stem;
-    const bowl = `M${cx - w} ${top} q${w} ${depth} ${2 * w} 0z`;
-    const clip = `${idPrefix}-bowl${n}`;
-    const fill = animated
-      ? `<clipPath id="${clip}"><path d="${bowl}"/></clipPath><rect class="brand-liquid" x="${cx - w}" y="${top}" width="${2 * w}" height="${depth / 2 + 4}" fill="url(#${liq})" clip-path="url(#${clip})"/>`
-      : `<path d="${bowl}" fill="url(#${liq})"/>`;
-    return `<g transform="rotate(${rot} ${cx} ${py})">${fill}`
-      + `<path d="${bowl}" fill="none" stroke="url(#${gold})" stroke-width="30" stroke-linejoin="round"/>`
-      + `<path d="M${cx} ${top + depth / 2}v${stem}M${cx - base} ${top + depth / 2 + stem + 5}h${2 * base}" stroke="url(#${gold})" stroke-width="30" stroke-linecap="round" fill="none"/></g>`;
-  };
+  const gold = `${idPrefix}-gold`, ring = `${idPrefix}-ring`, liq = `${idPrefix}-liq`;
   return `<defs>`
-    + `<linearGradient id="${gold}" gradientUnits="userSpaceOnUse" x1="0" y1="200" x2="0" y2="820"><stop offset="0" stop-color="#F0D49A"/><stop offset="1" stop-color="#C9973F"/></linearGradient>`
-    + `<linearGradient id="${liq}" gradientUnits="userSpaceOnUse" x1="0" y1="290" x2="0" y2="580"><stop offset="0" stop-color="#F3C969"/><stop offset="1" stop-color="#D98A2B"/></linearGradient>`
+    + `<linearGradient id="${gold}" gradientUnits="userSpaceOnUse" x1="0" y1="300" x2="0" y2="740"><stop offset="0" stop-color="#F2DAA4"/><stop offset="0.55" stop-color="#DDB877"/><stop offset="1" stop-color="#B8862E"/></linearGradient>`
+    + `<linearGradient id="${ring}" gradientUnits="userSpaceOnUse" x1="0" y1="170" x2="0" y2="854"><stop offset="0" stop-color="#D9B46A"/><stop offset="1" stop-color="#8E6A24"/></linearGradient>`
+    + `<linearGradient id="${liq}" gradientUnits="userSpaceOnUse" x1="0" y1="372" x2="0" y2="536"><stop offset="0" stop-color="#C9973F" stop-opacity="0.9"/><stop offset="1" stop-color="#8E6A24" stop-opacity="0.9"/></linearGradient>`
     + `</defs>`
-    + coupe(290, 12, 1) + coupe(734, -12, 2)
-    + `<path${animated ? ' class="brand-spark"' : ""} d="M512 200v70M440 226l30 52M584 226l-30 52" stroke="#E6C27F" stroke-width="22" stroke-linecap="round" fill="none"/>`;
+    + `<circle cx="${RING.cx}" cy="${RING.cy}" r="${RING.r}" fill="none" stroke="url(#${ring})" stroke-width="12" opacity="0.8"/>`
+    + (animated ? `<path class="brand-liquid" d="${LIQUID}" fill="url(#${liq})"/>` : "")
+    + `<path d="${BOWL}" fill="none" stroke="url(#${gold})" stroke-width="30" stroke-linejoin="round"/>`
+    + `<path d="${STEM}" fill="none" stroke="url(#${gold})" stroke-width="30" stroke-linecap="round"/>`
+    + `<circle${animated ? ' class="brand-spark"' : ""} cx="${OLIVE.cx}" cy="${OLIVE.cy}" r="${OLIVE.r}" fill="url(#${gold})"/>`;
 }
 
 // Los SVG-bestand van alleen het logo (transparant), bv. voor scripts.
-export function brandMarkSvg({ width = 684, height = 600 } = {}) {
+export function brandMarkSvg({ width = 696, height = 696 } = {}) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${BRAND_MARK_VIEWBOX}">${brandMarkMarkup()}</svg>`;
 }
