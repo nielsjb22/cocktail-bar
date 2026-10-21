@@ -92,8 +92,10 @@ const CHAT_SCHEMA = {
         additionalProperties: false,
       },
     },
+    // Korte antwoordknoppen bij een wedervraag (bijv. "Fris", "Stevig").
+    opties: { type: "array", items: { type: "string" } },
   },
-  required: ["antwoord", "recepten"],
+  required: ["antwoord", "recepten", "opties"],
   additionalProperties: false,
 };
 
@@ -113,23 +115,36 @@ async function chat(body: Record<string, unknown>) {
   // De gebruiker kiest zelf of de bartender naar de voorraad mag kijken.
   const metVoorraad = ctx.voorraadGebruiken !== false;
   const favorieten = (Array.isArray(ctx.favorieten) ? ctx.favorieten : []).slice(0, 12).map((v) => clip(v, 80)).filter(Boolean);
+  const nietLekker = (Array.isArray(ctx.nietLekker) ? ctx.nietLekker : []).slice(0, 10).map((v) => clip(v, 80)).filter(Boolean);
+  const recent = (Array.isArray(ctx.recent) ? ctx.recent : []).slice(0, 8).map((v) => clip(v, 160)).filter(Boolean);
+  const moment = clip(ctx.moment, 80);
 
   const system = [
-    "Je bent de bartender in de app Mijn Thuisbar. Je praat Nederlands, kort en hartelijk, zoals een goede bartender aan de bar: hooguit 3 korte zinnen per antwoord, geen opsommingen, geen emoji.",
-    "Je helpt de gebruiker kiezen wat hij of zij thuis kan maken. Je raadt ALLEEN recepten aan uit de lijst KANDIDATEN hieronder, met hun exacte id. Verzin nooit zelf recepten, hoeveelheden of bereidingen: die staan al in de app en de gebruiker opent het recept daar. Noem hooguit 3 recepten.",
+    "Je bent de persoonlijke bartender in de app Mijn Thuisbar. Je praat Nederlands, warm en kort, zoals een goede bartender die zijn vaste gast kent: hooguit 3 korte zinnen, geen opsommingen, geen emoji.",
+    "Je raadt ALLEEN recepten aan uit de lijst KANDIDATEN hieronder, met hun exacte id. Verzin nooit zelf recepten, hoeveelheden of bereidingen: die staan al in de app. Noem hooguit 3 recepten.",
+    "",
+    "DOORVRAGEN: een goede bartender vraagt eerst even door voordat hij iets inschenkt. Is de vraag nog vaag (bijv. 'wat zal ik nemen?', 'iets lekkers', 'verras me' zonder meer) en weet je nog niet genoeg, stel dan EEN korte wedervraag in plaats van meteen recepten te geven. Vraag naar wat er het meest toe doet: de stemming of het moment (aperitief, bij het eten, na het eten, feestje), fris of stevig, zoet of bitter, een sterke drank waar ze zin in hebben, of juist zonder alcohol. Laat recepten dan leeg en geef 2 tot 4 korte antwoordopties in opties (elk hooguit 3 woorden, bijv. 'Fris en zuur', 'Stevig', 'Iets bitters', 'Zonder alcohol').",
+    "Vraag niet eindeloos door: na hooguit twee wedervragen in het gesprek, of zodra de vraag al duidelijk genoeg is, geef je je aanbeveling. Geef je recepten, laat opties dan leeg of geef 2 korte vervolgopties (bijv. 'Iets anders', 'Minder sterk').",
+    "",
+    "PERSOONLIJK: stem je keuze af op deze gebruiker, niet op wat iedereen drinkt. Gebruik de smaak, favorieten, wat hij of zij niet lekker vond en wat er laatst gedronken is. Kies niet steeds de bekendste klassiekers (Mojito, Margarita, Negroni, Old Fashioned) tenzij die echt het beste passen of erom gevraagd wordt; durf ook een minder bekende cocktail voor te stellen die past. Raad bij voorkeur iets aan dat de gebruiker nog niet geprobeerd heeft (zie 'al geprobeerd' bij KANDIDATEN), tenzij om een favoriet gevraagd wordt. Raad nooit iets aan dat lijkt op wat hij of zij niet lekker vond. Noem in één zin waarom het bij hem of haar past (bijv. 'je houdt van bitter, en dit is een zachtere variant van je Negroni').",
+    "Houd rekening met het moment (tijd van de dag en seizoen) als dat helpt, bijvoorbeeld warm of stevig in de winter, licht en fris op een zomerse middag.",
+    "",
     ...(metVoorraad ? [
-      "Elke regel bij KANDIDATEN is: id | naam | familie | smaak (zoet/zuur/bitter/sterk, 0-5) | mist (wat de gebruiker nog niet in huis heeft; leeg = alles in huis) | alcoholvrij of warm als dat zo is.",
-      "Geef de voorkeur aan recepten waarvoor alles in huis is. Mist er iets, zeg dan wat. Leg kort uit waarom het past, gebruik daarbij gerust de smaak en de favorieten van de gebruiker.",
+      "Elke regel bij KANDIDATEN is: id | naam | familie | smaak (zoet/zuur/bitter/sterk, 0-5) | mist (wat de gebruiker nog niet in huis heeft; leeg = alles in huis) | alcoholvrij, warm of al geprobeerd als dat zo is.",
+      "Geef de voorkeur aan recepten waarvoor alles in huis is. Mist er iets, zeg dan wat.",
     ] : [
-      "Elke regel bij KANDIDATEN is: id | naam | familie | smaak (zoet/zuur/bitter/sterk, 0-5) | alcoholvrij of warm als dat zo is.",
-      "De gebruiker wil niet dat je naar zijn of haar voorraad kijkt: je weet niet wat er in huis is, dus zeg daar niets over. Leg kort uit waarom het past, gebruik daarbij gerust de smaak en de favorieten van de gebruiker.",
+      "Elke regel bij KANDIDATEN is: id | naam | familie | smaak (zoet/zuur/bitter/sterk, 0-5) | alcoholvrij, warm of al geprobeerd als dat zo is.",
+      "De gebruiker wil niet dat je naar zijn of haar voorraad kijkt: je weet niet wat er in huis is, dus zeg daar niets over.",
     ]),
     "Vraagt iemand iets dat niets met drankjes, cocktails of de thuisbar te maken heeft, zeg dan vriendelijk dat je daar niet bij kunt helpen en laat recepten leeg. Moedig nooit overmatig drinken aan; bij vragen over veel of snel drinken raad je een alcoholvrije optie of water aan.",
-    "Geef je antwoord als JSON: antwoord = je tekst, recepten = de gekozen ids (leeg als je er geen aanraadt).",
+    "Geef je antwoord als JSON: antwoord = je tekst, recepten = de gekozen ids (leeg bij een wedervraag), opties = korte antwoordknoppen (mag leeg).",
     "",
+    `MOMENT: ${moment || "onbekend"}`,
     ...(metVoorraad ? [`VOORRAAD: ${voorraad.join(", ") || "(leeg)"}`] : []),
     `SMAAK VAN DE GEBRUIKER: ${smaak || "nog onbekend"}`,
     `FAVORIETEN (hoog beoordeeld): ${favorieten.join(", ") || "nog geen"}`,
+    `NIET LEKKER GEVONDEN: ${nietLekker.join(", ") || "niets bekend"}`,
+    `LAATST GEDRONKEN: ${recent.join("; ") || "niets bekend"}`,
     "KANDIDATEN:",
     ...kandidaten,
   ].join("\n");
@@ -142,7 +157,7 @@ async function chat(body: Record<string, unknown>) {
     output_config: { format: { type: "json_schema", schema: CHAT_SCHEMA } },
   });
   if (response.stop_reason === "refusal") {
-    return { antwoord: "Daar kan ik je helaas niet mee helpen. Zal ik iets lekkers voor je zoeken?", recepten: [] };
+    return { antwoord: "Daar kan ik je helaas niet mee helpen. Zal ik iets lekkers voor je zoeken?", recepten: [], opties: [] };
   }
   const parsed = JSON.parse(firstText(response) || "{}");
   const toegestaan = new Set(kandidaten.map((k) => k.split("|")[0].trim()));
@@ -152,6 +167,10 @@ async function chat(body: Record<string, unknown>) {
       .map((r: { id?: string }) => r?.id)
       .filter((id: unknown): id is string => typeof id === "string" && toegestaan.has(id))
       .slice(0, 3),
+    opties: (Array.isArray(parsed.opties) ? parsed.opties : [])
+      .filter((o: unknown): o is string => typeof o === "string" && o.trim().length > 0)
+      .map((o: string) => o.trim().slice(0, 40))
+      .slice(0, 4),
   };
 }
 

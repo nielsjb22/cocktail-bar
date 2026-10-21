@@ -26,7 +26,7 @@ export const PRIVACY_SECTIES = [
   },
   {
     kop: "De bartender en flessen scannen (AI)",
-    tekst: "Gebruik je de bartender of scan je je flessen, dan gaan je vraag of foto, de namen van de flessen in je voorraad (bij de bartender alleen als je daarvoor kiest), je smaakprofiel (bijvoorbeeld \"houdt van fris en bitter\") en een lijst recepten uit de app naar Claude, een AI-dienst van Anthropic, om een antwoord te maken. Je naam, e-mailadres, vrienden en check-ins gaan niet mee. Vragen en foto's worden niet door ons bewaard; we houden alleen bij hoeveel vragen en scans je per dag doet, voor de daglimiet. Anthropic gebruikt deze gegevens niet om zijn AI te trainen. Je geeft hier eenmalig toestemming voor en kunt die altijd intrekken in Profiel → Instellingen. Zonder toestemming werkt de rest van de app gewoon.",
+    tekst: "Gebruik je de bartender of scan je je flessen, dan gaan je vraag of foto, de namen van de flessen in je voorraad (bij de bartender alleen als je daarvoor kiest), je smaakprofiel (bijvoorbeeld \"houdt van fris en bitter\"), de namen en cijfers van cocktails die je hoog of laag beoordeelde of onlangs dronk, en een lijst recepten uit de app naar Claude, een AI-dienst van Anthropic, om een antwoord te maken. Je naam, e-mailadres, vrienden en de notities, plekken en foto's van je check-ins gaan niet mee. Vragen en foto's worden niet door ons bewaard; we houden alleen bij hoeveel vragen en scans je per dag doet, voor de daglimiet. Anthropic gebruikt deze gegevens niet om zijn AI te trainen. Je geeft hier eenmalig toestemming voor en kunt die altijd intrekken in Profiel → Instellingen. Zonder toestemming werkt de rest van de app gewoon.",
   },
   {
     kop: "Waar",

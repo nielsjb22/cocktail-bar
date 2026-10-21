@@ -4904,6 +4904,22 @@ function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek,
     if (name && !favs.has(name)) favs.set(name, e.rating);
   });
   const favorieten = [...favs].slice(0, 12).map(([n, r]) => `${n} (${r}/5)`);
+  // Alleen namen en cijfers van cocktails, nooit notities, plekken of foto's.
+  const nameOf = (e) => findRecipeFor(e, recipes)?.name || e.name;
+  const laag = new Map();
+  logboek.filter(e => e.rating > 0 && e.rating <= 2.5).forEach(e => { const n = nameOf(e); if (n && !laag.has(n)) laag.set(n, e.rating); });
+  const nietLekker = [...laag].slice(0, 10).map(([n, r]) => `${n} (${r}/5)`);
+  const recent = [...logboek].sort((a, b) => String(b.createdAt || b.created_at || b.date || "").localeCompare(String(a.createdAt || a.created_at || a.date || "")))
+    .slice(0, 6).map(e => `${nameOf(e)}${e.rating ? ` (${e.rating}/5)` : ""}`).filter(Boolean);
+  const tried = new Map();
+  logboek.forEach(e => { const r = findRecipeFor(e, recipes); if (r) tried.set(r.id, Math.max(tried.get(r.id) || 0, e.rating || 0)); });
+  const now = new Date();
+  const dag = now.toLocaleDateString("nl-NL", { weekday: "long" });
+  const h = now.getHours();
+  const deel = h < 12 ? "ochtend" : h < 18 ? "middag" : h < 24 ? "avond" : "nacht";
+  const maand = now.toLocaleDateString("nl-NL", { month: "long" });
+  const seizoen = ["winter", "winter", "lente", "lente", "lente", "zomer", "zomer", "zomer", "herfst", "herfst", "herfst", "winter"][now.getMonth()];
+  const moment = `${dag}${deel}, ${maand} (${seizoen})`;
   const rows = recipes.map(r => {
     const missing = useStock ? r.ingredients.filter(i => !i.optional && !isOwned(i)).map(metaName) : [];
     const t = cachedTaste(r, allIngredients);
@@ -4911,7 +4927,8 @@ function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek,
     const ids = r.ingredients.map(i => findIngredientMeta(i, allIngredients)?.id || i.id);
     const free = menuStrength(r, ing => findIngredientMeta(ing, allIngredients)).level === 0;
     const hot = r.family === "Warme dranken" || ids.some(id => ["hot_water", "hot_coffee", "espresso", "hot_chocolate", "black_tea"].includes(id));
-    const line = `${r.id} | ${r.name} | ${r.family} | zoet ${t.zoet} zuur ${t.zuur} bitter ${t.bitter} sterk ${t.sterk}${useStock ? ` | mist: ${missing.join(", ")}` : ""}${free ? " | alcoholvrij" : ""}${hot ? " | warm" : ""}`;
+    const tr = tried.has(r.id) ? ` | al geprobeerd${tried.get(r.id) ? ` (${tried.get(r.id)}/5)` : ""}` : "";
+    const line = `${r.id} | ${r.name} | ${r.family} | zoet ${t.zoet} zuur ${t.zuur} bitter ${t.bitter} sterk ${t.sterk}${useStock ? ` | mist: ${missing.join(", ")}` : ""}${free ? " | alcoholvrij" : ""}${hot ? " | warm" : ""}${tr}`;
     return { r, line, n: missing.length, dist, free };
   });
   const sorted = rows.filter(x => x.n <= 2).sort((a, b) => (a.n - b.n) || (a.dist - b.dist));
@@ -4919,7 +4936,7 @@ function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek,
   const have = new Set(picked.map(x => x.r.id));
   // Altijd een paar alcoholvrije opties erbij, ook als die net niet bovenaan staan.
   picked.push(...sorted.filter(x => x.free && !have.has(x.r.id)).slice(0, 20));
-  return { voorraadGebruiken: useStock, voorraad: owned, smaak, favorieten, kandidaten: picked.map(x => x.line) };
+  return { voorraadGebruiken: useStock, voorraad: owned, smaak, favorieten, nietLekker, recent, moment, kandidaten: picked.map(x => x.line) };
 }
 
 const BARTENDER_IDEEEN = ["Iets fris en niet te zoet", "Verras me", "Zonder alcohol", "Iets stevigs voor na het eten"];
@@ -4954,10 +4971,12 @@ function AiConsentSheet({ onAccept, onClose }) {
         <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, margin: "16px 0 0", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 9 }}>
           {kop("Wel mee", SAGE)}
           {row(true, "Je vraag en de foto die je scant")}
-          {row(true, "Je smaakprofiel, en welke flessen je hebt als je dat kiest")}
+          {row(true, "Je smaak: welke cocktails je hoog of laag beoordeelde")}
+          {row(true, "Welke flessen je hebt, als je dat kiest")}
           <div style={{ height: 1, background: BORDER, margin: "3px 0" }} />
           {kop("Niet mee", BURGUNDY)}
-          {row(false, "Je naam, e-mail, vrienden of check-ins")}
+          {row(false, "Je naam, e-mail of vrienden")}
+          {row(false, "Notities, plekken en foto's van je check-ins")}
           {row(false, "Vragen en scanfoto's worden niet bewaard")}
         </div>
         <button onClick={() => Browser.open({ url: `${PUBLIC_WEB_URL}/privacy` })} style={{ marginTop: 12, minHeight: 40, padding: 0, border: "none", background: "none", color: BRASS_TEXT, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
@@ -5033,7 +5052,7 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
     setBusy(false);
     if (typeof res.over === "number") setOver(res.over);
     if (res.error) { setError({ message: res.message, retry: res.error !== "limiet" }); return; }
-    setChat([...next, { role: "assistant", content: res.antwoord || "", recepten: (res.recepten || []).filter(id => recipeById.has(id)) }]);
+    setChat([...next, { role: "assistant", content: res.antwoord || "", recepten: (res.recepten || []).filter(id => recipeById.has(id)), opties: Array.isArray(res.opties) ? res.opties.slice(0, 4) : [] }]);
   };
   const retry = () => {
     const last = chat[chat.length - 1];
@@ -5104,6 +5123,9 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
           {chat.map((m, i) => (
             <Fragment key={i}>
               {m.content ? bubble(m.role, m.content) : null}
+              {m.role === "assistant" && i === chat.length - 1 && !busy && m.opties?.length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{m.opties.map(chip)}</div>
+              )}
               {m.role === "assistant" && m.recepten?.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {m.recepten.map(id => (
