@@ -2581,6 +2581,8 @@ export default function ThuisbarApp() {
   };
   const [bartenderOpen, setBartenderOpen] = useState(false);
   const [bartenderChat, setBartenderChat] = useState([]);
+  // null = nog niet gevraagd of de bartender naar je voorraad mag kijken.
+  const [bartenderStock, setBartenderStock] = useStorage("thuisbar-bartender-voorraad", null);
   useEffect(() => { if (!session) { setBartenderChat([]); setBartenderOpen(false); } }, [session]);
   const openBartender = () => withAi(() => setBartenderOpen(true));
   const [profile, setProfile] = useState(null);
@@ -2894,12 +2896,22 @@ export default function ThuisbarApp() {
     navigateTo("ontdekken");
     setPendingRecipeId(id);
   };
+  // Recept geopend vanuit de bartender: terug = terug naar het gesprek.
+  const [bartenderReturnTab, setBartenderReturnTab] = useState("home");
+  const openRecipeFromBartender = (id) => {
+    setBartenderReturnTab(tab === "ontdekken" ? "home" : tab);
+    setBartenderOpen(false);
+    setRecipeOrigin("bartender");
+    navigateTo("ontdekken");
+    setPendingRecipeId(id);
+  };
   const returnFromRecipe = () => {
     const origin = recipeOrigin;
     setRecipeOrigin(null);
+    if (origin === "bartender") { navigateTo(bartenderReturnTab, { restore: true }); setBartenderOpen(true); return; }
     if (origin) navigateTo(origin, { restore: true });
   };
-  const recipeBackLabel = recipeOrigin
+  const recipeBackLabel = recipeOrigin === "bartender" ? "Bartender" : recipeOrigin
     ? (PUSH_SCREEN_TITLES[recipeOrigin] || DOCK_LABELS[recipeOrigin] || TAGS.find(t => t.id === recipeOrigin)?.label || "Terug")
     : "Ontdekken";
 
@@ -3021,6 +3033,18 @@ export default function ThuisbarApp() {
     setVoorraadAantal(aantal);
   };
   const undoPack = (ids) => setVoorraad(voorraadArr.filter(id => !ids.includes(id)));
+  // Flessen scannen: toevoegen of bijwerken, met aantal en hoe vol.
+  const addScanned = (list) => {
+    setVoorraad([...voorraadArr, ...list.map(x => x.id).filter(id => !voorraadArr.includes(id))]);
+    const aantal = { ...voorraadAantal };
+    const niveau = { ...voorraadNiveau };
+    list.forEach(({ id, aantal: n, niveau: lv }) => {
+      aantal[id] = n || 1;
+      if (!lv || lv === "vol") delete niveau[id]; else niveau[id] = lv;
+    });
+    setVoorraadAantal(aantal);
+    setVoorraadNiveau(niveau);
+  };
   const adjustAantal = (id, delta) => {
     const next = Math.max(0, (voorraadAantal[id] ?? 1) + delta);
     setVoorraadAantal({ ...voorraadAantal, [id]: Math.round(next * 2) / 2 });
@@ -3212,7 +3236,7 @@ export default function ThuisbarApp() {
               onToggle={toggleIngredient} onAddCustom={addCustomIngredient} onRemoveCustom={removeCustomIngredient}
               niveaus={voorraadNiveau} onSetNiveau={setNiveau} onAddPack={addPack} onUndoPack={undoPack} onOpenMaken={openMakenFromVoorraad}
               onAddToShoppingList={addToShoppingList} shoppingKeys={shoppingKeys} onOpenFullRecipe={openRecipeDetail} onSound={chime}
-              onRequestAi={withAi} />
+              onRequestAi={withAi} onAddScanned={addScanned} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="mandje" active={tab === "mandje"} visited={visitedTabs.has("mandje")} panelRef={panelRefs}>
@@ -3319,7 +3343,8 @@ export default function ThuisbarApp() {
       {bartenderOpen && (
         <BartenderScreen chat={bartenderChat} setChat={setBartenderChat} onClose={() => setBartenderOpen(false)}
           recipes={allRecipes} allIngredients={allIngredients} isOwned={isOwned} voorraad={voorraad} logboek={logboek}
-          onOpenRecipe={(id) => { setBartenderOpen(false); openRecipeDetail(id); }} onAddToShoppingList={addToShoppingList} onSound={chime} />
+          useStock={bartenderStock} setUseStock={setBartenderStock}
+          onOpenRecipe={openRecipeFromBartender} onAddToShoppingList={addToShoppingList} onSound={chime} />
       )}
       {aiPending && (
         <AiConsentSheet onClose={() => setAiPending(null)}
@@ -4867,9 +4892,10 @@ function useForYou(session, logboek, recipes, allIngredients, active) {
 // De bartender kiest alleen uit recepten van de app (met hun eigen,
 // gecontroleerde hoeveelheden); de AI verzint zelf niets. Zie src/ai.js en
 // de Edge Function ai-bartender.
-function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek }) {
+// useStock: alleen als de gebruiker dat wil kijkt de bartender naar de voorraad.
+function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek, useStock = true }) {
   const metaName = (ing) => findIngredientMeta(ing, allIngredients)?.name || ing.name || ing.id;
-  const owned = allIngredients.filter(i => voorraad.has(i.id)).map(i => i.name);
+  const owned = useStock ? allIngredients.filter(i => voorraad.has(i.id)).map(i => i.name) : [];
   const me = myTasteVector(logboek, recipes, allIngredients);
   const smaak = me ? `${TASTE_DIMS.map(d => `${d} ${me.v[d].toFixed(1)}`).join(", ")} (schaal 0-5)` : "";
   const favs = new Map();
@@ -4879,13 +4905,13 @@ function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek 
   });
   const favorieten = [...favs].slice(0, 12).map(([n, r]) => `${n} (${r}/5)`);
   const rows = recipes.map(r => {
-    const missing = r.ingredients.filter(i => !i.optional && !isOwned(i)).map(metaName);
+    const missing = useStock ? r.ingredients.filter(i => !i.optional && !isOwned(i)).map(metaName) : [];
     const t = cachedTaste(r, allIngredients);
     const dist = me ? Math.sqrt(TASTE_DIMS.reduce((acc, d) => acc + (t[d] - me.v[d]) ** 2, 0)) : 0;
     const ids = r.ingredients.map(i => findIngredientMeta(i, allIngredients)?.id || i.id);
     const free = menuStrength(r, ing => findIngredientMeta(ing, allIngredients)).level === 0;
     const hot = r.family === "Warme dranken" || ids.some(id => ["hot_water", "hot_coffee", "espresso", "hot_chocolate", "black_tea"].includes(id));
-    const line = `${r.id} | ${r.name} | ${r.family} | zoet ${t.zoet} zuur ${t.zuur} bitter ${t.bitter} sterk ${t.sterk} | mist: ${missing.join(", ")}${free ? " | alcoholvrij" : ""}${hot ? " | warm" : ""}`;
+    const line = `${r.id} | ${r.name} | ${r.family} | zoet ${t.zoet} zuur ${t.zuur} bitter ${t.bitter} sterk ${t.sterk}${useStock ? ` | mist: ${missing.join(", ")}` : ""}${free ? " | alcoholvrij" : ""}${hot ? " | warm" : ""}`;
     return { r, line, n: missing.length, dist, free };
   });
   const sorted = rows.filter(x => x.n <= 2).sort((a, b) => (a.n - b.n) || (a.dist - b.dist));
@@ -4893,10 +4919,10 @@ function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek 
   const have = new Set(picked.map(x => x.r.id));
   // Altijd een paar alcoholvrije opties erbij, ook als die net niet bovenaan staan.
   picked.push(...sorted.filter(x => x.free && !have.has(x.r.id)).slice(0, 20));
-  return { voorraad: owned, smaak, favorieten, kandidaten: picked.map(x => x.line) };
+  return { voorraadGebruiken: useStock, voorraad: owned, smaak, favorieten, kandidaten: picked.map(x => x.line) };
 }
 
-const BARTENDER_IDEEEN = ["Iets fris en niet te zoet", "Wat kan ik nu maken?", "Zonder alcohol", "Iets stevigs voor na het eten"];
+const BARTENDER_IDEEEN = ["Iets fris en niet te zoet", "Verras me", "Zonder alcohol", "Iets stevigs voor na het eten"];
 function bartenderGroet() {
   const h = new Date().getHours();
   return h < 12 ? "Goedemorgen" : h < 18 ? "Goedemiddag" : "Goedenavond";
@@ -4928,7 +4954,7 @@ function AiConsentSheet({ onAccept, onClose }) {
         <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, margin: "16px 0 0", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 9 }}>
           {kop("Wel mee", SAGE)}
           {row(true, "Je vraag en de foto die je scant")}
-          {row(true, "Welke flessen je hebt en je smaakprofiel")}
+          {row(true, "Je smaakprofiel, en welke flessen je hebt als je dat kiest")}
           <div style={{ height: 1, background: BORDER, margin: "3px 0" }} />
           {kop("Niet mee", BURGUNDY)}
           {row(false, "Je naam, e-mail, vrienden of check-ins")}
@@ -4948,9 +4974,9 @@ function AiConsentSheet({ onAccept, onClose }) {
   ), document.body);
 }
 
-function BartenderRecipeCard({ recipe, allIngredients, isOwned, onOpen, onAddToShoppingList }) {
+function BartenderRecipeCard({ recipe, allIngredients, isOwned, onOpen, onAddToShoppingList, showStock = true }) {
   const [added, setAdded] = useState(false);
-  const missing = recipe.ingredients.filter(i => !i.optional && !isOwned(i));
+  const missing = showStock ? recipe.ingredients.filter(i => !i.optional && !isOwned(i)) : [];
   const names = missing.map(i => findIngredientMeta(i, allIngredients)?.name || i.name || i.id);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: 10 }}>
@@ -4958,8 +4984,8 @@ function BartenderRecipeCard({ recipe, allIngredients, isOwned, onOpen, onAddToS
         <span style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} size={56} /></span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "block", fontFamily: serif, fontSize: 16.5, fontWeight: 700, color: BOTTLE, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</span>
-          <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, marginTop: 2, color: missing.length ? BRASS_TEXT : SAGE }}>
-            {missing.length ? `Mist: ${names.join(", ")}` : "Alles in huis"}
+          <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, marginTop: 2, color: !showStock ? MUTED : missing.length ? BRASS_TEXT : SAGE_TEXT }}>
+            {!showStock ? recipe.family : missing.length ? `Mist: ${names.join(", ")}` : "Alles in huis"}
           </span>
         </span>
         <ChevronRight size={17} color={MUTED} style={{ flexShrink: 0 }} />
@@ -4975,7 +5001,7 @@ function BartenderRecipeCard({ recipe, allIngredients, isOwned, onOpen, onAddToS
   );
 }
 
-function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOwned, voorraad, logboek, onOpenRecipe, onAddToShoppingList, onSound }) {
+function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOwned, voorraad, logboek, onOpenRecipe, onAddToShoppingList, onSound, useStock = null, setUseStock }) {
   useBodyScrollLock();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -4995,14 +5021,14 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
 
   const send = async (raw) => {
     const vraag = (raw ?? text).trim();
-    if (!vraag || busy) return;
+    if (!vraag || busy || useStock == null) return;
     const next = [...chat, { role: "user", content: vraag }];
     setChat(next);
     setText("");
     setError(null);
     setBusy(true);
     onSound?.("tick");
-    const ctx = bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek });
+    const ctx = bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek, useStock: useStock === "ja" });
     const res = await askBartender(next.slice(-12).map(m => ({ role: m.role, content: m.content })), ctx);
     setBusy(false);
     if (typeof res.over === "number") setOver(res.over);
@@ -5040,7 +5066,7 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
           </button>
           <span style={{ flex: 1, textAlign: "center" }}>
             <span style={{ display: "block", fontWeight: 700, fontSize: 17, color: "#FBF6EA" }}>Bartender</span>
-            <span style={{ display: "block", fontSize: 11.5, color: "#A9B8B0" }}>Kent je voorraad en je smaak</span>
+            <span style={{ display: "block", fontSize: 11.5, color: "#A9B8B0" }}>{useStock === "ja" ? "Kent je voorraad en je smaak" : "Kent je smaak"}</span>
           </span>
           <span style={{ width: 90, display: "flex", justifyContent: "flex-end" }}>
             {chat.length > 0 && (
@@ -5052,18 +5078,36 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
 
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "12px 16px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: BOTTLE, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "5px 10px" }}>{bottleCount} {bottleCount === 1 ? "fles" : "flessen"} in huis</span>
-            {smaakWoorden.length > 0 && <span style={{ fontSize: 12, color: BOTTLE, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "5px 10px" }}>Jouw smaak: {smaakWoorden.join(", ")}</span>}
-          </div>
-          {bubble("assistant", `${bartenderGroet()}! Waar heb je zin in? Ik kijk wat je in huis hebt en wat bij je smaak past.`, "groet")}
+          {useStock != null && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button onClick={() => setUseStock(useStock === "ja" ? "nee" : "ja")} aria-pressed={useStock === "ja"} style={{
+                display: "inline-flex", alignItems: "center", gap: 6, minHeight: 32, fontSize: 12.5, fontWeight: 600, fontFamily: sans, cursor: "pointer",
+                color: useStock === "ja" ? SAGE_TEXT : MUTED, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "0 11px",
+              }}>
+                <Refrigerator size={14} /> {useStock === "ja" ? `Kijkt naar je voorraad (${bottleCount})` : "Kijkt niet naar je voorraad"}
+                <span style={{ color: BRASS_TEXT }}>· {useStock === "ja" ? "uit" : "aan"}</span>
+              </button>
+              {smaakWoorden.length > 0 && <span style={{ fontSize: 12, color: BOTTLE, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "6px 10px" }}>Jouw smaak: {smaakWoorden.join(", ")}</span>}
+            </div>
+          )}
+          {useStock == null ? (
+            <>
+              {bubble("assistant", `${bartenderGroet()}! Zal ik kijken welke flessen je in huis hebt? Dan raad ik vooral aan wat je nu meteen kunt maken.`, "vraag")}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => { onSound?.("tick"); setUseStock("ja"); }} className="press-scale" style={{ minHeight: 44, padding: "0 16px", borderRadius: 100, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer" }}>Ja, kijk in mijn voorraad</button>
+                <button onClick={() => { onSound?.("tick"); setUseStock("nee"); }} className="press-scale" style={{ minHeight: 44, padding: "0 16px", borderRadius: 100, border: `1px solid ${BORDER}`, background: CREAM, color: INK, fontFamily: sans, fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>Nee, gewoon advies</button>
+              </div>
+            </>
+          ) : bubble("assistant", useStock === "ja"
+            ? `${bartenderGroet()}! Waar heb je zin in? Ik kijk wat je in huis hebt en wat bij je smaak past.`
+            : `${bartenderGroet()}! Waar heb je zin in? Ik kijk wat bij je smaak past.`, "groet")}
           {chat.map((m, i) => (
             <Fragment key={i}>
               {m.content ? bubble(m.role, m.content) : null}
               {m.role === "assistant" && m.recepten?.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {m.recepten.map(id => (
-                    <BartenderRecipeCard key={id} recipe={recipeById.get(id)} allIngredients={allIngredients} isOwned={isOwned}
+                    <BartenderRecipeCard key={id} recipe={recipeById.get(id)} allIngredients={allIngredients} isOwned={isOwned} showStock={useStock !== "nee"}
                       onOpen={() => onOpenRecipe(id)} onAddToShoppingList={onAddToShoppingList} />
                   ))}
                 </div>
@@ -5082,15 +5126,15 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
 
       <div style={{ flexShrink: 0, background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, transition: "padding-bottom 0.25s ease", paddingBottom: "calc(max(env(safe-area-inset-bottom), var(--kb-pad, 0px)) + 8px)" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          {chat.length === 0 && (
+          {chat.length === 0 && useStock != null && (
             <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 16px 0", WebkitOverflowScrolling: "touch" }}>
               {BARTENDER_IDEEEN.map(chip)}
             </div>
           )}
           <form onSubmit={e => { e.preventDefault(); send(); }} style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 16px 4px" }}>
-            <input value={text} onChange={e => setText(e.target.value)} maxLength={500} placeholder="Vraag de bartender iets…" aria-label="Vraag aan de bartender" enterKeyHint="send"
+            <input value={text} onChange={e => setText(e.target.value)} maxLength={500} disabled={useStock == null} placeholder={useStock == null ? "Kies eerst hierboven" : "Vraag de bartender iets…"} aria-label="Vraag aan de bartender" enterKeyHint="send"
               style={{ flex: 1, minWidth: 0, height: 44, border: `1px solid ${BORDER}`, background: CREAM, borderRadius: 22, padding: "0 16px", fontFamily: sans, fontSize: 16, color: INK, outline: "none" }} />
-            <button type="submit" disabled={busy || !text.trim()} aria-label="Versturen" style={{
+            <button type="submit" disabled={busy || !text.trim() || useStock == null} aria-label="Versturen" style={{
               width: 44, height: 44, borderRadius: "50%", border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer", flexShrink: 0, opacity: busy || !text.trim() ? 0.5 : 1,
             }}><Send size={18} /></button>
@@ -5126,7 +5170,7 @@ function BottleScanSheet({ allIngredients, voorraad, onAdd, onClose, onSearchMan
     if (typeof res.over === "number") setOver(res.over);
     if (res.error) { setError(res.message); setStap("kiezen"); return; }
     const found = (res.flessen || []).filter(f => byId.has(f.id));
-    setItems(found.map(f => ({ ...f, keuze: f.id, on: !voorraad.has(f.id) })));
+    setItems(found.map(f => ({ ...f, keuze: f.id, on: !voorraad.has(f.id), aantal: 1, niveau: "vol" })));
     setStap("resultaat");
   };
   const pick = async (bron) => {
@@ -5149,7 +5193,12 @@ function BottleScanSheet({ allIngredients, voorraad, onAdd, onClose, onSearchMan
     const al = voorraad.has(it.keuze);
     return { ...it, ing, al };
   });
-  const toAdd = rows.filter(r => r.on && !r.al);
+  const toAdd = rows.filter(r => r.on);
+  const nNieuw = toAdd.filter(r => !r.al).length, nBij = toAdd.length - nNieuw;
+  const ctaTekst = toAdd.length === 0 ? "Niets geselecteerd"
+    : nBij === 0 ? `${nNieuw} ${nNieuw === 1 ? "fles" : "flessen"} toevoegen aan voorraad`
+    : nNieuw === 0 ? `${nBij} ${nBij === 1 ? "fles" : "flessen"} bijwerken`
+    : `${nNieuw} toevoegen, ${nBij} bijwerken`;
   const update = (idx, patch) => setItems(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   const badge = (label, bg, color) => <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 100, background: bg, color }}>{label}</span>;
   const dark = stap !== "resultaat";
@@ -5191,32 +5240,62 @@ function BottleScanSheet({ allIngredients, voorraad, onAdd, onClose, onSearchMan
         <>
           <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain" }}>
             <div style={{ maxWidth: 560, margin: "0 auto", padding: "6px 16px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ fontSize: 14, color: MUTED, margin: "0 4px 2px" }}>{rows.length ? "Vink aan wat klopt." : "Er is geen fles herkend. Probeer een foto van dichterbij, met de etiketten naar voren."}</div>
+              <div style={{ fontSize: 14, color: MUTED, margin: "0 4px 2px" }}>{rows.length ? "Tik aan wat klopt en vul in hoeveel je hebt." : "Er is geen fles herkend. Probeer een foto van dichterbij, met de etiketten naar voren."}</div>
               {rows.map((r, idx) => (
-                <div key={r.id} style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <input id={`scan-${r.id}`} type="checkbox" checked={r.on && !r.al} disabled={r.al} onChange={() => update(idx, { on: !r.on })}
-                      style={{ width: 22, height: 22, accentColor: "#1F3D36", flexShrink: 0, margin: 0 }} />
+                <div key={r.id} style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, overflow: "hidden", outline: r.on ? `2px solid ${SAGE}` : "none", outlineOffset: -2 }}>
+                  <button onClick={() => update(idx, { on: !r.on })} aria-pressed={r.on} style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 12, padding: 12, border: "none", background: "none",
+                    cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
+                  }}>
                     <span style={{ width: 46, height: 46, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}><ItemArt ing={r.ing} /></span>
-                    <label htmlFor={`scan-${r.id}`} style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: "block", fontSize: 15.5, fontWeight: 600 }}>{r.ing.name}</span>
                       <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.merk ? `Etiket: ${r.merk}` : "Etiket niet leesbaar"}</span>
-                    </label>
-                    {r.al ? badge("Al in voorraad", PAPER_DEEP, MUTED) : r.zeker ? badge("Zeker", "rgba(92,122,82,0.16)", SAGE_TEXT) : badge("Twijfel", "rgba(184,134,46,0.18)", BRASS_TEXT)}
-                  </div>
+                      <span style={{ display: "inline-block", marginTop: 5 }}>
+                        {r.al ? badge("Al in voorraad", PAPER_DEEP, MUTED) : r.zeker ? badge("Zeker", "rgba(92,122,82,0.16)", SAGE_TEXT) : badge("Twijfel", "rgba(184,134,46,0.18)", BRASS_TEXT)}
+                      </span>
+                    </span>
+                    <span aria-hidden="true" style={{ width: 30, height: 30, borderRadius: "50%", boxSizing: "border-box", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: r.on ? SAGE : "transparent", border: r.on ? "none" : `1.5px solid ${BORDER}` }}>
+                      {r.on && <Check size={17} strokeWidth={3} color={CREAM} />}
+                    </span>
+                  </button>
                   {r.alternatief && byId.has(r.alternatief) && (
-                    <div style={{ paddingLeft: 34 }}>
+                    <div style={{ padding: "0 12px 12px" }}>
                       <div style={{ fontSize: 13, color: MUTED, marginBottom: 6 }}>Welke is het?</div>
                       <div style={{ display: "flex", gap: 8 }}>
                         {[r.id, r.alternatief].map(opt => {
                           const on = r.keuze === opt;
                           return (
-                            <button key={opt} onClick={() => update(idx, { keuze: opt })} aria-pressed={on} style={{
-                              flex: 1, minHeight: 40, borderRadius: 20, fontFamily: sans, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                            <button key={opt} onClick={() => update(idx, { keuze: opt, on: true })} aria-pressed={on} style={{
+                              flex: 1, minHeight: 42, borderRadius: 21, fontFamily: sans, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
                               border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : PAPER, color: on ? CREAM : INK,
                             }}>{byId.get(opt).name}</button>
                           );
                         })}
+                      </div>
+                    </div>
+                  )}
+                  {r.on && (
+                    <div style={{ padding: "10px 12px 12px", borderTop: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>Aantal flessen</span>
+                        <button onClick={() => update(idx, { aantal: Math.max(1, r.aantal - 1) })} disabled={r.aantal <= 1} aria-label={`Eén ${r.ing.name} minder`} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, fontSize: 20, fontWeight: 600, cursor: "pointer", opacity: r.aantal <= 1 ? 0.4 : 1 }}>−</button>
+                        <span aria-live="polite" style={{ minWidth: 26, textAlign: "center", fontSize: 17, fontWeight: 700 }}>{r.aantal}</span>
+                        <button onClick={() => update(idx, { aantal: Math.min(20, r.aantal + 1) })} aria-label={`Eén ${r.ing.name} meer`} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, fontSize: 20, fontWeight: 600, cursor: "pointer" }}>+</button>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Hoe vol?</div>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {FILL_LEVELS.filter(l => l.key !== "op").map(l => {
+                            const on = r.niveau === l.key;
+                            return (
+                              <button key={l.key} onClick={() => update(idx, { niveau: l.key })} aria-pressed={on} style={{
+                                flex: 1, minHeight: 42, borderRadius: 21, fontFamily: sans, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
+                                border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : PAPER, color: on ? CREAM : INK,
+                              }}>{l.label}</button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -5235,10 +5314,10 @@ function BottleScanSheet({ allIngredients, voorraad, onAdd, onClose, onSearchMan
           </div>
           <div style={{ flexShrink: 0, background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, padding: "12px 16px calc(env(safe-area-inset-bottom) + 12px)" }}>
             <div style={{ maxWidth: 560, margin: "0 auto" }}>
-              <button disabled={toAdd.length === 0} onClick={() => onAdd(toAdd.map(r => ({ id: r.keuze, merk: r.zeker && r.keuze === r.id ? r.merk : null })))} className="press-scale" style={{
+              <button disabled={toAdd.length === 0} onClick={() => onAdd(toAdd.map(r => ({ id: r.keuze, merk: r.zeker && r.keuze === r.id ? r.merk : null, aantal: r.aantal, niveau: r.niveau })))} className="press-scale" style={{
                 width: "100%", minHeight: 52, borderRadius: 26, border: "none", fontFamily: sans, fontSize: 16, fontWeight: 700, cursor: toAdd.length ? "pointer" : "default",
                 background: toAdd.length ? BOTTLE_DARK : BORDER, color: toAdd.length ? HEADER_TEXT : MUTED,
-              }}>{toAdd.length ? `${toAdd.length} ${toAdd.length === 1 ? "fles" : "flessen"} toevoegen aan voorraad` : "Niets geselecteerd"}</button>
+              }}>{ctaTekst}</button>
               <div style={{ fontSize: 12, color: MUTED, textAlign: "center", marginTop: 8 }}>Je foto wordt niet bewaard{over != null ? ` · Nog ${over} ${over === 1 ? "scan" : "scans"} vandaag` : ""}</div>
             </div>
           </div>
@@ -6378,7 +6457,7 @@ const MERK_SOORTEN = [
 ];
 
 function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAantal, onAdjustAantal, onToggle, onAddCustom, onRemoveCustom,
-  niveaus = {}, onSetNiveau, onAddPack, onUndoPack, onAddToShoppingList, shoppingKeys, onOpenFullRecipe, onSound, onOpenMaken = null, onRequestAi = null }) {
+  niveaus = {}, onSetNiveau, onAddPack, onUndoPack, onAddToShoppingList, shoppingKeys, onOpenFullRecipe, onSound, onOpenMaken = null, onRequestAi = null, onAddScanned = null }) {
   const [query, setQuery] = useState("");
   const [scanOpen, setScanOpen] = useState(false);
   const searchInputRef = useRef(null);
@@ -6479,10 +6558,12 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
     const nieuw = merken.filter(f => !eigenMerken.some(m => normalizeTerm(m.term) === normalizeTerm(f.merk))).map(f => ({ term: f.merk, id: f.id }));
     if (nieuw.length) setEigenMerken([...eigenMerken, ...nieuw]);
     merken.forEach(f => recordBrandLink(f.merk, f.id));
-    if (added.length === 0) return;
+    const bijgewerkt = found.length - added.length;
+    if (onAddScanned) onAddScanned(found); else if (added.length) onAddPack(added);
+    if (found.length === 0) return;
     onSound("chime");
-    onAddPack(added);
-    showToast({ text: `${added.length} ${added.length === 1 ? "fles" : "flessen"} toegevoegd`, undo: added });
+    const delen = [added.length && `${added.length} ${added.length === 1 ? "fles" : "flessen"} toegevoegd`, bijgewerkt && `${bijgewerkt} bijgewerkt`].filter(Boolean);
+    showToast({ text: delen.join(", "), undo: added.length ? added : undefined });
   };
   const addCustom = () => {
     const name = query.trim();

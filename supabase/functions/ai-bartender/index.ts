@@ -110,17 +110,24 @@ async function chat(body: Record<string, unknown>) {
   const voorraad = (Array.isArray(ctx.voorraad) ? ctx.voorraad : []).slice(0, 250).map((v) => clip(v, 60)).filter(Boolean);
   const kandidaten = (Array.isArray(ctx.kandidaten) ? ctx.kandidaten : []).slice(0, 160).map((v) => clip(v, 220)).filter(Boolean);
   const smaak = clip(ctx.smaak, 300);
+  // De gebruiker kiest zelf of de bartender naar de voorraad mag kijken.
+  const metVoorraad = ctx.voorraadGebruiken !== false;
   const favorieten = (Array.isArray(ctx.favorieten) ? ctx.favorieten : []).slice(0, 12).map((v) => clip(v, 80)).filter(Boolean);
 
   const system = [
     "Je bent de bartender in de app Mijn Thuisbar. Je praat Nederlands, kort en hartelijk, zoals een goede bartender aan de bar: hooguit 3 korte zinnen per antwoord, geen opsommingen, geen emoji.",
     "Je helpt de gebruiker kiezen wat hij of zij thuis kan maken. Je raadt ALLEEN recepten aan uit de lijst KANDIDATEN hieronder, met hun exacte id. Verzin nooit zelf recepten, hoeveelheden of bereidingen: die staan al in de app en de gebruiker opent het recept daar. Noem hooguit 3 recepten.",
-    "Elke regel bij KANDIDATEN is: id | naam | familie | smaak (zoet/zuur/bitter/sterk, 0-5) | mist (wat de gebruiker nog niet in huis heeft; leeg = alles in huis) | alcoholvrij of warm als dat zo is.",
-    "Geef de voorkeur aan recepten waarvoor alles in huis is. Mist er iets, zeg dan wat. Leg kort uit waarom het past, gebruik daarbij gerust de smaak en de favorieten van de gebruiker.",
+    ...(metVoorraad ? [
+      "Elke regel bij KANDIDATEN is: id | naam | familie | smaak (zoet/zuur/bitter/sterk, 0-5) | mist (wat de gebruiker nog niet in huis heeft; leeg = alles in huis) | alcoholvrij of warm als dat zo is.",
+      "Geef de voorkeur aan recepten waarvoor alles in huis is. Mist er iets, zeg dan wat. Leg kort uit waarom het past, gebruik daarbij gerust de smaak en de favorieten van de gebruiker.",
+    ] : [
+      "Elke regel bij KANDIDATEN is: id | naam | familie | smaak (zoet/zuur/bitter/sterk, 0-5) | alcoholvrij of warm als dat zo is.",
+      "De gebruiker wil niet dat je naar zijn of haar voorraad kijkt: je weet niet wat er in huis is, dus zeg daar niets over. Leg kort uit waarom het past, gebruik daarbij gerust de smaak en de favorieten van de gebruiker.",
+    ]),
     "Vraagt iemand iets dat niets met drankjes, cocktails of de thuisbar te maken heeft, zeg dan vriendelijk dat je daar niet bij kunt helpen en laat recepten leeg. Moedig nooit overmatig drinken aan; bij vragen over veel of snel drinken raad je een alcoholvrije optie of water aan.",
     "Geef je antwoord als JSON: antwoord = je tekst, recepten = de gekozen ids (leeg als je er geen aanraadt).",
     "",
-    `VOORRAAD: ${voorraad.join(", ") || "(leeg)"}`,
+    ...(metVoorraad ? [`VOORRAAD: ${voorraad.join(", ") || "(leeg)"}`] : []),
     `SMAAK VAN DE GEBRUIKER: ${smaak || "nog onbekend"}`,
     `FAVORIETEN (hoog beoordeeld): ${favorieten.join(", ") || "nog geen"}`,
     "KANDIDATEN:",
