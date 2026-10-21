@@ -1,22 +1,24 @@
-// Genereert het app-icoon (martiniglas in een gouden ring op flessengroen)
+// Genereert het app-icoon (martiniglas met goudglans in een gouden ring op flessengroen)
 // voor iOS en web. Het resultaat staat ook als assets/icon/app-icon.svg.
 // Draai: node scripts/generate-app-icon.mjs
 import sharp from "sharp";
 import { writeFileSync, mkdirSync } from "node:fs";
 
 const MOTIF = `
-  <circle cx="512" cy="512" r="336" fill="none" stroke="#B8862E" stroke-width="14" opacity="0.55"/>
-  <g stroke="#DDB877" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <circle cx="512" cy="512" r="336" fill="none" stroke="url(#ring)" stroke-width="12" opacity="0.8"/>
+  <g stroke="url(#gold)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M328 336 L512 536 L696 336 Z"/>
     <line x1="512" y1="536" x2="512" y2="720"/>
     <line x1="400" y1="720" x2="624" y2="720"/>
   </g>
-  <circle cx="608" cy="384" r="18" fill="#DDB877"/>`;
+  <circle cx="608" cy="384" r="18" fill="url(#gold)"/>`;
 
 // scale 1 voor het gewone icoon; kleiner voor "maskable" (Android knipt
 // daar tot een cirkel van 80%).
 const iconSvg = (scale = 1, rx = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <defs><radialGradient id="bg" cx="30%" cy="20%" r="90%"><stop offset="0%" stop-color="#2A4B42"/><stop offset="100%" stop-color="#132622"/></radialGradient></defs>
+  <defs><radialGradient id="bg" cx="30%" cy="20%" r="90%"><stop offset="0%" stop-color="#2A4B42"/><stop offset="100%" stop-color="#132622"/></radialGradient>
+    <linearGradient id="gold" x1="0" y1="300" x2="0" y2="740" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#F2DAA4"/><stop offset="0.55" stop-color="#DDB877"/><stop offset="1" stop-color="#B8862E"/></linearGradient>
+    <linearGradient id="ring" x1="0" y1="170" x2="0" y2="854" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#D9B46A"/><stop offset="1" stop-color="#8E6A24"/></linearGradient></defs>
   <rect width="1024" height="1024" rx="${rx}" fill="url(#bg)"/>
   <g transform="translate(512 512) scale(${scale}) translate(-512 -512)">${MOTIF}</g>
 </svg>`;
