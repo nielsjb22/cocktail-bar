@@ -64,7 +64,7 @@ export function buildIngredientIndex(ingredients, learned = []) {
   return ingredients.map(ing => {
     const terms = [{ display: ing.name, norm: normalizeTerm(ing.name), isName: true }];
     (INGREDIENT_ALIASES[ing.id] || []).forEach(a => terms.push({ display: a, norm: normalizeTerm(a) }));
-    learned.filter(l => l.id === ing.id).forEach(l => terms.push({ display: l.term, norm: normalizeTerm(l.term), learned: true }));
+    learned.filter(l => l.id === ing.id).forEach(l => terms.push({ display: l.term, norm: normalizeTerm(l.term), learned: !l.shared, shared: !!l.shared }));
     return { ing, terms, near: nearById.get(ing.id) || [] };
   });
 }
@@ -97,6 +97,7 @@ export function searchIngredients(query, index) {
         fuzzy: best.score < 60,
         matchedName: t.isName ? t.display.replace(/\s*\(.*\)\s*$/, "") : null,
         learned: !!t.learned,
+        shared: !!t.shared,
       });
     }
   });

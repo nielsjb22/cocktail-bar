@@ -20,6 +20,7 @@ import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, partyInfoQuery, menuStrength, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf, formatMenuDate } from "./menuCard";
 import { SURVEY_SPIRITS, SURVEY_LIQUEURS, SURVEY_MIXERS, SURVEY_TASTES, SURVEY_STYLES, SURVEY_STRENGTHS, SURVEY_ALLERGIES, CUSTOM_PREFIX, choiceLabel, emptyAnswers, legacyFieldsFromAnswers, ingredientPreferenceCounts, tallyChoices } from "./surveyOptions";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor, setStatusBarOnDark, setKeepAwake } from "./native";
+import { fetchLearnedBrands, recordBrandLink, useSearchMiss, fetchRecommendations } from "./learning.js";
 import { imageToJpegDataUrl, squareJpegDataUrl, uploadCheckinPhoto, removeCheckinPhoto, removeOwnStorageFiles } from "./checkinPhotos.js";
 import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS, canonicalRecipeId, recipeIdAliases } from "./recipes.js";
 import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
@@ -133,6 +134,7 @@ const PUSH_SCREEN_TITLES = {
   "account-verwijderen": "Account verwijderen",
   fotoverantwoording: "Fotoverantwoording",
   "meldingen-beheren": "Meldingen",
+  "inzichten-beheren": "Wat de app leert",
 };
 const PUSH_SCREENS = new Set(Object.keys(PUSH_SCREEN_TITLES));
 
@@ -497,6 +499,57 @@ function getTasteProfile(recipe, allIngredients) {
   const sterk = strength <= 0 ? 0 : strength < 0.15 ? 1 : strength < 0.3 ? 2 : strength < 0.45 ? 3 : strength < 0.6 ? 4 : 5;
   return { zoet: toBucket(zoetPts), zuur: toBucket(zuurPts), bitter: toBucket(bitterPts), sterk };
 }
+// ---------- Smaakmatch (idee 5) ----------
+// Je smaakprofiel uit de cocktails die je hoog gaf (4 of meer), en welke
+// recepten die je nog niet probeerde daar het dichtst bij liggen.
+const tasteCache = new WeakMap();
+function cachedTaste(recipe, allIngredients) {
+  let byIng = tasteCache.get(allIngredients);
+  if (!byIng) { byIng = new Map(); tasteCache.set(allIngredients, byIng); }
+  if (!byIng.has(recipe.id)) byIng.set(recipe.id, getTasteProfile(recipe, allIngredients));
+  return byIng.get(recipe.id);
+}
+const TASTE_DIMS = ["zoet", "zuur", "bitter", "sterk"];
+const TASTE_WORD = { zoet: "zoet", zuur: "fris-zuur", bitter: "bitter", sterk: "stevig" };
+function findRecipeFor(entry, recipes) {
+  return entry.recipeId ? recipes.find(r => r.id === canonicalRecipeId(entry.recipeId)) : recipes.find(r => r.name.toLowerCase() === (entry.name || "").trim().toLowerCase());
+}
+function myTasteVector(logboek, recipes, allIngredients) {
+  const sum = { zoet: 0, zuur: 0, bitter: 0, sterk: 0 }; let w = 0;
+  const families = new Map();
+  for (const e of logboek) {
+    if (!(e.rating >= 4)) continue;
+    const r = findRecipeFor(e, recipes);
+    if (!r) continue;
+    const t = cachedTaste(r, allIngredients);
+    const weight = e.rating - 3;
+    TASTE_DIMS.forEach(d => { sum[d] += t[d] * weight; });
+    w += weight;
+    families.set(r.family, (families.get(r.family) || 0) + weight);
+  }
+  if (w === 0) return null;
+  const v = Object.fromEntries(TASTE_DIMS.map(d => [d, sum[d] / w]));
+  return { v, families, liked: w };
+}
+function tasteMatches(logboek, recipes, allIngredients, limit = 6) {
+  const me = myTasteVector(logboek, recipes, allIngredients);
+  if (!me || logboek.filter(e => e.rating >= 4).length < 3) return [];
+  const tried = new Set(logboek.map(e => findRecipeFor(e, recipes)?.id).filter(Boolean));
+  const topDims = [...TASTE_DIMS].sort((a, b) => me.v[b] - me.v[a]).filter(d => me.v[d] >= 1.5).slice(0, 2);
+  const reason = topDims.length ? `Past bij je smaak: ${topDims.map(d => TASTE_WORD[d]).join(" en ")}` : "Past bij wat je lekker vindt";
+  const famMax = Math.max(1, ...me.families.values());
+  return recipes
+    .filter(r => !tried.has(r.id) && !r.id.startsWith("custom_"))
+    .map(r => {
+      const t = cachedTaste(r, allIngredients);
+      const dist = Math.sqrt(TASTE_DIMS.reduce((acc, d) => acc + (t[d] - me.v[d]) ** 2, 0));
+      const famBonus = (me.families.get(r.family) || 0) / famMax;
+      return { recipe: r, score: -dist + famBonus * 0.8, reason };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
 function getFunFact(recipe) {
   return FUN_FACTS[recipe.id] || null;
 }
@@ -3235,6 +3288,11 @@ export default function ThuisbarApp() {
             <PhotoCreditsScreen />
           </SecondaryTabScreen>
         </TabPanel>
+        <TabPanel id="inzichten-beheren" active={tab === "inzichten-beheren"} visited={visitedTabs.has("inzichten-beheren")} panelRef={panelRefs}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES["inzichten-beheren"]} onBack={() => navigateTo("instellingen", { restore: true })}>
+            <InsightsAdminScreen active={tab === "inzichten-beheren"} recipes={allRecipes} onOpenRecipe={openRecipeDetail} />
+          </SecondaryTabScreen>
+        </TabPanel>
         <TabPanel id="meldingen-beheren" active={tab === "meldingen-beheren"} visited={visitedTabs.has("meldingen-beheren")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES["meldingen-beheren"]} onBack={() => navigateTo("instellingen", { restore: true })}>
             <ReportsAdminScreen active={tab === "meldingen-beheren"} />
@@ -3459,6 +3517,19 @@ function InstellingenTab({ soundEnabled, onToggleSound, onSignOut, push, nativeP
             <ChevronRight size={16} color={MUTED} />
           </button>
         )}
+        {isBeheerder && (
+          <button onClick={() => onNavigate("inzichten-beheren")} style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+            background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
+            borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 14.5, color: INK,
+          }}>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+              <Sparkles size={16} strokeWidth={1.8} />
+            </span>
+            <span style={{ flex: 1, fontWeight: 600 }}>Wat de app leert</span>
+            <ChevronRight size={16} color={MUTED} />
+          </button>
+        )}
         {!guest && <>
         <button onClick={onSignOut} style={{
           width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
@@ -3573,6 +3644,86 @@ function ReportsAdminScreen({ active }) {
               <button disabled={busy === item.melding_id} onClick={() => handle(item, "verwijderd")} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: BURGUNDY, color: "#FBF6EA", fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Verwijderen</button>
             )}
           </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Beheer: wat de app van gebruikers leert (idee 3 en 4). Niets gaat
+// automatisch live; de beheerder beslist.
+const SIGNAAL_TEKST = {
+  te_zoet: ["te zoet", "Minder suikersiroop of likeur, bijvoorbeeld 5 ml minder, of iets meer citrus."],
+  te_zuur: ["te zuur", "Iets meer suikersiroop (5 ml) of iets minder citroen- of limoensap."],
+  te_sterk: ["te sterk", "Minder sterke drank of langer shaken/roeren voor meer verdunning; of meer aanvulling."],
+  te_slap: ["waterig of flauw", "Korter roeren of shaken, groter ijs, of iets meer sterke drank of likeur."],
+  te_bitter: ["te bitter", "Minder bitter (Campari, amaro, bitters) of iets meer zoet."],
+};
+function InsightsAdminScreen({ active, recipes, onOpenRecipe }) {
+  const [missing, setMissing] = useState(null);
+  const [signals, setSignals] = useState(null);
+  const [error, setError] = useState(null);
+  const known = useMemo(() => new Set(recipes.map(r => r.name.trim().toLowerCase())), [recipes]);
+  const byId = useMemo(() => new Map(recipes.map(r => [r.id, r])), [recipes]);
+  const load = async () => {
+    const [m, sg] = await Promise.all([supabase.rpc("beheer_ontbrekende_recepten"), supabase.rpc("beheer_recept_signalen")]);
+    if (m.error || sg.error) setError((m.error || sg.error).message);
+    setMissing((m.data || []).filter(x => !known.has((x.naam || "").trim().toLowerCase())));
+    setSignals((sg.data || []).map(x => {
+      const n = Number(x.checkins) || 1;
+      const issues = Object.keys(SIGNAAL_TEKST).map(k => ({ k, count: Number(x[k]) || 0 })).filter(i => i.count >= 2 && i.count / n >= 0.25).sort((a, b) => b.count - a.count);
+      const low = Number(x.gemiddeld) < 3.5;
+      return { ...x, n, issues, low, recipe: byId.get(canonicalRecipeId(x.recipe_id)) };
+    }).filter(x => x.recipe && (x.low || x.issues.length > 0)).sort((a, b) => (b.issues[0]?.count || 0) - (a.issues[0]?.count || 0) || a.gemiddeld - b.gemiddeld));
+  };
+  useEffect(() => { if (active) load(); }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ignore = async (soort, sleutel) => {
+    await supabase.rpc("beheer_negeren", { p_soort: soort, p_sleutel: sleutel });
+    if (soort === "recept") setMissing(cur => (cur || []).filter(x => x.sleutel !== sleutel));
+    else setSignals(cur => (cur || []).filter(x => x.recipe_id !== sleutel));
+  };
+  const card = { background: CREAM, boxShadow: SHADOW_CARD, borderRadius: 16, padding: 14, marginBottom: 10 };
+  const smallBtn = { minHeight: 36, padding: "0 12px", borderRadius: 10, border: `1.5px solid ${BORDER}`, background: "none", color: MUTED, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer" };
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, margin: "0 0 16px" }}>
+        Anonieme signalen van alle gebruikers samen. Alleen dingen die minstens 2 à 3 verschillende mensen deden staan hier. Niets wordt automatisch aangepast: jij beslist.
+      </p>
+      {error && <div style={{ fontSize: 13, color: BURGUNDY, marginBottom: 12 }}>Laden lukte niet: {error}</div>}
+
+      <SectionLabel>Ontbrekende recepten</SectionLabel>
+      {missing === null ? <p style={{ fontSize: 13.5, color: MUTED }}>Laden...</p> : missing.length === 0 ? (
+        <div style={{ ...card, fontSize: 13.5, color: MUTED }}>Nog niets: iedereen vindt wat hij zoekt.</div>
+      ) : missing.map(x => (
+        <div key={x.sleutel} style={card}>
+          <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK }}>{x.naam}</div>
+          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
+            {x.mensen} mensen · {x.ingecheckt > 0 ? `${x.ingecheckt}x ingecheckt` : ""}{x.ingecheckt > 0 && x.gezocht > 0 ? " · " : ""}{x.gezocht > 0 ? `${x.gezocht}x gezocht` : ""}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <button onClick={() => { navigator.clipboard?.writeText(x.naam).catch(() => {}); window.alert(`"${x.naam}" is gekopieerd. Stuur het naar Claude om het recept (met verhaal en foto) toe te voegen.`); }} style={{ ...smallBtn, borderColor: BOTTLE, color: BOTTLE }}>Toevoegen aanvragen</button>
+            <button onClick={() => ignore("recept", x.sleutel)} style={smallBtn}>Negeren</button>
+          </div>
+        </div>
+      ))}
+
+      <div style={{ height: 14 }} />
+      <SectionLabel>Recepten die beter kunnen</SectionLabel>
+      {signals === null ? <p style={{ fontSize: 13.5, color: MUTED }}>Laden...</p> : signals.length === 0 ? (
+        <div style={{ ...card, fontSize: 13.5, color: MUTED }}>Nog geen signalen. Pas als minstens 3 mensen een recept maakten, telt het mee.</div>
+      ) : signals.map(x => (
+        <div key={x.recipe_id} style={card}>
+          <button onClick={() => onOpenRecipe(x.recipe.id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK }}>
+            {x.recipe.name} <ChevronRight size={15} color={MUTED} style={{ verticalAlign: "-2px" }} />
+          </button>
+          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{x.checkins}x gemaakt door {x.mensen} mensen · gemiddeld {formatRating(Number(x.gemiddeld))} / 5</div>
+          {x.issues.map(i => (
+            <div key={i.k} style={{ fontSize: 13.5, color: INK, marginTop: 8, lineHeight: 1.45 }}>
+              <strong>{i.count} van {x.n}</strong> vonden hem {SIGNAAL_TEKST[i.k][0]}. <span style={{ color: MUTED }}>Voorstel: {SIGNAAL_TEKST[i.k][1]}</span>
+            </div>
+          ))}
+          {x.issues.length === 0 && x.low && <div style={{ fontSize: 13.5, color: INK, marginTop: 8 }}>Lager gemiddeld cijfer dan de meeste recepten. Lees de check-ins voor de reden.</div>}
+          <div style={{ marginTop: 10 }}><button onClick={() => ignore("receptsignaal", x.recipe_id)} style={smallBtn}>Gezien, verbergen</button></div>
         </div>
       ))}
     </div>
@@ -4642,10 +4793,70 @@ function GuestFeedCard({ count, onCheckin, onRequireAccount }) {
   );
 }
 
+// "Voor jou": eerst wat gelijkgestemde gebruikers hoog gaven (idee 1), dan
+// wat bij je eigen smaak past (idee 5), en voor nieuwe gebruikers wat nu
+// populair is. Alleen recepten die je nog niet hebt ingecheckt.
+function useForYou(session, logboek, recipes, allIngredients, active) {
+  const [server, setServer] = useState({ similar: [], popular: [] });
+  const uid = session?.user?.id;
+  const checkinCount = logboek.length;
+  useEffect(() => {
+    if (!uid || !active) return;
+    let cancelled = false;
+    fetchRecommendations().then(res => { if (!cancelled) setServer(res); });
+    return () => { cancelled = true; };
+  }, [uid, active, checkinCount]);
+  return useMemo(() => {
+    const tried = new Set(logboek.map(e => findRecipeFor(e, recipes)?.id).filter(Boolean));
+    const byId = new Map(recipes.map(r => [r.id, r]));
+    const out = [];
+    const seen = new Set();
+    const add = (recipe, reason, kind) => {
+      if (!recipe || seen.has(recipe.id) || tried.has(recipe.id)) return;
+      seen.add(recipe.id); out.push({ recipe, reason, kind });
+    };
+    for (const s of server.similar) {
+      const because = byId.get(canonicalRecipeId(s.omdat));
+      add(byId.get(canonicalRecipeId(s.recipe_id)), because ? `Wie de ${because.name} lekker vond, vond deze ook top` : "Gelijkgestemden vonden deze top", "samen");
+    }
+    for (const m of tasteMatches(logboek, recipes, allIngredients, 6)) add(m.recipe, m.reason, "smaak");
+    for (const p of server.popular) add(byId.get(canonicalRecipeId(p.recipe_id)), `Populair: ${p.mensen} mensen checkten hem in`, "populair");
+    return out.slice(0, 8);
+  }, [server, logboek, recipes, allIngredients]);
+}
+
+function ForYouStrip({ items, allIngredients, onOpenRecipe }) {
+  return (
+    <div style={{ margin: "16px 0 4px" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: BOTTLE }}>Voor jou</span>
+        <span style={{ fontSize: 11.5, color: MUTED }}>wordt slimmer met elke check-in</span>
+      </div>
+      <div className="no-scrollbar" style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -20px", padding: "2px 20px 8px", WebkitOverflowScrolling: "touch" }}>
+        {items.map(({ recipe, reason }) => (
+          <button key={recipe.id} onClick={() => onOpenRecipe(recipe.id)} className="press-scale" style={{
+            flex: "0 0 auto", width: 150, display: "flex", flexDirection: "column", textAlign: "left", padding: 0, border: "none", borderRadius: 16, overflow: "hidden",
+            background: CREAM, boxShadow: "0 1px 2px rgba(43,38,32,0.06), 0 6px 16px -8px rgba(43,38,32,0.18)", cursor: "pointer", fontFamily: sans, color: INK,
+          }}>
+            <span style={{ display: "block", width: 150, height: 112, overflow: "hidden" }}>
+              <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={150} radius={0} />
+            </span>
+            <span style={{ display: "block", padding: "8px 10px 10px" }}>
+              <span style={{ display: "block", fontFamily: serif, fontSize: 15.5, fontWeight: 700, lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</span>
+              <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", fontSize: 11.5, color: MUTED, lineHeight: 1.3, marginTop: 3 }}>{reason}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush, highlightId, guest = false, onRequireAccount, onOpenOwnProfile }) {
   const [pushPromptHidden, setPushPromptHidden] = useStorage("thuisbar-push-prompt-weg", false);
   const [photoViewer, setPhotoViewer] = useState(null);
   const myId = session?.user?.id;
+  const forYou = useForYou(session, logboek, recipes, allIngredients, active);
   const { feed: friendFeed, milestones, friendProfiles, reload: reloadFriendFeed } = useFriendsFeed(session, active);
   const combinedFeed = useMemo(() => {
     const mine = logboek.map(e => ({ ...e, mine: true }));
@@ -5088,7 +5299,9 @@ function HomeTab({ session, profile, greeting, featuredRecipe, favoriteFamily, l
         </div>
       </div>
 
-      {featuredRecipe && (
+      {forYou.length >= 2 ? (
+        <ForYouStrip items={forYou} allIngredients={allIngredients} onOpenRecipe={onOpenRecipe} />
+      ) : featuredRecipe && (
         <button onClick={() => onOpenRecipe(featuredRecipe.id)} className="press-scale" style={{
           display: "flex", alignItems: "center", gap: 12, width: "100%", boxSizing: "border-box", margin: "14px 0 0", padding: 10,
           borderRadius: 16, border: "none", background: CREAM, boxShadow: "0 1px 2px rgba(43,38,32,0.06), 0 6px 16px -8px rgba(43,38,32,0.18)",
@@ -5764,7 +5977,13 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
   // Slim zoeken: merk, Engelse naam, spreektaal en tikfouten; plus merken
   // die je zelf aan een drank hebt gekoppeld.
   const [eigenMerken, setEigenMerken] = useStorage("thuisbar-eigen-merken", []);
-  const searchIndex = useMemo(() => buildIngredientIndex(allIngredients, eigenMerken), [allIngredients, eigenMerken]);
+  // Merken die meerdere gebruikers zelf aan dezelfde drank koppelden (idee 2).
+  const [sharedMerken, setSharedMerken] = useState([]);
+  useEffect(() => { fetchLearnedBrands().then(setSharedMerken); }, []);
+  const searchIndex = useMemo(() => {
+    const own = new Set(eigenMerken.map(m => normalizeTerm(m.term)));
+    return buildIngredientIndex(allIngredients, [...eigenMerken, ...sharedMerken.filter(m => !own.has(normalizeTerm(m.term)))]);
+  }, [allIngredients, eigenMerken, sharedMerken]);
   const matches = useMemo(() => (q ? searchIngredients(query, searchIndex).filter(m => cat === "Alles" || m.ing.cat === cat) : []), [q, query, searchIndex, cat]);
   const matchById = useMemo(() => new Map(matches.map(m => [m.ing.id, m])), [matches]);
   const visible = q ? matches.map(m => m.ing) : allIngredients.filter(i => cat === "Alles" || i.cat === cat);
@@ -5801,6 +6020,7 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
   const addAsKnown = (id) => {
     const term = query.trim();
     if (term && !eigenMerken.some(m => normalizeTerm(m.term) === normalizeTerm(term))) setEigenMerken([...eigenMerken, { term, id }]);
+    if (term) recordBrandLink(term, id);
     if (!voorraad.has(id)) toggle(id, term); else addedToast(id, term);
     setQuery("");
   };
@@ -7201,6 +7421,10 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
     return true;
   };
   const filtered = recipes.filter(r => matchesFilters(r, { family: familyFilter, glass: glassFilter, spirit: spiritFilter }));
+  // Zoekt iemand naar iets wat niet bestaat, dan komt dat (anoniem) op de
+  // lijst "Ontbrekende recepten" voor de beheerder (idee 3).
+  const nameHits = query.trim() ? recipes.filter(r => r.name.toLowerCase().includes(query.trim().toLowerCase())).length : -1;
+  useSearchMiss(query, nameHits);
   const scored = filtered.map(r => {
     const required = r.ingredients.filter(i => !i.optional);
     const missing = required.filter(i => !isOwned(i));
@@ -13374,6 +13598,7 @@ function CheckinSearchStep({ recipes, allIngredients, recent, initialQuery, onPi
     return [...starts, ...contains].slice(0, 50);
   }, [sorted, q]);
   const exact = q && sorted.some(r => r.name.toLowerCase() === q);
+  useSearchMiss(query, q ? results.length : -1);
   const pick = (name) => { inputRef.current?.blur(); onPick(name); };
   const row = (r) => (
     <button key={r.id} onClick={() => pick(r.name)} className="list-row-tap" style={{
@@ -14509,8 +14734,23 @@ function TasteDetails({ insights, logboek, recipes, allIngredients, onOpenRecipe
   ].filter(Boolean);
   const monthsWithData = insights.months.filter(m => m.count > 0).length;
   const spiritMeta = (label) => allIngredients.find(i => i.name === label && i.cat === "Sterke drank");
+  const matches = useMemo(() => tasteMatches(logboek, recipes, allIngredients, 3), [logboek, recipes, allIngredients]);
   return (
     <>
+      {matches.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <SectionLabel>Past bij je smaak</SectionLabel>
+          <div style={{ fontSize: 13, color: MUTED, margin: "-2px 0 10px" }}>{matches[0].reason}. Deze heb je nog niet geprobeerd:</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+            {matches.map(({ recipe }) => (
+              <button key={recipe.id} onClick={onOpenRecipe ? () => onOpenRecipe(recipe.id) : undefined} className="press-scale" style={{ padding: 0, border: "none", borderRadius: 14, overflow: "hidden", background: CREAM, boxShadow: SHADOW_CARD, cursor: onOpenRecipe ? "pointer" : "default", textAlign: "left", fontFamily: sans }}>
+                <span style={{ display: "block", aspectRatio: "1", overflow: "hidden" }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} size={120} radius={0} /></span>
+                <span style={{ display: "block", padding: "7px 8px 9px", fontFamily: serif, fontWeight: 700, fontSize: 13.5, color: INK, lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {favCards.length > 0 && (
         <div style={{ marginBottom: 22 }}>
           <SectionLabel>Favorieten</SectionLabel>

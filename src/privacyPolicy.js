@@ -2,7 +2,7 @@
 // Privacybeleid) en de losse webpagina /privacy (voor App Store Connect)
 // lezen allebei deze tekst. Wijzig je iets, pas dan ook BIJGEWERKT aan.
 
-export const PRIVACY_BIJGEWERKT = "12 oktober 2026";
+export const PRIVACY_BIJGEWERKT = "21 oktober 2026";
 
 // Vul hier het contactadres in; zolang het leeg is, verwijst de tekst naar
 // de App Store-vermelding.
@@ -19,6 +19,10 @@ export const PRIVACY_SECTIES = [
   {
     kop: "Waarvoor",
     tekst: "Uitsluitend om de app te laten werken: je eigen gegevens tonen, je voortgang bewaren, en — als je vrienden hebt toegevoegd — hun check-ins met je delen en andersom. Niets wordt gebruikt voor advertenties of doorverkocht aan derden. De app volgt je niet over andere apps of websites.",
+  },
+  {
+    kop: "Hoe de app slimmer wordt",
+    tekst: "De app leert van wat alle gebruikers samen doen, altijd anoniem: welke cocktails mensen met een vergelijkbare smaak hoog waarderen (voor de tips onder \"Voor jou\"), welke merknamen mensen aan een drank koppelen, en naar welke cocktails mensen zoeken die nog niet in de app staan. Daarbij worden alleen tellingen gebruikt; niemand kan zien wie wat deed, en een uitkomst telt pas mee als meerdere mensen hetzelfde deden. Je voorraad, favorieten, boodschappenlijst en cursusvoortgang worden bij je account bewaard, zodat ze op al je apparaten hetzelfde zijn.",
   },
   {
     kop: "Waar",
