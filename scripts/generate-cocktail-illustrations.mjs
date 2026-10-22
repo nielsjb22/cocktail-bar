@@ -82,11 +82,12 @@ function liquid(recipe) {
     if (ing.id === "creme_de_menthe" && !/groen|green|grasshopper/i.test(`${recipe.name} ${recipe.garnish || ""} ${recipe.method || ""}`)) c = ["#F1EEE2", 0.3, 0];
     const ml = ing.unit === "ml" ? ing.amount : ing.unit === "dash" ? 0.8 * ing.amount : 10 * (ing.amount || 1);
     const w = ml * c[1];
-    hex(c[0]).forEach((v, i) => { acc[i] += lin(v) * w; });
+    // Subtractief mengen (gewogen log-gemiddelde): een scheut cassis kleurt witte wijn echt rood.
+    hex(c[0]).forEach((v, i) => { acc[i] += Math.log(Math.max(1e-3, lin(v))) * w; });
     wSum += w; mlSum += ml; cloud += ml * c[2];
   }
   if (!wSum) return { color: "#E9E4CF", opacity: 0.5 };
-  const color = saturate(toHex(acc.map(v => unlin(v / wSum))), 1.22);
+  const color = saturate(toHex(acc.map(v => unlin(Math.exp(v / wSum)))), 1.22);
   const density = Math.min(1, wSum / mlSum / 1.1);
   const cl = Math.min(1, (cloud / mlSum) * 3);
   return { color, opacity: Math.min(0.96, 0.58 + 0.4 * Math.max(cl, density)) };
