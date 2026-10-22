@@ -84,10 +84,10 @@
     "id": "americano",
     "type": "cocktail",
     "bestand": "americano.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Americano_cocktail_at_Nightwood_Restaurant.jpg",
+    "maker": "Conrad and Peter",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "angel_face",
@@ -408,10 +408,10 @@
     "id": "bloody_mary",
     "type": "cocktail",
     "bestand": "bloody_mary.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/bloody-mary-in-a-glass-10888079/",
+    "maker": "Gilario Guevara",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "blue_hawaiian",
@@ -426,10 +426,10 @@
     "id": "blue_lagoon",
     "type": "cocktail",
     "bestand": "blue_lagoon.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/blue-lagoon-cocktail-8771967/",
+    "maker": "Lucas Albino",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "bobby_burns",
@@ -462,10 +462,10 @@
     "id": "boulevardier",
     "type": "cocktail",
     "bestand": "boulevardier.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Boulevardier_in_Baton_Rouge.jpg",
+    "maker": "Paul Lowry",
+    "licentie": "CC BY 4.0",
+    "niveau": "exact"
   },
   {
     "id": "bourbon_renewal",
@@ -876,10 +876,10 @@
     "id": "cuba_libre",
     "type": "cocktail",
     "bestand": "cuba_libre.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Cuba_Libre.jpg",
+    "maker": "Martin Belam (currybet)",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "cucumber_cooler",
@@ -903,10 +903,10 @@
     "id": "dark_n_stormy",
     "type": "cocktail",
     "bestand": "dark_n_stormy.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Dark_%27N%27_Stormy.jpg",
+    "maker": "Will Shenton",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "death_in_the_afternoon",
@@ -1191,10 +1191,10 @@
     "id": "french_connection",
     "type": "cocktail",
     "bestand": "french_connection.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:French_Connection_(cocktail).jpg",
+    "maker": "Arnaud 25",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "french_kiss",
@@ -1227,19 +1227,19 @@
     "id": "fuzzy_navel",
     "type": "cocktail",
     "bestand": "fuzzy_navel.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Fuzzy_navel_01.jpg",
+    "maker": "逃亡者 (ja:利用者:逃亡者)",
+    "licentie": "Public domain",
+    "niveau": "exact"
   },
   {
     "id": "garibaldi",
     "type": "cocktail",
     "bestand": "garibaldi.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Garibaldi_cocktail.jpg",
+    "maker": "BanjoZebra",
+    "licentie": "CC BY 4.0",
+    "niveau": "exact"
   },
   {
     "id": "georgia_julep",
@@ -1344,10 +1344,10 @@
     "id": "gin_tonic",
     "type": "cocktail",
     "bestand": "gin_tonic.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Flickr_-_cyclonebill_-_Gin_%5E_tonic.jpg",
+    "maker": "cyclonebill",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "glogg",
@@ -1362,10 +1362,10 @@
     "id": "godfather",
     "type": "cocktail",
     "bestand": "godfather.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Godfather_cocktail.jpg",
+    "maker": "Stuart Webster from Southampton, England",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "godmother",
@@ -1569,10 +1569,10 @@
     "id": "horses_neck",
     "type": "cocktail",
     "bestand": "horses_neck.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Horses_Neck.JPG",
+    "maker": "Cocktailmarler",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "hot_apple_toddy",
@@ -2118,10 +2118,10 @@
     "id": "long_island",
     "type": "cocktail",
     "bestand": "long_island.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Long_Island_Iced_Tea_with_Lemon_and_Straw.jpg",
+    "maker": "Alisdair McDiarmid from Glasgow, United Kingdom",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "los_altos",
@@ -2316,10 +2316,10 @@
     "id": "michelada",
     "type": "cocktail",
     "bestand": "michelada.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/mexican-restaurant-27365303/",
+    "maker": "Snappr",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "midori_sour",
@@ -2361,10 +2361,10 @@
     "id": "mojito",
     "type": "cocktail",
     "bestand": "mojito.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-mojito-cocktail-with-mint-garnish-37662775/",
+    "maker": "Milan Trninic",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "mojito_royale",
@@ -2406,10 +2406,10 @@
     "id": "moscow_mule",
     "type": "cocktail",
     "bestand": "moscow_mule.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/moscow-mule-drink-10779231/",
+    "maker": "Keegan Checks",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "mudslide",
@@ -2523,10 +2523,10 @@
     "id": "old_fashioned",
     "type": "cocktail",
     "bestand": "old_fashioned.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/classic-old-fashioned-cocktail-on-marble-surface-29707924/",
+    "maker": "Airam Dato-on",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "old_pal",
@@ -2595,10 +2595,10 @@
     "id": "paloma",
     "type": "cocktail",
     "bestand": "paloma.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Paloma_Cocktail2.jpg",
+    "maker": "Erich Wagner (www.eventografie.de)",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "paper_plane",
@@ -2685,10 +2685,10 @@
     "id": "pimms_cup",
     "type": "cocktail",
     "bestand": "pimms_cup.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Pimm_s-Cup-Nr-1-Cocktail.jpg",
+    "maker": "Charles Clavadetscher",
+    "licentie": "Public domain",
+    "niveau": "exact"
   },
   {
     "id": "pina_colada",
@@ -3009,10 +3009,10 @@
     "id": "roy_rogers",
     "type": "cocktail",
     "bestand": "roy_rogers.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Roy_Rogers_Drink.JPG",
+    "maker": "Johnl4th",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "rude_cosmopolitan",
@@ -3063,10 +3063,10 @@
     "id": "rusty_nail",
     "type": "cocktail",
     "bestand": "rusty_nail.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Rusty_Nail_a_cocktail_by_@tokenchick13_(16503594826).jpg",
+    "maker": "Brian Child",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "sake_martini",
@@ -3081,10 +3081,10 @@
     "id": "salty_dog",
     "type": "cocktail",
     "bestand": "salty_dog.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Salty_Dog.jpg",
+    "maker": "Momoji3",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "sangria",
@@ -3126,10 +3126,10 @@
     "id": "sazerac",
     "type": "cocktail",
     "bestand": "sazerac.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Sazerac_Cocktail.jpg",
+    "maker": "Will Shenton",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "sbagliato",
@@ -3162,10 +3162,10 @@
     "id": "screwdriver",
     "type": "cocktail",
     "bestand": "screwdriver.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:A_screwdriver_drink_with_ice.jpg",
+    "maker": "Gregory Karastergios",
+    "licentie": "CC0",
+    "niveau": "exact"
   },
   {
     "id": "sea_breeze",
@@ -3297,10 +3297,10 @@
     "id": "snowball",
     "type": "cocktail",
     "bestand": "snowball.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Snowball_cocktail.jpg",
+    "maker": "Cheryl Morgan",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "south_of_the_border",
@@ -3387,10 +3387,10 @@
     "id": "stinger",
     "type": "cocktail",
     "bestand": "stinger.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Stinger_Cocktail.jpg",
+    "maker": "Will Shenton",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "stone_fence",
@@ -3441,10 +3441,10 @@
     "id": "suffering_bastard",
     "type": "cocktail",
     "bestand": "suffering_bastard.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Suffering_Bastard_Cocktail.jpg",
+    "maker": "Will Shenton",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "surface_to_air",
@@ -3459,10 +3459,10 @@
     "id": "tequila_sunrise",
     "type": "cocktail",
     "bestand": "tequila_sunrise.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Tequila_Sunrise_(2411086102).jpg",
+    "maker": "Benjamin Nussbaum from Mödling, Österreich",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "texas_tea",
@@ -3630,10 +3630,10 @@
     "id": "vieux_carre",
     "type": "cocktail",
     "bestand": "vieux_carre.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Vieux_Carr%C3%A9_in_Tumbler.jpg",
+    "maker": "CocktailStevee",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "virgin_bellini",
@@ -3954,10 +3954,10 @@
     "id": "woo_woo",
     "type": "cocktail",
     "bestand": "woo_woo.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Woo_Woo.jpg",
+    "maker": "Stuart Webster from Southampton, England",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "woodstock",
