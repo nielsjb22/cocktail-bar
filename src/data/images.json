@@ -39,10 +39,10 @@
     "id": "air_mail",
     "type": "cocktail",
     "bestand": "air_mail.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Air_Mail_Cocktail.png",
+    "maker": "Matthias Friedlein (www.augustine-bar.de)",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "alaska",
@@ -192,10 +192,10 @@
     "id": "b52",
     "type": "cocktail",
     "bestand": "b52.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:B-52_Splash.jpg",
+    "maker": "JD",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "bacardi_cocktail",
@@ -543,10 +543,10 @@
     "id": "brooklyn",
     "type": "cocktail",
     "bestand": "brooklyn.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Brooklyn_cocktail,_The_Post_Brewing_Co,_Boulder_CO.jpg",
+    "maker": "John Phelan",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "brown_derby",
@@ -1587,10 +1587,10 @@
     "id": "hot_buttered_rum",
     "type": "cocktail",
     "bestand": "hot_buttered_rum.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Hot_buttered_rum_-_close-up.jpg",
+    "maker": "Jill Robidoux from beantown",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "hot_chocolate_brandy",
@@ -3180,10 +3180,10 @@
     "id": "seelbach",
     "type": "cocktail",
     "bestand": "seelbach.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Seelbach_(cocktail).png",
+    "maker": "Matthias Friedlein (www.augustine-bar.de)",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "separator",
@@ -3558,10 +3558,10 @@
     "id": "toronto",
     "type": "cocktail",
     "bestand": "toronto.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:The_Toronto_Cocktail_(13570423424).jpg",
+    "maker": "Farther Along",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "trinidad_sour",
