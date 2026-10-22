@@ -399,10 +399,10 @@
     "id": "bloody_maria",
     "type": "cocktail",
     "bestand": "bloody_maria.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Bloody_Maria_Cocktail.jpg",
+    "maker": "Catprisbrey",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "bloody_mary",
@@ -444,10 +444,10 @@
     "id": "bombardino",
     "type": "cocktail",
     "bestand": "bombardino.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Bombardino_(6561397095).jpg",
+    "maker": "Michela Simoncini from Firenze, Italy",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "bombay_punch",
@@ -525,10 +525,10 @@
     "id": "breakfast_martini",
     "type": "cocktail",
     "bestand": "breakfast_martini.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Breakfast_Martini.jpg",
+    "maker": "popvoid",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "bronx",
@@ -642,10 +642,10 @@
     "id": "campari_soda",
     "type": "cocktail",
     "bestand": "campari_soda.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-campari-soda-with-orange-slice-32443614/",
+    "maker": "Markus Winkler",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "campari_spritz",
@@ -678,19 +678,19 @@
     "id": "cantarito",
     "type": "cocktail",
     "bestand": "cantarito.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Cantarito_2025.jpg",
+    "maker": "मल्ल",
+    "licentie": "CC0",
+    "niveau": "exact"
   },
   {
     "id": "cape_codder",
     "type": "cocktail",
     "bestand": "cape_codder.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Cape_Codder,_Tommy_Doyles_Irish_Pub,_Hyannis_MA.jpg",
+    "maker": "John Phelan",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "carajillo",
@@ -768,10 +768,10 @@
     "id": "chilcano",
     "type": "cocktail",
     "bestand": "chilcano.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:China_Chilcano_-_Sarah_Stierch_-_2018_08.jpg",
+    "maker": "Missvain",
+    "licentie": "CC BY 4.0",
+    "niveau": "exact"
   },
   {
     "id": "chocolate_martini",
@@ -786,10 +786,10 @@
     "id": "chrysanthemum",
     "type": "cocktail",
     "bestand": "chrysanthemum.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Chrysanthemum_cocktail.jpg",
+    "maker": "popvoid",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "cinderella",
@@ -1137,10 +1137,10 @@
     "id": "fish_house_punch",
     "type": "cocktail",
     "bestand": "fish_house_punch.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Fish-house_punch.jpg",
+    "maker": "Liza",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "flora_dora",
@@ -1218,10 +1218,10 @@
     "id": "frose",
     "type": "cocktail",
     "bestand": "frose.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Fros%C3%A9_with_Lavender_Garnish.jpg",
+    "maker": "ProFlowers",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "fuzzy_navel",
@@ -1326,10 +1326,10 @@
     "id": "gin_rickey",
     "type": "cocktail",
     "bestand": "gin_rickey.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Gin_Rickey.jpg",
+    "maker": "Scott Veg",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "gin_sour",
@@ -1623,10 +1623,10 @@
     "id": "hugo",
     "type": "cocktail",
     "bestand": "hugo.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:15-09-26-RalfR-WLC-0059.jpg",
+    "maker": "Ralf Roletschek",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "hurricane",
@@ -1794,10 +1794,10 @@
     "id": "japanese_slipper",
     "type": "cocktail",
     "bestand": "japanese_slipper.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Japanese_slipper.jpg",
+    "maker": "Luigi Manzo",
+    "licentie": "CC BY 3.0",
+    "niveau": "exact"
   },
   {
     "id": "jasmine",
@@ -2649,10 +2649,10 @@
     "id": "pegu_club",
     "type": "cocktail",
     "bestand": "pegu_club.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Pegu_Club_cocktail.jpg",
+    "maker": "Paxsimius",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "penicillin",
@@ -2865,10 +2865,10 @@
     "id": "queens_park_swizzle",
     "type": "cocktail",
     "bestand": "queens_park_swizzle.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Trader_vic%27s_queens_park_swizzle.jpg",
+    "maker": "Krista",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "rabo_de_galo",
@@ -3090,10 +3090,10 @@
     "id": "sangria",
     "type": "cocktail",
     "bestand": "sangria.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-sangria-in-elegant-goblet-33997140/",
+    "maker": "Büşra Yurt",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "santiago",
@@ -3135,10 +3135,10 @@
     "id": "sbagliato",
     "type": "cocktail",
     "bestand": "sbagliato.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Negroni_sbagliato.jpg",
+    "maker": "Wine Dharma",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "scofflaw",
@@ -3369,10 +3369,10 @@
     "id": "spicy_margarita",
     "type": "cocktail",
     "bestand": "spicy_margarita.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-with-yellow-liquid-4958905/",
+    "maker": "ROMAN ODINTSOV",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "st_germain_spritz",
@@ -3414,10 +3414,10 @@
     "id": "strawberry_margarita",
     "type": "cocktail",
     "bestand": "strawberry_margarita.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/margarita-with-sliced-lemon-2480823/",
+    "maker": "Antonio Jose Meza Cárdenas",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "strawberry_mint_daiquiri",
@@ -3432,10 +3432,10 @@
     "id": "strawberry_mojito",
     "type": "cocktail",
     "bestand": "strawberry_mojito.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-cold-drink-in-glass-5817634/",
+    "maker": "Shameel mukkath",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "suffering_bastard",
@@ -3774,10 +3774,10 @@
     "id": "vodka_martini",
     "type": "cocktail",
     "bestand": "vodka_martini.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/a-glass-of-vodka-martini-7949031/",
+    "maker": "Mary White-Cornell",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "vodka_red_bull",
@@ -3801,10 +3801,10 @@
     "id": "vodka_tonic",
     "type": "cocktail",
     "bestand": "vodka_tonic.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Vodka_tonic.jpg",
+    "maker": "FIshstick at English Wikipedia",
+    "licentie": "Public domain",
+    "niveau": "exact"
   },
   {
     "id": "ward_8",
