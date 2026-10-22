@@ -2559,10 +2559,10 @@
     "id": "orange_blossom",
     "type": "cocktail",
     "bestand": "orange_blossom.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Orange_Blossom_Cocktail.jpg",
+    "maker": "eWikiLearner",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "orchard_collins",
@@ -3972,10 +3972,10 @@
     "id": "xyz_cocktail",
     "type": "cocktail",
     "bestand": "xyz_cocktail.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:XYZ(cocktail).jpg",
+    "maker": "eWikiLearner",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "yale_cocktail",
