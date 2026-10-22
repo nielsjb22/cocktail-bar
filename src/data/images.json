@@ -165,10 +165,10 @@
     "id": "arnold_palmer",
     "type": "cocktail",
     "bestand": "arnold_palmer.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:My_new_obsession_the_arnold_palmer!!!_(5184944881).jpg",
+    "maker": "irina slutsky from san francisco, USA",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "aviation",
@@ -615,10 +615,10 @@
     "id": "cairprioska",
     "type": "cocktail",
     "bestand": "cairprioska.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Caipirinha_on_Sailboat.JPG",
+    "maker": "Maurice Chédel",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "passend"
   },
   {
     "id": "calypso_coffee",
@@ -1020,10 +1020,10 @@
     "id": "egg_nog",
     "type": "cocktail",
     "bestand": "egg_nog.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Eggnog_at_Patrona_-_December_2023_-_Sarah_Stierch_01.jpg",
+    "maker": "Missvain",
+    "licentie": "CC BY 4.0",
+    "niveau": "exact"
   },
   {
     "id": "el_capitan",
@@ -2010,10 +2010,10 @@
     "id": "lemon_drop",
     "type": "cocktail",
     "bestand": "lemon_drop.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Lemon_Drop_cocktail_2.jpg",
+    "maker": "Scott Veg",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "lemon_lime_bitters",
@@ -2055,10 +2055,10 @@
     "id": "limonana",
     "type": "cocktail",
     "bestand": "limonana.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Ice_Lemon_(48063167602).jpg",
+    "maker": "Theo Crazzolara",
+    "licentie": "CC BY 2.0",
+    "niveau": "passend"
   },
   {
     "id": "limoncello_collins",
@@ -2883,10 +2883,10 @@
     "id": "ramos_fizz",
     "type": "cocktail",
     "bestand": "ramos_fizz.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:RamosGinFizzRooseveltNOLAJuly2009.JPG",
+    "maker": "Infrogmation of New Orleans",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "ranch_water",
@@ -3171,10 +3171,10 @@
     "id": "sea_breeze",
     "type": "cocktail",
     "bestand": "sea_breeze.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Cocktail_with_vodka.jpg",
+    "maker": "Wendy from Minneapolis, MN",
+    "licentie": "CC BY 2.0",
+    "niveau": "passend"
   },
   {
     "id": "seelbach",
@@ -3207,10 +3207,10 @@
     "id": "shandy",
     "type": "cocktail",
     "bestand": "shandy.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Shandy_@_Prospect_Hotel_%26_Cellars_20260227-122220.jpg",
+    "maker": "RegionVisitor90",
+    "licentie": "CC0",
+    "niveau": "exact"
   },
   {
     "id": "sherry_cobbler",
@@ -3855,10 +3855,10 @@
     "id": "whiskey_cola",
     "type": "cocktail",
     "bestand": "whiskey_cola.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Jack_%26_Coke_at_Encounter_Restaurant_%26_Bar_at_Los_Angeles_International_Airport_(11300470795).jpg",
+    "maker": "Sam Howzit",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "whiskey_smash",
