@@ -57,10 +57,10 @@
     "id": "alexander",
     "type": "cocktail",
     "bestand": "alexander.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Gin_Alexander_(4371721753).jpg",
+    "maker": "Robyn Jay from Sydney, Australia",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "algonquin",
@@ -777,10 +777,10 @@
     "id": "chocolate_martini",
     "type": "cocktail",
     "bestand": "chocolate_martini.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/cocktail-drink-in-a-martini-glass-in-close-up-photography-5335687/",
+    "maker": "bams awey",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "chrysanthemum",
@@ -858,10 +858,10 @@
     "id": "corpse_reviver_2",
     "type": "cocktail",
     "bestand": "corpse_reviver_2.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Corpse_Reviver_No._2.jpg",
+    "maker": "Farther Along",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "cosmopolitan",
@@ -1389,10 +1389,10 @@
     "id": "golden_cadillac",
     "type": "cocktail",
     "bestand": "golden_cadillac.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Golden_Cadillac.jpg",
+    "maker": "CocktailStevee",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "golden_dream",
@@ -1641,10 +1641,10 @@
     "id": "iba_tiki",
     "type": "cocktail",
     "bestand": "iba_tiki.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:IBA_Tiki.jpg",
+    "maker": "BanjoZebra",
+    "licentie": "CC BY 4.0",
+    "niveau": "exact"
   },
   {
     "id": "iceberg",
@@ -1713,10 +1713,10 @@
     "id": "irish_coffee",
     "type": "cocktail",
     "bestand": "irish_coffee.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-glass-of-liquor-9977091/",
+    "maker": "Oswald Yaw El-Saboath",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "italian_heather",
@@ -1839,10 +1839,10 @@
     "id": "jungle_bird",
     "type": "cocktail",
     "bestand": "jungle_bird.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Jungle_bird_cocktail.jpg",
+    "maker": "BanjoZebra",
+    "licentie": "CC BY 4.0",
+    "niveau": "exact"
   },
   {
     "id": "kalimotxo",
@@ -1983,10 +1983,10 @@
     "id": "last_word",
     "type": "cocktail",
     "bestand": "last_word.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Last_Word_cocktail_in_front_of_window.jpg",
+    "maker": "Kent Wang",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "lava_flow",
@@ -2352,10 +2352,10 @@
     "id": "missionarys_downfall",
     "type": "cocktail",
     "bestand": "missionarys_downfall.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Missionary%27s_downfall.jpg",
+    "maker": "BanjoZebra",
+    "licentie": "CC BY 4.0",
+    "niveau": "exact"
   },
   {
     "id": "mojito",
@@ -2415,10 +2415,10 @@
     "id": "mudslide",
     "type": "cocktail",
     "bestand": "mudslide.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Mudslide_cocktail_with_chocolate_-_tumbler_(Italy,_2023).png",
+    "maker": "Bruce The Deus",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "mulled_wine",
@@ -2433,19 +2433,19 @@
     "id": "naked_and_famous",
     "type": "cocktail",
     "bestand": "naked_and_famous.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Naked_and_Famous_cocktail.jpg",
+    "maker": "Rascalisimo",
+    "licentie": "CC BY 4.0",
+    "niveau": "exact"
   },
   {
     "id": "navy_grog",
     "type": "cocktail",
     "bestand": "navy_grog.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Navy_Grog.jpg",
+    "maker": "Taken by Hayford Peirce. Photoshopped by David M. Alexander.",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "negroni",
@@ -2604,10 +2604,10 @@
     "id": "paper_plane",
     "type": "cocktail",
     "bestand": "paper_plane.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Taub_Famiy_Outpost_-_June_9_2021_-_Sarah_Stierch.jpg",
+    "maker": "Missvain",
+    "licentie": "CC BY 4.0",
+    "niveau": "exact"
   },
   {
     "id": "paradise",
@@ -2658,10 +2658,10 @@
     "id": "penicillin",
     "type": "cocktail",
     "bestand": "penicillin.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:The_Spotted_Owl_-_Penicillin.jpg",
+    "maker": "Edsel Little",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "perfect_lady",
@@ -3918,10 +3918,10 @@
     "id": "white_russian",
     "type": "cocktail",
     "bestand": "white_russian.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:White_russian_(6776405633).jpg",
+    "maker": "cyclonebill from Copenhagen, Denmark",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "white_wine_spritzer",
@@ -3990,10 +3990,10 @@
     "id": "zombie",
     "type": "cocktail",
     "bestand": "zombie.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Zombie_Cocktail.jpg",
+    "maker": "Matthias Friedlein (www.augustine-bar.de)",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "absinthe",
