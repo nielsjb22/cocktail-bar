@@ -3798,7 +3798,7 @@ function PhotoCreditsScreen() {
     return INGREDIENTS.find((i) => i.id === id)?.name || id;
   };
   const credited = imageCatalog
-    .filter((e) => e.bestand && (e.maker || e.licentie))
+    .filter((e) => e.bestand && e.niveau !== "illustratie" && (e.maker || e.licentie))
     .map((e) => ({ ...e, name: nameFor(e.type, e.id) }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -7529,6 +7529,8 @@ const RECIPE_PHOTO_FILTER = "sepia(0.16) saturate(1.12) brightness(1.01) contras
 // bestand voor dat id heeft.
 function ItemImage({ id, type, photoUrl, size = 50, radius = "50%", tint, filter, fallback }) {
   const src = localItemImageUrl(type, id) || photoUrl || null;
+  // Eigen tekeningen (niveau "illustratie") krijgen geen foto-filter.
+  if (IMAGE_CATALOG_BY_KEY.get(`${type}:${id}`)?.niveau === "illustratie") filter = undefined;
   if (!src) return fallback;
   return (
     <div style={{
