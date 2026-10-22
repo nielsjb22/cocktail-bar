@@ -318,10 +318,10 @@
     "id": "between_the_sheets",
     "type": "cocktail",
     "bestand": "between_the_sheets.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Between_The_Sheets_Cocktail.jpg",
+    "maker": "Zach",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "bicicletta",
@@ -390,10 +390,10 @@
     "id": "blood_and_sand",
     "type": "cocktail",
     "bestand": "blood_and_sand.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:15-09-26-RalfR-WLC-0035.jpg",
+    "maker": "Ralf Roletschek",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "bloody_maria",
@@ -489,10 +489,10 @@
     "id": "brandy_alexander",
     "type": "cocktail",
     "bestand": "brandy_alexander.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Brandy_alexander.jpg",
+    "maker": "Jason Lam",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "brandy_crusta",
@@ -561,10 +561,10 @@
     "id": "bucks_fizz",
     "type": "cocktail",
     "bestand": "bucks_fizz.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Time_for_Buck%27s_Fizz..._-christmas_-startingearly_(8306877194).jpg",
+    "maker": "Rob Lawton from Preston, United Kingdom",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "bushwacker",
@@ -669,10 +669,10 @@
     "id": "canchanchara",
     "type": "cocktail",
     "bestand": "canchanchara.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Canchanchara,_Trinidad.jpg",
+    "maker": "Raf24",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "cantarito",
@@ -696,10 +696,10 @@
     "id": "carajillo",
     "type": "cocktail",
     "bestand": "carajillo.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Carajillo_quemado,_La_Vall_d%27Alba,_Castell%C3%B3n.jpg",
+    "maker": "Juan Emilio Prades Bel",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "cardinale",
@@ -894,10 +894,10 @@
     "id": "daiquiri",
     "type": "cocktail",
     "bestand": "daiquiri.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Daiquiri-classic.jpg",
+    "maker": "Jay Hung",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "dark_n_stormy",
@@ -1209,10 +1209,10 @@
     "id": "french_martini",
     "type": "cocktail",
     "bestand": "french_martini.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:French_Martini.jpg",
+    "maker": "Keithchief",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "frose",
@@ -1308,10 +1308,10 @@
     "id": "gin_fizz",
     "type": "cocktail",
     "bestand": "gin_fizz.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:%E4%B8%80%E6%9D%AF%E8%B0%83%E5%88%B6%E5%A5%BD%E7%9A%84%E9%87%91%E8%8F%B2%E5%A3%AB.jpg",
+    "maker": "XXXOTC",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "gin_gin_mule",
@@ -1452,10 +1452,10 @@
     "id": "grasshopper",
     "type": "cocktail",
     "bestand": "grasshopper.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:15-09-26-RalfR-WLC-0128.jpg",
+    "maker": "Ralf Roletschek",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "greenpoint",
@@ -1632,10 +1632,10 @@
     "id": "hurricane",
     "type": "cocktail",
     "bestand": "hurricane.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Hurricanes_at_Onizim,_Lexington,_Kentucky.jpg",
+    "maker": "Phil Denton",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "iba_tiki",
@@ -1740,10 +1740,10 @@
     "id": "jack_rose",
     "type": "cocktail",
     "bestand": "jack_rose.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:15-09-26-RalfR-WLC-0261.jpg",
+    "maker": "Ralf Roletschek",
+    "licentie": "CC BY-SA 3.0",
+    "niveau": "exact"
   },
   {
     "id": "jaffa",
@@ -2325,10 +2325,10 @@
     "id": "midori_sour",
     "type": "cocktail",
     "bestand": "midori_sour.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Midori_Sour_(3804267959).jpg",
+    "maker": "Shoshanah",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "mimosa",
@@ -2478,10 +2478,10 @@
     "id": "new_york_sour",
     "type": "cocktail",
     "bestand": "new_york_sour.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:New_York_Sour_01.jpg",
+    "maker": "Arnaud 25",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "nuclear_daiquiri",
@@ -2820,10 +2820,10 @@
     "id": "porto_flip",
     "type": "cocktail",
     "bestand": "porto_flip.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Porto_Flip.jpg",
+    "maker": "Stuart Webster",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "portonic",
@@ -3198,10 +3198,10 @@
     "id": "sex_on_the_beach",
     "type": "cocktail",
     "bestand": "sex_on_the_beach.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Sex_On_The_Beach.jpg",
+    "maker": "Stuart Webster from Southampton, England",
+    "licentie": "CC BY 2.0",
+    "niveau": "exact"
   },
   {
     "id": "shandy",
@@ -3225,10 +3225,10 @@
     "id": "shirley_temple",
     "type": "cocktail",
     "bestand": "shirley_temple.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Shirley_Temple_(16426317324).jpg",
+    "maker": "Marie from Malang, East Java, Indonesia",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "sidecar",
@@ -3261,10 +3261,10 @@
     "id": "singapore_sling",
     "type": "cocktail",
     "bestand": "singapore_sling.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Singapore_Sling_1.jpg",
+    "maker": "Achim Schleuning (E-Mail: comander02_de@yahoo.de)",
+    "licentie": "CC BY-SA 3.0 de",
+    "niveau": "exact"
   },
   {
     "id": "sloe_gin_fizz",
@@ -3486,19 +3486,19 @@
     "id": "ti_punch",
     "type": "cocktail",
     "bestand": "ti_punch.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Ti-punch_003.jpg",
+    "maker": "Arnaud 25",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "tinto_de_verano",
     "type": "cocktail",
     "bestand": "tinto_de_verano.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:Tinto_de_Verano_2.jpg",
+    "maker": "Xemenendura",
+    "licentie": "CC BY-SA 4.0",
+    "niveau": "exact"
   },
   {
     "id": "tipperary",
@@ -3567,10 +3567,10 @@
     "id": "trinidad_sour",
     "type": "cocktail",
     "bestand": "trinidad_sour.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://commons.wikimedia.org/wiki/File:VTR_-_Trinidad_Sour_(18045674468).jpg",
+    "maker": "Edsel Little",
+    "licentie": "CC BY-SA 2.0",
+    "niveau": "exact"
   },
   {
     "id": "tropical_punch",
