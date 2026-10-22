@@ -3,10 +3,10 @@
     "id": "abc_cocktail",
     "type": "cocktail",
     "bestand": "abc_cocktail.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/elegant-glass-of-whiskey-on-wooden-surface-28559493/",
+    "maker": "Jonathan Borba",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "adonis",
@@ -138,10 +138,10 @@
     "id": "apple_nojito",
     "type": "cocktail",
     "bestand": "apple_nojito.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-mint-mojito-cocktail-on-wooden-table-36869510/",
+    "maker": "Mohamed Olwy",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "applejack_sour",
@@ -210,10 +210,10 @@
     "id": "bahama_mama",
     "type": "cocktail",
     "bestand": "bahama_mama.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/photo-of-a-cocktail-with-an-orange-slice-10986584/",
+    "maker": "Shameel mukkath",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "baileys_coffee",
@@ -273,10 +273,10 @@
     "id": "bb",
     "type": "cocktail",
     "bestand": "bb.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/elegant-whiskey-glass-on-wooden-table-29463707/",
+    "maker": "Marcelo Verfe",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bees_knees",
@@ -327,10 +327,10 @@
     "id": "bicicletta",
     "type": "cocktail",
     "bestand": "bicicletta.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/red-drink-with-ice-on-a-wine-glass-11912756/",
+    "maker": "Natasha Filippovskaya",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bijou",
@@ -363,10 +363,10 @@
     "id": "black_russian",
     "type": "cocktail",
     "bestand": "black_russian.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/classic-cocktail-in-elegant-glass-on-wooden-table-33727405/",
+    "maker": "Sertaç",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "black_velvet",
@@ -381,10 +381,10 @@
     "id": "blinker",
     "type": "cocktail",
     "bestand": "blinker.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/glass-of-fruit-cocktail-27007296/",
+    "maker": "Sylwester Ficek",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "blood_and_sand",
@@ -417,10 +417,10 @@
     "id": "blue_hawaiian",
     "type": "cocktail",
     "bestand": "blue_hawaiian.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/blue-cocktail-with-ice-19120125/",
+    "maker": "The Castlebar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "blue_lagoon",
@@ -471,10 +471,10 @@
     "id": "bourbon_renewal",
     "type": "cocktail",
     "bestand": "bourbon_renewal.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/vibrant-red-drink-with-lemon-garnish-on-bold-background-35707782/",
+    "maker": "Stefanie Jockschat",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "bramble",
@@ -633,10 +633,10 @@
     "id": "camomile_collins",
     "type": "cocktail",
     "bestand": "camomile_collins.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/lemon-beverage-with-ice-cubes-12433992/",
+    "maker": "Vitaly Gorbachev",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "campari_soda",
@@ -651,19 +651,19 @@
     "id": "campari_spritz",
     "type": "cocktail",
     "bestand": "campari_spritz.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-red-drink-with-slice-of-orange-11912750/",
+    "maker": "Natasha Filippovskaya",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "canadian_daisy",
     "type": "cocktail",
     "bestand": "canadian_daisy.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/red-glass-with-garnished-beverage-2842876/",
+    "maker": "Nitin Sharma",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "canchanchara",
@@ -732,10 +732,10 @@
     "id": "champagne_julep",
     "type": "cocktail",
     "bestand": "champagne_julep.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/ice-and-straw-in-cocktail-in-silver-cup-18354022/",
+    "maker": "Stephen Leonardi",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "champs_elysees",
@@ -750,10 +750,10 @@
     "id": "chartreuse_swizzle",
     "type": "cocktail",
     "bestand": "chartreuse_swizzle.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/green-cocktail-served-in-a-bar-17585012/",
+    "maker": "Doğu Tuncer",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "chi_chi",
@@ -795,10 +795,10 @@
     "id": "cinderella",
     "type": "cocktail",
     "bestand": "cinderella.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/orange-juice-in-clear-drinking-glass-5609237/",
+    "maker": "Sandro Alvarez",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "clover_club",
@@ -885,10 +885,10 @@
     "id": "cucumber_cooler",
     "type": "cocktail",
     "bestand": "cucumber_cooler.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/photo-of-a-mojito-drink-on-a-wooden-surface-7376780/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "daiquiri",
@@ -930,19 +930,19 @@
     "id": "desert_daisy",
     "type": "cocktail",
     "bestand": "desert_daisy.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/vibrant-red-cocktail-with-citrus-garnish-38594557/",
+    "maker": "Amine Kübranur Çakıroğlu",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "diamondback",
     "type": "cocktail",
     "bestand": "diamondback.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-a-cocktail-7493957/",
+    "maker": "ROMAN ODINTSOV",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "dirty_banana",
@@ -1110,10 +1110,10 @@
     "id": "fernandito",
     "type": "cocktail",
     "bestand": "fernandito.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-cola-with-lime-on-wooden-table-34519683/",
+    "maker": "Luna Joie",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "final_ward",
@@ -1146,10 +1146,10 @@
     "id": "flora_dora",
     "type": "cocktail",
     "bestand": "flora_dora.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-cocktail-drink-9454713/",
+    "maker": "Yusril Khaerul Muslim",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "fog_cutter",
@@ -1164,10 +1164,10 @@
     "id": "french_75",
     "type": "cocktail",
     "bestand": "french_75.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-a-glass-of-champagne-19118849/",
+    "maker": "The Castlebar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "french_76",
@@ -1371,19 +1371,19 @@
     "id": "godmother",
     "type": "cocktail",
     "bestand": "godmother.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/chilled-whiskey-glass-on-artistic-table-36280289/",
+    "maker": "🇻🇳🇻🇳Nguyễn Tiến Thịnh 🇻🇳🇻🇳",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gold_rush",
     "type": "cocktail",
     "bestand": "gold_rush.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-lemon-drink-in-elegant-glass-34486573/",
+    "maker": "Omar Tapia",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "golden_cadillac",
@@ -1407,10 +1407,10 @@
     "id": "golden_sour",
     "type": "cocktail",
     "bestand": "golden_sour.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-glass-of-liquor-7493996/",
+    "maker": "ROMAN ODINTSOV",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "gorgeous_grace",
@@ -1425,10 +1425,10 @@
     "id": "grand_margarita",
     "type": "cocktail",
     "bestand": "grand_margarita.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-a-cocktail-drink-with-a-slice-of-lime-7841398/",
+    "maker": "Dasha Klimova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "grapefruit_tonic",
@@ -1578,10 +1578,10 @@
     "id": "hot_apple_toddy",
     "type": "cocktail",
     "bestand": "hot_apple_toddy.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/a-close-up-shot-of-a-hot-toddy-cocktail-5310101/",
+    "maker": "Janis Kaugurs",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "hot_buttered_rum",
@@ -1605,10 +1605,10 @@
     "id": "hot_toddy",
     "type": "cocktail",
     "bestand": "hot_toddy.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/a-glass-with-lemon-6111890/",
+    "maker": "Piotr Arnoldes",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "hotel_nacional",
@@ -1776,10 +1776,10 @@
     "id": "jamaican_mule",
     "type": "cocktail",
     "bestand": "jamaican_mule.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/ice-in-decorative-cup-19120333/",
+    "maker": "The Castlebar",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "japanese_cocktail",
@@ -1848,10 +1848,10 @@
     "id": "kalimotxo",
     "type": "cocktail",
     "bestand": "kalimotxo.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/elegant-glass-of-red-cocktail-with-citrus-garnish-37267525/",
+    "maker": "Mike Patecatl",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kamikaze",
@@ -1884,10 +1884,10 @@
     "id": "kentucky_river",
     "type": "cocktail",
     "bestand": "kentucky_river.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/elegant-crystal-glass-of-whiskey-with-ice-36219653/",
+    "maker": "Ryan Carignan",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "keoke_coffee",
@@ -1911,10 +1911,10 @@
     "id": "kingston_negroni",
     "type": "cocktail",
     "bestand": "kingston_negroni.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-shot-of-a-glass-of-negroni-14432038/",
+    "maker": "Tim Durand",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kir",
@@ -1956,19 +1956,19 @@
     "id": "kiwi_cooler",
     "type": "cocktail",
     "bestand": "kiwi_cooler.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-drink-2835341/",
+    "maker": "George Shervashidze",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kiwi_smash",
     "type": "cocktail",
     "bestand": "kiwi_smash.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-a-drink-with-green-leaves-12266611/",
+    "maker": "Nadin Sh",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "kurant_blush",
@@ -2046,10 +2046,10 @@
     "id": "limon_mojito",
     "type": "cocktail",
     "bestand": "limon_mojito.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-of-mojito-with-mint-leaves-and-sliced-lime-11009215/",
+    "maker": "Shameel mukkath",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "limonana",
@@ -2091,10 +2091,10 @@
     "id": "little_italy",
     "type": "cocktail",
     "bestand": "little_italy.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-in-coupe-glass-on-wooden-table-34989161/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "lolas_punch",
@@ -2298,19 +2298,19 @@
     "id": "mezcal_mule",
     "type": "cocktail",
     "bestand": "mezcal_mule.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/mug-with-cold-drink-25951398/",
+    "maker": "Luis Yañez",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "mezcal_negroni",
     "type": "cocktail",
     "bestand": "mezcal_negroni.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/a-glass-of-red-wine-with-an-orange-slice-on-top-27851286/",
+    "maker": "Marcelo Verfe",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "michelada",
@@ -2379,10 +2379,10 @@
     "id": "monkey_gland",
     "type": "cocktail",
     "bestand": "monkey_gland.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/drink-in-glass-7493943/",
+    "maker": "ROMAN ODINTSOV",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "monte_carlo",
@@ -2424,10 +2424,10 @@
     "id": "mulled_wine",
     "type": "cocktail",
     "bestand": "mulled_wine.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/mulled-wine-with-oranges-and-cinnamon-in-glass-on-table-10267952/",
+    "maker": "Nikita Krasnov",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "naked_and_famous",
@@ -2469,10 +2469,10 @@
     "id": "new_orleans_dry_martini",
     "type": "cocktail",
     "bestand": "new_orleans_dry_martini.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/yellow-drink-in-a-martini-glass-16444387/",
+    "maker": "Dextar Studio ™",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "new_york_sour",
@@ -2487,10 +2487,10 @@
     "id": "nuclear_daiquiri",
     "type": "cocktail",
     "bestand": "nuclear_daiquiri.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/clear-wine-glass-with-green-liquid-8955971/",
+    "maker": "cottonbro studio",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "nutty_irishman",
@@ -2505,10 +2505,10 @@
     "id": "oaxaca_old_fashioned",
     "type": "cocktail",
     "bestand": "oaxaca_old_fashioned.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/whiskey-with-ice-cubes-and-orange-peel-in-lowball-glass-19252758/",
+    "maker": "Nadin Sh",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "old_cuban",
@@ -2532,10 +2532,10 @@
     "id": "old_pal",
     "type": "cocktail",
     "bestand": "old_pal.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/cocktail-drink-with-ice-14387131/",
+    "maker": "Tim Durand",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "on_the_lawn",
@@ -2631,10 +2631,10 @@
     "id": "passion_fruit_margarita",
     "type": "cocktail",
     "bestand": "passion_fruit_margarita.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/photo-of-a-person-s-hand-holding-an-orange-drink-7377065/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "passoa_jus",
@@ -2676,10 +2676,10 @@
     "id": "perfect_martini",
     "type": "cocktail",
     "bestand": "perfect_martini.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/classic-martini-cocktail-with-olives-on-a-wooden-table-36189467/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pimms_cup",
@@ -2721,10 +2721,10 @@
     "id": "pink_sangria",
     "type": "cocktail",
     "bestand": "pink_sangria.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/orange-slices-on-cocktails-13020725/",
+    "maker": "Jonas F",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "pink_squirrel",
@@ -2847,10 +2847,10 @@
     "id": "pussyfoot",
     "type": "cocktail",
     "bestand": "pussyfoot.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/cocktail-in-clear-glass-7493947/",
+    "maker": "ROMAN ODINTSOV",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "queen_mother_cocktail",
@@ -2874,10 +2874,10 @@
     "id": "rabo_de_galo",
     "type": "cocktail",
     "bestand": "rabo_de_galo.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/clear-drinking-glass-on-a-coaster-10610322/",
+    "maker": "Vivita Malite",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "ramos_fizz",
@@ -2928,19 +2928,19 @@
     "id": "red_snapper",
     "type": "cocktail",
     "bestand": "red_snapper.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-red-cocktail-on-marble-bar-counter-36630823/",
+    "maker": "Mohamed Olwy",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "remember_the_maine",
     "type": "cocktail",
     "bestand": "remember_the_maine.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-of-drink-20351624/",
+    "maker": "Matias Mango",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "revolver",
@@ -2982,28 +2982,28 @@
     "id": "rose_spritz",
     "type": "cocktail",
     "bestand": "rose_spritz.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/a-glass-of-wine-on-a-table-with-a-view-27733090/",
+    "maker": "Kuiyibo Campos",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rosita",
     "type": "cocktail",
     "bestand": "rosita.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/red-cold-drink-in-glass-16653666/",
+    "maker": "Evelyn Vilano",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rossini",
     "type": "cocktail",
     "bestand": "rossini.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/wineglass-on-pink-background-5713788/",
+    "maker": "https://kaboompics.com/",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "roy_rogers",
@@ -3027,10 +3027,10 @@
     "id": "rum_old_fashioned",
     "type": "cocktail",
     "bestand": "rum_old_fashioned.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/drink-with-lemon-15374147/",
+    "maker": "Alex Hoces",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "rum_runner",
@@ -3045,10 +3045,10 @@
     "id": "rum_sour",
     "type": "cocktail",
     "bestand": "rum_sour.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-on-a-sunlit-terrace-34140556/",
+    "maker": "Vera Rishkevich",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "russian_spring_punch",
@@ -3072,10 +3072,10 @@
     "id": "sake_martini",
     "type": "cocktail",
     "bestand": "sake_martini.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-green-cucumber-cocktail-in-a-glass-35087290/",
+    "maker": "Gerardo Pantoja",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "salty_dog",
@@ -3279,10 +3279,10 @@
     "id": "sloe_gin_sour",
     "type": "cocktail",
     "bestand": "sloe_gin_sour.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-cocktail-glass-with-red-liquid-8084696/",
+    "maker": "Ivan S",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "snakebite",
@@ -3342,10 +3342,10 @@
     "id": "spiced_mule",
     "type": "cocktail",
     "bestand": "spiced_mule.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/mojito-on-a-cup-with-mint-leaves-and-lemon-slice-9197430/",
+    "maker": "Funmiphotography A",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "spiced_rum_cola",
@@ -3396,19 +3396,19 @@
     "id": "stone_fence",
     "type": "cocktail",
     "bestand": "stone_fence.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/glass-of-tasty-cocktail-placed-on-table-6794622/",
+    "maker": "Piotr Arnoldes",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "strawberry_lemonade",
     "type": "cocktail",
     "bestand": "strawberry_lemonade.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/fresh-strawberry-juice-in-clear-drinking-glass-5668184/",
+    "maker": "Denys Gromov",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "strawberry_margarita",
@@ -3423,10 +3423,10 @@
     "id": "strawberry_mint_daiquiri",
     "type": "cocktail",
     "bestand": "strawberry_mint_daiquiri.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/strawberry-cocktails-on-a-wet-tray-8105065/",
+    "maker": "solod_sha Content creator",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "strawberry_mojito",
@@ -3549,10 +3549,10 @@
     "id": "tommys_margarita",
     "type": "cocktail",
     "bestand": "tommys_margarita.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-lime-cocktail-with-bowl-of-limes-28539910/",
+    "maker": "Marcelo Verfe",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "toronto",
@@ -3603,10 +3603,10 @@
     "id": "valentine_martini",
     "type": "cocktail",
     "bestand": "valentine_martini.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/a-red-drink-in-a-glass-17010906/",
+    "maker": "Dmitriy Tarasenko",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "vanilla_fix",
@@ -3693,10 +3693,10 @@
     "id": "virgin_mojito",
     "type": "cocktail",
     "bestand": "virgin_mojito.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/a-glass-of-mojito-with-mint-leaves-on-top-27367751/",
+    "maker": "Szymon Shields",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "virgin_mule",
@@ -3720,10 +3720,10 @@
     "id": "virgin_pina_colada",
     "type": "cocktail",
     "bestand": "virgin_pina_colada.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/a-glass-of-pina-colada-10986577/",
+    "maker": "Shameel mukkath",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "virgin_sex_on_the_beach",
@@ -3747,10 +3747,10 @@
     "id": "vodka_bitter_lemon",
     "type": "cocktail",
     "bestand": "vodka_bitter_lemon.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-lemon-mint-iced-drink-on-marble-36825771/",
+    "maker": "mehmetakifarts",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "vodka_gibson",
@@ -3837,10 +3837,10 @@
     "id": "watermelon_cooler",
     "type": "cocktail",
     "bestand": "watermelon_cooler.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/refreshing-summer-cocktails-with-mint-and-ice-33698244/",
+    "maker": "Sergei Starostin",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "watermelon_punch",
@@ -3864,10 +3864,10 @@
     "id": "whiskey_smash",
     "type": "cocktail",
     "bestand": "whiskey_smash.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/cozy-cocktail-evening-in-urban-bar-setting-36802715/",
+    "maker": "Thuyen Vu",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "whiskey_sour",
@@ -3927,10 +3927,10 @@
     "id": "white_wine_spritzer",
     "type": "cocktail",
     "bestand": "white_wine_spritzer.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/a-clear-wine-glass-with-sliced-lemon-on-the-table-7376786/",
+    "maker": "Arina Krasnikova",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "widows_kiss",
@@ -3963,10 +3963,10 @@
     "id": "woodstock",
     "type": "cocktail",
     "bestand": "woodstock.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/elegant-cocktail-in-crystal-glass-with-garnish-28559496/",
+    "maker": "Jonathan Borba",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "xyz_cocktail",
@@ -3981,10 +3981,10 @@
     "id": "yale_cocktail",
     "type": "cocktail",
     "bestand": "yale_cocktail.webp",
-    "bronUrl": "",
-    "maker": "",
-    "licentie": "",
-    "niveau": "illustratie"
+    "bronUrl": "https://www.pexels.com/photo/blue-liquid-in-clear-wine-glass-12430937/",
+    "maker": "Valeria Boltneva",
+    "licentie": "Pexels License",
+    "niveau": "passend"
   },
   {
     "id": "zombie",
