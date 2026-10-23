@@ -87,8 +87,9 @@ const CHAT_SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        properties: { id: { type: "string" } },
-        required: ["id"],
+        // waarom = 1-2 zinnen per cocktail: waarom die bij deze gebruiker past.
+        properties: { id: { type: "string" }, waarom: { type: "string" } },
+        required: ["id", "waarom"],
         additionalProperties: false,
       },
     },
@@ -105,12 +106,14 @@ async function chat(body: Record<string, unknown>) {
   const messages: Anthropic.MessageParam[] = rawMessages
     .map((m) => m as Record<string, unknown>)
     .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
-    .map((m) => ({ role: m.role as "user" | "assistant", content: clip(m.content, 1000) }));
+    .map((m) => ({ role: m.role as "user" | "assistant", content: clip(m.content, m.role === "assistant" ? 2500 : 1000) }));
   while (messages.length && messages[0].role !== "user") messages.shift();
   if (!messages.length || messages[messages.length - 1].role !== "user") throw new InvalidInput();
 
   const voorraad = (Array.isArray(ctx.voorraad) ? ctx.voorraad : []).slice(0, 250).map((v) => clip(v, 60)).filter(Boolean);
-  const kandidaten = (Array.isArray(ctx.kandidaten) ? ctx.kandidaten : []).slice(0, 160).map((v) => clip(v, 220)).filter(Boolean);
+  const kandidaten = (Array.isArray(ctx.kandidaten) ? ctx.kandidaten : []).slice(0, 200).map((v) => clip(v, 360)).filter(Boolean);
+  // Wat de bartender de laatste tijd al voorstelde (ook in eerdere gesprekken), om herhaling te voorkomen.
+  const eerder = (Array.isArray(ctx.eerderVoorgesteld) ? ctx.eerderVoorgesteld : []).slice(0, 30).map((v) => clip(v, 80)).filter(Boolean);
   const smaak = clip(ctx.smaak, 300);
   // De gebruiker kiest zelf of de bartender naar de voorraad mag kijken.
   const metVoorraad = ctx.voorraadGebruiken !== false;
@@ -120,8 +123,13 @@ async function chat(body: Record<string, unknown>) {
   const moment = clip(ctx.moment, 80);
 
   const system = [
-    "Je bent de persoonlijke bartender in de app Mijn Thuisbar. Je praat Nederlands, warm en kort, zoals een goede bartender die zijn vaste gast kent: hooguit 3 korte zinnen, geen opsommingen, geen emoji.",
-    "Je raadt ALLEEN recepten aan uit de lijst KANDIDATEN hieronder, met hun exacte id. Verzin nooit zelf recepten, hoeveelheden of bereidingen: die staan al in de app. Noem hooguit 3 recepten.",
+    "Je bent de persoonlijke bartender in de app Mijn Thuisbar. Je praat Nederlands, warm en persoonlijk, zoals een goede bartender die zijn vaste gast kent. Geen emoji en geen opsommingstekens in antwoord.",
+    "Je raadt ALLEEN recepten aan uit de lijst KANDIDATEN hieronder, met hun exacte id. Verzin nooit zelf recepten, hoeveelheden of bereidingen: die staan al in de app.",
+    "",
+    "AANTAL: geef standaard 3 recepten. Vraagt de gebruiker om een aantal (bijv. 'geef me 5 voorbeelden'), geef dan precies dat aantal, met een maximum van 8. Vraagt de gebruiker om één tip, geef er één.",
+    "UITLEG PER COCKTAIL: geef bij elk recept in waarom 1 of 2 zinnen die echt over deze cocktail en deze gebruiker gaan: hoe hij smaakt (bijv. fris, bitter, kruidig, romig), wat de hoofdingrediënten doen, en waarom hij past bij de smaak, favorieten of de vraag van de gebruiker. Wees concreet en specifiek, geen algemene zinnen als 'een heerlijke cocktail'. Herhaal de uitleg niet in antwoord.",
+    "antwoord is een korte inleiding van 1 tot 3 zinnen bij je keuze. Vraagt de gebruiker om uitleg, achtergrond of waarom je iets kiest, dan mag antwoord uitgebreider zijn (tot ongeveer 8 zinnen), in gewone alinea's.",
+    "AFWISSELING: kies uit de hele lijst KANDIDATEN, niet alleen de eerste regels (de volgorde is willekeurig). Stel geen cocktails voor die bij EERDER VOORGESTELD staan, tenzij de gebruiker er zelf om vraagt of ze echt het allerbeste passen. Vraagt de gebruiker om iets anders of meer, kies dan andere cocktails dan je in dit gesprek al noemde. Wissel af in stijl (bijv. niet alleen sours of alleen highballs).",
     "",
     "DOORVRAGEN: een goede bartender vraagt eerst even door voordat hij iets inschenkt. Is de vraag nog vaag (bijv. 'wat zal ik nemen?', 'iets lekkers', 'verras me' zonder meer) en weet je nog niet genoeg, stel dan EEN korte wedervraag in plaats van meteen recepten te geven. Vraag naar wat er het meest toe doet: de stemming of het moment (aperitief, bij het eten, na het eten, feestje), fris of stevig, zoet of bitter, een sterke drank waar ze zin in hebben, of juist zonder alcohol. Laat recepten dan leeg en geef 2 tot 4 korte antwoordopties in opties (elk hooguit 3 woorden, bijv. 'Fris en zuur', 'Stevig', 'Iets bitters', 'Zonder alcohol').",
     "Vraag niet eindeloos door: na hooguit twee wedervragen in het gesprek, of zodra de vraag al duidelijk genoeg is, geef je je aanbeveling. Geef je recepten, laat opties dan leeg of geef 2 korte vervolgopties (bijv. 'Iets anders', 'Minder sterk').",
@@ -130,14 +138,14 @@ async function chat(body: Record<string, unknown>) {
     "Houd rekening met het moment (tijd van de dag en seizoen) als dat helpt, bijvoorbeeld warm of stevig in de winter, licht en fris op een zomerse middag.",
     "",
     ...(metVoorraad ? [
-      "Elke regel bij KANDIDATEN is: id | naam | familie | smaak (zoet/zuur/bitter/sterk, 0-5) | mist (wat de gebruiker nog niet in huis heeft; leeg = alles in huis) | alcoholvrij, warm of al geprobeerd als dat zo is.",
+      "Elke regel bij KANDIDATEN is: id | naam | familie | hoofdingrediënten | smaak (zoet/zuur/bitter/sterk, 0-5) | match met de smaak van de gebruiker (0-100) | mist (wat de gebruiker nog niet in huis heeft; leeg = alles in huis) | alcoholvrij, warm of al geprobeerd als dat zo is.",
       "Geef de voorkeur aan recepten waarvoor alles in huis is. Mist er iets, zeg dan wat.",
     ] : [
-      "Elke regel bij KANDIDATEN is: id | naam | familie | smaak (zoet/zuur/bitter/sterk, 0-5) | alcoholvrij, warm of al geprobeerd als dat zo is.",
+      "Elke regel bij KANDIDATEN is: id | naam | familie | hoofdingrediënten | smaak (zoet/zuur/bitter/sterk, 0-5) | match met de smaak van de gebruiker (0-100) | alcoholvrij, warm of al geprobeerd als dat zo is.",
       "De gebruiker wil niet dat je naar zijn of haar voorraad kijkt: je weet niet wat er in huis is, dus zeg daar niets over.",
     ]),
     "Vraagt iemand iets dat niets met drankjes, cocktails of de thuisbar te maken heeft, zeg dan vriendelijk dat je daar niet bij kunt helpen en laat recepten leeg. Moedig nooit overmatig drinken aan; bij vragen over veel of snel drinken raad je een alcoholvrije optie of water aan.",
-    "Geef je antwoord als JSON: antwoord = je tekst, recepten = de gekozen ids (leeg bij een wedervraag), opties = korte antwoordknoppen (mag leeg).",
+    "Geef je antwoord als JSON: antwoord = je tekst, recepten = de gekozen recepten met id en waarom (leeg bij een wedervraag), opties = korte antwoordknoppen (mag leeg).",
     "",
     `MOMENT: ${moment || "onbekend"}`,
     ...(metVoorraad ? [`VOORRAAD: ${voorraad.join(", ") || "(leeg)"}`] : []),
@@ -145,28 +153,44 @@ async function chat(body: Record<string, unknown>) {
     `FAVORIETEN (hoog beoordeeld): ${favorieten.join(", ") || "nog geen"}`,
     `NIET LEKKER GEVONDEN: ${nietLekker.join(", ") || "niets bekend"}`,
     `LAATST GEDRONKEN: ${recent.join("; ") || "niets bekend"}`,
+    `EERDER VOORGESTELD: ${eerder.join(", ") || "nog niets"}`,
     "KANDIDATEN:",
     ...kandidaten,
   ].join("\n");
 
-  const response = await anthropic.messages.create({
-    model: CHAT_MODEL,
-    max_tokens: 1024,
-    system,
-    messages,
-    output_config: { format: { type: "json_schema", schema: CHAT_SCHEMA } },
-  });
-  if (response.stop_reason === "refusal") {
-    return { antwoord: "Daar kan ik je helaas niet mee helpen. Zal ik iets lekkers voor je zoeken?", recepten: [], opties: [] };
+  // Eén keer opnieuw proberen bij een tijdelijke storing of een onleesbaar
+  // (afgebroken) antwoord; pas daarna een foutmelding in de app.
+  let parsed: Record<string, unknown> | null = null;
+  for (let poging = 0; poging < 2 && !parsed; poging++) {
+    let response: Anthropic.Message;
+    try {
+      response = await anthropic.messages.create({
+        model: CHAT_MODEL,
+        max_tokens: 4000,
+        system,
+        messages,
+        output_config: { format: { type: "json_schema", schema: CHAT_SCHEMA } },
+      });
+    } catch (e) {
+      const tijdelijk = e instanceof Anthropic.APIError && (e.status === 529 || (e.status ?? 0) >= 500);
+      if (poging === 0 && tijdelijk) { await new Promise((r) => setTimeout(r, 1200)); continue; }
+      throw e;
+    }
+    if (response.stop_reason === "refusal") {
+      return { antwoord: "Daar kan ik je helaas niet mee helpen. Zal ik iets lekkers voor je zoeken?", recepten: [], opties: [] };
+    }
+    try { parsed = JSON.parse(firstText(response) || ""); }
+    catch { console.error("Onleesbaar antwoord", response.stop_reason, response.usage?.output_tokens); }
   }
-  const parsed = JSON.parse(firstText(response) || "{}");
+  if (!parsed) throw new Error("onleesbaar antwoord");
   const toegestaan = new Set(kandidaten.map((k) => k.split("|")[0].trim()));
+  const gezien = new Set<string>();
   return {
-    antwoord: clip(parsed.antwoord, 1200),
+    antwoord: clip(parsed.antwoord, 3000),
     recepten: (Array.isArray(parsed.recepten) ? parsed.recepten : [])
-      .map((r: { id?: string }) => r?.id)
-      .filter((id: unknown): id is string => typeof id === "string" && toegestaan.has(id))
-      .slice(0, 3),
+      .map((r: { id?: string; waarom?: string }) => ({ id: typeof r?.id === "string" ? r.id : "", waarom: clip(r?.waarom, 400).trim() }))
+      .filter((r: { id: string }) => toegestaan.has(r.id) && !gezien.has(r.id) && gezien.add(r.id))
+      .slice(0, 8),
     opties: (Array.isArray(parsed.opties) ? parsed.opties : [])
       .filter((o: unknown): o is string => typeof o === "string" && o.trim().length > 0)
       .map((o: string) => o.trim().slice(0, 40))

@@ -5155,7 +5155,7 @@ function useForYou(session, logboek, recipes, allIngredients, active) {
 // gecontroleerde hoeveelheden); de AI verzint zelf niets. Zie src/ai.js en
 // de Edge Function ai-bartender.
 // useStock: alleen als de gebruiker dat wil kijkt de bartender naar de voorraad.
-function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek, useStock = true }) {
+function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek, useStock = true, eerderVoorgesteld = [] }) {
   const metaName = (ing) => findIngredientMeta(ing, allIngredients)?.name || ing.name || ing.id;
   const owned = useStock ? allIngredients.filter(i => voorraad.has(i.id)).map(i => i.name) : [];
   const me = myTasteVector(logboek, recipes, allIngredients);
@@ -5190,15 +5190,23 @@ function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek,
     const free = menuStrength(r, ing => findIngredientMeta(ing, allIngredients)).level === 0;
     const hot = r.family === "Warme dranken" || ids.some(id => ["hot_water", "hot_coffee", "espresso", "hot_chocolate", "black_tea"].includes(id));
     const tr = tried.has(r.id) ? ` | al geprobeerd${tried.get(r.id) ? ` (${tried.get(r.id)}/5)` : ""}` : "";
-    const line = `${r.id} | ${r.name} | ${r.family} | zoet ${t.zoet} zuur ${t.zuur} bitter ${t.bitter} sterk ${t.sterk}${useStock ? ` | mist: ${missing.join(", ")}` : ""}${free ? " | alcoholvrij" : ""}${hot ? " | warm" : ""}${tr}`;
+    // Hoofdingrediënten (zonder garnering/optioneel), zodat de bartender kan uitleggen hoe iets smaakt.
+    const hoofd = r.ingredients.filter(i => !i.optional).slice(0, 6).map(metaName).join(", ");
+    const match = me ? ` | match ${Math.max(0, Math.min(100, Math.round(100 * (1 - dist / 7))))}` : "";
+    const line = `${r.id} | ${r.name} | ${r.family} | ${hoofd} | zoet ${t.zoet} zuur ${t.zuur} bitter ${t.bitter} sterk ${t.sterk}${match}${useStock ? ` | mist: ${missing.join(", ")}` : ""}${free ? " | alcoholvrij" : ""}${hot ? " | warm" : ""}${tr}`;
     return { r, line, n: missing.length, dist, free };
   });
   const sorted = rows.filter(x => x.n <= 2).sort((a, b) => (a.n - b.n) || (a.dist - b.dist));
-  const picked = sorted.slice(0, 140);
+  // Afwisseling: de 70 best passende, aangevuld met een willekeurige greep uit
+  // de rest, en alles in willekeurige volgorde. Zo kiest de bartender niet
+  // steeds dezelfde cocktails die toevallig bovenaan de lijst staan.
+  const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const picked = sorted.slice(0, 70);
+  picked.push(...shuffle(sorted.slice(70)).slice(0, 90));
   const have = new Set(picked.map(x => x.r.id));
   // Altijd een paar alcoholvrije opties erbij, ook als die net niet bovenaan staan.
   picked.push(...sorted.filter(x => x.free && !have.has(x.r.id)).slice(0, 20));
-  return { voorraadGebruiken: useStock, voorraad: owned, smaak, favorieten, nietLekker, recent, moment, kandidaten: picked.map(x => x.line) };
+  return { voorraadGebruiken: useStock, voorraad: owned, smaak, favorieten, nietLekker, recent, moment, eerderVoorgesteld, kandidaten: shuffle(picked).map(x => x.line) };
 }
 
 const BARTENDER_IDEEEN = ["Iets fris en niet te zoet", "Verras me", "Zonder alcohol", "Iets stevigs voor na het eten"];
@@ -5255,12 +5263,13 @@ function AiConsentSheet({ onAccept, onClose }) {
   ), document.body);
 }
 
-function BartenderRecipeCard({ recipe, allIngredients, isOwned, onOpen, onAddToShoppingList, showStock = true }) {
+function BartenderRecipeCard({ recipe, allIngredients, isOwned, onOpen, onAddToShoppingList, showStock = true, waarom = "" }) {
   const [added, setAdded] = useState(false);
   const missing = showStock ? recipe.ingredients.filter(i => !i.optional && !isOwned(i)) : [];
   const names = missing.map(i => findIngredientMeta(i, allIngredients)?.name || i.name || i.id);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: 10 }}>
+    <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: 10 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
       <button onClick={onOpen} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK }}>
         <span style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} size={56} /></span>
         <span style={{ flex: 1, minWidth: 0 }}>
@@ -5279,6 +5288,8 @@ function BartenderRecipeCard({ recipe, allIngredients, isOwned, onOpen, onAddToS
         </button>
       )}
     </div>
+    {waarom && <p style={{ margin: "8px 4px 2px", fontSize: 13.5, lineHeight: 1.5, color: INK }}>{waarom}</p>}
+    </div>
   );
 }
 
@@ -5288,6 +5299,9 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [over, setOver] = useState(null);
+  // De laatste 30 voorgestelde cocktails (ook uit eerdere gesprekken), zodat de
+  // bartender niet steeds met dezelfde komt.
+  const [eerder, setEerder] = useStorage("thuisbar-bartender-eerder", []);
   const scrollRef = useRef(null);
   const recipeById = useMemo(() => new Map(recipes.map(r => [r.id, r])), [recipes]);
   const bottleCount = allIngredients.filter(i => voorraad.has(i.id)).length;
@@ -5309,12 +5323,25 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
     setError(null);
     setBusy(true);
     onSound?.("tick");
-    const ctx = bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek, useStock: useStock === "ja" });
-    const res = await askBartender(next.slice(-12).map(m => ({ role: m.role, content: m.content })), ctx);
+    const eerderNamen = (Array.isArray(eerder) ? eerder : []).map(id => recipeById.get(id)?.name).filter(Boolean);
+    const ctx = bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek, useStock: useStock === "ja", eerderVoorgesteld: eerderNamen });
+    // In de geschiedenis staat bij elk antwoord ook welke cocktails er werden
+    // voorgesteld, zodat "nog meer" of "iets anders" echt iets anders oplevert.
+    const history = next.slice(-12).map(m => ({
+      role: m.role,
+      content: m.role === "assistant" && m.recepten?.length
+        ? `${m.content}\n\n(Voorgesteld: ${m.recepten.map(id => recipeById.get(id)?.name || id).join(", ")})`
+        : m.content,
+    }));
+    const res = await askBartender(history, ctx);
     setBusy(false);
     if (typeof res.over === "number") setOver(res.over);
     if (res.error) { setError({ message: res.message, retry: res.error !== "limiet" }); return; }
-    setChat([...next, { role: "assistant", content: res.antwoord || "", recepten: (res.recepten || []).filter(id => recipeById.has(id)), opties: Array.isArray(res.opties) ? res.opties.slice(0, 4) : [] }]);
+    // Nieuwe functie geeft { id, waarom }, een oudere alleen ids.
+    const items = (res.recepten || []).map(r => (typeof r === "string" ? { id: r, waarom: "" } : r)).filter(r => r && recipeById.has(r.id));
+    const ids = items.map(r => r.id);
+    if (ids.length) setEerder([...ids, ...(Array.isArray(eerder) ? eerder : []).filter(id => !ids.includes(id))].slice(0, 30));
+    setChat([...next, { role: "assistant", content: res.antwoord || "", recepten: ids, waarom: Object.fromEntries(items.map(r => [r.id, r.waarom || ""])), opties: Array.isArray(res.opties) ? res.opties.slice(0, 4) : [] }]);
   };
   const retry = () => {
     const last = chat[chat.length - 1];
@@ -5385,16 +5412,16 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
           {chat.map((m, i) => (
             <Fragment key={i}>
               {m.content ? bubble(m.role, m.content) : null}
-              {m.role === "assistant" && i === chat.length - 1 && !busy && m.opties?.length > 0 && (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{m.opties.map(chip)}</div>
-              )}
               {m.role === "assistant" && m.recepten?.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {m.recepten.map(id => (
-                    <BartenderRecipeCard key={id} recipe={recipeById.get(id)} allIngredients={allIngredients} isOwned={isOwned} showStock={useStock !== "nee"}
+                    <BartenderRecipeCard key={id} recipe={recipeById.get(id)} allIngredients={allIngredients} isOwned={isOwned} showStock={useStock !== "nee"} waarom={m.waarom?.[id] || ""}
                       onOpen={() => onOpenRecipe(id)} onAddToShoppingList={onAddToShoppingList} />
                   ))}
                 </div>
+              )}
+              {m.role === "assistant" && i === chat.length - 1 && !busy && m.opties?.length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{m.opties.map(chip)}</div>
               )}
             </Fragment>
           ))}
