@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect, createContext, useContext, useId, Fragment } from "react";
+import { lazy, memo, Suspense, useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect, createContext, useContext, useId, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { subscribe, noteLocalChange, startSync, stopSync } from "./cloudState.js";
@@ -2703,6 +2703,24 @@ export default function ThuisbarApp() {
   // dezelfde, al bestaande logica leunt (favoriete stijl + wat je nu kan
   // maken) i.p.v. een losse, verzonnen aanbeveling.
   const checkinStats = useMemo(() => computeCheckinStats(logboek), [logboek]);
+  const ownedNames = useMemo(() => {
+    const byId = new Map(allIngredients.map(i => [i.id, i]));
+    return new Set([...voorraad].map(id => (byId.get(id)?.name || "").toLowerCase()).filter(Boolean));
+  }, [voorraad, allIngredients]);
+
+  // Stabiel (useCallback): deze twee gaan als prop naar bijna elk scherm en
+  // staan in veel useMemo-lijstjes. Een nieuwe functie bij elke render liet
+  // al die berekeningen (smaakprofiel, wat je kunt maken…) telkens opnieuw
+  // draaien, ook bij het wisselen van tab.
+  const isOwned = useCallback((ref) => {
+    if (ref.id) return voorraad.has(ref.id);
+    return ownedNames.has((ref.name || "").toLowerCase());
+  }, [voorraad, ownedNames]);
+  const ingredientById = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
+  const ingredientLabel = useCallback((ref) => {
+    if (ref.id) { const f = ingredientById.get(ref.id); return f ? f.name : ref.id; }
+    return ref.name || "?";
+  }, [ingredientById]);
   const checkinInsights = useMemo(
     () => computeCheckinInsights(logboek, allRecipes, allIngredients, isOwned, checkinStats.uniques),
     [logboek, allRecipes, allIngredients, isOwned, checkinStats.uniques]
@@ -2732,19 +2750,6 @@ export default function ThuisbarApp() {
   useEffect(() => { if (tab === "home") setNotifTick(t => t + 1); }, [tab, homeTapTick]);
   const notifications = useNotifications(session, logboek, notifTick);
 
-  const ownedNames = useMemo(() => {
-    const byId = new Map(allIngredients.map(i => [i.id, i]));
-    return new Set([...voorraad].map(id => (byId.get(id)?.name || "").toLowerCase()).filter(Boolean));
-  }, [voorraad, allIngredients]);
-
-  function isOwned(ref) {
-    if (ref.id) return voorraad.has(ref.id);
-    return ownedNames.has((ref.name || "").toLowerCase());
-  }
-  function ingredientLabel(ref) {
-    if (ref.id) { const f = allIngredients.find(i => i.id === ref.id); return f ? f.name : ref.id; }
-    return ref.name || "?";
-  }
   const toggleIngredient = (id) => {
     const wasOwned = voorraad.has(id);
     setVoorraad(wasOwned ? voorraadArr.filter(x => x !== id) : [...voorraadArr, id]);
@@ -2987,7 +2992,7 @@ export default function ThuisbarApp() {
       )}
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 20px calc(env(safe-area-inset-bottom) + 150px)" }}>
-        <TabPanel id="home" active={tab === "home"} visited={visitedTabs.has("home")} panelRef={panelRefs}>
+        <TabPanel id="home" freezeHidden active={tab === "home"} visited={visitedTabs.has("home")} panelRef={panelRefs}>
           <HomeTab onOpenBartender={openBartender} session={session} profile={profile} greeting={greeting} featuredRecipe={featuredRecipe}
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             logboek={logboek} recipes={allRecipes} allIngredients={allIngredients} active={tab === "home"}
@@ -2995,7 +3000,7 @@ export default function ThuisbarApp() {
             onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} nativePush={nativePush} highlightId={feedHighlight} onOpenYearReview={setYearReview}
             guest={isGuest} onRequireAccount={requireAccount} onOpenOwnProfile={() => navigateTo("profiel")} />
         </TabPanel>
-        <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
+        <TabPanel id="ontdekken" freezeHidden active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
           <OntdekkenTab active={tab === "ontdekken"}
             recipeBackLabel={recipeBackLabel} onRecipeBack={recipeOrigin ? returnFromRecipe : null} rootTapTick={ontdekkenTapTick}
             openKanTick={kanOpenTick}
@@ -3021,7 +3026,7 @@ export default function ThuisbarApp() {
             }}
           />
         </TabPanel>
-        <TabPanel id="bar" active={tab === "bar"} visited={visitedTabs.has("bar")} panelRef={panelRefs}>
+        <TabPanel id="bar" freezeHidden active={tab === "bar"} visited={visitedTabs.has("bar")} panelRef={panelRefs}>
           <BarTab onSelect={(id) => { if (id === "bartender") { openBartender(); return; } if (id === "balans") setMaPartyId(null); navigateTo(id); }} shoppingCount={shoppingList.length} feestCount={feestChosen.length} active={tab === "bar"}
             voorraadCount={voorraad.size} customRecipesCount={customRecipes.length}
             feestSubtitle={isGuest ? "Met een gratis account" : upcomingParties[0] ? `${upcomingParties[0].name} · ${formatPartyWhen(upcomingParties[0]).toLowerCase()}` : "Plan een avond"}
@@ -3035,7 +3040,7 @@ export default function ThuisbarApp() {
             friendRequestCount={friendRequestCount} onOpenYearReview={setYearReview} />
         </TabPanel>
 
-        <TabPanel id="voorraad" active={tab === "voorraad"} visited={visitedTabs.has("voorraad")} panelRef={panelRefs}>
+        <TabPanel id="voorraad" freezeHidden active={tab === "voorraad"} visited={visitedTabs.has("voorraad")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.voorraad} onBack={() => navigateTo("bar", { restore: true })}>
             <VoorraadTab allIngredients={allIngredients} recipes={allRecipes} isOwned={isOwned} voorraad={voorraad}
               voorraadAantal={voorraadAantal} onAdjustAantal={adjustAantal}
@@ -3045,14 +3050,14 @@ export default function ThuisbarApp() {
               onRequestAi={withAi} onAddScanned={addScanned} />
           </SecondaryTabScreen>
         </TabPanel>
-        <TabPanel id="mandje" active={tab === "mandje"} visited={visitedTabs.has("mandje")} panelRef={panelRefs}>
+        <TabPanel id="mandje" freezeHidden active={tab === "mandje"} visited={visitedTabs.has("mandje")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.mandje} onBack={() => navigateTo("bar", { restore: true })}>
             <WinkelmandjeTab shoppingList={shoppingList} recipes={allRecipes} isOwned={isOwned} allIngredients={allIngredients}
               onRemove={removeFromShoppingList} onBuy={buyShoppingItem} onUndoBuy={undoBuyShoppingItem} onClear={clearShoppingList} onAdd={addToShoppingList} onSound={chime}
               bottleOptions={bottleOptions} chosenBottles={chosenBottles} onChooseBottle={(ingredientId, flesId) => setChosenBottles({ ...chosenBottles, [ingredientId]: flesId })} />
           </SecondaryTabScreen>
         </TabPanel>
-        <TabPanel id="schaler" active={tab === "schaler"} visited={visitedTabs.has("schaler")} panelRef={panelRefs}>
+        <TabPanel id="schaler" freezeHidden active={tab === "schaler"} visited={visitedTabs.has("schaler")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.schaler} onBack={() => navigateTo("bar", { restore: true })}>
             <BatchCalculatorTab recipes={allRecipes} ingredientLabel={ingredientLabel} allIngredients={allIngredients} isOwned={isOwned}
               voorraadAantal={voorraadAantal} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
@@ -3082,7 +3087,7 @@ export default function ThuisbarApp() {
               }} />
           </SecondaryTabScreen>
         </TabPanel>
-        <TabPanel id="cursus" active={tab === "cursus"} visited={visitedTabs.has("cursus")} panelRef={panelRefs}>
+        <TabPanel id="cursus" freezeHidden active={tab === "cursus"} visited={visitedTabs.has("cursus")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.cursus} onBack={() => navigateTo("bar", { restore: true })}>
             <CursusTab progress={courseProgress} setProgress={setCourseProgress} onSound={chime}
               recipes={allRecipes} allIngredients={allIngredients} onOpenRecipe={openRecipeDetail} onCheckin={openCheckin} />
@@ -3099,7 +3104,7 @@ export default function ThuisbarApp() {
               active={tab === "feest"} />
           </SecondaryTabScreen>
         </TabPanel>
-        <TabPanel id="eigen" active={tab === "eigen"} visited={visitedTabs.has("eigen")} panelRef={panelRefs}>
+        <TabPanel id="eigen" freezeHidden active={tab === "eigen"} visited={visitedTabs.has("eigen")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Bar" title={PUSH_SCREEN_TITLES.eigen} onBack={() => navigateTo("bar", { restore: true })}>
             <EigenRecepten customRecipes={customRecipes} allIngredients={allIngredients} recipes={allRecipes} isOwned={isOwned}
               recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds} shoppingKeys={shoppingKeys}
@@ -3112,7 +3117,7 @@ export default function ThuisbarApp() {
             <VriendenTab session={session} profile={profile} recipes={allRecipes} allIngredients={allIngredients} onSound={chime} active={tab === "vrienden"} myLogboek={logboek} onOpenRecipe={openRecipeDetail} onOpenCheckin={openCheckin} />
           </SecondaryTabScreen>
         </TabPanel>
-        <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
+        <TabPanel id="instellingen" freezeHidden active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel", { restore: true })}>
             <InstellingenTab aiConsent={aiConsent} onSetAiConsent={setAiConsent} soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={signOut} push={push} nativePush={nativePush} onNavigate={navigateTo}
               guest={isGuest} onLogin={() => setWantsLogin("login")} onSignup={() => setWantsLogin("signup")}
@@ -3120,17 +3125,17 @@ export default function ThuisbarApp() {
               weekMelding={isNativeShell ? { aan: !!weekMelding, set: setWeekMeldingAan, error: weekMeldingError } : null} />
           </SecondaryTabScreen>
         </TabPanel>
-        <TabPanel id="privacybeleid" active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
+        <TabPanel id="privacybeleid" freezeHidden active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.privacybeleid} onBack={() => navigateTo("instellingen", { restore: true })}>
             <PrivacyPolicyScreen />
           </SecondaryTabScreen>
         </TabPanel>
-        <TabPanel id="voorwaarden" active={tab === "voorwaarden"} visited={visitedTabs.has("voorwaarden")} panelRef={panelRefs}>
+        <TabPanel id="voorwaarden" freezeHidden active={tab === "voorwaarden"} visited={visitedTabs.has("voorwaarden")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.voorwaarden} onBack={() => navigateTo("instellingen", { restore: true })}>
             <TermsScreen />
           </SecondaryTabScreen>
         </TabPanel>
-        <TabPanel id="licenties" active={tab === "licenties"} visited={visitedTabs.has("licenties")} panelRef={panelRefs}>
+        <TabPanel id="licenties" freezeHidden active={tab === "licenties"} visited={visitedTabs.has("licenties")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.licenties} onBack={() => navigateTo("instellingen", { restore: true })}>
             <LicensesScreen active={tab === "licenties"} />
           </SecondaryTabScreen>
@@ -3140,7 +3145,7 @@ export default function ThuisbarApp() {
             <AccountDeleteScreen onDelete={deleteAccount} busy={deletingAccount} error={deleteAccountError} />
           </SecondaryTabScreen>
         </TabPanel>
-        <TabPanel id="fotoverantwoording" active={tab === "fotoverantwoording"} visited={visitedTabs.has("fotoverantwoording")} panelRef={panelRefs}>
+        <TabPanel id="fotoverantwoording" freezeHidden active={tab === "fotoverantwoording"} visited={visitedTabs.has("fotoverantwoording")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.fotoverantwoording} onBack={() => navigateTo("instellingen", { restore: true })}>
             <PhotoCreditsScreen />
           </SecondaryTabScreen>
@@ -5294,13 +5299,18 @@ function HomeTab({ onOpenBartender, session, profile, greeting, featuredRecipe, 
 // is) i.p.v. 'm bij elke wissel weg te gooien — dat is wat scrollpositie,
 // zoekterm en open filters per tab laat behouden, precies zoals een echte
 // iOS-tabbalk dat doet.
-function TabPanel({ id, active, visited, panelRef, children }) {
+// Alle bezochte tabs blijven gemount (scrollpositie, zoekterm). Een tab die
+// je niet ziet hoeft niet bij elke wijziging in de app opnieuw te tekenen:
+// met freezeHidden slaat React hem over tot hij weer zichtbaar wordt (dan
+// krijgt hij in één keer de nieuwste gegevens). Tabs die ook verborgen iets
+// moeten doen (Profiel opent het incheckvenster) laten dit uit.
+const TabPanel = memo(function TabPanel({ id, active, visited, panelRef, children }) {
   return (
     <div ref={el => { panelRef.current[id] = el; }} data-tabpanel={id} style={{ display: active ? "" : "none" }}>
       {visited ? children : null}
     </div>
   );
-}
+}, (prev, next) => !!next.freezeHidden && !prev.active && !next.active && prev.visited === next.visited);
 
 // De onderbalk toont nu 2 tabs, dan de verhoogde inchecken-knop in het
 // midden, dan nog 2 tabs — hetzelfde patroon als Instagram's camera of
@@ -5532,7 +5542,7 @@ function shapeForIngredient(ing) {
 export function ItemArt({ ing }) {
   const localSrc = localItemImageUrl("drank", ing.id);
   if (localSrc) {
-    return <img className="item-art" src={localSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />;
+    return <img className="item-art" src={localSrc} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />;
   }
   const art = CATEGORY_ART[ing.cat] || CATEGORY_ART["Vers"];
   const shape = shapeForIngredient(ing);
@@ -6979,7 +6989,7 @@ function ItemImage({ id, type, photoUrl, size = 50, radius = "50%", tint, filter
       width: size, height: size, borderRadius: radius, overflow: "hidden", flexShrink: 0,
       aspectRatio: "1 / 1", background: tint ? BOTTLE_DARK : undefined,
     }}>
-      <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter }} />
+      <img src={src} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", filter }} />
     </div>
   );
 }
@@ -7494,16 +7504,17 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
     if (f.spirit.length && !f.spirit.includes(getBaseSpirit(r, allIngredients))) return false;
     return true;
   };
-  const filtered = recipes.filter(r => matchesFilters(r, { family: familyFilter, glass: glassFilter, spirit: spiritFilter }));
+  const filtered = useMemo(() => recipes.filter(r => matchesFilters(r, { family: familyFilter, glass: glassFilter, spirit: spiritFilter })), [recipes, query, familyFilter, glassFilter, spiritFilter, ingredientLabel, allIngredients]); // eslint-disable-line react-hooks/exhaustive-deps
   // Zoekt iemand naar iets wat niet bestaat, dan komt dat (anoniem) op de
   // lijst "Ontbrekende recepten" voor de beheerder (idee 3).
   const nameHits = query.trim() ? recipes.filter(r => r.name.toLowerCase().includes(query.trim().toLowerCase())).length : -1;
   useSearchMiss(query, nameHits);
-  const scored = filtered.map(r => {
+  // Alleen nodig in de volledige lijst; niet bij elke render opnieuw sorteren.
+  const scored = useMemo(() => (view !== "alle" ? [] : filtered.map(r => {
     const required = r.ingredients.filter(i => !i.optional);
     const missing = required.filter(i => !isOwned(i));
     return { recipe: r, missing };
-  }).sort((a, b) => a.missing.length - b.missing.length || a.recipe.name.localeCompare(b.recipe.name));
+  }).sort((a, b) => a.missing.length - b.missing.length || a.recipe.name.localeCompare(b.recipe.name))), [view, filtered, isOwned]);
 
   // Ontdekken kijkt naar ALLE recepten (los van de filters hierboven, die
   // horen bij "Alle recepten") — eigen berekening, één keer per voorraadwijziging.
@@ -9183,6 +9194,17 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   // (op verzoek weggehaald — vond de gebruiker overbodig naast Aanbevolen/
   // Cocktail van de week/Favorieten/Onlangs bekeken/Verras me hierboven).
   const browseAll = recipes;
+  // Het raster met ruim 400 foto's in delen opbouwen: eerst wat in beeld
+  // past, de rest in stukjes als de telefoon even niets te doen heeft. Zo
+  // opent Ontdekken meteen in plaats van eerst een halve seconde te haperen.
+  const [gridCount, setGridCount] = useState(24);
+  useEffect(() => {
+    if (gridCount >= browseAll.length) return undefined;
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 60));
+    const cancel = window.cancelIdleCallback || clearTimeout;
+    const h = idle(() => setGridCount(c => Math.min(browseAll.length, c + 48)), { timeout: 400 });
+    return () => cancel(h);
+  }, [gridCount, browseAll.length]);
 
   // Cocktail van de week: persoonlijk gekozen (seizoen + smaak + voorraad),
   // daaronder de momenten van het jaar (moments.js).
@@ -9331,14 +9353,15 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
           <div>
             <SectionLabel>Alle recepten</SectionLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {browseAll.map(r => {
+              {browseAll.slice(0, gridCount).map(r => {
                 const photo = localItemImageUrl("cocktail", r.id) || r.image;
                 return (
                   <button key={r.id} onClick={() => selectRecipe(r.id)} style={{
                     position: "relative", height: 132, borderRadius: RADIUS + 4, overflow: "hidden", border: "none",
                     cursor: "pointer", padding: 0, boxShadow: SHADOW_CARD, background: BOTTLE_DARK,
+                    contentVisibility: "auto", containIntrinsicSize: "auto 132px",
                   }}>
-                    {photo && <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+                    {photo && <img src={photo} alt="" loading="lazy" decoding="async" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(19,38,34,0.9), rgba(19,38,34,0.1) 60%)" }} />
                     <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "10px 12px", textAlign: "left" }}>
                       <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 14, color: ON_DARK_TEXT, lineHeight: 1.2 }}>{r.name}</div>
@@ -11565,7 +11588,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                     <div key={entry.id} id={`ci-post-${entry.id}`} style={{ scrollMarginTop: "calc(env(safe-area-inset-top) + 64px)", marginBottom: 14, borderRadius: 20, background: CREAM, padding: 12, boxShadow: SHADOW_CARD }}>
                       <button onClick={() => setOpenEntryId(entry.id)} aria-label={`${entry.name} openen`} style={{ display: "block", width: "100%", padding: 0, border: "none", background: BOTTLE_DARK, borderRadius: 14, overflow: "hidden", aspectRatio: "8 / 7", cursor: "pointer", position: "relative" }}>
                         {photo ? (
-                          <img src={photo} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
+                          <img src={photo} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
                         ) : matched ? (
                           <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><RecipeCircle recipe={matched} allIngredients={allIngredients} size={120} /></span>
                         ) : (
@@ -11604,7 +11627,7 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
                     position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", borderRadius: 10, padding: 0, cursor: "pointer", background: PAPER_DEEP,
                   }}>
                     {own || recipeImg ? (
-                      <img src={own || recipeImg} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: own ? "none" : RECIPE_PHOTO_FILTER }} />
+                      <img src={own || recipeImg} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: own ? "none" : RECIPE_PHOTO_FILTER }} />
                     ) : matched ? (
                       <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <RecipeCircle recipe={matched} allIngredients={allIngredients} size={96} radius={12} />
@@ -12224,7 +12247,7 @@ function CheckinPhotoViewer({ entry, matched, who, whoAvatar, allIngredients, on
 const AVATAR_COLORS = [BOTTLE, BRASS, BURGUNDY, SAGE, "#6B4A2E"];
 function Avatar({ name, photo, size = 38 }) {
   if (photo) {
-    return <img src={photo} alt="" loading="lazy" style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, objectFit: "cover" }} />;
+    return <img src={photo} alt="" loading="lazy" decoding="async" style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, objectFit: "cover" }} />;
   }
   const color = AVATAR_COLORS[hashString(name || "?") % AVATAR_COLORS.length];
   return (
@@ -12566,7 +12589,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
               <div key={entry.id} id={`fr-post-${entry.id}`} style={{ scrollMarginTop: 12, marginBottom: 14, borderRadius: 20, background: CREAM, padding: 12, boxShadow: SHADOW_CARD }}>
                 <button onClick={() => setPhotoViewer({ entry, matched })} aria-label={`${entry.name} openen`} style={{ display: "block", width: "100%", padding: 0, border: "none", background: BOTTLE_DARK, borderRadius: 14, overflow: "hidden", aspectRatio: "8 / 7", cursor: "pointer", position: "relative" }}>
                   {photo ? (
-                    <img src={photo} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
+                    <img src={photo} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
                   ) : matched ? (
                     <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><RecipeCircle recipe={matched} allIngredients={allIngredients} size={120} /></span>
                   ) : (
@@ -12613,7 +12636,7 @@ function FriendProfileSheet({ friendId, friendProfile, recipes, allIngredients, 
                   position: "relative", aspectRatio: "1", overflow: "hidden", border: "none", borderRadius: 10, padding: 0, cursor: "pointer", background: PAPER_DEEP,
                 }}>
                   {src ? (
-                    <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
+                    <img src={src} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: entry.photo ? "none" : RECIPE_PHOTO_FILTER }} />
                   ) : matched ? (
                     <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <RecipeCircle recipe={matched} allIngredients={allIngredients} size={96} radius={12} />
