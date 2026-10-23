@@ -6338,11 +6338,18 @@ function setSwipeDebug(patch) {
   window.__edgeSwipeDebug = { ...window.__edgeSwipeDebug, ...patch };
 }
 
-function useEdgeSwipeBack(onBack) {
+// ext (optioneel): een echt vorig scherm als preview i.p.v. de eigen laag.
+// peekRef/scrimRef wijzen dan naar die lagen, onPeek(true/false) meldt wanneer
+// ze getoond moeten worden, fade=false houdt de preview volledig zichtbaar.
+function useEdgeSwipeBack(onBack, ext = null) {
   const contentRef = useRef(null);
-  const peekRef = useRef(null);
-  const scrimRef = useRef(null);
-  const [showPeek, setShowPeek] = useState(false);
+  const ownPeekRef = useRef(null);
+  const ownScrimRef = useRef(null);
+  const peekRef = ext?.peekRef || ownPeekRef;
+  const scrimRef = ext?.scrimRef || ownScrimRef;
+  const [showPeek, setShowPeekState] = useState(false);
+  const setShowPeek = (v) => { setShowPeekState(v); ext?.onPeek?.(v); };
+  const fade = ext?.fade !== false;
   const [dragging, setDragging] = useState(false);
   const drag = useRef({ startX: 0, startT: 0, armed: false, dragging: false, tracking: false, delta: 0, raf: 0, width: 1, minX: 0 });
   const gestureEnabled = useMemo(() => isStandalonePWA() || isNativeShell, []);
@@ -6364,9 +6371,11 @@ function useEdgeSwipeBack(onBack) {
     if (peekRef.current) {
       peekRef.current.style.transition = animated ? "transform 0.22s cubic-bezier(.32,.72,.35,1), opacity 0.22s ease" : "none";
       peekRef.current.style.transform = `translateX(${(p - 1) * 24}%)`;
-      peekRef.current.style.opacity = Math.min(1, p * 1.6);
+      peekRef.current.style.opacity = fade ? Math.min(1, p * 1.6) : 1;
     }
     if (scrimRef.current) scrimRef.current.style.opacity = 1 - p;
+    // Schaduw langs de linkerrand van het scherm dat wegschuift, zoals iOS.
+    if (!fade && contentRef.current) contentRef.current.style.boxShadow = px > 0 ? "-10px 0 28px rgba(15,12,9,0.18)" : "";
   };
 
   const commitBack = () => {
@@ -6382,6 +6391,8 @@ function useEdgeSwipeBack(onBack) {
       peekRef.current.style.opacity = 1;
     }
     if (scrimRef.current) scrimRef.current.style.opacity = 0;
+    // Pas wisselen als de animatie echt klaar is (240 ms), anders sprong het
+    // scherm de laatste paar frames weg.
     setTimeout(() => {
       onBack();
       // Dit scherm blijft na het wisselen gewoon gemount (alleen display:none),
@@ -6393,8 +6404,9 @@ function useEdgeSwipeBack(onBack) {
       if (contentRef.current) {
         contentRef.current.style.transition = "none";
         contentRef.current.style.transform = "translateX(0px)";
+        contentRef.current.style.boxShadow = "";
       }
-    }, 200);
+    }, ext ? 240 : 200);
   };
 
   // iOS lijkt de allereerste paar millimeter van een echte duimveeg vanaf de
@@ -6534,8 +6546,8 @@ function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOn
 // of preview-laag — voor interne detailschermen die al hun eigen terugknop
 // tekenen (een open recept in Recept, een les in Cursus) en alleen de
 // vingerbeweging erbij nodig hebben.
-export function EdgeSwipeBackArea({ onBack, children, bleed = true, style }) {
-  const { contentRef, handlers } = useEdgeSwipeBack(onBack);
+export function EdgeSwipeBackArea({ onBack, children, bleed = true, style, peek = null }) {
+  const { contentRef, handlers } = useEdgeSwipeBack(onBack, peek);
   return (
     <div ref={contentRef} {...handlers} style={{ ...(bleed ? { ...EDGE_SWIPE_BLEED, minHeight: SWIPE_MIN_HEIGHT } : null), touchAction: "pan-y", ...style }}>
       {children}
@@ -7151,7 +7163,61 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   }, [mode]);
   // Titel, schakelaar en Aanbevolen horen alleen bij het overzicht, niet bij
   // een geopend recept en niet bij het eigen scherm "Wat ik kan maken".
-  const showChrome = !recipeOpen && mode !== "kan";
+  const showChrome = mode !== "kan";
+  // Terugvegen uit een recept: het overzicht blijft gemount en wordt tijdens
+  // het vegen vastgezet op precies de plek waar het stond (position: fixed,
+  // achter het recept), zodat je het echte vorige scherm ziet meeschuiven.
+  const overviewRef = useRef(null);
+  const overviewRect = useRef(null);
+  const peekLayerRef = useRef(null);
+  const peekScrimRef = useRef(null);
+  const [recipeSlot, setRecipeSlot] = useState(null);
+  const [peeking, setPeeking] = useState(false);
+  // Ankerpunt: wat midden in beeld stond. Groeit er boven die plek iets
+  // (bijv. "Onlangs bekeken"), dan houden we dát op dezelfde hoogte.
+  const anchorRef = useRef(null);
+  const frozenHeaderRef = useRef(null);
+  const freezeOverview = () => {
+    const r = overviewRef.current?.getBoundingClientRect();
+    overviewRect.current = r && r.height > 0 ? { top: r.top, left: r.left, width: r.width } : null;
+    const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+    anchorRef.current = el && overviewRef.current?.contains(el) ? { el, top: el.getBoundingClientRect().top } : null;
+  };
+  const anchorShift = () => {
+    const a = anchorRef.current;
+    return a?.el.isConnected ? a.el.getBoundingClientRect().top - a.top : 0;
+  };
+  const swipePeek = useMemo(() => ({
+    peekRef: peekLayerRef, scrimRef: peekScrimRef, fade: false,
+    onPeek: (v) => setPeeking(v && !!overviewRect.current && !returnModeRef.current),
+  }), []);
+  const frozen = recipeOpen && peeking && overviewRect.current;
+  const overviewStyle = !recipeOpen ? undefined : frozen
+    ? { position: "fixed", top: overviewRect.current.top, left: overviewRect.current.left, width: overviewRect.current.width, zIndex: -1, pointerEvents: "none", transform: "translateX(-24%)" }
+    : { display: "none" };
+  // De veeg-animatie zet transform/opacity rechtstreeks op deze laag; na het
+  // vegen weer weghalen, anders blijft het overzicht verschoven staan (en
+  // vormt een transform een containing block voor vaste vensters erin).
+  useLayoutEffect(() => {
+    if (frozen) {
+      const d = anchorShift();
+      if (d && peekLayerRef.current) {
+        overviewRect.current.top -= d;
+        peekLayerRef.current.style.top = `${overviewRect.current.top}px`;
+        if (frozenHeaderRef.current) frozenHeaderRef.current.style.top = `${Math.max(0, -overviewRect.current.top)}px`;
+      }
+      return;
+    }
+    const el = overviewRef.current;
+    if (el) { el.style.transform = ""; el.style.transition = ""; el.style.opacity = ""; }
+    // Terug uit het recept (VerhaalTab zette de oude scrollpositie al terug):
+    // nog corrigeren voor wat er intussen boven het ankerpunt bijkwam.
+    if (!recipeOpen && anchorRef.current) {
+      const d = anchorShift();
+      if (d) window.scrollBy(0, d);
+      anchorRef.current = null;
+    }
+  }, [frozen, recipeOpen]);
   const handleRecipeOpenChange = (open) => {
     setRecipeOpen(open);
     if (!open && returnModeRef.current) { setMode(returnModeRef.current); returnModeRef.current = null; }
@@ -7160,9 +7226,15 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
   // de score-volgorde uit computeCheckinInsights (die weegt ook smaakprofiel
   // mee, waardoor het zichtbare percentage niet altijd aflopend stond).
   const sortedRecommended = recommended ? [...recommended].sort((a, b) => b.matchPct - a.matchPct) : recommended;
+  const titleHeader = <LargeTitleHeader title="Ontdekken" band right={headerRight} />;
   return (
     <div>
-      {showChrome && <LargeTitleHeader title="Ontdekken" band right={headerRight} />}
+      <div ref={frozen ? peekLayerRef : overviewRef} aria-hidden={recipeOpen || undefined} style={overviewStyle}>
+      {/* Vastgezet staat de kop niet meer "sticky" bovenaan: dan zelf
+          verschuiven naar de bovenkant van het scherm. */}
+      {showChrome && (frozen
+        ? <div ref={frozenHeaderRef} style={{ position: "relative", top: Math.max(0, -overviewRect.current.top), zIndex: 21 }}>{titleHeader}</div>
+        : titleHeader)}
       {/* Schakelaar in het groene vlak onder de kop: alle recepten of alleen
           wat je nu kunt maken. */}
       {showChrome && (
@@ -7216,8 +7288,13 @@ function OntdekkenTab({ makenProps, verhaalProps, openRecipeId, onOpenRecipeHand
       </div>
       <div style={{ display: mode === "alles" ? "" : "none" }}>
         <VerhaalTab {...verhaalProps} openRecipeId={openRecipeId} onOpenRecipeHandled={onOpenRecipeHandled}
-          backLabel={recipeBackLabel} onBackToOrigin={onRecipeBack} onRecipeOpenChange={handleRecipeOpenChange} rootTapTick={rootTapTick} />
+          backLabel={recipeBackLabel} onBackToOrigin={onRecipeBack} onRecipeOpenChange={handleRecipeOpenChange} rootTapTick={rootTapTick}
+          recipeSlot={recipeSlot} swipePeek={swipePeek} onBeforeOpen={freezeOverview} />
       </div>
+      </div>
+      {frozen && <div ref={peekScrimRef} aria-hidden style={{ position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none", background: "rgba(15,12,9,0.14)" }} />}
+      {/* Hier komt een geopend recept (portal vanuit VerhaalTab). */}
+      <div ref={setRecipeSlot} />
     </div>
   );
 }
@@ -8810,7 +8887,7 @@ function MomentScreen({ moment, recipeById, isOwned, allIngredients, ingredientL
 
 function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite, onSound, logboek = [],
   openRecipeId, onOpenRecipeHandled, onAddToShoppingList, onAddToFeest, feestChosen, onOpenCheckin,
-  backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange, rootTapTick = 0 }) {
+  backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange, rootTapTick = 0, recipeSlot = null, swipePeek = null, onBeforeOpen }) {
   const [selectedId, setSelectedId] = useState(null);
   // Scrollpositie van de lijst vlak vóór een recept openging, zodat "terug"
   // je weer precies daar neerzet i.p.v. halverwege of bovenaan.
@@ -8842,7 +8919,14 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const canBatchAhead = recipe && role === "sterk" && techniques.length > 0 && techniques.every(t => ["stirred", "build"].includes(t));
 
   const selectRecipe = (id) => {
-    if (!selectedId) listScrollRef.current = window.scrollY;
+    if (!selectedId) {
+      listScrollRef.current = window.scrollY;
+      // Overzicht vastleggen zoals het nu op het scherm staat (voor terugvegen).
+      onBeforeOpen?.();
+    }
+    // Meteen (in dezelfde render) melden, zodat het overzicht niet één frame
+    // boven het recept blijft staan.
+    onRecipeOpenChange?.(true);
     // Een recept begint altijd bovenaan (net als een nieuw scherm op iOS),
     // niet op de scrollpositie van de lijst waar je op tikte.
     requestAnimationFrame(() => window.scrollTo(0, 0));
@@ -8859,6 +8943,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const goBack = () => {
     const y = listScrollRef.current;
     setSelectedId(null);
+    onRecipeOpenChange?.(false);
     if (onBackToOrigin) {
       // Terug naar het scherm waar je het recept opende (Home, Feestplanner…).
       // Eerst de lijstpositie herstellen: navigateTo onthoudt de huidige
@@ -8866,9 +8951,18 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
       window.scrollTo(0, y);
       onBackToOrigin();
     } else {
-      requestAnimationFrame(() => window.scrollTo(0, y));
+      restoreYRef.current = y;
     }
   };
+  // De lijst blijft onder het recept staan (niet opnieuw opbouwen), dus de
+  // scrollpositie kan vóór het tekenen terug: geen sprong bij terugkomen.
+  const restoreYRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!recipe && restoreYRef.current != null) {
+      window.scrollTo(0, restoreYRef.current);
+      restoreYRef.current = null;
+    }
+  }, [recipe]);
   useEffect(() => { onRecipeOpenChange?.(!!selectedId); }, [!!selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
   // Op de al actieve Ontdekken-tab tikken = terug naar het overzicht (iOS).
   useEffect(() => { if (rootTapTick) setSelectedId(null); }, [rootTapTick]);
@@ -8900,23 +8994,20 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
 
   // Ontdekken: alleen relevant zolang er nog niets gekozen is, dus geen reden
   // om dit bij elke toets-aanslag in de zoekbalk opnieuw te berekenen.
-  const allScored = useMemo(() => {
-    if (recipe) return [];
-    return recipes.map(r => {
-      const required = r.ingredients.filter(i => !i.optional);
-      return { recipe: r, missing: required.filter(i => !isOwned(i)) };
-    });
-  }, [recipes, isOwned, recipe]);
+  const allScored = useMemo(() => recipes.map(r => {
+    const required = r.ingredients.filter(i => !i.optional);
+    return { recipe: r, missing: required.filter(i => !isOwned(i)) };
+  }), [recipes, isOwned]);
   const scoredById = useMemo(() => new Map(allScored.map(s => [s.recipe.id, s])), [allScored]);
 
   // Raster "Alle recepten": gewoon de volledige lijst, geen filterchips meer
   // (op verzoek weggehaald — vond de gebruiker overbodig naast Aanbevolen/
   // Cocktail van de week/Favorieten/Onlangs bekeken/Verras me hierboven).
-  const browseAll = recipe ? [] : recipes;
+  const browseAll = recipes;
 
   // Cocktail van de week: persoonlijk gekozen (seizoen + smaak + voorraad),
   // daaronder de momenten van het jaar (moments.js).
-  const weekly = useMemo(() => (recipe ? null : weeklyCocktailPick({ recipes, allIngredients, logboek, isOwned })), [recipe, recipes, allIngredients, logboek, isOwned]);
+  const weekly = useMemo(() => weeklyCocktailPick({ recipes, allIngredients, logboek, isOwned }), [recipes, allIngredients, logboek, isOwned]);
   const moments = useMemo(() => momentsFor(new Date()), []);
   const recipeById = useMemo(() => new Map(recipes.map(r => [r.id, r])), [recipes]);
   const [openMoment, setOpenMoment] = useState(null);
@@ -8929,7 +9020,9 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
     <div>
       {/* Geen van beide is nog sticky (op verzoek) — scrollen gewoon mee weg
           met de rest van de inhoud i.p.v. te blijven plakken. */}
-      {!recipe ? (
+      {/* Overzicht blijft gemount als er een recept open staat (OntdekkenTab
+          verbergt het), zodat terugvegen het echte vorige scherm laat zien. */}
+      {(!recipe || recipeSlot) ? (
         <div style={{
           padding: "6px 0", marginBottom: 16, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20,
         }}>
@@ -8943,7 +9036,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
           veeggebied hieronder (sticky, terug naar het scherm van herkomst);
           de favoriet-knop zit al rechtsboven in de receptfoto. */}
 
-      {!recipe && (
+      {(!recipe || recipeSlot) && (
         <div>
           {weekly && (() => {
             const photo = localItemImageUrl("cocktail", weekly.recipe.id) || weekly.recipe.image;
@@ -9080,8 +9173,9 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
         </div>
       )}
 
-      {recipe && (
-        <EdgeSwipeBackArea key={recipe.id} onBack={goBack}>
+      {recipe && (c => (recipeSlot ? createPortal(c, recipeSlot) : c))(
+        <EdgeSwipeBackArea key={recipe.id} onBack={goBack} peek={recipeSlot && !onBackToOrigin ? swipePeek : null}
+          style={recipeSlot ? { background: PAPER, minHeight: "100vh" } : undefined}>
           {/* Eigen iOS-navigatiebalk, net als de Bar-schermen: terug naar waar
               je vandaan kwam, met de naam van het recept in het midden. */}
           <HeaderNavBar backLabel={backLabel} onBack={goBack} title={recipe.name} />
