@@ -103,9 +103,9 @@ function BartenderRecipeCard({ recipe, allIngredients, isOwned, onOpen, onAddToS
   );
 }
 
-function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOwned, voorraad, logboek, onOpenRecipe, onAddToShoppingList, onSound, useStock = null, setUseStock }) {
+function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOwned, voorraad, logboek, onOpenRecipe, onAddToShoppingList, onSound, useStock = null, setUseStock, initialAsk = null }) {
   useBodyScrollLock();
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialAsk && useStock == null ? initialAsk : "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [over, setOver] = useState(null);
@@ -124,10 +124,10 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [chat.length, busy, error]);
 
-  const send = async (raw) => {
+  const send = async (raw, base = chat) => {
     const vraag = (raw ?? text).trim();
     if (!vraag || busy || useStock == null) return;
-    const next = [...chat, { role: "user", content: vraag }];
+    const next = [...base, { role: "user", content: vraag }];
     setChat(next);
     setText("");
     setError(null);
@@ -153,6 +153,17 @@ function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOw
     if (ids.length) setEerder([...ids, ...(Array.isArray(eerder) ? eerder : []).filter(id => !ids.includes(id))].slice(0, 30));
     setChat([...next, { role: "assistant", content: res.antwoord || "", recepten: ids, waarom: Object.fromEntries(items.map(r => [r.id, r.waarom || ""])), opties: Array.isArray(res.opties) ? res.opties.slice(0, 4) : [] }]);
   };
+  // Geopend met een vraag (bijv. vanuit een recept): als nieuw gesprek meteen
+  // stellen. Weet de bartender nog niet of hij je voorraad mag zien, dan
+  // staat de vraag klaar in het invoerveld.
+  const askedRef = useRef(false);
+  useEffect(() => {
+    if (!initialAsk || askedRef.current || useStock == null) return;
+    askedRef.current = true;
+    setText("");
+    send(initialAsk, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAsk, useStock]);
   const retry = () => {
     const last = chat[chat.length - 1];
     if (last?.role !== "user") return;

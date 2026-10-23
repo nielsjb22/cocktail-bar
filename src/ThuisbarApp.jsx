@@ -15,6 +15,7 @@ import { exportMyData } from "./dataExport.js";
 import { momentsFor } from "./moments.js";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { INGREDIENT_INFO } from "./data/ingredientInfo";
+import { SUBSTITUTES, substitutesFor, substituteAmount } from "./data/substitutes";
 import { supabase } from "./supabaseClient";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor, setStatusBarOnDark, setKeepAwake } from "./native";
 import { fetchLearnedBrands, recordBrandLink, useSearchMiss, fetchRecommendations } from "./learning.js";
@@ -2281,7 +2282,8 @@ export default function ThuisbarApp() {
   // null = nog niet gevraagd of de bartender naar je voorraad mag kijken.
   const [bartenderStock, setBartenderStock] = useStorage("thuisbar-bartender-voorraad", null);
   useEffect(() => { if (!session) { setBartenderChat([]); setBartenderOpen(false); } }, [session]);
-  const openBartender = () => withAi(() => setBartenderOpen(true));
+  const [bartenderAsk, setBartenderAsk] = useState(null);
+  const openBartender = (ask = null) => withAi(() => { setBartenderAsk(typeof ask === "string" ? ask : null); setBartenderOpen(true); });
   const [profile, setProfile] = useState(null);
   const [serverLogboek, setLogboekState] = useState([]);
   // Gasten checken lokaal in (op dit toestel); bij het aanmaken van een
@@ -3010,7 +3012,7 @@ export default function ThuisbarApp() {
               recentRecipeIds, onViewRecipe: addRecentRecipe, onSound: chime,
               favoriteRecipeIds, onToggleFavorite: toggleFavoriteRecipe,
               onAddToShoppingList: addToShoppingList, onAddToFeest: addRecipeToFeest, feestChosen,
-              onOpenCheckin: openCheckin,
+              onOpenCheckin: openCheckin, onAskBartender: openBartender,
             }}
           />
         </TabPanel>
@@ -3154,7 +3156,7 @@ export default function ThuisbarApp() {
       {bartenderOpen && (
         <BartenderScreen chat={bartenderChat} setChat={setBartenderChat} onClose={() => setBartenderOpen(false)}
           recipes={allRecipes} allIngredients={allIngredients} isOwned={isOwned} voorraad={voorraad} logboek={logboek}
-          useStock={bartenderStock} setUseStock={setBartenderStock}
+          useStock={bartenderStock} setUseStock={setBartenderStock} initialAsk={bartenderAsk}
           onOpenRecipe={openRecipeFromBartender} onAddToShoppingList={addToShoppingList} onSound={chime} />
       )}
       {aiPending && (
@@ -6682,12 +6684,93 @@ function OwnedMark({ owned, optional, size = 20 }) {
     <span aria-label={optional ? "Optioneel, niet in huis" : "Ontbreekt"} style={{ width: size, height: size, borderRadius: "50%", boxSizing: "border-box", border: `2px ${optional ? "dashed" : "solid"} ${optional ? BORDER : BURGUNDY}`, flexShrink: 0, display: "inline-block" }} />
   );
 }
+// Recept met de gekozen vervangers erin: ingrediënt, hoeveelheid en de
+// namen in bereiding en afwerking. Het origineel blijft bewaard in `vervangt`.
+function baseIngredientName(label) {
+  return label.replace(/\s*\(.*\)\s*$/, "").split(" / ")[0].trim();
+}
+export function swapIngredientText(text, pairs) {
+  if (!text || !pairs?.length) return text;
+  let out = text;
+  for (const [from, to, oldAmount, newAmount] of pairs) {
+    const name = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // "20 ml triple sec" → ook de hoeveelheid aanpassen.
+    if (oldAmount != null && newAmount != null && oldAmount !== newAmount) {
+      out = out.replace(new RegExp(`\\b${String(oldAmount).replace(".", "[.,]")}(\\s*(?:ml|cl|dash(?:es)?|scheutjes?|stuks?)?\\s+)(?=${name}\\b)`, "gi"), `${formatDutchNumber(newAmount)}$1`);
+    }
+    // Merknamen ("Grand Marnier") houden hun hoofdletters.
+    const isName = /[A-Z]/.test(to.slice(1));
+    out = out.replace(new RegExp(`\\b${name}\\b`, "gi"), m => (isName ? to : m[0] === m[0].toUpperCase() ? to.charAt(0).toUpperCase() + to.slice(1) : to.charAt(0).toLowerCase() + to.slice(1)));
+  }
+  return out;
+}
+export function applySubstitutes(recipe, swaps, ingredientLabel) {
+  if (!recipe || !swaps || !Object.keys(swaps).length) return recipe;
+  const pairs = [];
+  const ingredients = recipe.ingredients.map(ing => {
+    const subId = ing.id && swaps[ing.id];
+    const opt = subId && (SUBSTITUTES[ing.id] || []).find(o => o[0] === subId);
+    if (!opt) return ing;
+    const sub = { ...ing, id: subId, amount: substituteAmount(ing.amount, ing.unit, opt[1]), zin: opt[2], vervangt: ing };
+    pairs.push([baseIngredientName(ingredientLabel(ing)), baseIngredientName(ingredientLabel(sub)), ing.amount, sub.amount]);
+    return sub;
+  });
+  if (!pairs.length) return recipe;
+  return { ...recipe, ingredients, swapPairs: pairs, method: swapIngredientText(recipe.method, pairs), garnish: swapIngredientText(recipe.garnish, pairs) };
+}
+
+// Onder een ontbrekend ingrediënt: wat je in plaats daarvan kunt gebruiken.
+// Wat je in huis hebt met een knop, de rest als korte regel.
+function SubstituteCard({ ing, subs, allIngredients, ingredientLabel, servings, last, onUse, onAsk }) {
+  const owned = subs.filter(s => s.owned);
+  const other = subs.filter(s => !s.owned);
+  const name = (id) => ingredientLabel({ id });
+  return (
+    <li style={{ margin: "2px 0 8px", padding: "12px 13px", borderRadius: 16, border: `1.5px solid ${BRASS}`, background: CREAM, borderBottom: `1.5px solid ${BRASS}` }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: BRASS_TEXT, marginBottom: 4 }}>
+        Geen {baseIngredientName(ingredientLabel(ing)).toLowerCase()}? {owned.length ? "Dit kan ook" : "Dit kan ook, als je het hebt"}
+      </div>
+      {owned.map((s, k) => {
+        const amt = scaleAmount(substituteAmount(ing.amount, ing.unit, s.factor), ing.unit, servings);
+        return (
+          <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: k ? `1px solid ${BORDER}` : "none" }}>
+            <span style={{ width: 38, height: 38, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: PAPER_DEEP, display: "block" }}>
+              <ItemArt ing={allIngredients.find(x => x.id === s.id) || { id: s.id }} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14.5, color: INK }}>
+                {name(s.id)} <span style={{ display: "inline-block", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "rgba(92,122,82,0.16)", color: SAGE, marginLeft: 4, verticalAlign: 1 }}>In huis</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.4, marginTop: 1 }}>
+                {s.zin}{ing.top ? "" : ` Gebruik ${formatDutchNumber(amt)} ${unitLabel(ing.unit, amt)}.`}
+              </div>
+            </div>
+            <button onClick={() => onUse(s)} className="press-scale" style={{ flexShrink: 0, minHeight: 36, padding: "0 13px", borderRadius: 10, border: "none", background: BOTTLE, color: CREAM, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Gebruik</button>
+          </div>
+        );
+      })}
+      {other.length > 0 && (
+        <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.45, padding: owned.length ? "8px 0 2px" : "4px 0 2px", borderTop: owned.length ? `1px solid ${BORDER}` : "none" }}>
+          {owned.length ? "Of, als je het hebt: " : ""}{other.map((s, k) => (
+            <span key={s.id}>{k ? (k === other.length - 1 ? " of " : ", ") : ""}<strong style={{ color: INK }}>{name(s.id).toLowerCase()}</strong></span>
+          ))}{other.length === 1 && !owned.length ? ` (${other[0].zin.charAt(0).toLowerCase()}${other[0].zin.slice(1).replace(/\.$/, "")})` : ""}.
+        </div>
+      )}
+      {onAsk && (
+        <button onClick={onAsk} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", marginTop: 6, padding: "10px 0 2px", border: "none", borderTop: `1px solid ${BORDER}`, background: "none", color: BOTTLE, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
+          <MessageCircle size={16} /> Vraag de bartender wat ik nog meer kan gebruiken
+        </button>
+      )}
+    </li>
+  );
+}
+
 // Samenvatting boven de ingrediëntenlijst: alles in huis, of precies wat je mist.
-function MissingSummary({ missing, ingredientLabel }) {
+function MissingSummary({ missing, ingredientLabel, swapCount = 0 }) {
   if (missing.length === 0) return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 14, background: "rgba(92,122,82,0.14)", marginBottom: 10 }}>
       <OwnedMark owned size={22} />
-      <span style={{ fontSize: 14, fontWeight: 700, color: INK }}>Je hebt alles in huis</span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: INK }}>{swapCount ? `Je kunt hem maken met ${swapCount === 1 ? "1 vervanger" : `${swapCount} vervangers`}` : "Je hebt alles in huis"}</span>
     </div>
   );
   return (
@@ -7421,6 +7504,12 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
 
   const makeableAll = useMemo(() => allScored.filter(s => s.missing.length === 0), [allScored]);
   const bijnaAll = useMemo(() => allScored.filter(s => s.missing.length === 1), [allScored]);
+  // Mist je iets, maar heb je voor alles wat ontbreekt een vervanger in huis?
+  const metVervangerAll = useMemo(() => allScored.filter(s => s.missing.length > 0 && s.missing.length <= 2).map(s => {
+    const swaps = s.missing.map(m => (m.id ? substitutesFor(m.id, id => isOwned({ id })).find(o => o.owned) : null));
+    return swaps.every(Boolean) ? { ...s, swaps } : null;
+  }).filter(Boolean), [allScored, isOwned]);
+  const [vervangerExpanded, setVervangerExpanded] = useState(false);
 
   // Koopadvies: welk ontbrekend ingrediënt ontgrendelt de meeste "mist 1"-recepten
   const koopadviesAll = useMemo(() => {
@@ -7566,6 +7655,34 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
               </div>
             )}
           </div>
+
+          {metVervangerAll.length > 0 && (
+            <div style={{ marginBottom: 26 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                <SectionLabel>Maakbaar met een vervanger</SectionLabel>
+                {metVervangerAll.length > BIJNA_CAP && (
+                  <button onClick={() => setVervangerExpanded(v => !v)} style={linkBtn}>{vervangerExpanded ? "Toon minder" : `Alle ${metVervangerAll.length}`}</button>
+                )}
+              </div>
+              <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, overflow: "hidden" }}>
+                {(vervangerExpanded ? metVervangerAll : metVervangerAll.slice(0, BIJNA_CAP)).map(({ recipe, missing, swaps }, i) => (
+                  <button key={recipe.id} onClick={() => onOpenRecipe?.(recipe.id)} style={{
+                    display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 12px", background: "none", border: "none",
+                    borderTop: i === 0 ? "none" : `1px solid ${PAPER_DEEP}`, textAlign: "left", cursor: "pointer", fontFamily: sans,
+                  }}>
+                    <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={50} radius={12} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 600, color: INK }}>{recipe.name}</div>
+                      <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>
+                        {missing.map((m, k) => `${k ? "; " : ""}${ingredientLabel({ id: swaps[k].id })} in plaats van ${ingredientLabel(m).toLowerCase()}`).join("")}
+                      </div>
+                    </div>
+                    <ChevronRight size={18} color={MUTED} style={{ flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {bijnaAll.length > 0 && (
             <div style={{ marginBottom: 26 }}>
@@ -8887,7 +9004,7 @@ function MomentScreen({ moment, recipeById, isOwned, allIngredients, ingredientL
 
 function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite, onSound, logboek = [],
   openRecipeId, onOpenRecipeHandled, onAddToShoppingList, onAddToFeest, feestChosen, onOpenCheckin,
-  backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange, rootTapTick = 0, recipeSlot = null, swipePeek = null, onBeforeOpen }) {
+  backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange, rootTapTick = 0, recipeSlot = null, swipePeek = null, onBeforeOpen, onAskBartender }) {
   const [selectedId, setSelectedId] = useState(null);
   // Scrollpositie van de lijst vlak vóór een recept openging, zodat "terug"
   // je weer precies daar neerzet i.p.v. halverwege of bovenaan.
@@ -8905,14 +9022,26 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   // hetzelfde recept nogmaals opent (bijv. via Winkelmandje of Feestplanner),
   // terwijl het alleen de allereerste keer een "nieuw scherm"-gevoel moet geven.
   const animatedRecipeIdsRef = useRef(new Set());
-  const recipe = recipes.find(r => r.id === canonicalRecipeId(selectedId)) || null;
+  const baseRecipe = recipes.find(r => r.id === canonicalRecipeId(selectedId)) || null;
+  // Gekozen vervangers per recept ("Kan ik dit maken zonder …?"), onthouden.
+  const [vervangers, setVervangers] = useStorage("thuisbar-vervangers", {});
+  const recipe = useMemo(() => applySubstitutes(baseRecipe, vervangers?.[baseRecipe?.id], ingredientLabel), [baseRecipe, vervangers, ingredientLabel]);
+  const setSwap = (origId, subId) => {
+    if (!baseRecipe) return;
+    const cur = { ...(vervangers?.[baseRecipe.id] || {}) };
+    if (subId) cur[origId] = subId; else delete cur[origId];
+    const next = { ...(vervangers || {}) };
+    if (Object.keys(cur).length) next[baseRecipe.id] = cur; else delete next[baseRecipe.id];
+    setVervangers(next);
+  };
+  const swapCount = recipe ? recipe.ingredients.filter(i => i.vervangt).length : 0;
   const missing = recipe ? recipe.ingredients.filter(ing => !ing.optional).filter(ing => !isOwned(ing)) : [];
   const role = recipe ? getMenuRole(recipe) : null;
   const roleInfo = role ? MENU_ROLES[role] : null;
   const techniques = recipe ? inferTechniques(recipe.method) : [];
   const garnishes = recipe ? inferGarnishes(recipe, allIngredients) : null;
   const { STORIES, STEPS, loaded: textsLoaded } = useRecipeTexts();
-  const steps = recipe ? (STEPS[recipe.id] || splitMethodIntoSteps(recipe.method)) : [];
+  const steps = recipe ? (STEPS[recipe.id] ? STEPS[recipe.id].map(t => swapIngredientText(t, recipe.swapPairs)) : splitMethodIntoSteps(recipe.method)) : [];
   const story = recipe
     ? (STORIES[recipe.id] || (!textsLoaded ? "" : `Nog geen verhaal bekend over deze cocktail: een ${(recipe.family || "eigen creatie").toLowerCase()} op basis van ${recipe.ingredients[0] ? ingredientLabel(recipe.ingredients[0]) : "jouw eigen ingrediënten"}. Schrijf zelf de anekdote erbij als je 'm serveert!`))
     : null;
@@ -9293,20 +9422,50 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               </div>
             </div>
           </div>
-          <MissingSummary missing={missing} ingredientLabel={ingredientLabel} />
+          <MissingSummary missing={missing} ingredientLabel={ingredientLabel} swapCount={swapCount} />
           <ul style={{ margin: "0 0 14px", paddingLeft: 0, listStyle: "none", fontSize: 15.5 }}>
             {recipe.ingredients.map((ing, i) => {
               const scaled = scaleAmount(ing.amount, ing.unit, servings);
               const owned = isOwned(ing);
+              const amountText = ing.top && servings === 1 ? "top op" : `${formatDutchNumber(scaled)} ${unitLabel(ing.unit, scaled)}`;
+              const subs = !owned && !ing.optional && !ing.vervangt && ing.id ? substitutesFor(ing.id, id => isOwned({ id })) : [];
+              const last = i === recipe.ingredients.length - 1;
+              if (ing.vervangt) {
+                const orig = ing.vervangt;
+                const origScaled = scaleAmount(orig.amount, orig.unit, servings);
+                return (
+                  <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 10px", margin: "2px -10px", borderRadius: 12, background: "rgba(184,134,46,0.12)" }}>
+                    <OwnedMark owned={owned} optional={ing.optional} />
+                    <span style={{ flex: 1, minWidth: 0, color: owned ? INK : BURGUNDY, fontWeight: owned ? 400 : 600 }}>
+                      {ingredientLabel(ing)}
+                      <span style={{ display: "block", fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 1 }}>
+                        in plaats van {orig.top && servings === 1 ? "" : `${formatDutchNumber(origScaled)} ${unitLabel(orig.unit, origScaled)} `}{ingredientLabel(orig).toLowerCase()}
+                      </span>
+                      {ing.zin && <span style={{ display: "block", fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 2, lineHeight: 1.4 }}>{ing.zin}</span>}
+                    </span>
+                    <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                      <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{amountText}</span>
+                      <button onClick={() => { onSound("tick"); setSwap(orig.id, null); }} style={{ border: "none", background: "none", padding: "4px 0", color: BOTTLE, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Terug</button>
+                    </span>
+                  </li>
+                );
+              }
               return (
-                <li key={i} className="ingredient-reveal" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < recipe.ingredients.length - 1 ? `1px dotted ${BORDER}` : "none", animationDelay: `${0.44 + Math.min(i, 8) * 0.05}s` }}>
+                <Fragment key={i}>
+                <li className="ingredient-reveal" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: !last && !subs.length ? `1px dotted ${BORDER}` : "none", animationDelay: `${0.44 + Math.min(i, 8) * 0.05}s` }}>
                   <OwnedMark owned={owned} optional={ing.optional} />
                   <span style={{ flex: 1, minWidth: 0, color: owned || ing.optional ? INK : BURGUNDY, fontWeight: owned || ing.optional ? 400 : 600 }}>
                     {ingredientLabel(ing)}{ing.optional ? " (optioneel)" : ""}
                     {!owned && !ing.optional && <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, letterSpacing: 0.3, color: BURGUNDY, marginTop: 1 }}>Ontbreekt</span>}
                   </span>
-                  <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{ing.top && servings === 1 ? "top op" : `${formatDutchNumber(scaled)} ${unitLabel(ing.unit, scaled)}`}</span>
+                  <span style={{ fontWeight: 700, color: BOTTLE, fontFamily: systemFont }}>{amountText}</span>
                 </li>
+                {subs.length > 0 && (
+                  <SubstituteCard ing={ing} subs={subs} allIngredients={allIngredients} ingredientLabel={ingredientLabel} servings={servings} last={last}
+                    onUse={(sub) => { onSound("pop"); setSwap(ing.id, sub.id); }}
+                    onAsk={onAskBartender ? () => onAskBartender(`Ik wil een ${baseRecipe.name} maken, maar ik heb geen ${ingredientLabel(ing).toLowerCase()}. Wat kan ik uit mijn voorraad gebruiken in plaats daarvan, en hoeveel?`) : null} />
+                )}
+                </Fragment>
               );
             })}
           </ul>
