@@ -64,6 +64,8 @@ const InsightsAdminScreen = lazyScreen(() => import("./features/Beheer.jsx"), "I
 const ReportsAdminScreen = lazyScreen(() => import("./features/Beheer.jsx"), "ReportsAdminScreen");
 const CocktailMap = lazyScreen(() => import("./features/Kaart.jsx"), "CocktailMap");
 const LicensesScreen = lazyScreen(() => import("./features/Licenties.jsx"), "LicensesScreen");
+const ShareCheckinSheet = lazyScreen(() => import("./features/Delen.jsx"), "ShareCheckinSheet");
+const YearReviewScreen = lazyScreen(() => import("./features/Delen.jsx"), "YearReviewScreen");
 const EigenRecepten = lazyScreen(() => import("./features/EigenRecepten.jsx"), "EigenRecepten");
 
 
@@ -828,7 +830,7 @@ export function findIngredientMeta(ref, allIngredients) {
   return allIngredients.find(i => i.name.toLowerCase() === (ref.name || "").toLowerCase()) || null;
 }
 
-function getBaseSpirit(recipe, allIngredients) {
+export function getBaseSpirit(recipe, allIngredients) {
   for (const ing of recipe.ingredients) {
     const meta = findIngredientMeta(ing, allIngredients);
     if (meta && meta.cat === "Sterke drank") return meta.name;
@@ -2642,11 +2644,17 @@ export default function ThuisbarApp() {
   const [checkinRequest, setCheckinRequest] = useState(null);
   // Net ingecheckt: naar de feed, de nieuwe post licht bovenaan even op.
   const [feedHighlight, setFeedHighlight] = useState(null);
+  // Na het inchecken een paar seconden "Proost! … Delen" onderin beeld.
+  const [checkinToast, setCheckinToast] = useState(null);
+  const [shareEntryId, setShareEntryId] = useState(null);
+  const [yearReview, setYearReview] = useState(null); // "jaar" | "maand" | null
   const handleCheckedIn = (saved) => {
     navigateTo("home");
     window.scrollTo(0, 0);
     Promise.resolve(saved).then((id) => {
       if (!id) return;
+      setCheckinToast(id);
+      setTimeout(() => setCheckinToast(cur => (cur === id ? null : cur)), 7000);
       setFeedHighlight(id);
       setTimeout(() => setFeedHighlight(cur => (cur === id ? null : cur)), 3200);
     }).catch(() => {});
@@ -2912,6 +2920,24 @@ export default function ThuisbarApp() {
     <div style={{ background: PAPER, minHeight: "100%", fontFamily: sans, color: INK }}>
       {!isOnline && <OfflineBanner />}
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+      {checkinToast && logboek.some(e => e.id === checkinToast) && (
+        <div role="status" className="sheet-slide-in" style={{
+          position: "fixed", left: 12, right: 12, bottom: "calc(env(safe-area-inset-bottom) + 96px)", zIndex: 25, maxWidth: 520, margin: "0 auto",
+          background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 16, padding: "10px 10px 10px 16px", display: "flex", alignItems: "center", gap: 10,
+          boxShadow: "0 12px 30px -10px rgba(0,0,0,0.45)", fontFamily: sans,
+        }}>
+          <span style={{ flex: 1, fontSize: 14, lineHeight: 1.35 }}><b>Proost!</b> Je check-in staat in de feed.</span>
+          <button onClick={() => { setShareEntryId(checkinToast); setCheckinToast(null); }} style={{ minHeight: 38, padding: "0 14px", borderRadius: 11, border: "none", background: "#E8C98E", color: BOTTLE_DARK, fontFamily: sans, fontSize: 13.5, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <Share2 size={15} /> Delen
+          </button>
+          <button onClick={() => setCheckinToast(null)} aria-label="Sluiten" style={{ width: 34, height: 34, border: "none", background: "none", color: "#B9C4B9", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={17} /></button>
+        </div>
+      )}
+      {shareEntryId && (() => {
+        const entry = logboek.find(e => e.id === shareEntryId);
+        return entry ? <ShareCheckinSheet entry={entry} recipe={findRecipeFor(entry, allRecipes)} who={profile?.name || "Ik"} onClose={() => setShareEntryId(null)} /> : null;
+      })()}
+      {yearReview && <YearReviewScreen year={yearReviewSeason() || new Date().getFullYear()} logboek={logboek} recipes={allRecipes} allIngredients={allIngredients} voorraadCount={voorraad.size} initialPeriod={yearReview} onClose={() => setYearReview(null)} />}
       {tab !== "home" && <StatusBarBackdrop showAfter={0} dark />}
       {showNotifications && (
         <NotificationsScreen notifications={notifications} recipes={allRecipes} allIngredients={allIngredients}
@@ -2959,7 +2985,7 @@ export default function ThuisbarApp() {
             favoriteFamily={checkinInsights.favoriteFamilyEntry?.[0] || null}
             logboek={logboek} recipes={allRecipes} allIngredients={allIngredients} active={tab === "home"}
             onOpenRecipe={openRecipeDetail} onOpenCheckin={openCheckin} onSound={chime}
-            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} nativePush={nativePush} highlightId={feedHighlight}
+            onReloadLogboek={reloadLogboek} homeTapTick={homeTapTick} courseRank={courseRank} nativePush={nativePush} highlightId={feedHighlight} onOpenYearReview={setYearReview}
             guest={isGuest} onRequireAccount={requireAccount} onOpenOwnProfile={() => navigateTo("profiel")} />
         </TabPanel>
         <TabPanel id="ontdekken" active={tab === "ontdekken"} visited={visitedTabs.has("ontdekken")} panelRef={panelRefs}>
@@ -2999,7 +3025,7 @@ export default function ThuisbarApp() {
             guest={isGuest} onRequireAccount={requireAccount}
             onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress} courseRank={courseRank}
             onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"}
-            friendRequestCount={friendRequestCount} />
+            friendRequestCount={friendRequestCount} onOpenYearReview={setYearReview} />
         </TabPanel>
 
         <TabPanel id="voorraad" active={tab === "voorraad"} visited={visitedTabs.has("voorraad")} panelRef={panelRefs}>
@@ -4660,7 +4686,28 @@ function ForYouStrip({ items, allIngredients, onOpenRecipe }) {
   );
 }
 
-function HomeTab({ onOpenBartender, session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush, highlightId, guest = false, onRequireAccount, onOpenOwnProfile }) {
+// Bar-jaaroverzicht: van 1 december t/m 15 januari ook op Home (het jaar dat
+// net klaar is of bijna klaar is); altijd te vinden onder Profiel → Prestaties.
+function yearReviewSeason(d = new Date()) {
+  if (d.getMonth() === 11) return d.getFullYear();
+  if (d.getMonth() === 0 && d.getDate() <= 15) return d.getFullYear() - 1;
+  return null;
+}
+function YearReviewCard({ year, onOpen, style = {} }) {
+  return (
+    <button onClick={onOpen} className="press-scale" style={{
+      borderRadius: 16, border: "none", padding: "14px 16px", textAlign: "left", cursor: "pointer", fontFamily: sans, color: HEADER_TEXT,
+      background: "radial-gradient(ellipse 400px 240px at 50% -20%, #2A4B42, #0E1917 75%)", boxShadow: SHADOW_CARD,
+      display: "flex", flexDirection: "column", gap: 6, width: "100%", boxSizing: "border-box", ...style,
+    }}>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.7, textTransform: "uppercase", color: "#E8C98E" }}>Jouw jaar aan de bar</span>
+      <span style={{ fontFamily: serif, fontSize: 26, fontWeight: 700, lineHeight: 1 }}>{year}</span>
+      <span style={{ fontSize: 12, color: "#B9C4B9", display: "flex", alignItems: "center", gap: 5 }}><Share2 size={13} /> Bekijk en deel</span>
+    </button>
+  );
+}
+
+function HomeTab({ onOpenBartender, session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush, highlightId, guest = false, onRequireAccount, onOpenOwnProfile, onOpenYearReview = null }) {
   const recipeTextsHome = useRecipeTexts();
   const [pushPromptHidden, setPushPromptHidden] = useStorage("thuisbar-push-prompt-weg", false);
   const [photoViewer, setPhotoViewer] = useState(null);
@@ -5194,6 +5241,9 @@ function HomeTab({ onOpenBartender, session, profile, greeting, featuredRecipe, 
         </div>
       )}
 
+      {onOpenYearReview && yearReviewSeason() && logboek.length > 0 && (
+        <YearReviewCard year={yearReviewSeason()} onOpen={() => onOpenYearReview("jaar")} style={{ marginBottom: 14 }} />
+      )}
       {combinedFeed.length === 0 ? (guest ? null :
         <div style={{ padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS }}>
           <p style={{ margin: 0, fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>
@@ -9448,7 +9498,7 @@ function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredi
 }
 
 export const KORTE_MAANDEN = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
-function formatCheckinDate(iso) {
+export function formatCheckinDate(iso) {
   const [y, m, d] = iso.split("-").map(Number);
   return `${d} ${KORTE_MAANDEN[m - 1]} ${y}`;
 }
@@ -10243,7 +10293,7 @@ function computeCheckinStats(logboek) {
   return { total, uniques, avg, counts, max, firstDate, photos };
 }
 
-function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqueCount) {
+export function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqueCount) {
   const matched = logboek.map(e => ({
     entry: e,
     recipe: e.recipeId ? recipes.find(r => r.id === canonicalRecipeId(e.recipeId)) : recipes.find(r => r.name.toLowerCase() === e.name.trim().toLowerCase()),
@@ -10670,6 +10720,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
   const [photoOpen, setPhotoOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [shareNote, setShareNote] = useState("");
+  const [shareImageOpen, setShareImageOpen] = useState(false);
   const img = entry.photo || (recipe && (localItemImageUrl("cocktail", recipe.id) || recipe.image)) || null;
   const tags = (entry.tasteTags || []).filter(k => CHECKIN_TASTE_META[k]);
   const ingredientsLine = recipe ? recipe.ingredients.filter(i => !i.optional).map(ing => ingredientLabel(ing)).join(" · ") : null;
@@ -10765,12 +10816,13 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
                 <Pencil size={16} /> Bewerken
               </button>
             )}
-            <button onClick={share} className="press-scale" style={{ ...btn, border: `1.5px solid ${BOTTLE}`, background: "none", color: BOTTLE }}>
+            <button onClick={onEdit ? () => setShareImageOpen(true) : share} className="press-scale" style={{ ...btn, border: `1.5px solid ${BOTTLE}`, background: "none", color: BOTTLE }}>
               <Share2 size={16} /> {shareNote || "Delen"}
             </button>
           </div>
         </div>
       </div>
+      {shareImageOpen && <ShareCheckinSheet entry={entry} recipe={recipe} who={who} onClose={() => setShareImageOpen(false)} onShareText={() => { setShareImageOpen(false); share(); }} />}
       {photoOpen && <CheckinPhotoViewer entry={entry} matched={recipe} who={who} whoAvatar={whoAvatar} allIngredients={allIngredients} onClose={() => setPhotoOpen(false)}
         onOpenRecipe={onOpenRecipe ? (id) => { onClose(); onOpenRecipe(id); } : null} />}
       {confirmDelete && (
@@ -10781,7 +10833,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onCheckinRequestHandled, onCheckedIn, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank, guest = false, onRequireAccount, friendRequestCount = 0}) {
+function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onCheckinRequestHandled, onCheckedIn, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank, guest = false, onRequireAccount, friendRequestCount = 0, onOpenYearReview = null}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -11293,6 +11345,19 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
         const mapLocations = insights.locations.filter(l => l.name.trim().toLowerCase() !== "thuis");
         return (
           <>
+            {onOpenYearReview && logboek.length > 0 && (
+              <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+                <YearReviewCard year={new Date().getFullYear()} onOpen={() => onOpenYearReview("jaar")} style={{ flex: 1.4 }} />
+                <button onClick={() => onOpenYearReview("maand")} className="press-scale" style={{
+                  flex: 1, borderRadius: 16, border: "none", background: CREAM, boxShadow: SHADOW_CARD, padding: "14px 14px", textAlign: "left",
+                  cursor: "pointer", fontFamily: sans, color: INK, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 8,
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.7, textTransform: "uppercase", color: BRASS_TEXT }}>Deze maand</span>
+                  <span style={{ fontFamily: serif, fontSize: 19, fontWeight: 700, color: BOTTLE, lineHeight: 1.15 }}>{new Date().toLocaleDateString("nl-NL", { month: "long" }).replace(/^./, c => c.toUpperCase())}</span>
+                  <span style={{ fontSize: 12, color: MUTED, display: "flex", alignItems: "center", gap: 5 }}><Share2 size={13} /> Bekijk en deel</span>
+                </button>
+              </div>
+            )}
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
               <SectionLabel>Badges</SectionLabel>
               <span style={{ fontSize: 13, color: MUTED }}>{achieved} van {insights.achievements.length} behaald</span>
