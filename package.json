@@ -10,7 +10,8 @@
     "ios:sync": "vite build && npx cap sync ios",
     "ios:open": "npx cap open ios",
     "check:images": "node scripts/check-images.mjs",
-    "sync:images-catalog": "node scripts/sync-images-catalog.mjs"
+    "sync:images-catalog": "node scripts/sync-images-catalog.mjs",
+    "sync:licenses": "node scripts/generate-licenses.mjs"
   },
   "dependencies": {
     "@capacitor-community/keep-awake": "^8.0.1",

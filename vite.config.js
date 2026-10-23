@@ -10,10 +10,11 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
-      // Tweede pagina: /privacy (link voor App Store Connect).
+      // Losse pagina's: /privacy en /voorwaarden (links voor App Store Connect).
       input: {
         main: resolve(__dirname, "index.html"),
         privacy: resolve(__dirname, "privacy/index.html"),
+        voorwaarden: resolve(__dirname, "voorwaarden/index.html"),
       },
     },
   },

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Gebruiksvoorwaarden – Mijn Thuisbar</title>
+    <meta name="description" content="De gebruiksvoorwaarden van Mijn Thuisbar." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      :root { --paper: #F6F1E7; --cream: #FBF8F1; --ink: #1E1B16; --muted: #6E665A; --bottle: #1F3D36; --brass: #B8862E; --border: #E4DCCB; }
+      @media (prefers-color-scheme: dark) {
+        :root { --paper: #161616; --cream: #1F1E1C; --ink: #EDE6D8; --muted: #A39A8B; --bottle: #D4A54A; --brass: #D4A54A; --border: #2E2C28; }
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+      main { max-width: 680px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 40px) 16px 64px; }
+      .merk { display: flex; align-items: center; gap: 10px; color: var(--brass); font-weight: 700; letter-spacing: .02em; font-size: 14px; text-transform: uppercase; }
+      .merk img { width: 32px; height: 32px; border-radius: 8px; }
+      h1 { font-size: 30px; line-height: 1.2; margin: 18px 0 4px; }
+      .datum { color: var(--muted); font-size: 14px; margin: 0 0 28px; }
+      h2 { font-size: 18px; color: var(--bottle); margin: 26px 0 6px; }
+      p { margin: 0 0 14px; }
+      .kaart { background: var(--cream); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px 10px; }
+      a { color: var(--bottle); }
+      ul { margin: 0 0 14px; padding-left: 20px; }
+      li { margin: 0 0 6px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="merk"><img src="/apple-touch-icon.png" alt="" />Mijn Thuisbar</div>
+      <h1>Gebruiksvoorwaarden</h1>
+      <p class="datum" id="datum"></p>
+      <div class="kaart" id="inhoud"></div>
+    </main>
+    <script type="module" src="/src/voorwaardenPage.js"></script>
+  </body>
+</html>

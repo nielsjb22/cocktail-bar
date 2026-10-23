@@ -12,6 +12,8 @@ import L from "leaflet";
 import { useMapEngine, createAppleMap } from "./appleMaps";
 import { buildIngredientIndex, searchIngredients, unusedHint, normalizeTerm } from "./ingredientSearch";
 import { PRIVACY_BIJGEWERKT, PRIVACY_INTRO, PRIVACY_SECTIES, privacyContactTekst } from "./privacyPolicy";
+import { VOORWAARDEN_VERSIE, VOORWAARDEN_BIJGEWERKT, VOORWAARDEN_INTRO, VOORWAARDEN_SECTIES, voorwaardenContactTekst } from "./termsOfUse";
+import { exportMyData } from "./dataExport.js";
 import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { INGREDIENT_INFO } from "./data/ingredientInfo";
@@ -133,6 +135,8 @@ const PUSH_SCREEN_TITLES = {
   vrienden: "Vrienden",
   instellingen: "Instellingen",
   privacybeleid: "Privacybeleid",
+  voorwaarden: "Gebruiksvoorwaarden",
+  licenties: "Licenties",
   "account-verwijderen": "Account verwijderen",
   fotoverantwoording: "Fotoverantwoording",
   "meldingen-beheren": "Meldingen",
@@ -2038,6 +2042,10 @@ function AuthScreen({ initialMode = "login", onCancel }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  // Akkoord met voorwaarden + privacybeleid (verplicht bij een nieuw account),
+  // en welke van de twee teksten open staat om te lezen.
+  const [agreed, setAgreed] = useState(false);
+  const [legalOpen, setLegalOpen] = useState(null);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -2046,8 +2054,10 @@ function AuthScreen({ initialMode = "login", onCancel }) {
       if (mode === "signup") {
         const trimmedName = name.trim();
         if (!trimmedName) { setError("Vul je naam in."); setBusy(false); return; }
+        if (!agreed) { setError("Ga akkoord met de gebruiksvoorwaarden en het privacybeleid om een account te maken."); setBusy(false); return; }
         const { data, error: err } = await supabase.auth.signUp({
-          email: email.trim(), password, options: { data: { name: trimmedName } },
+          email: email.trim(), password,
+          options: { data: { name: trimmedName, voorwaarden_versie: VOORWAARDEN_VERSIE, voorwaarden_akkoord_op: new Date().toISOString() } },
         });
         if (err) throw err;
         if (!data.session) setNotice("Bijna klaar! Check je e-mail om je account te bevestigen, en log daarna in.");
@@ -2067,7 +2077,7 @@ function AuthScreen({ initialMode = "login", onCancel }) {
   };
 
   return (
-    <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)`, display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 24px", boxSizing: "border-box" }}>
+    <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)`, display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 24px", boxSizing: "border-box", fontFamily: sans }}>
       {/* Gast die toch nog even verder wil kijken: terug naar de app (knop
           of vanaf de linkerrand vegen). */}
       {onCancel && <AuthSwipeBack onBack={onCancel} />}
@@ -2120,6 +2130,10 @@ function AuthScreen({ initialMode = "login", onCancel }) {
             </button>
           )}
 
+          {mode === "signup" && (
+            <TermsCheckbox checked={agreed} onChange={setAgreed} onOpen={setLegalOpen} />
+          )}
+
           {error && <p style={{ color: "#E8A0A0", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>{error}</p>}
           {notice && <p style={{ color: "#B9D9A0", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>{notice}</p>}
 
@@ -2149,6 +2163,90 @@ function AuthScreen({ initialMode = "login", onCancel }) {
           </button>
         )}
       </div>
+      {legalOpen && <LegalSheet which={legalOpen} onClose={() => setLegalOpen(null)} />}
+    </div>
+  );
+}
+
+// Vinkje "Ik ga akkoord met…", met de twee teksten als tikbare links.
+function TermsCheckbox({ checked, onChange, onOpen, light = false }) {
+  const textColor = light ? INK : "#D9CBAE";
+  const linkStyle = { background: "none", border: "none", padding: 0, cursor: "pointer", color: light ? BOTTLE : HEADER_TEXT, textDecoration: "underline", fontSize: "inherit", fontFamily: "inherit", fontWeight: 600 };
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, lineHeight: 1.5, color: textColor }}>
+      <button type="button" role="checkbox" aria-checked={checked} aria-label="Akkoord met de gebruiksvoorwaarden en het privacybeleid" onClick={() => onChange(!checked)} style={{
+        flexShrink: 0, width: 24, height: 24, marginTop: 1, borderRadius: 7, cursor: "pointer", padding: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        border: `1.5px solid ${checked ? HEADER_TEXT : (light ? BORDER : "rgba(217,203,174,0.6)")}`,
+        background: checked ? (light ? BOTTLE : HEADER_TEXT) : "transparent",
+      }}>
+        {checked && <Check size={15} strokeWidth={3} color={light ? CREAM : "#132622"} />}
+      </button>
+      <span>
+        Ik ben 18 jaar of ouder en ga akkoord met de{" "}
+        <button type="button" onClick={() => onOpen("voorwaarden")} style={linkStyle}>gebruiksvoorwaarden</button>
+        {" "}en het{" "}
+        <button type="button" onClick={() => onOpen("privacy")} style={linkStyle}>privacybeleid</button>.
+      </span>
+    </div>
+  );
+}
+
+// Volledig scherm met de voorwaarden of het privacybeleid, om te lezen
+// vóór je akkoord gaat (bij registreren en op het akkoordscherm).
+function LegalSheet({ which, onClose }) {
+  const terms = which === "voorwaarden";
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={terms ? "Gebruiksvoorwaarden" : "Privacybeleid"} style={{
+      position: "fixed", inset: 0, zIndex: 1000, background: PAPER, display: "flex", flexDirection: "column", fontFamily: sans,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "calc(env(safe-area-inset-top) + 8px) 12px 8px", borderBottom: `1px solid ${BORDER}`, background: CREAM }}>
+        <div style={{ flex: 1, fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK, paddingLeft: 6 }}>{terms ? "Gebruiksvoorwaarden" : "Privacybeleid"}</div>
+        <button onClick={onClose} aria-label="Sluiten" style={{ minWidth: 44, minHeight: 44, background: "none", border: "none", cursor: "pointer", color: INK, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <X size={22} />
+        </button>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "18px 20px calc(env(safe-area-inset-bottom) + 28px)" }}>
+        {terms ? <TermsScreen /> : <PrivacyPolicyScreen />}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// Bestaande accounts (en accounts van vóór een nieuwe versie van de
+// voorwaarden) gaan hier één keer akkoord. Uitloggen kan ook; verwijderen
+// van het account kan altijd via Instellingen nadat je akkoord bent gegaan,
+// of door te mailen.
+function TermsGateScreen({ onAccept, onSignOut, busy = false, error = "" }) {
+  useMatchBodyBackground(BOTTLE_DARK);
+  const [agreed, setAgreed] = useState(false);
+  const [legalOpen, setLegalOpen] = useState(null);
+  return (
+    <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)`, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px", boxSizing: "border-box", fontFamily: sans }}>
+      <div style={{ maxWidth: 380, width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+          <BrandMark width={72} />
+        </div>
+        <h1 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: ON_DARK_TEXT, margin: "0 0 12px", textAlign: "center" }}>Even je akkoord</h1>
+        <p style={{ color: "#C7CFC5", fontSize: 14, lineHeight: 1.6, margin: "0 0 22px", textAlign: "center" }}>
+          Mijn Thuisbar heeft gebruiksvoorwaarden en een bijgewerkt privacybeleid. Lees ze even door en ga akkoord om verder te gaan.
+        </p>
+        <div style={{ background: "rgba(251,247,236,0.06)", border: "1px solid rgba(184,134,46,0.25)", borderRadius: RADIUS + 4, padding: 18 }}>
+          <TermsCheckbox checked={agreed} onChange={setAgreed} onOpen={setLegalOpen} />
+          {error && <p style={{ color: "#E8A0A0", fontSize: 12.5, margin: "12px 0 0", lineHeight: 1.5 }}>{error}</p>}
+          <button onClick={onAccept} disabled={!agreed || busy} className="press-scale" style={{
+            width: "100%", padding: "13px", marginTop: 16, borderRadius: RADIUS, border: "none",
+            background: HEADER_TEXT, color: "#132622", fontFamily: sans, fontSize: 14.5, fontWeight: 800,
+            cursor: !agreed || busy ? "default" : "pointer", opacity: !agreed || busy ? 0.55 : 1,
+          }}>{busy ? "Bezig…" : "Akkoord en verder"}</button>
+        </div>
+        <button onClick={onSignOut} style={{
+          display: "block", width: "100%", textAlign: "center", background: "none", border: "none", cursor: "pointer",
+          color: "#D9CBAE", fontSize: 13, marginTop: 18, fontFamily: sans,
+        }}>Uitloggen</button>
+      </div>
+      {legalOpen && <LegalSheet which={legalOpen} onClose={() => setLegalOpen(null)} />}
     </div>
   );
 }
@@ -2657,6 +2755,29 @@ export default function ThuisbarApp() {
     return () => { cancelled = true; };
   }, [session]);
 
+  // Gebruiksvoorwaarden: welke versie dit account accepteerde. Staat op het
+  // profiel; zonder de migratie (kolom ontbreekt) valt het terug op deze
+  // telefoon. Wie net een account maakte, ging al akkoord bij registreren
+  // (user_metadata) en ziet het akkoordscherm dus niet.
+  const [termsLocal, setTermsLocal] = useStorage("thuisbar-voorwaarden-akkoord", null);
+  const [termsBusy, setTermsBusy] = useState(false);
+  const [termsError, setTermsError] = useState("");
+  const termsAccepted = !profile ? true
+    : ("voorwaarden_versie" in profile ? profile.voorwaarden_versie : termsLocal) === VOORWAARDEN_VERSIE;
+  const termsFromSignup = session?.user?.user_metadata?.voorwaarden_versie === VOORWAARDEN_VERSIE;
+  const acceptTerms = async (when = new Date().toISOString()) => {
+    setTermsBusy(true); setTermsError("");
+    setTermsLocal(VOORWAARDEN_VERSIE);
+    const update = { voorwaarden_versie: VOORWAARDEN_VERSIE, voorwaarden_akkoord_op: when };
+    const { error } = await supabase.from("profiles").update(update).eq("id", session.user.id);
+    if (!error) setProfile(p => (p ? { ...p, ...update } : p));
+    else if ("voorwaarden_versie" in (profile || {})) setTermsError("Opslaan lukte niet. Controleer je internetverbinding en probeer het opnieuw.");
+    setTermsBusy(false);
+  };
+  useEffect(() => {
+    if (session && profile && !termsAccepted && termsFromSignup && !termsBusy) acceptTerms(session.user.user_metadata.voorwaarden_akkoord_op || undefined);
+  }, [session, profile, termsAccepted, termsFromSignup]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Cursus uitgespeeld → eenmalig op je profiel zetten, zodat vrienden het
   // diploma ook zien. Faalt stil als de kolommen (migratie) nog ontbreken;
   // je eigen profiel toont het diploma dan toch, op basis van lokale voortgang.
@@ -3130,6 +3251,7 @@ export default function ThuisbarApp() {
   if (surveyId) return <GuestSurveyView surveyId={surveyId} />;
   if (session === undefined) return <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)` }} />;
   if (passwordRecovery) return <PasswordRecoveryScreen onDone={() => setPasswordRecovery(false)} />;
+  if (session && !termsAccepted && !termsFromSignup) return <TermsGateScreen onAccept={() => acceptTerms()} onSignOut={signOut} busy={termsBusy} error={termsError} />;
   // Zonder account krijg je dezelfde app (Apple 5.1.1: geen inlogmuur voor
   // wat geen account nodig heeft). Pas als een gast zelf kiest voor
   // inloggen of een account maken, tonen we AuthScreen — met een weg terug.
@@ -3309,12 +3431,23 @@ export default function ThuisbarApp() {
         <TabPanel id="instellingen" active={tab === "instellingen"} visited={visitedTabs.has("instellingen")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel", { restore: true })}>
             <InstellingenTab aiConsent={aiConsent} onSetAiConsent={setAiConsent} soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={signOut} push={push} nativePush={nativePush} onNavigate={navigateTo}
-              guest={isGuest} onLogin={() => setWantsLogin("login")} onSignup={() => setWantsLogin("signup")} />
+              guest={isGuest} onLogin={() => setWantsLogin("login")} onSignup={() => setWantsLogin("signup")}
+              onExportData={() => exportMyData(session?.user?.id || null)} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="privacybeleid" active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
           <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.privacybeleid} onBack={() => navigateTo("instellingen", { restore: true })}>
             <PrivacyPolicyScreen />
+          </SecondaryTabScreen>
+        </TabPanel>
+        <TabPanel id="voorwaarden" active={tab === "voorwaarden"} visited={visitedTabs.has("voorwaarden")} panelRef={panelRefs}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.voorwaarden} onBack={() => navigateTo("instellingen", { restore: true })}>
+            <TermsScreen />
+          </SecondaryTabScreen>
+        </TabPanel>
+        <TabPanel id="licenties" active={tab === "licenties"} visited={visitedTabs.has("licenties")} panelRef={panelRefs}>
+          <SecondaryTabScreen label="Instellingen" title={PUSH_SCREEN_TITLES.licenties} onBack={() => navigateTo("instellingen", { restore: true })}>
+            <LicensesScreen active={tab === "licenties"} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="account-verwijderen" active={tab === "account-verwijderen"} visited={visitedTabs.has("account-verwijderen")} panelRef={panelRefs}>
@@ -3440,8 +3573,16 @@ function Switch({ checked, onChange, disabled }) {
 // UX-herindeling (v2): Profiel IS nu het check-ins/inzichten-scherm zelf
 // (zoals Untappd) i.p.v. een lijstje dat er naar doorverwijst — de kaart en
 // instellingen hieronder wonen nu in LogboekTab resp. InstellingenTab.
-function InstellingenTab({ aiConsent = null, onSetAiConsent, soundEnabled, onToggleSound, onSignOut, push, nativePush, onNavigate, guest = false, onLogin, onSignup }) {
+function InstellingenTab({ aiConsent = null, onSetAiConsent, soundEnabled, onToggleSound, onSignOut, push, nativePush, onNavigate, guest = false, onLogin, onSignup, onExportData }) {
   if (guest) { push = { supported: false }; nativePush = null; }
+  // "Download mijn gegevens": status van de export (idle | busy | done | error).
+  const [exportState, setExportState] = useState("idle");
+  const runExport = async () => {
+    if (!onExportData || exportState === "busy") return;
+    setExportState("busy");
+    try { await onExportData(); setExportState("done"); }
+    catch (e) { console.error("Export mislukt:", e); setExportState("error"); }
+  };
   // Alleen beheerders (tabel app_beheerders) zien "Gemelde check-ins".
   const [isBeheerder, setIsBeheerder] = useState(false);
   useEffect(() => {
@@ -3555,6 +3696,17 @@ function InstellingenTab({ aiConsent = null, onSetAiConsent, soundEnabled, onTog
           <span style={{ flex: 1, fontWeight: 600 }}>Privacybeleid</span>
           <ChevronRight size={16} color={MUTED} />
         </button>
+        <button onClick={() => onNavigate("voorwaarden")} style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+          background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
+          borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 14.5, color: INK,
+        }}>
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+            <ClipboardList size={16} strokeWidth={1.8} />
+          </span>
+          <span style={{ flex: 1, fontWeight: 600 }}>Gebruiksvoorwaarden</span>
+          <ChevronRight size={16} color={MUTED} />
+        </button>
         <button onClick={() => onNavigate("fotoverantwoording")} style={{
           width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
           background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
@@ -3564,6 +3716,17 @@ function InstellingenTab({ aiConsent = null, onSetAiConsent, soundEnabled, onTog
             <Camera size={16} strokeWidth={1.8} />
           </span>
           <span style={{ flex: 1, fontWeight: 600 }}>Fotoverantwoording</span>
+          <ChevronRight size={16} color={MUTED} />
+        </button>
+        <button onClick={() => onNavigate("licenties")} style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+          background: "none", border: "none", cursor: "pointer", padding: "14px 16px",
+          borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 14.5, color: INK,
+        }}>
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+            <Info size={16} strokeWidth={1.8} />
+          </span>
+          <span style={{ flex: 1, fontWeight: 600 }}>Licenties</span>
           <ChevronRight size={16} color={MUTED} />
         </button>
         {isBeheerder && (
@@ -3590,6 +3753,26 @@ function InstellingenTab({ aiConsent = null, onSetAiConsent, soundEnabled, onTog
             </span>
             <span style={{ flex: 1, fontWeight: 600 }}>Wat de app leert</span>
             <ChevronRight size={16} color={MUTED} />
+          </button>
+        )}
+        {onExportData && (
+          <button onClick={runExport} disabled={exportState === "busy"} style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+            background: "none", border: "none", cursor: exportState === "busy" ? "default" : "pointer", padding: "14px 16px",
+            borderTop: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 14.5, color: INK,
+          }}>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+              <Share2 size={16} strokeWidth={1.8} />
+            </span>
+            <span style={{ flex: 1 }}>
+              <span style={{ display: "block", fontWeight: 600 }}>Download mijn gegevens</span>
+              <span style={{ display: "block", fontSize: 12, color: exportState === "error" ? BURGUNDY : MUTED, marginTop: 1 }}>
+                {exportState === "busy" ? "Bezig met verzamelen…"
+                  : exportState === "done" ? "Klaar. Bewaar of deel het bestand."
+                  : exportState === "error" ? "Dat lukte niet. Probeer het opnieuw of mail ons."
+                  : guest ? "Alles wat op deze telefoon staat, in één bestand" : "Je account, voorraad, check-ins en meer, in één bestand"}
+              </span>
+            </span>
           </button>
         )}
         {!guest && <>
@@ -3622,21 +3805,100 @@ function InstellingenTab({ aiConsent = null, onSetAiConsent, soundEnabled, onTog
 // Kan geen internetverbinding of extern beleid nodig hebben: platte tekst,
 // altijd beschikbaar, ook offline — precies wat Apple-review verwacht als
 // ze "Privacybeleid" aantikken.
-function PrivacyPolicyScreen() {
-  const P = ({ children }) => <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.65, margin: "0 0 16px" }}>{children}</p>;
-  const H = ({ children }) => <h3 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: BOTTLE, margin: "22px 0 8px" }}>{children}</h3>;
+function LegalText({ bijgewerkt, intro, secties, contact, color = INK, accent = BOTTLE, muted = MUTED }) {
+  const P = ({ children }) => <p style={{ fontSize: 13.5, color, lineHeight: 1.65, margin: "0 0 16px" }}>{children}</p>;
+  const H = ({ children }) => <h3 style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: accent, margin: "22px 0 8px" }}>{children}</h3>;
   return (
-    <div>
-      <p style={{ fontSize: 12, color: MUTED, marginBottom: 20 }}>Laatst bijgewerkt: {PRIVACY_BIJGEWERKT}</p>
-      <P>{PRIVACY_INTRO}</P>
-      {PRIVACY_SECTIES.map(sec => (
+    <div style={{ fontFamily: sans }}>
+      <p style={{ fontSize: 12, color: muted, marginBottom: 20 }}>Laatst bijgewerkt: {bijgewerkt}</p>
+      <P>{intro}</P>
+      {secties.map(sec => (
         <div key={sec.kop}>
           <H>{sec.kop}</H>
-          <P>{sec.tekst}</P>
+          {sec.tekst && <P>{sec.tekst}</P>}
+          {sec.punten?.length > 0 && (
+            <ul style={{ margin: "0 0 16px", paddingLeft: 20 }}>
+              {sec.punten.map(p => <li key={p} style={{ fontSize: 13.5, color, lineHeight: 1.6, marginBottom: 6 }}>{p}</li>)}
+            </ul>
+          )}
+          {sec.naTekst && <P>{sec.naTekst}</P>}
         </div>
       ))}
       <H>Contact</H>
-      <P>{privacyContactTekst()}</P>
+      <P>{contact}</P>
+    </div>
+  );
+}
+
+function PrivacyPolicyScreen() {
+  return <LegalText bijgewerkt={PRIVACY_BIJGEWERKT} intro={PRIVACY_INTRO} secties={PRIVACY_SECTIES} contact={privacyContactTekst()} />;
+}
+
+function TermsScreen() {
+  return <LegalText bijgewerkt={VOORWAARDEN_BIJGEWERKT} intro={VOORWAARDEN_INTRO} secties={VOORWAARDEN_SECTIES} contact={voorwaardenContactTekst()} />;
+}
+
+// Lettertypes (SIL OFL) en open-sourcepakketten met hun licentietekst, uit
+// src/data/licenses.json (npm run sync:licenses). Pas geladen als je het
+// scherm opent, zodat de app er niet zwaarder van wordt.
+function LicensesScreen({ active }) {
+  const [data, setData] = useState(null);
+  const [open, setOpen] = useState(null);
+  useEffect(() => {
+    if (!active || data) return;
+    import("./data/licenses.json").then(m => setData(m.default || m));
+  }, [active, data]);
+  const Pre = ({ children }) => (
+    <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11, lineHeight: 1.5, color: INK, background: PAPER_DEEP, borderRadius: 10, padding: 12, margin: "8px 0 4px" }}>{children}</pre>
+  );
+  const Row = ({ id, title, sub, children }) => (
+    <div style={{ borderTop: `1px solid ${BORDER}` }}>
+      <button onClick={() => setOpen(open === id ? null : id)} aria-expanded={open === id} style={{
+        width: "100%", display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: "none", border: "none",
+        cursor: "pointer", padding: "12px 16px", fontFamily: sans, color: INK,
+      }}>
+        <span style={{ flex: 1 }}>
+          <span style={{ display: "block", fontSize: 14, fontWeight: 600 }}>{title}</span>
+          <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{sub}</span>
+        </span>
+        {open === id ? <ChevronUp size={16} color={MUTED} /> : <ChevronDown size={16} color={MUTED} />}
+      </button>
+      {open === id && <div style={{ padding: "0 16px 12px" }}>{children}</div>}
+    </div>
+  );
+  const Card = ({ title, children }) => (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 4px 8px" }}>{title}</div>
+      <div style={{ background: CREAM, boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}><div style={{ marginTop: -1 }}>{children}</div></div>
+    </div>
+  );
+  if (!data) return <p style={{ fontSize: 13.5, color: MUTED }}>Laden…</p>;
+  return (
+    <div>
+      <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.65, margin: "0 0 18px" }}>
+        Mijn Thuisbar is gebouwd met open-sourcesoftware en vrije lettertypes. Hieronder staan ze met hun licentie. Foto's staan met maker en licentie onder Fotoverantwoording.
+      </p>
+      <Card title="Lettertypes">
+        {data.lettertypes.map(f => (
+          <Row key={f.naam} id={`font-${f.naam}`} title={f.naam} sub={f.licentie}>
+            <Pre>{f.copyright}{"\n\n"}{data.oflTekst}</Pre>
+          </Row>
+        ))}
+      </Card>
+      <Card title="Kaarten">
+        <Row id="osm" title="OpenStreetMap" sub="Kaartgegevens © OpenStreetMap-bijdragers, ODbL">
+          <p style={{ fontSize: 13, color: INK, lineHeight: 1.6, margin: "4px 0" }}>
+            Kaartgegevens en plaatsnamen komen van OpenStreetMap en zijn beschikbaar onder de Open Database License (openstreetmap.org/copyright). De kaart op je profiel gebruikt Apple Maps.
+          </p>
+        </Row>
+      </Card>
+      <Card title={`Open-sourcesoftware (${data.pakketten.length})`}>
+        {data.pakketten.map(p => (
+          <Row key={p.naam} id={`pkg-${p.naam}`} title={p.naam} sub={`${p.versie} · ${p.licentie}`}>
+            <Pre>{p.tekst || `Licentie: ${p.licentie}`}</Pre>
+          </Row>
+        ))}
+      </Card>
     </div>
   );
 }
