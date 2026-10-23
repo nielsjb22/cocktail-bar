@@ -34,7 +34,7 @@ export const PRIVACY_SECTIES = [
     tekst: "We gebruiken je gegevens alleen om de app te laten werken. Per doel is dit de grond volgens de privacywet (AVG):",
     punten: [
       "Je account, voorraad, check-ins, vrienden, feesten en meldingen: nodig om de app te leveren die je gebruikt (uitvoering van de overeenkomst).",
-      "De bartender en het flessen scannen (AI), pushmeldingen en je profielfoto: alleen met jouw toestemming, die je altijd kunt intrekken.",
+      "De bartender, het flessen scannen en het herkennen van een cocktail op een foto (AI), pushmeldingen en je profielfoto: alleen met jouw toestemming, die je altijd kunt intrekken.",
       "Anonieme tellingen om de app slimmer te maken, en het afhandelen van meldingen om de app veilig te houden: ons gerechtvaardigd belang. Je kunt daartegen bezwaar maken via het contactadres.",
     ],
     naTekst: "Niets wordt gebruikt voor advertenties of verkocht aan anderen. De app volgt je niet over andere apps of websites.",
@@ -44,15 +44,15 @@ export const PRIVACY_SECTIES = [
     tekst: "De app leert van wat gebruikers samen doen: welke cocktails mensen met een vergelijkbare smaak hoog waarderen (de tips onder \"Voor jou\"), welke merknamen mensen aan een drank koppelen, en naar welke cocktails mensen zoeken die nog niet in de app staan. Die signalen worden bij je account opgeslagen, zodat niemand dubbel telt, en verdwijnen als je je account verwijdert. Gebruikt worden alleen tellingen: niemand anders kan zien wie wat deed, en een uitkomst telt pas mee als meerdere mensen hetzelfde deden.",
   },
   {
-    kop: "De bartender en flessen scannen (AI)",
-    tekst: "Gebruik je de bartender of scan je je flessen, dan gaan je vraag of foto, de namen van de flessen in je voorraad (bij de bartender alleen als je daarvoor kiest), je smaakprofiel (bijvoorbeeld \"houdt van fris en bitter\"), de namen en cijfers van cocktails die je hoog of laag beoordeelde of onlangs dronk, en een lijst recepten uit de app naar Claude, een AI-dienst van Anthropic, om een antwoord te maken. Je naam, e-mailadres, vrienden en de notities, plekken en foto's van je check-ins gaan niet mee. Wij bewaren je vragen en foto's niet; we houden alleen bij hoeveel vragen en scans je per dag doet, voor de daglimiet. Volgens de zakelijke voorwaarden van Anthropic worden deze gegevens niet gebruikt om AI-modellen te trainen en bewaart Anthropic ze maar beperkte tijd, onder meer om misbruik te kunnen opsporen. Je geeft hier eenmalig toestemming voor en kunt die altijd intrekken in Profiel → Instellingen. Zonder toestemming werkt de rest van de app gewoon.",
+    kop: "De bartender, flessen scannen en cocktails herkennen (AI)",
+    tekst: "Gebruik je de bartender, scan je je flessen of laat je een cocktail herkennen (\"Wat drink ik hier?\" bij inchecken), dan gaan je vraag of foto, de namen van de flessen in je voorraad (bij de bartender alleen als je daarvoor kiest), je smaakprofiel (bijvoorbeeld \"houdt van fris en bitter\"), de namen en cijfers van cocktails die je hoog of laag beoordeelde of onlangs dronk, en een lijst recepten uit de app naar Claude, een AI-dienst van Anthropic, om een antwoord te maken. Je naam, e-mailadres, vrienden en de notities, plekken en foto's van je eerdere check-ins gaan niet mee. Wij bewaren je vragen en foto's niet; een foto om een cocktail te herkennen wordt alleen bewaard als je hem daarna zelf bij je check-in houdt, net als elke andere check-in-foto; we houden alleen bij hoeveel vragen en scans je per dag doet, voor de daglimiet. Volgens de zakelijke voorwaarden van Anthropic worden deze gegevens niet gebruikt om AI-modellen te trainen en bewaart Anthropic ze maar beperkte tijd, onder meer om misbruik te kunnen opsporen. Je geeft hier eenmalig toestemming voor en kunt die altijd intrekken in Profiel → Instellingen. Zonder toestemming werkt de rest van de app gewoon.",
   },
   {
     kop: "Wie je gegevens verwerkt",
     tekst: "Alleen deze partijen verwerken gegevens voor ons, elk alleen voor de genoemde taak:",
     punten: [
       "Supabase (database, bestandsopslag, inloggen en account-e-mails) — servers in de EU.",
-      "Anthropic (de AI achter de bartender en het scannen, alleen met je toestemming) — Verenigde Staten.",
+      "Anthropic (de AI achter de bartender, het scannen en het herkennen van cocktails, alleen met je toestemming) — Verenigde Staten.",
       "Apple (pushmeldingen, en de kaart op je profiel: daarvoor gaan de locaties van je check-ins naar Apple Maps) — Verenigde Staten.",
       "OpenStreetMap Foundation (kaarttegels en het opzoeken van plaatsnamen bij een locatie) — Verenigd Koninkrijk.",
       "Netlify (hosting van de webpagina's, zoals gedeelde menukaarten, de smaaktest voor gasten en dit privacybeleid) — Verenigde Staten.",

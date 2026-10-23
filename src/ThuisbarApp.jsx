@@ -61,6 +61,7 @@ const GuestMenuView = lazyScreen(() => import("./features/GuestViews.jsx"), "Gue
 const CursusTab = lazyScreen(() => import("./features/Cursus.jsx"), "CursusTab");
 const BartenderScreen = lazyScreen(() => import("./features/Bartender.jsx"), "BartenderScreen");
 const BottleScanSheet = lazyScreen(() => import("./features/BottleScan.jsx"), "BottleScanSheet");
+const RecognizeSheet = lazyScreen(() => import("./features/CocktailHerkennen.jsx"), "RecognizeSheet");
 const InsightsAdminScreen = lazyScreen(() => import("./features/Beheer.jsx"), "InsightsAdminScreen");
 const ReportsAdminScreen = lazyScreen(() => import("./features/Beheer.jsx"), "ReportsAdminScreen");
 const CocktailMap = lazyScreen(() => import("./features/Kaart.jsx"), "CocktailMap");
@@ -3026,7 +3027,7 @@ export default function ThuisbarApp() {
           <LogboekTab recipes={allRecipes} logboek={logboek} onAddEntry={addLogEntry} onUpdateEntry={updateLogEntry} onRemoveEntry={removeLogEntry} allIngredients={allIngredients} ingredientLabel={ingredientLabel} onSound={chime} isOwned={isOwned} profile={profile} onOpenRecipe={openRecipeDetail} checkinRequest={checkinRequest} onCheckinRequestHandled={() => setCheckinRequest(null)} onCheckedIn={handleCheckedIn}
             guest={isGuest} onRequireAccount={requireAccount}
             onUpdateName={updateProfileName} onUpdatePhoto={updateProfilePhoto} courseDiploma={courseDiploma} courseProgress={courseProgress} courseRank={courseRank}
-            onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"}
+            onGoVrienden={() => navigateTo("vrienden")} onGoInstellingen={() => navigateTo("instellingen")} active={tab === "profiel"} withAi={withAi}
             friendRequestCount={friendRequestCount} onOpenYearReview={setYearReview} />
         </TabPanel>
 
@@ -4633,11 +4634,11 @@ function AiConsentSheet({ onAccept, onClose }) {
         <div {...dragHandlers} style={{ touchAction: "none", paddingTop: 6 }}>
           <span style={{ width: 52, height: 52, borderRadius: "50%", background: BOTTLE_DARK, color: BRASS, display: "flex", alignItems: "center", justifyContent: "center" }}><Martini size={24} strokeWidth={1.8} /></span>
           <div style={{ fontFamily: serif, fontSize: 24, fontWeight: 700, lineHeight: 1.2, marginTop: 14, color: BOTTLE }}>Even vooraf over de bartender</div>
-          <p style={{ margin: "8px 0 0", fontSize: 14.5, color: MUTED, lineHeight: 1.5 }}>De bartender en het scannen van flessen werken met Claude, een AI-dienst van Anthropic. Daarvoor sturen we een paar dingen mee.</p>
+          <p style={{ margin: "8px 0 0", fontSize: 14.5, color: MUTED, lineHeight: 1.5 }}>De bartender, het scannen van flessen en het herkennen van een cocktail op een foto werken met Claude, een AI-dienst van Anthropic. Daarvoor sturen we een paar dingen mee.</p>
         </div>
         <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, margin: "16px 0 0", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 9 }}>
           {kop("Wel mee", SAGE)}
-          {row(true, "Je vraag en de foto die je scant")}
+          {row(true, "Je vraag, of de foto van je flessen of je glas")}
           {row(true, "Je smaak: welke cocktails je hoog of laag beoordeelde")}
           {row(true, "Welke flessen je hebt, als je dat kiest")}
           <div style={{ height: 1, background: BORDER, margin: "3px 0" }} />
@@ -9966,7 +9967,7 @@ function CheckinTopBar({ leftLabel, leftBack, onLeft, title, rightLabel, rightDi
 // groene kop), de resultaten eronder — er hoeft niets te verschuiven als het
 // toetsenbord opkomt. Geen exacte match? Dan kun je toch inchecken onder de
 // naam die je typte.
-function CheckinSearchStep({ recipes, allIngredients, recent, initialQuery, onPick, onCancel, cancelLabel, cancelBack }) {
+function CheckinSearchStep({ recipes, allIngredients, recent, initialQuery, onPick, onCancel, cancelLabel, cancelBack, onRecognize }) {
   const [query, setQuery] = useState(initialQuery || "");
   const inputRef = useRef(null);
   useEffect(() => {
@@ -10053,6 +10054,20 @@ function CheckinSearchStep({ recipes, allIngredients, recent, initialQuery, onPi
           </>
         ) : (
           <>
+            {onRecognize && (
+              <button onClick={() => { inputRef.current?.blur(); onRecognize(); }} className="press-scale" style={{
+                display: "flex", alignItems: "center", gap: 12, width: "calc(100% - 32px)", margin: "14px 16px 4px", padding: 14, borderRadius: 16,
+                border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, textAlign: "left", cursor: "pointer", fontFamily: systemFont, boxSizing: "border-box",
+              }}>
+                <span style={{ width: 44, height: 44, borderRadius: 12, background: "#E8C98E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Camera size={23} color="#132622" />
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 15.5, fontWeight: 700 }}>Wat drink ik hier?</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: HEADER_MUTED, marginTop: 2 }}>Maak een foto, de app herkent je cocktail</span>
+                </span>
+              </button>
+            )}
             {recent.length > 0 && <>{sectionLabel("Laatst gemaakt")}{recent.map(row)}</>}
             {sectionLabel("Alle cocktails")}
             {sorted.slice(0, 60).map(row)}
@@ -11086,7 +11101,7 @@ function CheckinDetailSheet({ entry, recipe, allIngredients, ingredientLabel, wh
   ), document.body);
 }
 
-function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onCheckinRequestHandled, onCheckedIn, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank, guest = false, onRequireAccount, friendRequestCount = 0, onOpenYearReview = null}) {
+function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry, allIngredients, ingredientLabel, onSound, isOwned, profile, onOpenRecipe, checkinRequest, onCheckinRequestHandled, onCheckedIn, onUpdateName, onUpdatePhoto, onGoVrienden, onGoInstellingen, active , courseDiploma, courseProgress, courseRank, guest = false, onRequireAccount, friendRequestCount = 0, onOpenYearReview = null, withAi = null}) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(profile?.name || "");
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
@@ -11115,6 +11130,8 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
   const [locationCoords, setLocationCoords] = useState(null);
   const [photo, setPhoto] = useState(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  // "Wat drink ik hier?": cocktail herkennen van een foto (alleen bij nieuw inchecken).
+  const [recognizeOpen, setRecognizeOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [stampNumber, setStampNumber] = useState(null);
   const fileInputRef = useRef(null);
@@ -11696,11 +11713,19 @@ function LogboekTab({ recipes, logboek, onAddEntry, onUpdateEntry, onRemoveEntry
             }}>
           <div className="ci-step-in" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
             {ciStep === "search" ? (
+              <>
+              {recognizeOpen && (
+                <RecognizeSheet recipes={recipes} allIngredients={allIngredients}
+                  onClose={() => setRecognizeOpen(false)} onSearch={() => setRecognizeOpen(false)}
+                  onPick={(name, foto) => { setNameInput(name); if (foto) setPhoto(foto); setRecognizeOpen(false); setCiStep("form"); onSound("pop"); }} />
+              )}
               <CheckinSearchStep recipes={recipes} allIngredients={allIngredients} recent={recentCocktails}
                 initialQuery={matchedRecipe ? "" : nameInput}
                 cancelLabel={nameInput.trim() ? "Terug" : "Annuleer"} cancelBack={!!nameInput.trim()}
                 onCancel={() => { if (nameInput.trim()) setCiStep("form"); else requestCancel(); }}
-                onPick={(name) => { setNameInput(name); setCiStep("form"); }} />
+                onPick={(name) => { setNameInput(name); setCiStep("form"); }}
+                onRecognize={withAi && !editingEntryId ? () => withAi(() => setRecognizeOpen(true)) : null} />
+              </>
             ) : ciStep === "friends" ? (
               <CheckinFriendsStep friends={tagFriends} taggedIds={taggedIds}
                 onToggle={(id) => { onSound("pop"); setTaggedIds(cur => cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]); }}

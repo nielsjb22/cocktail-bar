@@ -44,8 +44,10 @@ async function handle(req: Request): Promise<Response> {
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return json({ error: "ongeldig" }, 400); }
-  const soort = body.soort === "scan" ? "scan" : body.soort === "chat" ? "chat" : null;
-  if (!soort) return json({ error: "ongeldig" }, 400);
+  const actie = body.soort === "scan" || body.soort === "chat" || body.soort === "herken" ? body.soort : null;
+  if (!actie) return json({ error: "ongeldig" }, 400);
+  // Cocktail herkennen telt mee voor hetzelfde dagtegoed als flessen scannen.
+  const soort = actie === "chat" ? "chat" : "scan";
 
   // Eerst het tegoed van vandaag gebruiken; is het op, dan stoppen we hier.
   const { data: tegoed, error: tegoedError } = await caller.rpc("ai_tegoed_gebruiken", { p_soort: soort });
@@ -54,7 +56,7 @@ async function handle(req: Request): Promise<Response> {
   if (!rij?.toegestaan) return json({ error: "limiet", over: 0 }, 429);
 
   try {
-    const result = soort === "chat" ? await chat(body) : await scan(body);
+    const result = actie === "chat" ? await chat(body) : actie === "herken" ? await herken(body) : await scan(body);
     return json({ ...result, over: rij.over });
   } catch (e) {
     // Fout aan onze kant of bij de AI-dienst: tegoed teruggeven.
@@ -266,4 +268,75 @@ async function scan(body: Record<string, unknown>) {
     flessen.push({ id, merk: clip(f.merk, 60).trim() || null, zeker: f.zeker === true && !alt, alternatief: alt });
   }
   return { flessen: flessen.slice(0, 20) };
+}
+
+// ---------- Cocktail herkennen ("Wat drink ik hier?") ----------
+const HERKEN_SCHEMA = {
+  type: "object",
+  properties: {
+    // Lege lijst = geen cocktail te zien of niet te herkennen.
+    kandidaten: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          zekerheid: { type: "string", enum: ["zeker", "waarschijnlijk", "misschien"] },
+        },
+        required: ["id", "zekerheid"],
+        additionalProperties: false,
+      },
+    },
+    // 1-2 zinnen: wat je ziet (glas, kleur, garnering, ijs) en waarom dat past.
+    uitleg: { type: "string" },
+  },
+  required: ["kandidaten", "uitleg"],
+  additionalProperties: false,
+};
+
+async function herken(body: Record<string, unknown>) {
+  const image = typeof body.image === "string" ? body.image : "";
+  if (!image || image.length > 2_800_000 || !/^[A-Za-z0-9+/=]+$/.test(image)) throw new InvalidInput();
+  // "id|naam|glas|kleur-hint" per recept, door de app meegestuurd.
+  const lijst = (Array.isArray(body.recepten) ? body.recepten : []).slice(0, 600)
+    .map((v) => clip(v, 160)).filter(Boolean);
+  if (!lijst.length) throw new InvalidInput();
+
+  const system = [
+    "Je herkent een cocktail op een foto voor de app Mijn Thuisbar. De gebruiker zit vaak in een bar en wil weten wat hij drinkt.",
+    "Kijk naar het glas, de kleur, troebel of helder, schuim, ijs en garnering. Kies hooguit 3 cocktails uit de lijst RECEPTEN (gebruik de exacte id vóór het eerste | teken), de beste eerst.",
+    "zekerheid: zeker = herkenbaar aan iets unieks (bijvoorbeeld drie koffiebonen op schuim); waarschijnlijk = past goed maar er zijn lookalikes; misschien = gok.",
+    "Staat er geen drankje op de foto, of is het iets dat niet in de lijst past, geef dan een lege lijst en zeg dat eerlijk in uitleg.",
+    "uitleg: 1 of 2 korte zinnen in het Nederlands over wat je ziet en waarom dat bij je eerste keuze past. Noem geen personen of merken.",
+    "",
+    "RECEPTEN:",
+    ...lijst,
+  ].join("\n");
+
+  const response = await anthropic.messages.create({
+    model: SCAN_MODEL,
+    max_tokens: 800,
+    system,
+    messages: [{
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
+        { type: "text", text: "Welke cocktail is dit?" },
+      ],
+    }],
+    output_config: { format: { type: "json_schema", schema: HERKEN_SCHEMA } },
+  });
+  if (response.stop_reason === "refusal") return { kandidaten: [], uitleg: "" };
+  const parsed = JSON.parse(firstText(response) || "{}");
+  const ids = new Set(lijst.map((l) => l.split("|")[0].trim()));
+  const gezien = new Set<string>();
+  const kandidaten = [];
+  for (const k of Array.isArray(parsed.kandidaten) ? parsed.kandidaten : []) {
+    const id = typeof k?.id === "string" ? k.id : "";
+    if (!ids.has(id) || gezien.has(id)) continue;
+    gezien.add(id);
+    const z = ["zeker", "waarschijnlijk", "misschien"].includes(k.zekerheid) ? k.zekerheid : "misschien";
+    kandidaten.push({ id, zekerheid: z });
+  }
+  return { kandidaten: kandidaten.slice(0, 3), uitleg: clip(parsed.uitleg, 400) };
 }

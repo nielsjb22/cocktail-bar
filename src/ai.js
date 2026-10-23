@@ -38,7 +38,7 @@ async function callAi(body) {
   } catch { /* geen JSON */ }
   if (!code && res?.status === 404) code = "niet_beschikbaar";
   if (!code && error.name === "FunctionsFetchError") code = "niet_beschikbaar";
-  return { error: code || "fout", message: tekstVoor(code === "limiet" && body.soort === "scan" ? "limiet_scan" : code), over };
+  return { error: code || "fout", message: tekstVoor(code === "limiet" && body.soort !== "chat" ? "limiet_scan" : code), over };
 }
 
 export async function fetchAiTegoed() {
@@ -59,4 +59,13 @@ export async function scanBottles(photoSrc, ingredients) {
   const image = dataUrl.slice(dataUrl.indexOf(",") + 1);
   const ingredienten = ingredients.map(i => `${i.id} | ${i.name} | ${i.cat}`);
   return callAi({ soort: "scan", image, ingredienten });
+}
+
+// "Wat drink ik hier?": foto van een cocktail → hooguit 3 recepten uit de app.
+// Meegestuurd: de foto (verkleind) en per recept id, naam, glas en familie.
+export async function recognizeCocktail(photoSrc, recipes) {
+  const dataUrl = await imageToJpegDataUrl(photoSrc, 1024, 0.8);
+  const image = dataUrl.slice(dataUrl.indexOf(",") + 1);
+  const recepten = recipes.map(r => [r.id, r.name, r.glass, r.family].filter(Boolean).join(" | "));
+  return callAi({ soort: "herken", image, recepten });
 }

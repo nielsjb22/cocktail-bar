@@ -25,7 +25,7 @@ Voor elk type hieronder:
 |---|---|---|
 | Contactgegevens | Naam | accountnaam, zichtbaar voor vrienden |
 | Contactgegevens | E-mailadres | inloggen |
-| Gebruikerscontent | Foto's of video's | check-in- en profielfoto's, flessen scannen (gaat naar Anthropic) |
+| Gebruikerscontent | Foto's of video's | check-in- en profielfoto's, flessen scannen en cocktail herkennen (gaan naar Anthropic) |
 | Gebruikerscontent | Overige gebruikerscontent | check-ins, beoordelingen, notities, reacties, eigen recepten, vragen aan de bartender |
 | Locatie | Precieze locatie | de plek die je bij een check-in kiest wordt met coördinaten opgeslagen |
 | Locatie | Globale locatie | plaatsnaam bij een check-in |
