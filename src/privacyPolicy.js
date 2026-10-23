@@ -9,7 +9,7 @@ export const PRIVACY_BIJGEWERKT = "23 oktober 2026";
 // Wie verantwoordelijk is voor de gegevens (je naam, of je bedrijfsnaam als
 // je een eenmanszaak hebt). Zolang het leeg is, staat er "de maker van Mijn
 // Thuisbar" — vul het in vóór de App Store-release.
-export const VERANTWOORDELIJKE = "";
+export const VERANTWOORDELIJKE = "Niels Benedictus";
 
 // Vul hier het contactadres in; zolang het leeg is, verwijst de tekst naar
 // de App Store-vermelding.
