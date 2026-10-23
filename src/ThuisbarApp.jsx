@@ -12,6 +12,7 @@ import { buildIngredientIndex, searchIngredients, unusedHint, normalizeTerm } fr
 import { PRIVACY_BIJGEWERKT, PRIVACY_INTRO, PRIVACY_SECTIES, privacyContactTekst } from "./privacyPolicy";
 import { VOORWAARDEN_VERSIE, VOORWAARDEN_BIJGEWERKT, VOORWAARDEN_INTRO, VOORWAARDEN_SECTIES, voorwaardenContactTekst } from "./termsOfUse";
 import { exportMyData } from "./dataExport.js";
+import { momentsFor } from "./moments.js";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { INGREDIENT_INFO } from "./data/ingredientInfo";
 import { supabase } from "./supabaseClient";
@@ -703,29 +704,9 @@ const GIN_STYLE_TIPS = {
   gin_tonic: "Hier mag je juist op smaak kiezen: een London Dry blijft de veilige, jeneverbes-voorop klassieker, maar een bloemige of citrus-gin komt met de juiste garnering (bijv. komkommer of rood fruit) extra tot zijn recht.",
 };
 
-// Kalender voor "Cocktail van de dag": een paar vaste dagen in het jaar met
-// een recept dat er inhoudelijk bij past, en de reden waarom (niet zomaar
-// een willekeurige keuze). MM-DD i.p.v. een Date, zodat het jaartal er niet
-// toe doet. Beweeglijke feestdagen (Pasen, Moederdag) staan er bewust niet
-// bij: die vragen een echte datumberekening, dit is de eenvoudige eerste versie.
-const OCCASIONS = {
-  "01-01": { label: "Nieuwjaarsdag", emoji: "🥂", recipeId: "bloody_mary", reason: "De klassieke \"hair of the dog\" na een lange jaarwisseling: tomaat, zout en specerijen." },
-  "02-14": { label: "Valentijnsdag", emoji: "🌹", recipeId: "valentine_martini", reason: "Roze, romantisch, en met precies de juiste naam voor vandaag." },
-  "04-27": { label: "Koningsdag", emoji: "🧡", recipeId: "screwdriver", reason: "Wodka en sinaasappelsap: toevallig (of niet) exact Oranje van kleur." },
-  "10-31": { label: "Halloween", emoji: "🎃", recipeId: "black_manhattan", reason: "Donker, sterk en met een naam die bij een spannende avond past." },
-  "12-24": { label: "Kerstavond", emoji: "🎄", recipeId: "egg_nog", reason: "Romig, kruidig en al eeuwenlang hét kerstdrankje." },
-  "12-25": { label: "Eerste kerstdag", emoji: "🎄", recipeId: "egg_nog", reason: "Romig, kruidig en al eeuwenlang hét kerstdrankje." },
-  "12-31": { label: "Oudjaarsavond", emoji: "🎆", recipeId: "champagne_cocktail", reason: "Bubbels met een suikerklontje en bitters: klein gebaar, groot moment om middernacht." },
-};
-function getTodayOccasion() {
-  const d = new Date();
-  const key = String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-  return OCCASIONS[key] || null;
-}
 // Stabiel per kalenderweek (i.p.v. willekeurig bij elke page-load), zodat
 // "deze week" ook echt een week lang hetzelfde recept betekent.
-function getIsoWeekSeed() {
-  const d = new Date();
+function getIsoWeekSeed(d = new Date()) {
   const onejan = new Date(d.getFullYear(), 0, 1);
   const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
   return d.getFullYear() * 100 + week;
@@ -761,6 +742,45 @@ const MONTH_THEMES = [
   { label: "Feestmaand", families: ["Spirit-forward", "Zuivel & dessert"],
     reason: (name) => `De feestmaand bij uitstek vraagt om iets rijks en decadents: ${name}.` },
 ];
+
+// Cocktail van de week, persoonlijk gekozen: past bij het seizoensthema van
+// de maand en bij je smaak (uit je check-ins), liefst iets wat je nog niet
+// dronk, en het liefst iets wat je (bijna) in huis hebt. Vast per
+// kalenderweek: de hele week hetzelfde recept, ook op een ander toestel.
+export function weekNumber(d = new Date()) { return getIsoWeekSeed(d) % 100; }
+export function weeklyCocktailPick({ recipes, allIngredients, logboek = [], isOwned = null, date = new Date() }) {
+  const pool0 = recipes.filter(r => !r.id.startsWith("custom_"));
+  if (!pool0.length) return null;
+  const theme = MONTH_THEMES[date.getMonth()];
+  const me = myTasteVector(logboek, recipes, allIngredients);
+  const tried = new Map();
+  logboek.forEach(e => { const r = findRecipeFor(e, recipes); if (r) tried.set(r.id, Math.max(tried.get(r.id) || 0, e.rating || 0)); });
+  const untried = pool0.filter(r => !tried.has(r.id));
+  const pool = untried.length >= 20 ? untried : pool0;
+  const dist = (a, b) => Math.sqrt(TASTE_DIMS.reduce((acc, d) => acc + (a[d] - b[d]) ** 2, 0));
+  const scored = pool.map(r => {
+    const t = cachedTaste(r, allIngredients);
+    const missing = isOwned ? r.ingredients.filter(i => !i.optional && !isOwned(i)) : [];
+    const score = (theme.families.includes(r.family) ? 1.2 : 0) + (me ? -dist(t, me.v) / 2.5 : 0)
+      + (isOwned ? (missing.length === 0 ? 0.6 : missing.length === 1 ? 0.3 : 0) : 0);
+    return { r, t, missing, score };
+  }).sort((a, b) => b.score - a.score);
+  const top = scored.slice(0, 10);
+  const pick = top[getIsoWeekSeed(date) % top.length];
+  // Persoonlijke zin: lijkt op iets wat je hoog gaf, of past bij je smaak.
+  let personal = "";
+  if (me) {
+    const favs = logboek.filter(e => e.rating >= 4).map(e => ({ e, r: findRecipeFor(e, recipes) })).filter(x => x.r && x.r.id !== pick.r.id);
+    const best = favs.map(x => ({ ...x, d: dist(cachedTaste(x.r, allIngredients), pick.t) })).sort((a, b) => a.d - b.d || b.e.rating - a.e.rating)[0];
+    const nieuw = !tried.has(pick.r.id);
+    if (best && best.d <= 1.6) personal = `Hij lijkt op je ${best.r.name} (${best.e.rating}/5)${nieuw ? ", en deze dronk je nog nooit" : ""}.`;
+    else {
+      const dims = [...TASTE_DIMS].sort((a, b) => me.v[b] - me.v[a]).filter(d => me.v[d] >= 1.5).slice(0, 2).map(d => TASTE_WORD[d]);
+      if (dims.length) personal = `Past bij je smaak: ${dims.join(" en ")}${nieuw ? ", en nieuw voor jou" : ""}.`;
+    }
+  }
+  return { recipe: pick.r, missing: pick.missing, personal: !!me, reason: [theme.reason(pick.r.name), personal].filter(Boolean).join(" ") };
+}
 
 // Tijdstip-gevoelige begroeting + een warmere gloed in de header naarmate
 // het later op de avond wordt — klein detail, maar het scheelt of de app
@@ -2819,6 +2839,60 @@ export default function ThuisbarApp() {
   // een verse installatie (leeftijdspoort, gastmodus, inlogscherm) bleef het
   // Capacitor-logo dus eeuwig staan. Nu verbergen we 'm zodra er een echt
   // scherm klaarstaat, ongeacht welk.
+  // Wekelijkse melding "Cocktail van de week" (vrijdag 17:00), alleen als je
+  // die zelf aanzet. Lokale meldingen: de telefoon plant ze zelf in, er gaat
+  // niets via een server. We plannen steeds de komende 8 vrijdagen in, met de
+  // cocktail van die week, en werken dat bij als je smaak of voorraad verandert.
+  const [weekMelding, setWeekMelding] = useStorage("thuisbar-week-melding", false);
+  const [weekMeldingError, setWeekMeldingError] = useState("");
+  const WEEK_IDS = [7700, 7701, 7702, 7703, 7704, 7705, 7706, 7707];
+  useEffect(() => {
+    if (!isNativeShell) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await LocalNotifications.cancel({ notifications: WEEK_IDS.map(id => ({ id })) });
+        if (!weekMelding || cancelled) return;
+        const now = new Date();
+        const fridays = [];
+        for (let d = 0; fridays.length < WEEK_IDS.length && d < 70; d++) {
+          const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d, 17, 0, 0);
+          if (day.getDay() === 5 && day > now) fridays.push(day);
+        }
+        const notifications = fridays.map((at, i) => {
+          const pick = weeklyCocktailPick({ recipes: allRecipes, allIngredients, logboek, isOwned, date: at });
+          return pick && {
+            id: WEEK_IDS[i], title: "Je cocktail van de week",
+            body: `${pick.recipe.name}. ${pick.missing.length === 0 ? "Je hebt alles in huis." : "Bekijk wat je ervoor nodig hebt."}`,
+            schedule: { at }, extra: { type: "week", recipeId: pick.recipe.id },
+          };
+        }).filter(Boolean);
+        if (!cancelled && notifications.length) await LocalNotifications.schedule({ notifications });
+      } catch (e) { console.error("Weekmelding plannen mislukt:", e); }
+    })();
+    return () => { cancelled = true; };
+  }, [weekMelding, logboek.length, voorraad.size]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setWeekMeldingAan = async (aan) => {
+    setWeekMeldingError("");
+    if (!aan) { setWeekMelding(false); return; }
+    try {
+      const perm = await LocalNotifications.requestPermissions();
+      if (perm.display !== "granted") { setWeekMeldingError("Meldingen staan uit voor Mijn Thuisbar. Zet ze aan via Instellingen > Meldingen op je iPhone."); return; }
+      setWeekMelding(true);
+    } catch { setWeekMeldingError("Dat lukte niet. Probeer het opnieuw."); }
+  };
+  // Tik op de weekmelding: het recept openen.
+  const openRecipeRef = useRef(openRecipeDetail);
+  openRecipeRef.current = openRecipeDetail;
+  useEffect(() => {
+    if (!isNativeShell) return;
+    const h = LocalNotifications.addListener("localNotificationActionPerformed", (ev) => {
+      const extra = ev?.notification?.extra;
+      if (extra?.type === "week" && extra.recipeId) openRecipeRef.current(extra.recipeId);
+    });
+    return () => { Promise.resolve(h).then(x => x?.remove?.()); };
+  }, []);
+
   const firstScreenReady = ageVerified === false || (ageVerified === true && (guestMenuIds || surveyId || session !== undefined));
   useEffect(() => { if (firstScreenReady) hideNativeSplash(); }, [firstScreenReady]);
 
@@ -2906,7 +2980,7 @@ export default function ThuisbarApp() {
               onOpenVoorraad: () => { setKanFromVoorraad(false); navigateTo("voorraad"); },
             }}
             verhaalProps={{
-              recipes: allRecipes, ingredientLabel, allIngredients, isOwned,
+              recipes: allRecipes, ingredientLabel, allIngredients, isOwned, logboek,
               recentRecipeIds, onViewRecipe: addRecentRecipe, onSound: chime,
               favoriteRecipeIds, onToggleFavorite: toggleFavoriteRecipe,
               onAddToShoppingList: addToShoppingList, onAddToFeest: addRecipeToFeest, feestChosen,
@@ -3009,7 +3083,8 @@ export default function ThuisbarApp() {
           <SecondaryTabScreen label="Profiel" title={PUSH_SCREEN_TITLES.instellingen} onBack={() => navigateTo("profiel", { restore: true })}>
             <InstellingenTab aiConsent={aiConsent} onSetAiConsent={setAiConsent} soundEnabled={soundEnabled} onToggleSound={setSoundEnabled} onSignOut={signOut} push={push} nativePush={nativePush} onNavigate={navigateTo}
               guest={isGuest} onLogin={() => setWantsLogin("login")} onSignup={() => setWantsLogin("signup")}
-              onExportData={() => exportMyData(session?.user?.id || null)} />
+              onExportData={() => exportMyData(session?.user?.id || null)}
+              weekMelding={isNativeShell ? { aan: !!weekMelding, set: setWeekMeldingAan, error: weekMeldingError } : null} />
           </SecondaryTabScreen>
         </TabPanel>
         <TabPanel id="privacybeleid" active={tab === "privacybeleid"} visited={visitedTabs.has("privacybeleid")} panelRef={panelRefs}>
@@ -3150,7 +3225,7 @@ export function Switch({ checked, onChange, disabled }) {
 // UX-herindeling (v2): Profiel IS nu het check-ins/inzichten-scherm zelf
 // (zoals Untappd) i.p.v. een lijstje dat er naar doorverwijst — de kaart en
 // instellingen hieronder wonen nu in LogboekTab resp. InstellingenTab.
-function InstellingenTab({ aiConsent = null, onSetAiConsent, soundEnabled, onToggleSound, onSignOut, push, nativePush, onNavigate, guest = false, onLogin, onSignup, onExportData }) {
+function InstellingenTab({ aiConsent = null, onSetAiConsent, soundEnabled, onToggleSound, onSignOut, push, nativePush, onNavigate, guest = false, onLogin, onSignup, onExportData, weekMelding = null }) {
   if (guest) { push = { supported: false }; nativePush = null; }
   // "Download mijn gegevens": status van de export (idle | busy | done | error).
   const [exportState, setExportState] = useState("idle");
@@ -3201,6 +3276,23 @@ function InstellingenTab({ aiConsent = null, onSetAiConsent, soundEnabled, onTog
               <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>Je vraag, foto, voorraad en smaak gaan naar Claude (Anthropic). Niet je naam of e-mail.</div>
             </div>
             <Switch checked={aiConsent === "ja"} onChange={(v) => onSetAiConsent(v ? "ja" : "nee")} />
+          </div>
+        )}
+        {weekMelding && (
+          <div style={{ padding: "14px 16px", borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: RADIUS, background: PAPER_DEEP, color: BOTTLE, flexShrink: 0 }}>
+                <Martini size={16} strokeWidth={1.8} />
+              </span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14.5, color: INK }}>Cocktail van de week</div>
+                <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>Elke vrijdag om 17:00 een melding met je cocktail van de week</div>
+              </div>
+              <Switch checked={weekMelding.aan} onChange={weekMelding.set} />
+            </div>
+            {weekMelding.error && (
+              <div style={{ marginTop: 10, fontSize: 12, color: BURGUNDY, background: "rgba(122,46,42,0.08)", border: "1px solid rgba(122,46,42,0.25)", borderRadius: 10, padding: "8px 11px", lineHeight: 1.4 }}>{weekMelding.error}</div>
+            )}
           </div>
         )}
         {push.supported && (
@@ -8595,7 +8687,78 @@ function BereidModus({ recipe, ingredientLabel, allIngredients, initialServings 
   ), document.body);
 }
 
-function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite, onSound,
+// Eén moment van het jaar (bijv. Halloween): kop met foto, korte uitleg en de
+// cocktails met per stuk een reden en of je alles in huis hebt.
+function MomentScreen({ moment, recipeById, isOwned, allIngredients, ingredientLabel, onClose, onOpenRecipe, onAddToFeest, onSound }) {
+  useBodyScrollLock();
+  const [added, setAdded] = useState(false);
+  if (!moment) return null;
+  const items = moment.items.map(([id, why]) => ({ recipe: recipeById.get(id), why })).filter(x => x.recipe);
+  const hero = localItemImageUrl("cocktail", items[0]?.recipe.id);
+  const missingOf = (r) => r.ingredients.filter(i => !i.optional && !isOwned(i));
+  const addAll = () => {
+    if (added || !onAddToFeest) return;
+    items.slice(0, 6).forEach(x => onAddToFeest(x.recipe.id));
+    onSound?.("chime");
+    setAdded(true);
+  };
+  return createPortal((
+    <div className="push-slide-in" style={{ position: "fixed", inset: 0, zIndex: 30, background: PAPER, display: "flex", flexDirection: "column", fontFamily: sans, color: INK }}>
+      <div style={{ background: BOTTLE_DARK, borderBottom: `2px solid ${BRASS}`, flexShrink: 0 }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 6px) 12px 8px", display: "flex", alignItems: "center", minHeight: 52, boxSizing: "border-box" }}>
+          <button onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 2, minHeight: 44, border: "none", background: "none", color: "#DDB877", fontSize: 17, fontWeight: 600, cursor: "pointer", fontFamily: sans, padding: 0 }}>
+            <ChevronLeft size={22} strokeWidth={2.2} /> Ontdekken
+          </button>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div style={{ position: "relative", height: 230, background: BOTTLE_DARK, overflow: "hidden" }}>
+            {hero && <img src={hero} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0.1), rgba(19,38,34,0.94))" }} />
+            <div style={{ position: "absolute", left: 18, right: 18, bottom: 16, color: HEADER_TEXT }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "#DDB877" }}>{moment.titel} · {moment.label}</div>
+              <div style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, margin: "4px 0 4px", lineHeight: 1.1 }}>{moment.kop}</div>
+              <div style={{ fontSize: 13.5, color: "#D9D2C2", lineHeight: 1.45 }}>{moment.tekst}</div>
+            </div>
+          </div>
+          <div style={{ padding: "12px 16px calc(env(safe-area-inset-bottom) + 28px)", display: "flex", flexDirection: "column", gap: 10 }}>
+            {items.map(({ recipe: r, why }) => {
+              const missing = missingOf(r);
+              return (
+                <button key={r.id} onClick={() => onOpenRecipe(r.id)} className="press-scale" style={{
+                  display: "flex", alignItems: "center", gap: 12, background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD,
+                  padding: 10, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK, width: "100%",
+                }}>
+                  <span style={{ width: 58, height: 58, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}><RecipeCircle recipe={r} allIngredients={allIngredients} size={58} /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontFamily: serif, fontSize: 17, fontWeight: 700, color: BOTTLE }}>{r.name}</span>
+                    <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.35 }}>{why}</span>
+                    <span style={{ display: "block", fontSize: 12, fontWeight: 700, marginTop: 3, color: missing.length ? BRASS_TEXT : SAGE_TEXT }}>
+                      {missing.length ? `Mist: ${missing.slice(0, 2).map(ingredientLabel).join(", ")}${missing.length > 2 ? ` +${missing.length - 2}` : ""}` : "Alles in huis"}
+                    </span>
+                  </span>
+                  <ChevronRight size={17} color={MUTED} style={{ flexShrink: 0 }} />
+                </button>
+              );
+            })}
+            {onAddToFeest && (
+              <button onClick={addAll} disabled={added} className="press-scale" style={{
+                marginTop: 6, minHeight: 48, borderRadius: 14, border: "none", background: added ? "rgba(92,122,82,0.16)" : BOTTLE_DARK,
+                color: added ? SAGE_TEXT : HEADER_TEXT, fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: added ? "default" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}>
+                {added ? <><Check size={17} strokeWidth={2.6} /> Staan in je feestselectie (Bar → Feestplanner)</> : <><PartyPopper size={17} /> Maak er een feest van</>}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  ), document.body);
+}
+
+function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentRecipeIds, onViewRecipe, favoriteRecipeIds, onToggleFavorite, onSound, logboek = [],
   openRecipeId, onOpenRecipeHandled, onAddToShoppingList, onAddToFeest, feestChosen, onOpenCheckin,
   backLabel = "Ontdekken", onBackToOrigin = null, onRecipeOpenChange, rootTapTick = 0 }) {
   const [selectedId, setSelectedId] = useState(null);
@@ -8701,31 +8864,16 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   // Cocktail van de week/Favorieten/Onlangs bekeken/Verras me hierboven).
   const browseAll = recipe ? [] : recipes;
 
-  // "Van de dag" wint als vandaag in de kalender staat; anders "van de week".
-  // De hoofdreden komt nu uit het seizoensthema van de huidige maand (waarom
-  // hoort DEZE stijl cocktail in DEZE week thuis), voorraad is alleen nog een
-  // praktisch naschrift in plaats van de hele reden.
-  const occasion = useMemo(() => (recipe ? null : getTodayOccasion()), [recipe]);
-  const weeklyPick = useMemo(() => {
-    if (recipe || allScored.length === 0) return null;
-    const theme = MONTH_THEMES[new Date().getMonth()];
-    const inTheme = allScored.filter(s => theme.families.includes(s.recipe.family));
-    const themePool = inTheme.length > 0 ? inTheme : allScored;
-    const bijna = themePool.filter(s => s.missing.length <= 1);
-    const pool = bijna.length > 0 ? bijna : themePool;
-    const pick = pool[getIsoWeekSeed() % pool.length];
-    let reason = theme.reason(pick.recipe.name);
-    if (pick.missing.length === 1) reason += ` Je mist er trouwens nog maar één ding voor: ${ingredientLabel(pick.missing[0])}.`;
-    else if (pick.missing.length === 0) reason += ` Je hebt gelukkig alles al in huis.`;
-    return { recipe: pick.recipe, reason };
-  }, [allScored, recipe, ingredientLabel]);
-  const featured = useMemo(() => {
-    if (occasion) {
-      const r = recipes.find(x => x.id === occasion.recipeId);
-      if (r) return { recipe: r, badge: `${occasion.emoji} ${occasion.label}`, reason: occasion.reason };
-    }
-    return weeklyPick ? { recipe: weeklyPick.recipe, badge: "Cocktail van de week", reason: weeklyPick.reason } : null;
-  }, [occasion, weeklyPick, recipes]);
+  // Cocktail van de week: persoonlijk gekozen (seizoen + smaak + voorraad),
+  // daaronder de momenten van het jaar (moments.js).
+  const weekly = useMemo(() => (recipe ? null : weeklyCocktailPick({ recipes, allIngredients, logboek, isOwned })), [recipe, recipes, allIngredients, logboek, isOwned]);
+  const moments = useMemo(() => momentsFor(new Date()), []);
+  const recipeById = useMemo(() => new Map(recipes.map(r => [r.id, r])), [recipes]);
+  const [openMoment, setOpenMoment] = useState(null);
+  const [momentHidden, setMomentHidden] = useState(false);
+  // Terug uit een recept dat je vanuit een moment opende: het moment weer tonen.
+  useEffect(() => { if (!recipe && momentHidden) setMomentHidden(false); }, [recipe, momentHidden]);
+  useEffect(() => { if (rootTapTick) setOpenMoment(null); }, [rootTapTick]);
 
   return (
     <div>
@@ -8747,32 +8895,70 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
 
       {!recipe && (
         <div>
-          {featured && (() => {
-            const photo = localItemImageUrl("cocktail", featured.recipe.id) || featured.recipe.image;
+          {weekly && (() => {
+            const photo = localItemImageUrl("cocktail", weekly.recipe.id) || weekly.recipe.image;
+            const n = weekly.missing.length;
             return (
-              <button onClick={() => selectRecipe(featured.recipe.id)} style={{
-                width: "100%", textAlign: "left", border: "none", cursor: "pointer", borderRadius: RADIUS + 4,
-                padding: "20px 22px", marginBottom: 24, position: "relative", overflow: "hidden", boxSizing: "border-box",
-                minHeight: photo ? 220 : undefined, display: "flex", flexDirection: "column", justifyContent: "flex-end",
-                background: BOTTLE_DARK, boxShadow: SHADOW_HERO, color: HEADER_TEXT, fontFamily: sans,
-              }}>
-                {photo && (
-                  <>
-                    <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(19,38,34,0.92), rgba(19,38,34,0.3) 55%, rgba(19,38,34,0.1))" }} />
-                  </>
-                )}
-                <div style={{ position: "relative" }}>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 100, padding: "4px 12px", fontSize: 11.5, fontWeight: 700, marginBottom: 12 }}>
-                    {featured.badge}
-                  </div>
-                  <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 26, marginBottom: 4 }}>{featured.recipe.name}</div>
-                  <div style={{ fontSize: 12.5, opacity: 0.85, marginBottom: 10 }}>{featured.recipe.family} · {featured.recipe.glass}</div>
-                  <div style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.92, maxWidth: 420 }}>{featured.reason}</div>
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                  <SectionLabel>Cocktail van de week</SectionLabel>
+                  <span style={{ fontSize: 12, color: MUTED }}>week {weekNumber()}</span>
                 </div>
-              </button>
+                <button onClick={() => selectRecipe(weekly.recipe.id)} className="press-scale" style={{
+                  width: "100%", textAlign: "left", border: "none", cursor: "pointer", borderRadius: RADIUS + 4, padding: 0,
+                  overflow: "hidden", background: BOTTLE_DARK, boxShadow: SHADOW_HERO, color: HEADER_TEXT, fontFamily: sans, display: "block",
+                }}>
+                  <div style={{ position: "relative", height: 178, background: BOTTLE_DARK }}>
+                    {photo && <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0) 40%, rgba(19,38,34,0.96))" }} />
+                    {weekly.personal && (
+                      <span style={{ position: "absolute", top: 12, left: 12, background: "rgba(19,38,34,0.78)", color: "#DDB877", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", padding: "6px 10px", borderRadius: 100 }}>Voor jou gekozen</span>
+                    )}
+                    <span style={{ position: "absolute", left: 16, right: 16, bottom: 10, fontFamily: serif, fontWeight: 700, fontSize: 27, lineHeight: 1.15 }}>{weekly.recipe.name}</span>
+                  </div>
+                  <div style={{ padding: "4px 16px 16px" }}>
+                    <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "#D9D2C2", marginBottom: 12 }}>{weekly.reason}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, padding: "6px 10px", borderRadius: 100, background: n === 0 ? "rgba(143,179,126,0.18)" : "rgba(221,184,119,0.16)", color: n === 0 ? "#B9D9A0" : "#E8C98E", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {n === 0 ? "Alles in huis" : `Mist ${n}: ${weekly.missing.slice(0, 2).map(ingredientLabel).join(", ")}`}
+                      </span>
+                      <span style={{ marginLeft: "auto", flexShrink: 0, background: "#E8C98E", color: BOTTLE_DARK, fontWeight: 800, fontSize: 13.5, padding: "10px 14px", borderRadius: 12 }}>Bekijk recept</span>
+                    </div>
+                  </div>
+                </button>
+              </div>
             );
           })()}
+
+          <div style={{ marginBottom: 24 }}>
+            <SectionLabel>Momenten</SectionLabel>
+            <div className="no-scrollbar" style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 4px", WebkitOverflowScrolling: "touch" }}>
+              {moments.map(m => {
+                const imgs = m.items.slice(0, 2).map(([id]) => localItemImageUrl("cocktail", id)).filter(Boolean);
+                return (
+                  <button key={m.id} onClick={() => { onSound?.("tick"); setOpenMoment(m.id); }} className="press-scale" style={{
+                    flex: "0 0 150px", height: 150, borderRadius: 18, overflow: "hidden", position: "relative", border: "none", padding: 0,
+                    cursor: "pointer", background: BOTTLE_DARK, boxShadow: SHADOW_CARD, textAlign: "left", fontFamily: sans,
+                  }}>
+                    <span style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: imgs.length > 1 ? "1fr 1fr" : "1fr" }}>
+                      {imgs.map(src => <img key={src} src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />)}
+                    </span>
+                    <span style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.8))" }} />
+                    <span style={{ position: "absolute", left: 11, right: 9, bottom: 10, color: "#fff" }}>
+                      <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, letterSpacing: 0.7, textTransform: "uppercase", opacity: 0.88 }}>{m.label}</span>
+                      <span style={{ display: "block", fontFamily: serif, fontSize: 18, fontWeight: 700, lineHeight: 1.15, marginTop: 2 }}>{m.titel}</span>
+                      <span style={{ display: "block", fontSize: 11.5, opacity: 0.85, marginTop: 2 }}>{m.items.length} cocktails</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {openMoment && !momentHidden && (
+            <MomentScreen moment={moments.find(m => m.id === openMoment)} recipeById={recipeById} isOwned={isOwned} allIngredients={allIngredients} ingredientLabel={ingredientLabel}
+              onClose={() => setOpenMoment(null)} onOpenRecipe={(id) => { setMomentHidden(true); selectRecipe(id); }}
+              onAddToFeest={onAddToFeest} onSound={onSound} />
+          )}
 
           {favoriteRecipeIds.length > 0 && (
             <div style={{ marginBottom: 24 }}>
