@@ -126,9 +126,18 @@ function GuestSurveyView({ surveyId }) {
 
   useEffect(() => {
     let cancelled = false;
-    supabase.from("party_surveys").select("id, title").eq("id", surveyId).maybeSingle()
-      .then(({ data }) => { if (!cancelled) setSurvey(data || null); })
-      .catch(() => { if (!cancelled) setSurvey(null); });
+    // Eerst via de functie smaaktest_ophalen (werkt voor gasten zonder
+    // account); bestaat die nog niet, dan rechtstreeks uit de tabel.
+    (async () => {
+      let found = null;
+      const viaRpc = await supabase.rpc("smaaktest_ophalen", { p_id: surveyId });
+      if (!viaRpc.error) found = (Array.isArray(viaRpc.data) ? viaRpc.data[0] : viaRpc.data) || null;
+      else {
+        const { data } = await supabase.from("party_surveys").select("id, title").eq("id", surveyId).maybeSingle();
+        found = data || null;
+      }
+      if (!cancelled) setSurvey(found);
+    })().catch(() => { if (!cancelled) setSurvey(null); });
     return () => { cancelled = true; };
   }, [surveyId]);
 
@@ -164,7 +173,11 @@ function GuestSurveyView({ surveyId }) {
     // Zolang de migratie voor `answers` niet gedraaid is: dan alleen de oude velden.
     if (err && /answers/i.test(err.message || "")) ({ error: err } = await supabase.from("party_survey_responses").insert(base));
     setSubmitting(false);
-    if (err) { setError("Versturen is niet gelukt. Probeer het nog eens."); return; }
+    if (err) {
+      console.warn("Smaaktest versturen mislukt:", err);
+      setError(typeof navigator !== "undefined" && navigator.onLine === false ? "Geen internet. Probeer het opnieuw als je weer verbinding hebt." : "Versturen is niet gelukt. Probeer het nog eens, of laat het de host weten.");
+      return;
+    }
     go(QUESTIONS + 1);
   };
 
@@ -246,7 +259,7 @@ function GuestSurveyView({ surveyId }) {
   if (survey === undefined || survey === null) {
     return (
       <div style={page}><div style={{ ...column, justifyContent: "center", textAlign: "center" }}>
-        <p style={{ color: C.subtle, fontSize: 15 }}>{survey === undefined ? "Bezig met laden…" : "Dit linkje lijkt niet (meer) geldig."}</p>
+        <p style={{ color: C.subtle, fontSize: 15 }}>{survey === undefined ? "Bezig met laden…" : "Deze smaaktest is niet gevonden. Misschien heeft de host hem verwijderd; vraag om een nieuwe link."}</p>
       </div></div>
     );
   }

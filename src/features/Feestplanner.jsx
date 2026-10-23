@@ -751,6 +751,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
     setTimeout(() => setMixersAdded(false), 2000);
   };
   const [surveyShareState, setSurveyShareState] = useState(null);
+  const [surveyError, setSurveyError] = useState(null);
   const [creatingSurvey, setCreatingSurvey] = useState(false);
 
   const loadSurvey = async () => {
@@ -792,9 +793,13 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
   const createSurvey = async () => {
     if (!myId || creatingSurvey) return;
     setCreatingSurvey(true);
-    const { data } = await supabase.from("party_surveys").insert({ host_user_id: myId, title: party.name }).select().single();
+    setSurveyError(null);
+    const { data, error } = await supabase.from("party_surveys").insert({ host_user_id: myId, title: party.name }).select().single();
     setCreatingSurvey(false);
-    if (data) { setSurvey(data); setSurveyResponses([]); onSound("pop"); onUpdateParty({ taste_survey_id: data.id }); }
+    if (data) { setSurvey(data); setSurveyResponses([]); onSound("pop"); onUpdateParty({ taste_survey_id: data.id }); return; }
+    // Voorheen gebeurde er dan stil niets; nu zie je wat er mis is.
+    console.warn("Smaaktest maken mislukt:", error);
+    setSurveyError(navigator.onLine === false ? "Geen internet. Probeer het opnieuw als je weer verbinding hebt." : "De smaaktest kon niet worden aangemaakt. Probeer het later nog eens.");
   };
 
   const [confirmDeleteSurvey, setConfirmDeleteSurvey] = useState(false);
@@ -1315,6 +1320,7 @@ function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, re
             }}>
               <Share2 size={14} /> {creatingSurvey ? "Bezig…" : "Smaaktest aanmaken"}
             </button>
+            {surveyError && <p role="alert" style={{ color: BURGUNDY, fontSize: 13, lineHeight: 1.45, margin: "10px 0 0" }}>{surveyError}</p>}
           </>
         ) : (
           <>
