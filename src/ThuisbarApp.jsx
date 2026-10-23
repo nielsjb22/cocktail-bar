@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext, useId, Fragment } from "react";
+import { lazy, Suspense, useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext, useId, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { subscribe, noteLocalChange, startSync, stopSync } from "./cloudState.js";
@@ -7,29 +7,64 @@ import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
-import { AlertTriangle, CalendarDays, Image as ImageIcon, Printer, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, RefreshCw, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Wrench, Snowflake, FlaskRound, Droplets, Citrus, Cherry, Thermometer, Layers, PenTool, ListChecks, HeartHandshake, Award, Leaf, Droplet, CloudFog, GlassWater, Hand, ListOrdered, CupSoda, Zap, Sparkle, Clock, ShieldCheck, Play, Copy, LayoutGrid, Rows2 } from "lucide-react";
-import L from "leaflet";
-import { useMapEngine, createAppleMap } from "./appleMaps";
+import { AlertTriangle, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Citrus, ListChecks, Award, Droplet, GlassWater, Hand, ListOrdered, CupSoda, Clock, ShieldCheck, Play, Copy, LayoutGrid, Rows2 } from "lucide-react";
 import { buildIngredientIndex, searchIngredients, unusedHint, normalizeTerm } from "./ingredientSearch";
 import { PRIVACY_BIJGEWERKT, PRIVACY_INTRO, PRIVACY_SECTIES, privacyContactTekst } from "./privacyPolicy";
 import { VOORWAARDEN_VERSIE, VOORWAARDEN_BIJGEWERKT, VOORWAARDEN_INTRO, VOORWAARDEN_SECTIES, voorwaardenContactTekst } from "./termsOfUse";
 import { exportMyData } from "./dataExport.js";
-import "leaflet/dist/leaflet.css";
 import { DRANK_SPECS, shopGroupFor } from "./data/drankspecs";
 import { INGREDIENT_INFO } from "./data/ingredientInfo";
 import { supabase } from "./supabaseClient";
-import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
-import { MENU_COLORS, MENU_SERIF, MENU_SANS, menuCocktailInfo, readPartyFromSearch, partySubtitle, buildIcs, partyMenuQuery, partyInfoQuery, menuStrength, renderMenuCanvas, renderMenuOgCanvas, canvasToPdf, formatMenuDate } from "./menuCard";
-import { SURVEY_SPIRITS, SURVEY_LIQUEURS, SURVEY_MIXERS, SURVEY_TASTES, SURVEY_STYLES, SURVEY_STRENGTHS, SURVEY_ALLERGIES, CUSTOM_PREFIX, choiceLabel, emptyAnswers, legacyFieldsFromAnswers, ingredientPreferenceCounts, tallyChoices } from "./surveyOptions";
 import { isNative as isNativeShell, initNativeShell, hideNativeSplash, hapticFor, setStatusBarOnDark, setKeepAwake } from "./native";
 import { fetchLearnedBrands, recordBrandLink, useSearchMiss, fetchRecommendations } from "./learning.js";
-import { AI_CONSENT_KEY, askBartender, scanBottles, fetchAiTegoed } from "./ai.js";
+import { AI_CONSENT_KEY } from "./ai.js";
 import { imageToJpegDataUrl, squareJpegDataUrl, uploadCheckinPhoto, removeCheckinPhoto, removeOwnStorageFiles } from "./checkinPhotos.js";
-import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, STORIES, FUN_FACTS, STEPS, canonicalRecipeId, recipeIdAliases } from "./recipes.js";
-import { COURSE_PARTS, COURSE_LESSONS, FINAL_EXAM } from "./course.js";
-import feestHeaderImg from "./assets/feest-header.jpg";
+import { INGREDIENTS, CATEGORY_ORDER, RECIPES, PRICES_UPDATED, FUN_FACTS, canonicalRecipeId, recipeIdAliases } from "./recipes.js";
+
+// Verhalen en bereidingsstappen (ruim 250 KB) laden kort na het opstarten op
+// de achtergrond, niet tijdens: zie loadRecipeTexts en useRecipeTexts.
+const NO_RECIPE_TEXTS = { STORIES: {}, STEPS: {}, loaded: false };
+let recipeTexts = null;
+let recipeTextsPromise = null;
+export function loadRecipeTexts() {
+  if (!recipeTextsPromise) recipeTextsPromise = import("./recipeTexts.js").then(m => (recipeTexts = { STORIES: m.STORIES, STEPS: m.STEPS, loaded: true }));
+  return recipeTextsPromise;
+}
+export function useRecipeTexts() {
+  const [texts, setTexts] = useState(recipeTexts || NO_RECIPE_TEXTS);
+  useEffect(() => {
+    if (texts.loaded) return;
+    let cancelled = false;
+    loadRecipeTexts().then(t => { if (!cancelled) setTexts(t); });
+    return () => { cancelled = true; };
+  }, [texts.loaded]);
+  return texts;
+}
+import { COURSE_PARTS, COURSE_LESSONS } from "./course.js";
 import imageCatalog from "./data/images.json";
 import { brandMarkMarkup, BRAND_MARK_VIEWBOX } from "./brandMark.js";
+
+// Zware, zelden gebruikte schermen laden pas als je ze opent (sneller opstarten).
+function lazyScreen(load, name) {
+  const Lazy = lazy(() => load().then(m => ({ default: m[name] })));
+  function LazyScreen(props) { return <Suspense fallback={null}><Lazy {...props} /></Suspense>; }
+  LazyScreen.displayName = name;
+  return LazyScreen;
+}
+const FeestplannerTab = lazyScreen(() => import("./features/Feestplanner.jsx"), "FeestplannerTab");
+const MenuAssistentTab = lazyScreen(() => import("./features/MenuAssistent.jsx"), "MenuAssistentTab");
+const BatchCalculatorTab = lazyScreen(() => import("./features/BatchCalculator.jsx"), "BatchCalculatorTab");
+const GuestSurveyView = lazyScreen(() => import("./features/GuestViews.jsx"), "GuestSurveyView");
+const GuestMenuView = lazyScreen(() => import("./features/GuestViews.jsx"), "GuestMenuView");
+const CursusTab = lazyScreen(() => import("./features/Cursus.jsx"), "CursusTab");
+const BartenderScreen = lazyScreen(() => import("./features/Bartender.jsx"), "BartenderScreen");
+const BottleScanSheet = lazyScreen(() => import("./features/BottleScan.jsx"), "BottleScanSheet");
+const InsightsAdminScreen = lazyScreen(() => import("./features/Beheer.jsx"), "InsightsAdminScreen");
+const ReportsAdminScreen = lazyScreen(() => import("./features/Beheer.jsx"), "ReportsAdminScreen");
+const CocktailMap = lazyScreen(() => import("./features/Kaart.jsx"), "CocktailMap");
+const LicensesScreen = lazyScreen(() => import("./features/Licenties.jsx"), "LicensesScreen");
+const EigenRecepten = lazyScreen(() => import("./features/EigenRecepten.jsx"), "EigenRecepten");
+
 
 // Centrale foto-catalogus (zie CLAUDE.md "## Afbeeldingen"): één entry per
 // cocktail/drank-id met welk lokaal bestand erbij hoort (nog leeg tot de
@@ -40,7 +75,7 @@ import { brandMarkMarkup, BRAND_MARK_VIEWBOX } from "./brandMark.js";
 const COCKTAIL_IMAGE_FILES = import.meta.glob("./assets/images/cocktails/*.webp", { eager: true, import: "default" });
 const DRANK_IMAGE_FILES = import.meta.glob("./assets/images/dranken/*.webp", { eager: true, import: "default" });
 const IMAGE_CATALOG_BY_KEY = new Map(imageCatalog.map((e) => [`${e.type}:${e.id}`, e]));
-function localItemImageUrl(type, id) {
+export function localItemImageUrl(type, id) {
   const entry = IMAGE_CATALOG_BY_KEY.get(`${type}:${id}`);
   if (!entry || !entry.bestand) return null;
   const files = type === "cocktail" ? COCKTAIL_IMAGE_FILES : DRANK_IMAGE_FILES;
@@ -82,43 +117,38 @@ function localItemImageUrl(type, id) {
 // deze constanten met extra tekens aan elkaar geplakt worden (zoals een hex-
 // alpha-suffix, bijv. `${BOTTLE}66`) — dat werkt niet meer op een
 // var(--naam)-waarde; gebruik dan een losse letterlijke hex-kleur.
-const INK = "var(--ink)";
-const PAPER = "var(--paper)";
-const PAPER_DEEP = "var(--paper-deep)";
-const BOTTLE = "var(--bottle)";
-const BOTTLE_DARK = "var(--bottle-dark)";
-const BRASS = "var(--brass)";
-const BRASS_TEXT = "var(--brass-text)";
-const SAGE_TEXT = "var(--sage-text)";
-const BURGUNDY = "var(--burgundy)";
-const SAGE = "var(--sage)";
-const MUTED = "var(--muted)";
-const BORDER = "var(--border)";
-const CREAM = "var(--cream)";
+export const INK = "var(--ink)";
+export const PAPER = "var(--paper)";
+export const PAPER_DEEP = "var(--paper-deep)";
+export const BOTTLE = "var(--bottle)";
+export const BOTTLE_DARK = "var(--bottle-dark)";
+export const BRASS = "var(--brass)";
+export const BRASS_TEXT = "var(--brass-text)";
+export const SAGE_TEXT = "var(--sage-text)";
+export const BURGUNDY = "var(--burgundy)";
+export const SAGE = "var(--sage)";
+export const MUTED = "var(--muted)";
+export const BORDER = "var(--border)";
+export const CREAM = "var(--cream)";
 // Tekst die altijd licht moet zijn: op foto's en op de donkergroene vlakken.
 // (CREAM zelf wordt in de donkere modus een donkere kaartkleur.)
-const ON_DARK_TEXT = "#FBF6EA";
-const CUSTOM_CAT = "Eigen ingrediënten";
+export const ON_DARK_TEXT = "#FBF6EA";
+export const CUSTOM_CAT = "Eigen ingrediënten";
 
-const serif = "'Playfair Display', Georgia, 'Times New Roman', serif";
-const sans = "'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif";
+export const serif = "'Playfair Display', Georgia, 'Times New Roman', serif";
+export const sans = "'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif";
 // Puur systeemfont (geen Inter), gereserveerd voor de check-in-sheet: die
 // moet aanvoelen als een natieve iOS-flow, niet als de rest van de app.
-const systemFont = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif";
+export const systemFont = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif";
 
 // Zachte, warm-getinte schaduwen, gereserveerd voor uitgelichte panelen en
 // primaire knoppen. Herhalende ledger-rijen blijven bewust plat (zie de
 // design tokens hierboven): schaduw = "dit is een uitgelicht moment".
-const SHADOW_CARD = "var(--shadow-card)";
-const SHADOW_HERO = "var(--shadow-hero)";
-const SHADOW_CTA = "var(--shadow-cta)";
-const RADIUS = 8;
+export const SHADOW_CARD = "var(--shadow-card)";
+export const SHADOW_HERO = "var(--shadow-hero)";
+export const SHADOW_CTA = "var(--shadow-cta)";
+export const RADIUS = 8;
 
-// Sticky headers: de hele pagina scrollt via het venster, dus
-// "position: sticky" werkt overal hetzelfde. De groene kop van een
-// subscherm (HeaderNavBar) is 44px + 2px messinglijn hoog; een tweede
-// sticky balk eronder staat precies op die hoogte.
-const STICKY_SUBHEADER_TOP = "calc(env(safe-area-inset-top) + 46px)";
 
 // Titels voor de vaste navigatiebalk van elk push-scherm (SecondaryTabScreen)
 // — gecentreerd tussen de terugknop en de rand, zoals een echte iOS-navbar.
@@ -151,7 +181,7 @@ const PUSH_SCREENS = new Set(Object.keys(PUSH_SCREEN_TITLES));
 // localStorage niet gegarandeerd doet. Laden is nu async: value start op
 // fallback en wordt bijgewerkt zodra Preferences.get() terug is (meestal
 // binnen een paar ms), i.p.v. synchroon bij de eerste render.
-function useStorage(key, fallback) {
+export function useStorage(key, fallback) {
   const [value, setValue] = useState(fallback);
   const loadedRef = useRef(false);
 
@@ -271,13 +301,13 @@ function scaleAmount(amount, unit, servings) {
   if (unit === "stuk") return Math.ceil(scaled);
   return scaled;
 }
-function unitLabel(unit, amount) {
+export function unitLabel(unit, amount) {
   if (unit === "ml") return "ml";
   if (unit === "dash") return amount === 1 ? "dash" : "dashes";
   if (unit === "stuk") return amount === 1 ? "stuk" : "stuks";
   return unit || "";
 }
-function formatDutchNumber(n) {
+export function formatDutchNumber(n) {
   const rounded = Math.round(n * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : String(rounded).replace(".", ",");
 }
@@ -412,7 +442,7 @@ const MENU_ROLES = {
 };
 const MENU_ROLE_KEYS = Object.keys(MENU_ROLES).filter(k => k !== "overig");
 
-function hashString(s) {
+export function hashString(s) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return h;
@@ -486,7 +516,7 @@ function toBucket(points) {
   if (points < 35) return 4;
   return 5;
 }
-function getTasteProfile(recipe, allIngredients) {
+export function getTasteProfile(recipe, allIngredients) {
   let zoetPts = 0, zuurPts = 0, bitterPts = 0, spiritMl = 0, totalMl = 0;
   recipe.ingredients.forEach(ing => {
     const meta = findIngredientMeta(ing, allIngredients);
@@ -509,18 +539,18 @@ function getTasteProfile(recipe, allIngredients) {
 // Je smaakprofiel uit de cocktails die je hoog gaf (4 of meer), en welke
 // recepten die je nog niet probeerde daar het dichtst bij liggen.
 const tasteCache = new WeakMap();
-function cachedTaste(recipe, allIngredients) {
+export function cachedTaste(recipe, allIngredients) {
   let byIng = tasteCache.get(allIngredients);
   if (!byIng) { byIng = new Map(); tasteCache.set(allIngredients, byIng); }
   if (!byIng.has(recipe.id)) byIng.set(recipe.id, getTasteProfile(recipe, allIngredients));
   return byIng.get(recipe.id);
 }
-const TASTE_DIMS = ["zoet", "zuur", "bitter", "sterk"];
-const TASTE_WORD = { zoet: "zoet", zuur: "fris-zuur", bitter: "bitter", sterk: "stevig" };
-function findRecipeFor(entry, recipes) {
+export const TASTE_DIMS = ["zoet", "zuur", "bitter", "sterk"];
+export const TASTE_WORD = { zoet: "zoet", zuur: "fris-zuur", bitter: "bitter", sterk: "stevig" };
+export function findRecipeFor(entry, recipes) {
   return entry.recipeId ? recipes.find(r => r.id === canonicalRecipeId(entry.recipeId)) : recipes.find(r => r.name.toLowerCase() === (entry.name || "").trim().toLowerCase());
 }
-function myTasteVector(logboek, recipes, allIngredients) {
+export function myTasteVector(logboek, recipes, allIngredients) {
   const sum = { zoet: 0, zuur: 0, bitter: 0, sterk: 0 }; let w = 0;
   const families = new Map();
   for (const e of logboek) {
@@ -563,7 +593,7 @@ function getFunFact(recipe) {
 // Splitst de doorlopende `method`-tekst in losse stappen (op zinsgrens) zodat
 // elk recept (ingebouwd of zelfgemaakt) automatisch een stap-voor-stap
 // weergave krijgt, zonder dat elk recept apart een stappenlijst nodig heeft.
-function splitMethodIntoSteps(method) {
+export function splitMethodIntoSteps(method) {
   if (!method) return [];
   const sentences = method.match(/[^.!?]+[.!?]+(\s+|$)/g);
   const steps = sentences ? sentences.map(s => s.trim()) : [method.trim()];
@@ -645,7 +675,7 @@ function highlightIngredientMentions(text, recipe, allIngredients) {
   });
 }
 
-function getMenuRole(recipe) {
+export function getMenuRole(recipe) {
   for (const key of MENU_ROLE_KEYS) {
     if (MENU_ROLES[key].families.includes(recipe.family)) return key;
   }
@@ -749,7 +779,7 @@ function getTimeWarmth() {
   return 0.05;
 }
 
-function inferTechniques(method) {
+export function inferTechniques(method) {
   const m = (method || "").toLowerCase();
   const found = [];
   if (m.includes("dry shake")) found.push("dry_shake");
@@ -764,20 +794,16 @@ function inferTechniques(method) {
   return [...new Set(found)];
 }
 
-function formatAantal(n) {
-  const rounded = Math.round(n * 2) / 2;
-  return rounded % 1 === 0 ? String(rounded) : String(rounded).replace(".", ",");
-}
 
-function euro(amount) {
+export function euro(amount) {
   return "€" + amount.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function ingredientKey(ref) {
+export function ingredientKey(ref) {
   return ref.id || (ref.name || "").toLowerCase();
 }
 
-function findIngredientMeta(ref, allIngredients) {
+export function findIngredientMeta(ref, allIngredients) {
   if (ref.id) return allIngredients.find(i => i.id === ref.id) || null;
   return allIngredients.find(i => i.name.toLowerCase() === (ref.name || "").toLowerCase()) || null;
 }
@@ -797,7 +823,7 @@ function getBaseSpirit(recipe, allIngredients) {
 // de sfeerkleur van de smaakhoek en een garnering die is afgeleid uit de
 // echte ingrediënten. Geen twee cocktails zien er identiek uit, maar niets
 // is fictief: glasvorm komt uit recipe.glass, garnering uit recipe.ingredients.
-function normalizeGlass(glass) {
+export function normalizeGlass(glass) {
   const g = (glass || "").toLowerCase();
   if (g.startsWith("coupe")) return "coupe";
   if (g.startsWith("highball")) return "highball";
@@ -962,7 +988,7 @@ const GLASS_SHAPES = {
   julep: { rim: [50, 70, 22, 5.5], body: "M30,70 L27,135 Q50,141 73,135 L70,70 Z", liquid: "M32.5,82 Q50,87 67.5,82 L70,70 L30,70 Z", liquidTopY: 82, foot: null, handle: null },
 };
 
-function GlassArt({ glass, colors, garnishes, garnish, mono, size = 116, plinth, dropIn, ambient, rim, foam, iceStyle }) {
+export function GlassArt({ glass, colors, garnishes, garnish, mono, size = 116, plinth, dropIn, ambient, rim, foam, iceStyle }) {
   const type = normalizeGlass(glass);
   const shape = GLASS_SHAPES[type];
   const [rcx, rcy, rrx, rry] = shape.rim;
@@ -1087,7 +1113,7 @@ function GlassArt({ glass, colors, garnishes, garnish, mono, size = 116, plinth,
 // beweegt. Alleen voor technieken waar een beweging ook echt iets uitlegt
 // (shaken/stirred/muddle) — voor de rest volstaat de tip-tekst.
 const TECHNIQUE_ANIMATIONS = new Set(["shaken", "stirred", "muddle"]);
-function TechniqueAnimation({ technique }) {
+export function TechniqueAnimation({ technique }) {
   const [reduceMotion, setReduceMotion] = useState(
     () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
   );
@@ -1176,7 +1202,7 @@ function TechniqueAnimation({ technique }) {
 // Het logo (martiniglas in een gouden ring) — dezelfde bron als het
 // iOS-opstartscherm (src/brandMark.js). animated: de kom loopt vol en
 // daarna verschijnt de olijf (zie .brand-liquid / .brand-spark).
-function BrandMark({ width = 96, animated = false }) {
+export function BrandMark({ width = 96, animated = false }) {
   const idPrefix = "bm" + useId().replace(/[^a-zA-Z0-9]/g, "");
   const markup = useMemo(() => brandMarkMarkup({ idPrefix, animated }), [idPrefix, animated]);
   const [, , vw, vh] = BRAND_MARK_VIEWBOX.split(" ").map(Number);
@@ -1220,104 +1246,6 @@ function SplashScreen({ onDone }) {
   );
 }
 
-// Gedeelde menukaart (de link die gasten krijgen): donker, gecentreerd, zonder
-// kaders. Het menu ligt vast; gasten kiezen niets. Feestnaam, host, datum en
-// (optioneel) adres staan in de link zelf — zie partyMenuQuery in menuCard.js.
-// Alleen ingebouwde recepten kunnen worden gedeeld: eigen recepten van de host
-// leven alleen op diens toestel, dus die vallen hier weg.
-function GuestMenuView({ recipeIds }) {
-  const C = MENU_COLORS;
-  useMatchBodyBackground(C.bg);
-  const party = useMemo(() => readPartyFromSearch(window.location.search), []);
-  const items = useMemo(() => recipeIds
-    .map(id => RECIPES.find(r => r.id === canonicalRecipeId(id))).filter(Boolean)
-    .map(r => menuCocktailInfo(r, INGREDIENTS, getTasteProfile(r, INGREDIENTS))), [recipeIds]);
-  const skipped = recipeIds.length - items.length;
-  const subtitle = partySubtitle(party);
-
-  const addToCalendar = async () => {
-    const ics = buildIcs({
-      title: party.title || "Cocktailavond", startsAt: party.startsAt, address: party.address,
-      description: items.length ? `Op de kaart: ${items.map(i => i.name).join(", ")}` : "", url: window.location.href,
-    });
-    const filename = `${(party.title || "feest").replace(/[^\w-]+/g, "-").toLowerCase()}.ics`;
-    if (isNativeShell) {
-      try {
-        const { uri } = await Filesystem.writeFile({ path: filename, data: ics, directory: Directory.Cache, encoding: Encoding.UTF8 });
-        await Share.share({ title: party.title, files: [uri] });
-      } catch { /* geannuleerd of niet beschikbaar */ }
-      return;
-    }
-    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  };
-
-  return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: MENU_SANS, textAlign: "center" }}>
-      <div style={{ maxWidth: 520, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 48px) 24px calc(env(safe-area-inset-bottom) + 48px)" }}>
-        <div aria-hidden="true" style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><BrandMark width={48} /></div>
-        <h1 style={{ fontFamily: MENU_SERIF, fontWeight: 500, fontSize: 42, lineHeight: 1.12, margin: "0 0 10px", color: C.text, overflowWrap: "anywhere" }}>
-          {party.title || "Het menu van vanavond"}
-        </h1>
-        {subtitle && (
-          <p style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.body, margin: "0 0 6px" }}>{subtitle}</p>
-        )}
-        {party.address && (
-          <p style={{ fontSize: 14, color: C.subtle, margin: "0 0 6px" }}>{party.address}</p>
-        )}
-        {party.startsAt && (
-          <button onClick={addToCalendar} style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, minHeight: 44, marginTop: 18,
-            padding: "0 22px", borderRadius: 100, border: `1.5px solid ${C.gold}`, background: "transparent",
-            color: C.gold, fontFamily: MENU_SANS, fontSize: 15, fontWeight: 600, cursor: "pointer",
-          }}>
-            <CalendarDays size={17} strokeWidth={1.8} aria-hidden="true" /> Zet in agenda
-          </button>
-        )}
-
-        <div style={{ height: 1, background: C.gold, opacity: 0.45, margin: "34px 0 16px" }} />
-        <div style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.gold, marginBottom: 6 }}>Op de kaart vanavond</div>
-
-        {items.length === 0 && (
-          <p style={{ color: C.subtle, fontSize: 15, padding: "28px 0" }}>Dit menu-linkje lijkt niet (meer) geldig.</p>
-        )}
-        {items.map((it, i) => (
-          <div key={it.id} style={{ padding: "26px 0", borderTop: i === 0 ? "none" : `1px solid ${C.divider}` }}>
-            <h2 style={{ fontFamily: MENU_SERIF, fontWeight: 500, fontSize: 28, lineHeight: 1.2, color: C.text, margin: "0 0 6px" }}>{it.name}</h2>
-            {it.ingredientsLine && (
-              <div style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 15.5, color: C.gold, lineHeight: 1.45, margin: "0 0 12px" }}>{it.ingredientsLine}</div>
-            )}
-            <p style={{ fontSize: 15.5, lineHeight: 1.55, color: C.body, margin: "0 auto 12px", maxWidth: 400 }}>{it.description}</p>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: 13.5, color: C.subtle, flexWrap: "wrap" }}>
-              <span style={{ display: "inline-flex", gap: 4 }} aria-hidden="true">
-                {[1, 2, 3].map(n => (
-                  <span key={n} style={{ width: 7, height: 7, borderRadius: "50%", background: n <= it.strength.level ? C.gold : "#2E423C" }} />
-                ))}
-              </span>
-              <span>{it.strength.label}{it.notes.map(n => ` · ${n}`).join("")}</span>
-            </div>
-          </div>
-        ))}
-        {skipped > 0 && (
-          <p style={{ color: C.subtle, fontSize: 13, margin: "0 0 10px" }}>
-            {skipped} eigen creatie{skipped === 1 ? "" : "s"} van de host {skipped === 1 ? "staat" : "staan"} hier niet bij.
-          </p>
-        )}
-
-        <div style={{ borderTop: `1px solid ${C.divider}`, paddingTop: 30, marginTop: 4 }}>
-          <div style={{ fontSize: 13.5, color: C.subtle }}>Proef je iets lekkers? Check in met</div>
-          <a href={APP_STORE_URL || PUBLIC_WEB_URL || "/"} target="_blank" rel="noreferrer" style={{
-            display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 12px",
-            fontSize: 14.5, fontWeight: 700, color: C.text, textDecoration: "none",
-          }}>Mijn Thuisbar</a>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Gastenkant van de smaaktest: geen account nodig. Eén vraag per scherm, in
 // dezelfde donkere stijl als de gedeelde menukaart, zonder emoji of
@@ -1333,7 +1261,7 @@ const SURVEY_GLASS_PATHS = {
   tiki: ["M16 6h16c0 6-4 8-4 14s5 8 5 14c0 4-4 8-9 8s-9-4-9-8c0-6 5-8 5-14s-4-8-4-14z", "M30 4l6-2"],
   flute: ["M19 4h10l-1 20c0 3-2 5-4 5s-4-2-4-5z", "M24 29v11", "M18 40h12"],
 };
-function SurveyGlass({ kind, color }) {
+export function SurveyGlass({ kind, color }) {
   return (
     <svg width="44" height="44" viewBox="0 0 48 48" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {(SURVEY_GLASS_PATHS[kind] || []).map((d, i) => <path key={i} d={d} />)}
@@ -1341,349 +1269,6 @@ function SurveyGlass({ kind, color }) {
   );
 }
 
-function GuestSurveyView({ surveyId }) {
-  const C = MENU_COLORS;
-  useMatchBodyBackground(C.bg);
-  const party = useMemo(() => readPartyFromSearch(window.location.search), []);
-  const [survey, setSurvey] = useState(undefined); // undefined = laden, null = niet gevonden
-  const [step, setStep] = useState(0); // 0 = naam, 1..7 = vragen, 8 = bedankt
-  const [guestName, setGuestName] = useState("");
-  const [answers, setAnswers] = useState(emptyAnswers);
-  const [customDrafts, setCustomDrafts] = useState({});
-  const [cocktailQuery, setCocktailQuery] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const scrollTop = () => window.scrollTo(0, 0);
-
-  useEffect(() => {
-    let cancelled = false;
-    supabase.from("party_surveys").select("id, title").eq("id", surveyId).maybeSingle()
-      .then(({ data }) => { if (!cancelled) setSurvey(data || null); })
-      .catch(() => { if (!cancelled) setSurvey(null); });
-    return () => { cancelled = true; };
-  }, [surveyId]);
-
-  const QUESTIONS = 7;
-  const go = (n) => { setStep(n); scrollTop(); };
-
-  // Drie standen per keuze: neutraal → lekker → liever niet → neutraal.
-  // Een zelf toegevoegde keuze verdwijnt bij de derde tik.
-  const stateOf = (group, key) => answers[group].like.includes(key) ? "like" : answers[group].dislike.includes(key) ? "dislike" : null;
-  const cycle = (group, key) => setAnswers(a => {
-    const g = a[group];
-    const like = g.like.filter(k => k !== key), dislike = g.dislike.filter(k => k !== key);
-    if (g.like.includes(key)) dislike.push(key);
-    else if (!g.dislike.includes(key)) like.push(key);
-    return { ...a, [group]: { like, dislike } };
-  });
-  const addCustom = (group) => {
-    const text = (customDrafts[group] || "").trim().slice(0, 40);
-    if (!text) return;
-    const key = CUSTOM_PREFIX + text;
-    setAnswers(a => a[group].like.includes(key) || a[group].dislike.includes(key) ? a
-      : { ...a, [group]: { like: [...a[group].like, key], dislike: a[group].dislike } });
-    setCustomDrafts(d => ({ ...d, [group]: "" }));
-  };
-  const toggleList = (field, key) => setAnswers(a => ({ ...a, [field]: a[field].includes(key) ? a[field].filter(k => k !== key) : [...a[field], key] }));
-
-  const submit = async () => {
-    if (submitting) return;
-    setSubmitting(true);
-    setError(null);
-    const base = { survey_id: surveyId, guest_name: guestName.trim() || null, ...legacyFieldsFromAnswers(answers) };
-    let { error: err } = await supabase.from("party_survey_responses").insert({ ...base, answers });
-    // Zolang de migratie voor `answers` niet gedraaid is: dan alleen de oude velden.
-    if (err && /answers/i.test(err.message || "")) ({ error: err } = await supabase.from("party_survey_responses").insert(base));
-    setSubmitting(false);
-    if (err) { setError("Versturen is niet gelukt. Probeer het nog eens."); return; }
-    go(QUESTIONS + 1);
-  };
-
-  const serifH = (size) => ({ fontFamily: MENU_SERIF, fontWeight: 500, fontSize: size, lineHeight: 1.2, color: C.text, margin: 0 });
-  const chipStyle = (state) => ({
-    display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44, padding: "0 16px", borderRadius: 100,
-    fontFamily: MENU_SANS, fontSize: 15, cursor: "pointer",
-    ...(state === "like" ? { background: "rgba(198,161,91,0.16)", border: `1px solid ${C.gold}`, color: C.text }
-      : state === "dislike" ? { background: "transparent", border: "1px dashed #4A5C56", color: C.subtle }
-      : { background: "transparent", border: "1px solid #2E423C", color: C.body }),
-  });
-  const choiceChip = (group, k, label) => {
-    const state = stateOf(group, k);
-    return (
-      <button key={group + k} type="button" onClick={() => cycle(group, k)} aria-pressed={state === "like"} style={chipStyle(state)}
-        aria-label={`${label}${state === "like" ? ", lekker" : state === "dislike" ? ", liever niet" : ""}`}>
-        {state === "like" && <Check size={15} color={C.gold} strokeWidth={2.4} />}
-        {state === "dislike" && <X size={14} color={C.subtle} strokeWidth={2} />}
-        <span style={{ textDecoration: state === "dislike" ? "line-through" : "none" }}>{label}</span>
-      </button>
-    );
-  };
-  const choiceGroup = (group, options) => {
-    const customs = [...answers[group].like, ...answers[group].dislike].filter(k => k.startsWith(CUSTOM_PREFIX));
-    return (
-      <>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {options.map(o => choiceChip(group, o.key, o.label))}
-          {customs.map(k => choiceChip(group, k, k.slice(CUSTOM_PREFIX.length)))}
-        </div>
-      </>
-    );
-  };
-  const customInput = (group, label) => (
-    <>
-      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-        <input value={customDrafts[group] || ""} onChange={e => setCustomDrafts(d => ({ ...d, [group]: e.target.value }))}
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(group); } }}
-          placeholder="Iets anders? Typ het hier" aria-label={label} maxLength={40} enterKeyHint="done"
-          style={{ flex: 1, minWidth: 0, height: 46, boxSizing: "border-box", padding: "0 16px", borderRadius: 100, border: "1px solid #2E423C", background: "#142A24", color: C.text, fontSize: 16, fontFamily: MENU_SANS, outline: "none" }} />
-        <button type="button" onClick={() => addCustom(group)} aria-label="Toevoegen" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, flexShrink: 0, borderRadius: "50%", border: `1px solid ${C.gold}`, background: "transparent", color: C.gold, cursor: "pointer" }}>
-          <Plus size={18} />
-        </button>
-      </div>
-      <p style={{ fontSize: 12.5, color: C.subtle, margin: "8px 0 0" }}>Wat je toevoegt, verschijnt als keuze en staat meteen op lekker.</p>
-    </>
-  );
-  const intro = (title, text) => (
-    <>
-      <h2 style={{ ...serifH(30), marginBottom: 8 }}>{title}</h2>
-      {text && <p style={{ fontSize: 14.5, lineHeight: 1.5, color: C.body, margin: "0 0 22px" }}>{text}</p>}
-    </>
-  );
-  const TAP_HINT = "Tik één keer voor lekker, twee keer voor liever niet.";
-  const subLabel = { fontSize: 12, letterSpacing: 1, color: C.subtle, margin: "0 0 10px" };
-
-  const cocktailSuggestions = cocktailQuery.trim().length > 0
-    ? RECIPES.filter(r => r.name.toLowerCase().includes(cocktailQuery.trim().toLowerCase()) && !answers.favorites.includes(r.id)).slice(0, 6)
-    : [];
-
-  const partyTitle = party.title || survey?.title || "Smaaktest";
-  const partyLine = partySubtitle(party);
-
-  // Samenvatting voor het bedankscherm.
-  const summaryRows = [
-    ["Lekker", ["spirits", "liqueurs", "mixers"].flatMap(g => answers[g].like.map(k => choiceLabel(g, k)))],
-    ["Liever niet", ["spirits", "liqueurs", "mixers"].flatMap(g => answers[g].dislike.map(k => choiceLabel(g, k)))],
-    ["Smaken", answers.tastes.like.map(k => choiceLabel("tastes", k))],
-    ["Soort", answers.styles.map(k => SURVEY_STYLES.find(s => s.key === k)?.label.toLowerCase()).filter(Boolean)],
-    ["Sterkte", answers.strength ? [SURVEY_STRENGTHS.find(s => s.key === answers.strength)?.label] : []],
-    ["Allergie", answers.allergies.map(k => SURVEY_ALLERGIES.find(s => s.key === k)?.label.toLowerCase())],
-    ["Favorieten", answers.favorites.map(id => RECIPES.find(r => r.id === canonicalRecipeId(id))?.name).filter(Boolean)],
-  ].filter(([, v]) => v.length > 0);
-
-  const primaryBtn = { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 54, borderRadius: 100, border: "none", background: C.gold, color: C.bg, fontFamily: MENU_SANS, fontSize: 16, fontWeight: 700, cursor: "pointer" };
-  const page = { background: C.bg, minHeight: "100vh", color: C.text, fontFamily: MENU_SANS };
-  const column = { maxWidth: 480, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 40px) 24px calc(env(safe-area-inset-bottom) + 28px)", minHeight: "100vh", boxSizing: "border-box", display: "flex", flexDirection: "column" };
-
-  if (survey === undefined || survey === null) {
-    return (
-      <div style={page}><div style={{ ...column, justifyContent: "center", textAlign: "center" }}>
-        <p style={{ color: C.subtle, fontSize: 15 }}>{survey === undefined ? "Bezig met laden…" : "Dit linkje lijkt niet (meer) geldig."}</p>
-      </div></div>
-    );
-  }
-
-  // ---------- Stap 0: naam ----------
-  if (step === 0) {
-    const canStart = guestName.trim().length > 0;
-    return (
-      <div style={page}><div style={{ ...column, textAlign: "center", paddingTop: "calc(env(safe-area-inset-top) + 60px)" }}>
-        <div aria-hidden="true" style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><BrandMark width={48} /></div>
-        <h1 style={{ ...serifH(40), lineHeight: 1.12, marginBottom: 10, overflowWrap: "anywhere" }}>{partyTitle}</h1>
-        {partyLine && <p style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.body, margin: 0 }}>{partyLine}</p>}
-        <div style={{ height: 1, background: C.gold, opacity: 0.45, margin: "30px 0 22px" }} />
-        <div style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.gold, marginBottom: 10 }}>Smaaktest</div>
-        <p style={{ fontSize: 15.5, lineHeight: 1.55, color: C.body, margin: "0 0 34px" }}>Een paar korte vragen over wat je graag drinkt. Duurt ongeveer een minuut, en je kunt elke vraag overslaan.</p>
-        <label htmlFor="survey-naam" style={{ ...serifH(26), marginBottom: 14 }}>Hoe heet je?</label>
-        <input id="survey-naam" value={guestName} onChange={e => setGuestName(e.target.value)} autoComplete="given-name" maxLength={40}
-          onKeyDown={e => { if (e.key === "Enter" && canStart) go(1); }} enterKeyHint="next"
-          style={{ boxSizing: "border-box", width: "100%", height: 56, borderRadius: 14, border: `1px solid ${canStart ? C.gold : "#2E423C"}`, background: "#142A24", color: C.text, fontSize: 19, textAlign: "center", fontFamily: MENU_SANS, outline: "none" }} />
-        <p style={{ fontSize: 13, color: C.subtle, margin: "10px 0 0" }}>Zo weet de host wie wat heeft ingevuld.</p>
-        <div style={{ flex: 1, minHeight: 30 }} />
-        <button onClick={() => go(1)} disabled={!canStart} style={{ ...primaryBtn, opacity: canStart ? 1 : 0.4, cursor: canStart ? "pointer" : "default" }}>Beginnen</button>
-      </div></div>
-    );
-  }
-
-  // ---------- Bedankt ----------
-  if (step > QUESTIONS) {
-    return (
-      <div style={page}><div style={{ ...column, textAlign: "center", paddingTop: "calc(env(safe-area-inset-top) + 70px)" }}>
-        <div aria-hidden="true" style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><BrandMark width={48} /></div>
-        <h1 style={{ ...serifH(38), lineHeight: 1.15, marginBottom: 10 }}>Bedankt, {guestName.trim()}</h1>
-        <p style={{ fontSize: 15.5, lineHeight: 1.55, color: C.body, margin: 0 }}>
-          Je antwoorden zijn naar de host gestuurd.{party.startsAt ? ` Tot ${formatMenuDate(party.startsAt)}.` : ""}
-        </p>
-        {summaryRows.length > 0 && (
-          <>
-            <div style={{ height: 1, background: C.gold, opacity: 0.45, margin: "30px 0 20px" }} />
-            <div style={{ fontFamily: MENU_SERIF, fontStyle: "italic", fontWeight: 500, fontSize: 17, color: C.gold, marginBottom: 16 }}>Wat je hebt ingevuld</div>
-            <div style={{ textAlign: "left" }}>
-              {summaryRows.map(([label, values]) => (
-                <div key={label} style={{ display: "flex", gap: 14, padding: "11px 0", borderTop: `1px solid ${C.divider}` }}>
-                  <span style={{ width: 96, flexShrink: 0, fontSize: 13.5, color: C.subtle }}>{label}</span>
-                  <span style={{ fontSize: 14.5, lineHeight: 1.45, color: C.text }}>{values.join(", ")}</span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-        <div style={{ flex: 1, minHeight: 30 }} />
-        <button onClick={() => go(1)} style={{ ...primaryBtn, background: "transparent", border: `1.5px solid ${C.gold}`, color: C.gold, height: 50, fontWeight: 600 }}>Antwoorden aanpassen</button>
-      </div></div>
-    );
-  }
-
-  // ---------- Vragen 1..7 ----------
-  const isLast = step === QUESTIONS;
-  return (
-    <div style={page}><div style={column}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 44, marginBottom: 22 }}>
-        <button onClick={() => go(step - 1)} aria-label="Terug" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginLeft: -10, background: "none", border: "none", color: C.body, cursor: "pointer" }}>
-          <ChevronLeft size={22} strokeWidth={1.8} />
-        </button>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }} aria-hidden="true">
-          {Array.from({ length: QUESTIONS }).map((_, i) => (
-            <span key={i} style={i + 1 === step ? { width: 18, height: 6, borderRadius: 3, background: C.gold }
-              : { width: 6, height: 6, borderRadius: "50%", background: i + 1 < step ? C.gold : "#2E423C", opacity: i + 1 < step ? 0.55 : 1 }} />
-          ))}
-        </div>
-        <span style={{ width: 44, fontSize: 13, color: C.subtle, textAlign: "right" }}>{step}/{QUESTIONS}</span>
-      </div>
-
-      {step === 1 && (<>
-        {intro("Welke sterke drank vind je lekker?", TAP_HINT)}
-        {choiceGroup("spirits", SURVEY_SPIRITS)}
-        {customInput("spirits", "Zelf een sterke drank toevoegen")}
-      </>)}
-
-      {step === 2 && (<>
-        {intro("En likeuren of aperitieven?", TAP_HINT)}
-        {choiceGroup("liqueurs", SURVEY_LIQUEURS)}
-        {customInput("liqueurs", "Zelf een likeur toevoegen")}
-      </>)}
-
-      {step === 3 && (<>
-        {intro("Waar drink je het graag mee?", `Frisdranken, sappen en bubbels. ${TAP_HINT}`)}
-        <div style={subLabel}>BRUISEND</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
-          {SURVEY_MIXERS.filter(m => m.group === "bruisend").map(o => choiceChip("mixers", o.key, o.label))}
-        </div>
-        <div style={subLabel}>SAP EN OVERIG</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {SURVEY_MIXERS.filter(m => m.group === "sap").map(o => choiceChip("mixers", o.key, o.label))}
-          {[...answers.mixers.like, ...answers.mixers.dislike].filter(k => k.startsWith(CUSTOM_PREFIX)).map(k => choiceChip("mixers", k, k.slice(1)))}
-        </div>
-        {customInput("mixers", "Zelf een mixer toevoegen")}
-      </>)}
-
-      {step === 4 && (<>
-        {intro("Welke smaken spreken je aan?", TAP_HINT)}
-        {choiceGroup("tastes", SURVEY_TASTES)}
-        {customInput("tastes", "Zelf een smaak toevoegen")}
-      </>)}
-
-      {step === 5 && (<>
-        {intro("Wat voor drankje past bij jou?", "Kies er zoveel als je wilt.")}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-          {SURVEY_STYLES.map(s => {
-            const on = answers.styles.includes(s.key);
-            return (
-              <button key={s.key} type="button" onClick={() => toggleList("styles", s.key)} aria-pressed={on} style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "18px 10px 14px", borderRadius: 16,
-                border: `1px solid ${on ? C.gold : "#2E423C"}`, background: on ? "rgba(198,161,91,0.12)" : "transparent",
-                color: C.body, fontFamily: MENU_SANS, cursor: "pointer",
-              }}>
-                <SurveyGlass kind={s.glass} color={on ? C.gold : C.body} />
-                <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{s.label}</span>
-                <span style={{ fontSize: 12.5 }}>{s.example}</span>
-              </button>
-            );
-          })}
-        </div>
-      </>)}
-
-      {step === 6 && (<>
-        <h2 style={{ ...serifH(30), marginBottom: 18 }}>Hoe sterk mag het zijn?</h2>
-        {SURVEY_STRENGTHS.map(s => {
-          const on = answers.strength === s.key;
-          return (
-            <button key={s.key} type="button" onClick={() => setAnswers(a => ({ ...a, strength: on ? null : s.key }))} aria-pressed={on} style={{
-              display: "flex", alignItems: "center", gap: 12, minHeight: 54, padding: "0 16px", marginBottom: 8, borderRadius: 14,
-              border: `1px solid ${on ? C.gold : "#2E423C"}`, background: on ? "rgba(198,161,91,0.12)" : "transparent",
-              color: C.text, fontFamily: MENU_SANS, cursor: "pointer", width: "100%",
-            }}>
-              <span style={{ display: "inline-flex", gap: 4, width: 34 }} aria-hidden="true">
-                {[1, 2, 3].map(n => <span key={n} style={{ width: 7, height: 7, borderRadius: "50%", background: n <= s.level ? C.gold : "#2E423C" }} />)}
-              </span>
-              <span style={{ flex: 1, textAlign: "left", fontSize: 16 }}>{s.label}</span>
-              <span style={{ fontSize: 13, color: C.subtle }}>{s.hint}</span>
-            </button>
-          );
-        })}
-        <h3 style={{ ...serifH(22), margin: "30px 0 6px" }}>Allergieën of liever niet?</h3>
-        <p style={{ fontSize: 14, lineHeight: 1.5, color: C.body, margin: "0 0 14px" }}>De host houdt er rekening mee bij het menu.</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {SURVEY_ALLERGIES.map(o => {
-            const on = answers.allergies.includes(o.key);
-            return (
-              <button key={o.key} type="button" onClick={() => toggleList("allergies", o.key)} aria-pressed={on} style={chipStyle(on ? "like" : null)}>
-                {on && <Check size={15} color={C.gold} strokeWidth={2.4} />}{o.label}
-              </button>
-            );
-          })}
-        </div>
-      </>)}
-
-      {step === 7 && (<>
-        {intro("Heb je favoriete cocktails?", "Zoek en tik aan. Hoeft niet.")}
-        <div style={{ position: "relative", marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, height: 50, padding: "0 14px", borderRadius: 14, border: "1px solid #2E423C", background: "#142A24" }}>
-            <Search size={18} color={C.subtle} />
-            <input value={cocktailQuery} onChange={e => setCocktailQuery(e.target.value)} placeholder="Zoek een cocktail" aria-label="Zoek een cocktail"
-              style={{ flex: 1, minWidth: 0, border: "none", background: "transparent", color: C.text, fontSize: 16, fontFamily: MENU_SANS, outline: "none" }} />
-          </div>
-          {cocktailSuggestions.length > 0 && (
-            <div style={{ marginTop: 6, borderRadius: 14, border: "1px solid #2E423C", background: "#142A24", overflow: "hidden" }}>
-              {cocktailSuggestions.map(r => (
-                <button key={r.id} type="button" onClick={() => { setAnswers(a => ({ ...a, favorites: [...a.favorites, r.id] })); setCocktailQuery(""); }} style={{
-                  display: "block", width: "100%", minHeight: 44, padding: "10px 14px", textAlign: "left", background: "none", border: "none",
-                  borderBottom: `1px solid ${C.divider}`, color: C.text, fontFamily: MENU_SERIF, fontSize: 16, cursor: "pointer",
-                }}>{r.name}</button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 30 }}>
-          {answers.favorites.map(id => (
-            <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: 40, padding: "0 4px 0 14px", borderRadius: 100, border: `1px solid ${C.gold}`, background: "rgba(198,161,91,0.16)", fontSize: 15 }}>
-              <span style={{ fontFamily: MENU_SERIF, fontWeight: 500 }}>{RECIPES.find(r => r.id === canonicalRecipeId(id))?.name}</span>
-              <button type="button" aria-label="Verwijderen" onClick={() => setAnswers(a => ({ ...a, favorites: a.favorites.filter(x => x !== id) }))} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, border: "none", background: "transparent", color: C.body, cursor: "pointer" }}>
-                <X size={14} />
-              </button>
-            </span>
-          ))}
-        </div>
-        <label htmlFor="survey-opmerking" style={{ ...serifH(22), marginBottom: 6 }}>Nog iets wat de host moet weten?</label>
-        <p style={{ fontSize: 14, lineHeight: 1.5, color: C.body, margin: "0 0 12px" }}>Bijvoorbeeld dat je zwanger bent, rijdt of iets echt niet lust.</p>
-        <textarea id="survey-opmerking" rows={4} maxLength={300} value={answers.note} onChange={e => setAnswers(a => ({ ...a, note: e.target.value }))} style={{
-          boxSizing: "border-box", width: "100%", padding: 14, borderRadius: 14, border: "1px solid #2E423C", background: "#142A24",
-          color: C.text, fontSize: 16, lineHeight: 1.5, fontFamily: MENU_SANS, resize: "none", outline: "none",
-        }} />
-        {error && <p style={{ color: "#E8A49C", fontSize: 14, margin: "12px 0 0" }}>{error}</p>}
-      </>)}
-
-      <div style={{ flex: 1, minHeight: 28 }} />
-      {isLast ? (
-        <button onClick={submit} disabled={submitting} style={primaryBtn}>{submitting ? "Bezig…" : "Versturen"}</button>
-      ) : (
-        <>
-          <button onClick={() => go(step + 1)} style={primaryBtn}>Volgende</button>
-          <button onClick={() => go(step + 1)} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 44, marginTop: 6, background: "none", border: "none", color: C.subtle, fontFamily: MENU_SANS, fontSize: 14.5, cursor: "pointer" }}>Overslaan</button>
-        </>
-      )}
-    </div></div>
-  );
-}
 
 // Deellinks (menu, smaaktest, vrienduitnodiging, wachtwoord-reset) moeten
 // naar de openbare webversie wijzen. In de iOS-app is window.location.origin
@@ -1693,26 +1278,16 @@ function GuestSurveyView({ surveyId }) {
 // Let op: die webversie moet de gastweergaven (?menu=, ?smaaktest=) kennen,
 // dus na grote wijzigingen ook Netlify bijwerken.
 const DEFAULT_PUBLIC_WEB_URL = "https://beautiful-pasca-793e77.netlify.app";
-// Nog geen App Store-pagina: de footer van de menukaart linkt dan naar de webversie.
-const APP_STORE_URL = "";
-const PUBLIC_WEB_URL = (import.meta.env.VITE_PUBLIC_WEB_URL || DEFAULT_PUBLIC_WEB_URL).replace(/\/+$/, "");
-function publicAppUrl(query = "") {
+
+export const PUBLIC_WEB_URL = (import.meta.env.VITE_PUBLIC_WEB_URL || DEFAULT_PUBLIC_WEB_URL).replace(/\/+$/, "");
+export function publicAppUrl(query = "") {
   const base = isNativeShell ? PUBLIC_WEB_URL : `${window.location.origin}${window.location.pathname}`.replace(/\/+$/, "");
   if (!base) return null;
   return `${base}${query ? `/?${query}` : ""}`;
 }
 
-// Eén deelfunctie voor de hele app: in de native app het echte iOS-deelmenu
-// (@capacitor/share — navigator.share is in WKWebView niet betrouwbaar), op
-// het web navigator.share met klembord als terugval.
-// Geeft "shared" | "copied" | "cancelled" | "failed" | "no-url" terug.
-// Zonder openbaar webadres (VITE_PUBLIC_WEB_URL niet ingesteld) valt hij terug
-// op `fallbackText` — bv. het menu als lijstje — zodat delen niet stil mislukt.
-// Laatste foutmelding van het native deelmenu, zodat een "mislukt"-melding
-// kan laten zien wát er misging (bv. "not implemented" als de Share-plugin
-// niet in de iOS-build zit) i.p.v. alleen dat het misging.
-let lastShareError = "";
-async function shareLink({ title, text, url, fallbackText }) {
+
+export async function shareLink({ title, text, url, fallbackText }) {
   if (!url) return fallbackText ? shareText({ title, text: fallbackText }) : "no-url";
   if (isNativeShell) {
     try { lastShareError = ""; await Share.share({ title, text, url, dialogTitle: title }); return "shared"; }
@@ -1953,7 +1528,7 @@ function checkinRowToEntry(row) {
 // waardoor de werkelijke paginakleur (altijd beige) er als streepje
 // doorheen piept — vooral zichtbaar op een donker scherm als inloggen. Door
 // html/body zelf tijdelijk dezelfde kleur te geven is zo'n gaatje onzichtbaar.
-function useMatchBodyBackground(color) {
+export function useMatchBodyBackground(color) {
   useEffect(() => {
     const prevBodyBg = document.body.style.backgroundColor;
     const prevHtmlBg = document.documentElement.style.backgroundColor;
@@ -2529,6 +2104,8 @@ function OfflineBanner() {
 }
 
 export default function ThuisbarApp() {
+  // Verhalen en stappen op de achtergrond laden zodra de app staat.
+  useEffect(() => { const t = setTimeout(() => { loadRecipeTexts(); }, 1200); return () => clearTimeout(t); }, []);
   useEffect(() => { initNativeShell(); }, []);
   // Body/html blijven donkergroen (zie index.css) tot React daadwerkelijk
   // gemount is — pas dan, hier, zetten we 'm naar de "rustende" beige
@@ -3558,7 +3135,7 @@ function AccountPromptSheet({ reason, checkinCount = 0, onClose, onSignup, onLog
   ), document.body);
 }
 
-function Switch({ checked, onChange, disabled }) {
+export function Switch({ checked, onChange, disabled }) {
   return (
     <button onClick={() => !disabled && onChange(!checked)} disabled={disabled} role="switch" aria-checked={checked} style={{
       width: 42, height: 24, borderRadius: 12, border: "none", padding: 2, cursor: disabled ? "default" : "pointer", flexShrink: 0,
@@ -3838,221 +3415,6 @@ function TermsScreen() {
   return <LegalText bijgewerkt={VOORWAARDEN_BIJGEWERKT} intro={VOORWAARDEN_INTRO} secties={VOORWAARDEN_SECTIES} contact={voorwaardenContactTekst()} />;
 }
 
-// Lettertypes (SIL OFL) en open-sourcepakketten met hun licentietekst, uit
-// src/data/licenses.json (npm run sync:licenses). Pas geladen als je het
-// scherm opent, zodat de app er niet zwaarder van wordt.
-function LicensesScreen({ active }) {
-  const [data, setData] = useState(null);
-  const [open, setOpen] = useState(null);
-  useEffect(() => {
-    if (!active || data) return;
-    import("./data/licenses.json").then(m => setData(m.default || m));
-  }, [active, data]);
-  const Pre = ({ children }) => (
-    <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11, lineHeight: 1.5, color: INK, background: PAPER_DEEP, borderRadius: 10, padding: 12, margin: "8px 0 4px" }}>{children}</pre>
-  );
-  const Row = ({ id, title, sub, children }) => (
-    <div style={{ borderTop: `1px solid ${BORDER}` }}>
-      <button onClick={() => setOpen(open === id ? null : id)} aria-expanded={open === id} style={{
-        width: "100%", display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: "none", border: "none",
-        cursor: "pointer", padding: "12px 16px", fontFamily: sans, color: INK,
-      }}>
-        <span style={{ flex: 1 }}>
-          <span style={{ display: "block", fontSize: 14, fontWeight: 600 }}>{title}</span>
-          <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{sub}</span>
-        </span>
-        {open === id ? <ChevronUp size={16} color={MUTED} /> : <ChevronDown size={16} color={MUTED} />}
-      </button>
-      {open === id && <div style={{ padding: "0 16px 12px" }}>{children}</div>}
-    </div>
-  );
-  const Card = ({ title, children }) => (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 4px 8px" }}>{title}</div>
-      <div style={{ background: CREAM, boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}><div style={{ marginTop: -1 }}>{children}</div></div>
-    </div>
-  );
-  if (!data) return <p style={{ fontSize: 13.5, color: MUTED }}>Laden…</p>;
-  return (
-    <div>
-      <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.65, margin: "0 0 18px" }}>
-        Mijn Thuisbar is gebouwd met open-sourcesoftware en vrije lettertypes. Hieronder staan ze met hun licentie. Foto's staan met maker en licentie onder Fotoverantwoording.
-      </p>
-      <Card title="Lettertypes">
-        {data.lettertypes.map(f => (
-          <Row key={f.naam} id={`font-${f.naam}`} title={f.naam} sub={f.licentie}>
-            <Pre>{f.copyright}{"\n\n"}{data.oflTekst}</Pre>
-          </Row>
-        ))}
-      </Card>
-      <Card title="Kaarten">
-        <Row id="osm" title="OpenStreetMap" sub="Kaartgegevens © OpenStreetMap-bijdragers, ODbL">
-          <p style={{ fontSize: 13, color: INK, lineHeight: 1.6, margin: "4px 0" }}>
-            Kaartgegevens en plaatsnamen komen van OpenStreetMap en zijn beschikbaar onder de Open Database License (openstreetmap.org/copyright). De kaart op je profiel gebruikt Apple Maps.
-          </p>
-        </Row>
-      </Card>
-      <Card title={`Open-sourcesoftware (${data.pakketten.length})`}>
-        {data.pakketten.map(p => (
-          <Row key={p.naam} id={`pkg-${p.naam}`} title={p.naam} sub={`${p.versie} · ${p.licentie}`}>
-            <Pre>{p.tekst || `Licentie: ${p.licentie}`}</Pre>
-          </Row>
-        ))}
-      </Card>
-    </div>
-  );
-}
-
-// Toont automatisch alle bron/maker/licentie-gegevens uit images.json — geen
-// handmatig bij te werken lijst, dus loopt vanzelf mee zodra fetch-image.mjs
-// nieuwe foto's toevoegt. Alleen entries met een echt bestand én attributie
-// worden getoond (illustraties/eigen werk hebben geen externe bron nodig).
-// Beheer: gemelde check-ins bekijken en afhandelen. Apple verwacht dat
-// gemelde content binnen 24 uur bekeken wordt; een nieuwe melding geeft de
-// beheerder een pushmelding (functie Push).
-function ReportsAdminScreen({ active }) {
-  const [items, setItems] = useState(null);
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(null);
-  const load = async () => {
-    const { data, error: err } = await supabase.rpc("beheer_meldingen");
-    if (err) { setError(err.message); setItems([]); return; }
-    setError(null);
-    setItems(data || []);
-  };
-  useEffect(() => { if (active) load(); }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
-  const handle = async (item, uitkomst) => {
-    if (uitkomst === "verwijderd" && !window.confirm(`De check-in "${item.checkin_naam || "onbekend"}" van ${item.eigenaar_naam || "deze gebruiker"} definitief verwijderen?`)) return;
-    setBusy(item.melding_id);
-    const { error: err } = await supabase.rpc("beheer_melding_afhandelen", { p_melding_id: item.melding_id, p_uitkomst: uitkomst });
-    setBusy(null);
-    if (err) { setError(err.message); return; }
-    setItems(cur => (cur || []).filter(x => x.melding_id !== item.melding_id));
-  };
-  const when = (iso) => {
-    const d = new Date(iso);
-    const uren = Math.floor((Date.now() - d.getTime()) / 3600000);
-    return uren < 1 ? "net gemeld" : uren < 24 ? `${uren} uur geleden` : d.toLocaleDateString("nl-NL", { day: "numeric", month: "long" });
-  };
-  return (
-    <div>
-      <p style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, margin: "0 0 16px" }}>
-        Bekijk elke melding binnen 24 uur. Is er niets aan de hand, tik dan op "Niets aan de hand". Hoort de check-in niet in de app, verwijder hem dan.
-      </p>
-      {error && <div style={{ fontSize: 13, color: BURGUNDY, marginBottom: 12 }}>Laden lukte niet: {error}</div>}
-      {items === null ? (
-        <p style={{ fontSize: 13.5, color: MUTED, textAlign: "center", padding: "30px 0" }}>Laden...</p>
-      ) : items.length === 0 ? (
-        <div style={{ background: CREAM, boxShadow: SHADOW_CARD, borderRadius: 16, padding: "26px 20px", textAlign: "center" }}>
-          <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16, color: INK }}>Geen open meldingen</div>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: MUTED }}>Alles is afgehandeld.</p>
-        </div>
-      ) : items.map(item => (
-        <div key={item.melding_id} style={{ background: CREAM, boxShadow: SHADOW_CARD, borderRadius: 16, padding: 14, marginBottom: 12 }}>
-          <div style={{ display: "flex", gap: 12 }}>
-            {item.checkin_foto ? (
-              <img src={item.checkin_foto} alt="" style={{ width: 84, height: 84, borderRadius: 12, objectFit: "cover", flexShrink: 0, background: PAPER_DEEP }} />
-            ) : (
-              <div style={{ width: 84, height: 84, borderRadius: 12, background: PAPER_DEEP, flexShrink: 0 }} />
-            )}
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 15.5, color: INK }}>{item.bestaat_nog ? (item.checkin_naam || "Check-in") : "Check-in bestaat niet meer"}</div>
-              <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Van {item.eigenaar_naam || "onbekend"} · {when(item.gemeld_op)}</div>
-              <div style={{ fontSize: 12.5, color: BURGUNDY, marginTop: 2, fontWeight: 600 }}>{item.aantal}x gemeld{item.melders ? ` door ${item.melders}` : ""}</div>
-            </div>
-          </div>
-          {item.checkin_notitie && <div style={{ fontSize: 14, color: INK, lineHeight: 1.5, marginTop: 10, whiteSpace: "pre-wrap" }}>{item.checkin_notitie}</div>}
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <button disabled={busy === item.melding_id} onClick={() => handle(item, "ok")} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: `1.5px solid ${BOTTLE}`, background: "none", color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Niets aan de hand</button>
-            {item.bestaat_nog && (
-              <button disabled={busy === item.melding_id} onClick={() => handle(item, "verwijderd")} className="press-scale" style={{ flex: 1, minHeight: 42, borderRadius: 12, border: "none", background: BURGUNDY, color: "#FBF6EA", fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Verwijderen</button>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Beheer: wat de app van gebruikers leert (idee 3 en 4). Niets gaat
-// automatisch live; de beheerder beslist.
-const SIGNAAL_TEKST = {
-  te_zoet: ["te zoet", "Minder suikersiroop of likeur, bijvoorbeeld 5 ml minder, of iets meer citrus."],
-  te_zuur: ["te zuur", "Iets meer suikersiroop (5 ml) of iets minder citroen- of limoensap."],
-  te_sterk: ["te sterk", "Minder sterke drank of langer shaken/roeren voor meer verdunning; of meer aanvulling."],
-  te_slap: ["waterig of flauw", "Korter roeren of shaken, groter ijs, of iets meer sterke drank of likeur."],
-  te_bitter: ["te bitter", "Minder bitter (Campari, amaro, bitters) of iets meer zoet."],
-};
-function InsightsAdminScreen({ active, recipes, onOpenRecipe }) {
-  const [missing, setMissing] = useState(null);
-  const [signals, setSignals] = useState(null);
-  const [error, setError] = useState(null);
-  const known = useMemo(() => new Set(recipes.map(r => r.name.trim().toLowerCase())), [recipes]);
-  const byId = useMemo(() => new Map(recipes.map(r => [r.id, r])), [recipes]);
-  const load = async () => {
-    const [m, sg] = await Promise.all([supabase.rpc("beheer_ontbrekende_recepten"), supabase.rpc("beheer_recept_signalen")]);
-    if (m.error || sg.error) setError((m.error || sg.error).message);
-    setMissing((m.data || []).filter(x => !known.has((x.naam || "").trim().toLowerCase())));
-    setSignals((sg.data || []).map(x => {
-      const n = Number(x.checkins) || 1;
-      const issues = Object.keys(SIGNAAL_TEKST).map(k => ({ k, count: Number(x[k]) || 0 })).filter(i => i.count >= 2 && i.count / n >= 0.25).sort((a, b) => b.count - a.count);
-      const low = Number(x.gemiddeld) < 3.5;
-      return { ...x, n, issues, low, recipe: byId.get(canonicalRecipeId(x.recipe_id)) };
-    }).filter(x => x.recipe && (x.low || x.issues.length > 0)).sort((a, b) => (b.issues[0]?.count || 0) - (a.issues[0]?.count || 0) || a.gemiddeld - b.gemiddeld));
-  };
-  useEffect(() => { if (active) load(); }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
-  const ignore = async (soort, sleutel) => {
-    await supabase.rpc("beheer_negeren", { p_soort: soort, p_sleutel: sleutel });
-    if (soort === "recept") setMissing(cur => (cur || []).filter(x => x.sleutel !== sleutel));
-    else setSignals(cur => (cur || []).filter(x => x.recipe_id !== sleutel));
-  };
-  const card = { background: CREAM, boxShadow: SHADOW_CARD, borderRadius: 16, padding: 14, marginBottom: 10 };
-  const smallBtn = { minHeight: 36, padding: "0 12px", borderRadius: 10, border: `1.5px solid ${BORDER}`, background: "none", color: MUTED, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer" };
-  return (
-    <div>
-      <p style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, margin: "0 0 16px" }}>
-        Anonieme signalen van alle gebruikers samen. Alleen dingen die minstens 2 à 3 verschillende mensen deden staan hier. Niets wordt automatisch aangepast: jij beslist.
-      </p>
-      {error && <div style={{ fontSize: 13, color: BURGUNDY, marginBottom: 12 }}>Laden lukte niet: {error}</div>}
-
-      <SectionLabel>Ontbrekende recepten</SectionLabel>
-      {missing === null ? <p style={{ fontSize: 13.5, color: MUTED }}>Laden...</p> : missing.length === 0 ? (
-        <div style={{ ...card, fontSize: 13.5, color: MUTED }}>Nog niets: iedereen vindt wat hij zoekt.</div>
-      ) : missing.map(x => (
-        <div key={x.sleutel} style={card}>
-          <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK }}>{x.naam}</div>
-          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
-            {x.mensen} mensen · {x.ingecheckt > 0 ? `${x.ingecheckt}x ingecheckt` : ""}{x.ingecheckt > 0 && x.gezocht > 0 ? " · " : ""}{x.gezocht > 0 ? `${x.gezocht}x gezocht` : ""}
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button onClick={() => { navigator.clipboard?.writeText(x.naam).catch(() => {}); window.alert(`"${x.naam}" is gekopieerd. Stuur het naar Claude om het recept (met verhaal en foto) toe te voegen.`); }} style={{ ...smallBtn, borderColor: BOTTLE, color: BOTTLE }}>Toevoegen aanvragen</button>
-            <button onClick={() => ignore("recept", x.sleutel)} style={smallBtn}>Negeren</button>
-          </div>
-        </div>
-      ))}
-
-      <div style={{ height: 14 }} />
-      <SectionLabel>Recepten die beter kunnen</SectionLabel>
-      {signals === null ? <p style={{ fontSize: 13.5, color: MUTED }}>Laden...</p> : signals.length === 0 ? (
-        <div style={{ ...card, fontSize: 13.5, color: MUTED }}>Nog geen signalen. Pas als minstens 3 mensen een recept maakten, telt het mee.</div>
-      ) : signals.map(x => (
-        <div key={x.recipe_id} style={card}>
-          <button onClick={() => onOpenRecipe(x.recipe.id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: serif, fontWeight: 700, fontSize: 17, color: INK }}>
-            {x.recipe.name} <ChevronRight size={15} color={MUTED} style={{ verticalAlign: "-2px" }} />
-          </button>
-          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{x.checkins}x gemaakt door {x.mensen} mensen · gemiddeld {formatRating(Number(x.gemiddeld))} / 5</div>
-          {x.issues.map(i => (
-            <div key={i.k} style={{ fontSize: 13.5, color: INK, marginTop: 8, lineHeight: 1.45 }}>
-              <strong>{i.count} van {x.n}</strong> vonden hem {SIGNAAL_TEKST[i.k][0]}. <span style={{ color: MUTED }}>Voorstel: {SIGNAAL_TEKST[i.k][1]}</span>
-            </div>
-          ))}
-          {x.issues.length === 0 && x.low && <div style={{ fontSize: 13.5, color: INK, marginTop: 8 }}>Lager gemiddeld cijfer dan de meeste recepten. Lees de check-ins voor de reden.</div>}
-          <div style={{ marginTop: 10 }}><button onClick={() => ignore("receptsignaal", x.recipe_id)} style={smallBtn}>Gezien, verbergen</button></div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function PhotoCreditsScreen() {
   const nameFor = (type, id) => {
@@ -4227,14 +3589,14 @@ async function readLegacyFeestData() {
 // "Aankomend" = een datum in de toekomst OF geen datum, op kalenderdag
 // vergeleken (niet op exacte tijd) zodat een feest dat vandaag al bezig is
 // niet per ongeluk als "Eerder" telt zodra het geplande tijdstip voorbij is.
-function isPartyUpcoming(party) {
+export function isPartyUpcoming(party) {
   if (!party.starts_at) return true;
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
   return new Date(party.starts_at) >= startOfToday;
 }
 // Oplopend op datum, geen-datum-feesten achteraan (net als de referentie:
 // "Aankomend" toont eerst wat een concrete datum heeft).
-function compareUpcomingParties(a, b) {
+export function compareUpcomingParties(a, b) {
   if (!a.starts_at && !b.starts_at) return new Date(a.created_at) - new Date(b.created_at);
   if (!a.starts_at) return 1;
   if (!b.starts_at) return -1;
@@ -4244,7 +3606,7 @@ function compareUpcomingParties(a, b) {
 // "Over X dagen" / "Vandaag" / "Geen datum" — gedeeld door de feestenlijst
 // (kaart-chip) en de Bar-tegel, op kalenderdagen (niet exacte uren) net als
 // isPartyUpcoming hierboven.
-function formatPartyWhen(party) {
+export function formatPartyWhen(party) {
   if (!party.starts_at) return "Geen datum";
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
   const startOfThat = new Date(party.starts_at); startOfThat.setHours(0, 0, 0, 0);
@@ -4330,40 +3692,19 @@ function useParties(session) {
 // (string) feest-id naar een stabiel getal i.p.v. een losse teller bij te
 // houden: hetzelfde feest levert altijd hetzelfde id op, dus een latere
 // cancel/reschedule vindt 'm altijd terug zonder aparte boekhouding.
-function partyNotificationId(partyId) {
+export function partyNotificationId(partyId) {
   let hash = 0;
   for (let i = 0; i < partyId.length; i++) {
     hash = (hash * 31 + partyId.charCodeAt(i)) | 0;
   }
   return Math.abs(hash) || 1;
 }
-async function cancelPartyReminder(partyId) {
+export async function cancelPartyReminder(partyId) {
   try {
     await LocalNotifications.cancel({ notifications: [{ id: partyNotificationId(partyId) }] });
   } catch { /* geen native platform (web-preview) of al geannuleerd — niet kritiek */ }
 }
-// Geeft "ok" | "no-date" | "in-past" | "denied" | "failed" terug zodat de UI
-// een concrete reden kan tonen i.p.v. de schakelaar stilzwijgend terug te zetten.
-async function schedulePartyReminder(party) {
-  if (!party.starts_at) return "no-date";
-  const at = new Date(new Date(party.starts_at).getTime() - 2 * 60 * 60 * 1000);
-  if (at.getTime() <= Date.now()) return "in-past";
-  try {
-    const perm = await LocalNotifications.requestPermissions();
-    if (perm.display !== "granted") return "denied";
-    await LocalNotifications.schedule({
-      notifications: [{
-        id: partyNotificationId(party.id),
-        title: "Mijn Thuisbar",
-        body: `Over 2 uur begint ${party.name} – tijd om ijs te halen`,
-        schedule: { at },
-      }],
-    });
-    return "ok";
-  } catch {
-    return "failed";
-  }
-}
+
 
 // Je geaccepteerde vrienden (voor taggen bij het inchecken). Pas laden als
 // het nodig is (enabled), en daarna bewaren.
@@ -4803,7 +4144,7 @@ function useFeedReactions(session, ids, active) {
 // cocktail (FUN_FACTS, anders de openingszin van STORIES — samen dekken
 // die alle 321 recepten). Altijd afgeleid van bestaande, specifieke data
 // over de cocktail zelf, nooit een generieke vulzin over de dag van de week.
-function featuredReason(recipe, favoriteFamily) {
+function featuredReason(recipe, favoriteFamily, STORIES = {}) {
   if (favoriteFamily && recipe.family === favoriteFamily) {
     return `Past bij jouw smaak: ${recipe.family} is de stijl die je het vaakst hoog beoordeelt.`;
   }
@@ -4817,7 +4158,7 @@ function featuredReason(recipe, favoriteFamily) {
 // zou een gewone scroll-omhoog per ongeluk verversen triggeren). Zelfde
 // deadzone/RAF-opzet als de andere sleepgestiek-hooks hierboven, imperatief
 // op de DOM geschilderd i.p.v. via React state, voor 60fps tijdens het slepen.
-function usePullToRefresh(onRefresh) {
+export function usePullToRefresh(onRefresh) {
   const [refreshing, setRefreshing] = useState(false);
   const indicatorRef = useRef(null);
   const drag = useRef({ tracking: false, startY: 0, delta: 0, raf: 0 });
@@ -5150,70 +4491,6 @@ function useForYou(session, logboek, recipes, allIngredients, active) {
   }, [server, logboek, recipes, allIngredients]);
 }
 
-// ---------- AI-bartender (idee 6) en flessen scannen (idee 7) ----------
-// De bartender kiest alleen uit recepten van de app (met hun eigen,
-// gecontroleerde hoeveelheden); de AI verzint zelf niets. Zie src/ai.js en
-// de Edge Function ai-bartender.
-// useStock: alleen als de gebruiker dat wil kijkt de bartender naar de voorraad.
-function bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek, useStock = true, eerderVoorgesteld = [] }) {
-  const metaName = (ing) => findIngredientMeta(ing, allIngredients)?.name || ing.name || ing.id;
-  const owned = useStock ? allIngredients.filter(i => voorraad.has(i.id)).map(i => i.name) : [];
-  const me = myTasteVector(logboek, recipes, allIngredients);
-  const smaak = me ? `${TASTE_DIMS.map(d => `${d} ${me.v[d].toFixed(1)}`).join(", ")} (schaal 0-5)` : "";
-  const favs = new Map();
-  [...logboek].filter(e => e.rating >= 4).sort((a, b) => b.rating - a.rating).forEach(e => {
-    const name = findRecipeFor(e, recipes)?.name || e.name;
-    if (name && !favs.has(name)) favs.set(name, e.rating);
-  });
-  const favorieten = [...favs].slice(0, 12).map(([n, r]) => `${n} (${r}/5)`);
-  // Alleen namen en cijfers van cocktails, nooit notities, plekken of foto's.
-  const nameOf = (e) => findRecipeFor(e, recipes)?.name || e.name;
-  const laag = new Map();
-  logboek.filter(e => e.rating > 0 && e.rating <= 2.5).forEach(e => { const n = nameOf(e); if (n && !laag.has(n)) laag.set(n, e.rating); });
-  const nietLekker = [...laag].slice(0, 10).map(([n, r]) => `${n} (${r}/5)`);
-  const recent = [...logboek].sort((a, b) => String(b.createdAt || b.created_at || b.date || "").localeCompare(String(a.createdAt || a.created_at || a.date || "")))
-    .slice(0, 6).map(e => `${nameOf(e)}${e.rating ? ` (${e.rating}/5)` : ""}`).filter(Boolean);
-  const tried = new Map();
-  logboek.forEach(e => { const r = findRecipeFor(e, recipes); if (r) tried.set(r.id, Math.max(tried.get(r.id) || 0, e.rating || 0)); });
-  const now = new Date();
-  const dag = now.toLocaleDateString("nl-NL", { weekday: "long" });
-  const h = now.getHours();
-  const deel = h < 12 ? "ochtend" : h < 18 ? "middag" : h < 24 ? "avond" : "nacht";
-  const maand = now.toLocaleDateString("nl-NL", { month: "long" });
-  const seizoen = ["winter", "winter", "lente", "lente", "lente", "zomer", "zomer", "zomer", "herfst", "herfst", "herfst", "winter"][now.getMonth()];
-  const moment = `${dag}${deel}, ${maand} (${seizoen})`;
-  const rows = recipes.map(r => {
-    const missing = useStock ? r.ingredients.filter(i => !i.optional && !isOwned(i)).map(metaName) : [];
-    const t = cachedTaste(r, allIngredients);
-    const dist = me ? Math.sqrt(TASTE_DIMS.reduce((acc, d) => acc + (t[d] - me.v[d]) ** 2, 0)) : 0;
-    const ids = r.ingredients.map(i => findIngredientMeta(i, allIngredients)?.id || i.id);
-    const free = menuStrength(r, ing => findIngredientMeta(ing, allIngredients)).level === 0;
-    const hot = r.family === "Warme dranken" || ids.some(id => ["hot_water", "hot_coffee", "espresso", "hot_chocolate", "black_tea"].includes(id));
-    const tr = tried.has(r.id) ? ` | al geprobeerd${tried.get(r.id) ? ` (${tried.get(r.id)}/5)` : ""}` : "";
-    // Hoofdingrediënten (zonder garnering/optioneel), zodat de bartender kan uitleggen hoe iets smaakt.
-    const hoofd = r.ingredients.filter(i => !i.optional).slice(0, 6).map(metaName).join(", ");
-    const match = me ? ` | match ${Math.max(0, Math.min(100, Math.round(100 * (1 - dist / 7))))}` : "";
-    const line = `${r.id} | ${r.name} | ${r.family} | ${hoofd} | zoet ${t.zoet} zuur ${t.zuur} bitter ${t.bitter} sterk ${t.sterk}${match}${useStock ? ` | mist: ${missing.join(", ")}` : ""}${free ? " | alcoholvrij" : ""}${hot ? " | warm" : ""}${tr}`;
-    return { r, line, n: missing.length, dist, free };
-  });
-  const sorted = rows.filter(x => x.n <= 2).sort((a, b) => (a.n - b.n) || (a.dist - b.dist));
-  // Afwisseling: de 70 best passende, aangevuld met een willekeurige greep uit
-  // de rest, en alles in willekeurige volgorde. Zo kiest de bartender niet
-  // steeds dezelfde cocktails die toevallig bovenaan de lijst staan.
-  const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const picked = sorted.slice(0, 70);
-  picked.push(...shuffle(sorted.slice(70)).slice(0, 90));
-  const have = new Set(picked.map(x => x.r.id));
-  // Altijd een paar alcoholvrije opties erbij, ook als die net niet bovenaan staan.
-  picked.push(...sorted.filter(x => x.free && !have.has(x.r.id)).slice(0, 20));
-  return { voorraadGebruiken: useStock, voorraad: owned, smaak, favorieten, nietLekker, recent, moment, eerderVoorgesteld, kandidaten: shuffle(picked).map(x => x.line) };
-}
-
-const BARTENDER_IDEEEN = ["Iets fris en niet te zoet", "Verras me", "Zonder alcohol", "Iets stevigs voor na het eten"];
-function bartenderGroet() {
-  const h = new Date().getHours();
-  return h < 12 ? "Goedemorgen" : h < 18 ? "Goedemiddag" : "Goedenavond";
-}
 
 function AiConsentSheet({ onAccept, onClose }) {
   useBodyScrollLock();
@@ -5263,380 +4540,6 @@ function AiConsentSheet({ onAccept, onClose }) {
   ), document.body);
 }
 
-function BartenderRecipeCard({ recipe, allIngredients, isOwned, onOpen, onAddToShoppingList, showStock = true, waarom = "" }) {
-  const [added, setAdded] = useState(false);
-  const missing = showStock ? recipe.ingredients.filter(i => !i.optional && !isOwned(i)) : [];
-  const names = missing.map(i => findIngredientMeta(i, allIngredients)?.name || i.name || i.id);
-  return (
-    <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: 10 }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <button onClick={onOpen} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK }}>
-        <span style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} size={56} /></span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontFamily: serif, fontSize: 16.5, fontWeight: 700, color: BOTTLE, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{recipe.name}</span>
-          <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, marginTop: 2, color: !showStock ? MUTED : missing.length ? BRASS_TEXT : SAGE_TEXT }}>
-            {!showStock ? recipe.family : missing.length ? `Mist: ${names.join(", ")}` : "Alles in huis"}
-          </span>
-        </span>
-        <ChevronRight size={17} color={MUTED} style={{ flexShrink: 0 }} />
-      </button>
-      {missing.length > 0 && (
-        <button onClick={() => { if (added) return; onAddToShoppingList(missing.map(ref => ({ ref, recipeNames: [recipe.name] }))); setAdded(true); }}
-          aria-label={added ? "Staat op je boodschappenlijst" : `Zet ${names.join(", ")} op je boodschappenlijst`}
-          style={{ width: 44, height: 44, borderRadius: 12, border: "none", background: added ? "rgba(92,122,82,0.16)" : PAPER_DEEP, color: added ? SAGE : BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-          {added ? <Check size={18} strokeWidth={2.6} /> : <ShoppingCart size={18} />}
-        </button>
-      )}
-    </div>
-    {waarom && <p style={{ margin: "8px 4px 2px", fontSize: 13.5, lineHeight: 1.5, color: INK }}>{waarom}</p>}
-    </div>
-  );
-}
-
-function BartenderScreen({ chat, setChat, onClose, recipes, allIngredients, isOwned, voorraad, logboek, onOpenRecipe, onAddToShoppingList, onSound, useStock = null, setUseStock }) {
-  useBodyScrollLock();
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const [over, setOver] = useState(null);
-  // De laatste 30 voorgestelde cocktails (ook uit eerdere gesprekken), zodat de
-  // bartender niet steeds met dezelfde komt.
-  const [eerder, setEerder] = useStorage("thuisbar-bartender-eerder", []);
-  const scrollRef = useRef(null);
-  const recipeById = useMemo(() => new Map(recipes.map(r => [r.id, r])), [recipes]);
-  const bottleCount = allIngredients.filter(i => voorraad.has(i.id)).length;
-  const me = useMemo(() => myTasteVector(logboek, recipes, allIngredients), [logboek, recipes, allIngredients]);
-  const smaakWoorden = me ? [...TASTE_DIMS].sort((a, b) => me.v[b] - me.v[a]).filter(d => me.v[d] >= 1.5).slice(0, 2).map(d => TASTE_WORD[d]) : [];
-
-  useEffect(() => { fetchAiTegoed().then(t => t && setOver(t.chat)); }, []);
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [chat.length, busy, error]);
-
-  const send = async (raw) => {
-    const vraag = (raw ?? text).trim();
-    if (!vraag || busy || useStock == null) return;
-    const next = [...chat, { role: "user", content: vraag }];
-    setChat(next);
-    setText("");
-    setError(null);
-    setBusy(true);
-    onSound?.("tick");
-    const eerderNamen = (Array.isArray(eerder) ? eerder : []).map(id => recipeById.get(id)?.name).filter(Boolean);
-    const ctx = bartenderContext({ recipes, allIngredients, isOwned, voorraad, logboek, useStock: useStock === "ja", eerderVoorgesteld: eerderNamen });
-    // In de geschiedenis staat bij elk antwoord ook welke cocktails er werden
-    // voorgesteld, zodat "nog meer" of "iets anders" echt iets anders oplevert.
-    const history = next.slice(-12).map(m => ({
-      role: m.role,
-      content: m.role === "assistant" && m.recepten?.length
-        ? `${m.content}\n\n(Voorgesteld: ${m.recepten.map(id => recipeById.get(id)?.name || id).join(", ")})`
-        : m.content,
-    }));
-    const res = await askBartender(history, ctx);
-    setBusy(false);
-    if (typeof res.over === "number") setOver(res.over);
-    if (res.error) { setError({ message: res.message, retry: res.error !== "limiet" }); return; }
-    // Nieuwe functie geeft { id, waarom }, een oudere alleen ids.
-    const items = (res.recepten || []).map(r => (typeof r === "string" ? { id: r, waarom: "" } : r)).filter(r => r && recipeById.has(r.id));
-    const ids = items.map(r => r.id);
-    if (ids.length) setEerder([...ids, ...(Array.isArray(eerder) ? eerder : []).filter(id => !ids.includes(id))].slice(0, 30));
-    setChat([...next, { role: "assistant", content: res.antwoord || "", recepten: ids, waarom: Object.fromEntries(items.map(r => [r.id, r.waarom || ""])), opties: Array.isArray(res.opties) ? res.opties.slice(0, 4) : [] }]);
-  };
-  const retry = () => {
-    const last = chat[chat.length - 1];
-    if (last?.role !== "user") return;
-    setChat(chat.slice(0, -1));
-    send(last.content);
-  };
-
-  const bubble = (role, children, key) => (
-    <div key={key} style={{
-      alignSelf: role === "user" ? "flex-end" : "flex-start", maxWidth: "82%", fontSize: 15, lineHeight: 1.45, padding: "10px 14px", whiteSpace: "pre-wrap",
-      borderRadius: role === "user" ? "18px 18px 6px 18px" : "18px 18px 18px 6px",
-      background: role === "user" ? BOTTLE_DARK : CREAM, color: role === "user" ? HEADER_TEXT : INK,
-      boxShadow: role === "user" ? "none" : SHADOW_CARD,
-    }}>{children}</div>
-  );
-  const chip = (label) => (
-    <button key={label} onClick={() => send(label)} disabled={busy} style={{
-      flexShrink: 0, minHeight: 38, padding: "0 13px", borderRadius: 100, border: `1px solid ${BRASS}`, background: "none", color: BRASS_TEXT,
-      fontFamily: sans, fontSize: 13.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-    }}>{label}</button>
-  );
-
-  return createPortal((
-    <div className="push-slide-in" style={{ position: "fixed", inset: 0, zIndex: 30, background: PAPER, display: "flex", flexDirection: "column", fontFamily: sans, color: INK }}>
-      <div style={{ background: BOTTLE_DARK, borderBottom: `2px solid ${BRASS}`, flexShrink: 0 }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 6px) 12px 8px", display: "flex", alignItems: "center", boxSizing: "border-box", minHeight: 52 }}>
-          <button onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 2, width: 90, minHeight: 44, border: "none", background: "none", color: "#DDB877", fontSize: 17, fontWeight: 600, cursor: "pointer", fontFamily: sans, padding: 0 }}>
-            <ChevronLeft size={22} strokeWidth={2.2} /> Terug
-          </button>
-          <span style={{ flex: 1, textAlign: "center" }}>
-            <span style={{ display: "block", fontWeight: 700, fontSize: 17, color: "#FBF6EA" }}>Bartender</span>
-            <span style={{ display: "block", fontSize: 11.5, color: "#A9B8B0" }}>{useStock === "ja" ? "Kent je voorraad en je smaak" : "Kent je smaak"}</span>
-          </span>
-          <span style={{ width: 90, display: "flex", justifyContent: "flex-end" }}>
-            {chat.length > 0 && (
-              <button onClick={() => { setChat([]); setError(null); }} style={{ minHeight: 44, border: "none", background: "none", color: "#DDB877", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: sans, padding: 0 }}>Opnieuw</button>
-            )}
-          </span>
-        </div>
-      </div>
-
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: "12px 16px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-          {useStock != null && (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button onClick={() => setUseStock(useStock === "ja" ? "nee" : "ja")} aria-pressed={useStock === "ja"} style={{
-                display: "inline-flex", alignItems: "center", gap: 6, minHeight: 32, fontSize: 12.5, fontWeight: 600, fontFamily: sans, cursor: "pointer",
-                color: useStock === "ja" ? SAGE_TEXT : MUTED, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "0 11px",
-              }}>
-                <Refrigerator size={14} /> {useStock === "ja" ? `Kijkt naar je voorraad (${bottleCount})` : "Kijkt niet naar je voorraad"}
-                <span style={{ color: BRASS_TEXT }}>· {useStock === "ja" ? "uit" : "aan"}</span>
-              </button>
-              {smaakWoorden.length > 0 && <span style={{ fontSize: 12, color: BOTTLE, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 100, padding: "6px 10px" }}>Jouw smaak: {smaakWoorden.join(", ")}</span>}
-            </div>
-          )}
-          {useStock == null ? (
-            <>
-              {bubble("assistant", `${bartenderGroet()}! Zal ik kijken welke flessen je in huis hebt? Dan raad ik vooral aan wat je nu meteen kunt maken.`, "vraag")}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={() => { onSound?.("tick"); setUseStock("ja"); }} className="press-scale" style={{ minHeight: 44, padding: "0 16px", borderRadius: 100, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer" }}>Ja, kijk in mijn voorraad</button>
-                <button onClick={() => { onSound?.("tick"); setUseStock("nee"); }} className="press-scale" style={{ minHeight: 44, padding: "0 16px", borderRadius: 100, border: `1px solid ${BORDER}`, background: CREAM, color: INK, fontFamily: sans, fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>Nee, gewoon advies</button>
-              </div>
-            </>
-          ) : bubble("assistant", useStock === "ja"
-            ? `${bartenderGroet()}! Waar heb je zin in? Ik kijk wat je in huis hebt en wat bij je smaak past.`
-            : `${bartenderGroet()}! Waar heb je zin in? Ik kijk wat bij je smaak past.`, "groet")}
-          {chat.map((m, i) => (
-            <Fragment key={i}>
-              {m.content ? bubble(m.role, m.content) : null}
-              {m.role === "assistant" && m.recepten?.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {m.recepten.map(id => (
-                    <BartenderRecipeCard key={id} recipe={recipeById.get(id)} allIngredients={allIngredients} isOwned={isOwned} showStock={useStock !== "nee"} waarom={m.waarom?.[id] || ""}
-                      onOpen={() => onOpenRecipe(id)} onAddToShoppingList={onAddToShoppingList} />
-                  ))}
-                </div>
-              )}
-              {m.role === "assistant" && i === chat.length - 1 && !busy && m.opties?.length > 0 && (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{m.opties.map(chip)}</div>
-              )}
-            </Fragment>
-          ))}
-          {busy && bubble("assistant", <span style={{ color: MUTED }}>Even denken…</span>, "busy")}
-          {error && (
-            <div role="alert" style={{ alignSelf: "stretch", fontSize: 13.5, color: BURGUNDY, background: "rgba(122,46,42,0.08)", border: "1px solid rgba(122,46,42,0.25)", borderRadius: 12, padding: "10px 12px", lineHeight: 1.45, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ flex: 1 }}>{error.message}</span>
-              {error.retry && <button onClick={retry} style={{ minHeight: 36, padding: "0 12px", borderRadius: 100, border: "none", background: BURGUNDY, color: CREAM, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Opnieuw</button>}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div style={{ flexShrink: 0, background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, transition: "padding-bottom 0.25s ease", paddingBottom: "calc(max(env(safe-area-inset-bottom), var(--kb-pad, 0px)) + 8px)" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          {chat.length === 0 && useStock != null && (
-            <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 16px 0", WebkitOverflowScrolling: "touch" }}>
-              {BARTENDER_IDEEEN.map(chip)}
-            </div>
-          )}
-          <form onSubmit={e => { e.preventDefault(); send(); }} style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 16px 4px" }}>
-            <input value={text} onChange={e => setText(e.target.value)} maxLength={500} disabled={useStock == null} placeholder={useStock == null ? "Kies eerst hierboven" : "Vraag de bartender iets…"} aria-label="Vraag aan de bartender" enterKeyHint="send"
-              style={{ flex: 1, minWidth: 0, height: 44, border: `1px solid ${BORDER}`, background: CREAM, borderRadius: 22, padding: "0 16px", fontFamily: sans, fontSize: 16, color: INK, outline: "none" }} />
-            <button type="submit" disabled={busy || !text.trim() || useStock == null} aria-label="Versturen" style={{
-              width: 44, height: 44, borderRadius: "50%", border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", flexShrink: 0, opacity: busy || !text.trim() ? 0.5 : 1,
-            }}><Send size={18} /></button>
-          </form>
-          <div style={{ fontSize: 11.5, color: MUTED, textAlign: "center", padding: "2px 16px 0" }}>
-            {over != null ? `Nog ${over} ${over === 1 ? "vraag" : "vragen"} vandaag · ` : ""}Recepten komen altijd uit de app
-          </div>
-        </div>
-      </div>
-    </div>
-  ), document.body);
-}
-
-// Foto van je flessen → lijst om te controleren → in je voorraad.
-function BottleScanSheet({ allIngredients, voorraad, onAdd, onClose, onSearchManual }) {
-  useBodyScrollLock();
-  const [stap, setStap] = useState("kiezen"); // kiezen | bezig | resultaat
-  const [preview, setPreview] = useState(null);
-  const [items, setItems] = useState([]);
-  const [error, setError] = useState(null);
-  const [over, setOver] = useState(null);
-  const cameraRef = useRef(null);
-  const libraryRef = useRef(null);
-  const byId = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
-  useEffect(() => { fetchAiTegoed().then(t => t && setOver(t.scan)); }, []);
-
-  const analyse = async (src) => {
-    setError(null);
-    setStap("bezig");
-    try { setPreview(await imageToJpegDataUrl(src, 900, 0.75)); } catch { setPreview(null); }
-    let res;
-    try { res = await scanBottles(src, allIngredients); } catch { res = { error: "fout", message: "Deze foto kon niet gelezen worden. Probeer een andere." }; }
-    if (typeof res.over === "number") setOver(res.over);
-    if (res.error) { setError(res.message); setStap("kiezen"); return; }
-    const found = (res.flessen || []).filter(f => byId.has(f.id));
-    setItems(found.map(f => ({ ...f, keuze: f.id, on: !voorraad.has(f.id), aantal: 1, niveau: "vol" })));
-    setStap("resultaat");
-  };
-  const pick = async (bron) => {
-    if (!Capacitor.isNativePlatform()) { (bron === "camera" ? cameraRef : libraryRef).current?.click(); return; }
-    try {
-      const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
-      const shot = await Camera.getPhoto({
-        resultType: CameraResultType.DataUrl, source: bron === "camera" ? CameraSource.Camera : CameraSource.Photos,
-        saveToGallery: false, quality: 90, width: 2048, correctOrientation: true,
-      });
-      if (shot?.dataUrl) analyse(shot.dataUrl);
-    } catch (err) {
-      if (!/cancel/i.test(String(err?.message || err))) setError("De camera kon niet worden geopend.");
-    }
-  };
-  const onFile = (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) analyse(f); };
-
-  const rows = items.map(it => {
-    const ing = byId.get(it.keuze);
-    const al = voorraad.has(it.keuze);
-    return { ...it, ing, al };
-  });
-  const toAdd = rows.filter(r => r.on);
-  const nNieuw = toAdd.filter(r => !r.al).length, nBij = toAdd.length - nNieuw;
-  const ctaTekst = toAdd.length === 0 ? "Niets geselecteerd"
-    : nBij === 0 ? `${nNieuw} ${nNieuw === 1 ? "fles" : "flessen"} toevoegen aan voorraad`
-    : nNieuw === 0 ? `${nBij} ${nBij === 1 ? "fles" : "flessen"} bijwerken`
-    : `${nNieuw} toevoegen, ${nBij} bijwerken`;
-  const update = (idx, patch) => setItems(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
-  const badge = (label, bg, color) => <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 100, background: bg, color }}>{label}</span>;
-  const dark = stap !== "resultaat";
-
-  return createPortal((
-    <div className="push-slide-in" style={{ position: "fixed", inset: 0, zIndex: 40, background: dark ? "#111312" : PAPER, color: dark ? "#F0EDE6" : INK, display: "flex", flexDirection: "column", fontFamily: sans }}>
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={onFile} style={{ display: "none" }} />
-      <input ref={libraryRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
-      <div style={{ flexShrink: 0, maxWidth: 720, width: "100%", margin: "0 auto", padding: "calc(env(safe-area-inset-top) + 6px) 12px 8px", display: "flex", alignItems: "center", boxSizing: "border-box", minHeight: 52 }}>
-        <button onClick={onClose} aria-label="Sluiten" style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: dark ? "rgba(255,255,255,0.08)" : PAPER_DEEP, color: "inherit", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={20} /></button>
-        <span style={{ flex: 1, textAlign: "center", fontFamily: serif, fontSize: 20, fontWeight: 700, color: dark ? "inherit" : BOTTLE }}>{stap === "resultaat" ? "Gevonden flessen" : "Flessen scannen"}</span>
-        <span style={{ width: 44 }} />
-      </div>
-
-      {stap !== "resultaat" ? (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", maxWidth: 560, width: "100%", margin: "0 auto", padding: "4px 16px calc(env(safe-area-inset-bottom) + 18px)", boxSizing: "border-box", minHeight: 0 }}>
-          <div style={{ flex: 1, minHeight: 0, borderRadius: 24, background: "#2A2622", overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {preview ? <img src={preview} alt="Je foto" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: stap === "bezig" ? 0.55 : 1 }} />
-              : <Camera size={54} strokeWidth={1.3} color="#5A4A3A" />}
-            {stap === "bezig" && (
-              <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, background: "rgba(17,19,18,0.82)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, fontSize: 14 }}>
-                <RefreshCw size={18} className="spin-icon" color="#D4A54A" /> De bartender bekijkt je flessen…
-              </div>
-            )}
-          </div>
-          <div style={{ fontSize: 13.5, color: "#9C9B95", lineHeight: 1.45, margin: "14px 4px 0" }}>
-            Zet de flessen naast elkaar met het etiket naar voren. Je controleert daarna zelf wat erbij komt; de foto wordt niet bewaard.
-          </div>
-          {error && <div role="alert" style={{ marginTop: 10, fontSize: 13.5, color: "#F0B8B0", background: "rgba(213,140,131,0.12)", borderRadius: 12, padding: "10px 12px", lineHeight: 1.45 }}>{error}</div>}
-          <button onClick={() => pick("camera")} disabled={stap === "bezig" || over === 0} className="press-scale" style={{ marginTop: 14, minHeight: 52, borderRadius: 26, border: "none", background: "#D4A54A", color: "#2B2620", fontFamily: sans, fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: stap === "bezig" || over === 0 ? 0.5 : 1 }}>
-            <Camera size={19} /> {preview ? "Nieuwe foto maken" : "Foto maken"}
-          </button>
-          <button onClick={() => pick("fotorol")} disabled={stap === "bezig" || over === 0} style={{ marginTop: 8, minHeight: 46, borderRadius: 23, border: "1px solid #2A2E2C", background: "none", color: "#F0EDE6", fontFamily: sans, fontSize: 14.5, fontWeight: 600, cursor: "pointer", opacity: stap === "bezig" || over === 0 ? 0.5 : 1 }}>
-            Kies uit je foto's
-          </button>
-          {over != null && <div style={{ fontSize: 12, color: "#9C9B95", textAlign: "center", marginTop: 10 }}>{over === 0 ? "Je scans voor vandaag zijn op. Morgen kan het weer." : `Nog ${over} ${over === 1 ? "scan" : "scans"} vandaag`}</div>}
-        </div>
-      ) : (
-        <>
-          <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain" }}>
-            <div style={{ maxWidth: 560, margin: "0 auto", padding: "6px 16px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ fontSize: 14, color: MUTED, margin: "0 4px 2px" }}>{rows.length ? "Tik aan wat klopt en vul in hoeveel je hebt." : "Er is geen fles herkend. Probeer een foto van dichterbij, met de etiketten naar voren."}</div>
-              {rows.map((r, idx) => (
-                <div key={r.id} style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, overflow: "hidden", outline: r.on ? `2px solid ${SAGE}` : "none", outlineOffset: -2 }}>
-                  <button onClick={() => update(idx, { on: !r.on })} aria-pressed={r.on} style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 12, padding: 12, border: "none", background: "none",
-                    cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
-                  }}>
-                    <span style={{ width: 46, height: 46, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}><ItemArt ing={r.ing} /></span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 15.5, fontWeight: 600 }}>{r.ing.name}</span>
-                      <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.merk ? `Etiket: ${r.merk}` : "Etiket niet leesbaar"}</span>
-                      <span style={{ display: "inline-block", marginTop: 5 }}>
-                        {r.al ? badge("Al in voorraad", PAPER_DEEP, MUTED) : r.zeker ? badge("Zeker", "rgba(92,122,82,0.16)", SAGE_TEXT) : badge("Twijfel", "rgba(184,134,46,0.18)", BRASS_TEXT)}
-                      </span>
-                    </span>
-                    <span aria-hidden="true" style={{ width: 30, height: 30, borderRadius: "50%", boxSizing: "border-box", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: r.on ? SAGE : "transparent", border: r.on ? "none" : `1.5px solid ${BORDER}` }}>
-                      {r.on && <Check size={17} strokeWidth={3} color={CREAM} />}
-                    </span>
-                  </button>
-                  {r.alternatief && byId.has(r.alternatief) && (
-                    <div style={{ padding: "0 12px 12px" }}>
-                      <div style={{ fontSize: 13, color: MUTED, marginBottom: 6 }}>Welke is het?</div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        {[r.id, r.alternatief].map(opt => {
-                          const on = r.keuze === opt;
-                          return (
-                            <button key={opt} onClick={() => update(idx, { keuze: opt, on: true })} aria-pressed={on} style={{
-                              flex: 1, minHeight: 42, borderRadius: 21, fontFamily: sans, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
-                              border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : PAPER, color: on ? CREAM : INK,
-                            }}>{byId.get(opt).name}</button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  {r.on && (
-                    <div style={{ padding: "10px 12px 12px", borderTop: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>Aantal flessen</span>
-                        <button onClick={() => update(idx, { aantal: Math.max(1, r.aantal - 1) })} disabled={r.aantal <= 1} aria-label={`Eén ${r.ing.name} minder`} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, fontSize: 20, fontWeight: 600, cursor: "pointer", opacity: r.aantal <= 1 ? 0.4 : 1 }}>−</button>
-                        <span aria-live="polite" style={{ minWidth: 26, textAlign: "center", fontSize: 17, fontWeight: 700 }}>{r.aantal}</span>
-                        <button onClick={() => update(idx, { aantal: Math.min(20, r.aantal + 1) })} aria-label={`Eén ${r.ing.name} meer`} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, fontSize: 20, fontWeight: 600, cursor: "pointer" }}>+</button>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Hoe vol?</div>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          {FILL_LEVELS.filter(l => l.key !== "op").map(l => {
-                            const on = r.niveau === l.key;
-                            return (
-                              <button key={l.key} onClick={() => update(idx, { niveau: l.key })} aria-pressed={on} style={{
-                                flex: 1, minHeight: 42, borderRadius: 21, fontFamily: sans, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
-                                border: `1px solid ${on ? BOTTLE : BORDER}`, background: on ? BOTTLE : PAPER, color: on ? CREAM : INK,
-                              }}>{l.label}</button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              <div style={{ border: `1px dashed ${BORDER}`, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 46, height: 46, borderRadius: 12, background: PAPER_DEEP, color: MUTED, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Search size={20} /></span>
-                <span style={{ flex: 1 }}>
-                  <span style={{ display: "block", fontSize: 14, fontWeight: 600 }}>Fles gemist?</span>
-                  <span style={{ display: "block", fontSize: 12.5, color: MUTED }}>Zoek hem zelf op in je voorraad</span>
-                </span>
-                <button onClick={onSearchManual} style={{ minHeight: 40, padding: "0 14px", borderRadius: 20, border: `1px solid ${BRASS}`, background: "none", color: BRASS_TEXT, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Zoeken</button>
-              </div>
-              <button onClick={() => { setItems([]); setPreview(null); setStap("kiezen"); }} style={{ minHeight: 44, border: "none", background: "none", color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Nog een foto scannen</button>
-            </div>
-          </div>
-          <div style={{ flexShrink: 0, background: PAPER_DEEP, borderTop: `1px solid ${BORDER}`, padding: "12px 16px calc(env(safe-area-inset-bottom) + 12px)" }}>
-            <div style={{ maxWidth: 560, margin: "0 auto" }}>
-              <button disabled={toAdd.length === 0} onClick={() => onAdd(toAdd.map(r => ({ id: r.keuze, merk: r.zeker && r.keuze === r.id ? r.merk : null, aantal: r.aantal, niveau: r.niveau })))} className="press-scale" style={{
-                width: "100%", minHeight: 52, borderRadius: 26, border: "none", fontFamily: sans, fontSize: 16, fontWeight: 700, cursor: toAdd.length ? "pointer" : "default",
-                background: toAdd.length ? BOTTLE_DARK : BORDER, color: toAdd.length ? HEADER_TEXT : MUTED,
-              }}>{ctaTekst}</button>
-              <div style={{ fontSize: 12, color: MUTED, textAlign: "center", marginTop: 8 }}>Je foto wordt niet bewaard{over != null ? ` · Nog ${over} ${over === 1 ? "scan" : "scans"} vandaag` : ""}</div>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  ), document.body);
-}
 
 function ForYouStrip({ items, allIngredients, onOpenRecipe }) {
   return (
@@ -5666,6 +4569,7 @@ function ForYouStrip({ items, allIngredients, onOpenRecipe }) {
 }
 
 function HomeTab({ onOpenBartender, session, profile, greeting, featuredRecipe, favoriteFamily, logboek, recipes, allIngredients, onOpenRecipe, onOpenCheckin, onSound, onReloadLogboek, homeTapTick, active, courseRank, nativePush, highlightId, guest = false, onRequireAccount, onOpenOwnProfile }) {
+  const recipeTextsHome = useRecipeTexts();
   const [pushPromptHidden, setPushPromptHidden] = useStorage("thuisbar-push-prompt-weg", false);
   const [photoViewer, setPhotoViewer] = useState(null);
   const myId = session?.user?.id;
@@ -6126,7 +5030,7 @@ function HomeTab({ onOpenBartender, session, profile, greeting, featuredRecipe, 
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: "block", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: BOTTLE }}>Voor jou vandaag</span>
             <span style={{ display: "block", fontFamily: serif, fontSize: 17, fontWeight: 700, marginTop: 1 }}>{featuredRecipe.name}</span>
-            <span style={{ display: "block", fontSize: 12.5, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{featuredReason(featuredRecipe, favoriteFamily)}</span>
+            <span style={{ display: "block", fontSize: 12.5, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{featuredReason(featuredRecipe, favoriteFamily, recipeTextsHome.STORIES)}</span>
           </span>
           <ChevronRight size={18} color={MUTED} style={{ flexShrink: 0 }} />
         </button>
@@ -6332,7 +5236,7 @@ function BottomDock({ tab, setTab, shoppingCount, onCheckin }) {
 
 // Huisstijl: sectiekopjes klein, in hoofdletters en gedempt, zodat de
 // kaarten eronder het werk doen en niet de koppen.
-function SectionLabel({ children }) {
+export function SectionLabel({ children }) {
   return (
     <div style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: MUTED, margin: "4px 4px 10px" }}>
       {children}
@@ -6375,9 +5279,9 @@ function StatusBarBackdrop({ showAfter = 0, dark = false }) {
 // messinglijn eronder (zoals Home). Hoofdschermen krijgen een serif-titel
 // links, subschermen een terugknop + gecentreerde titel (HeaderNavBar).
 // De kop is sticky en loopt zelf door tot achter de statusbalk.
-const HEADER_TEXT = "#FBF6EA";
-const HEADER_ACCENT = "#DDB877";
-const HEADER_MUTED = "#A9B8B0";
+export const HEADER_TEXT = "#FBF6EA";
+export const HEADER_ACCENT = "#DDB877";
+export const HEADER_MUTED = "#A9B8B0";
 const HEADER_BAR_STYLE = {
   position: "sticky", top: 0, zIndex: 20, background: BOTTLE_DARK, color: HEADER_TEXT,
   marginLeft: -20, marginRight: -20, paddingTop: "env(safe-area-inset-top)",
@@ -6476,7 +5380,7 @@ function shapeForIngredient(ing) {
   return "bottle";
 }
 
-function ItemArt({ ing }) {
+export function ItemArt({ ing }) {
   const localSrc = localItemImageUrl("drank", ing.id);
   if (localSrc) {
     return <img className="item-art" src={localSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter: RECIPE_PHOTO_FILTER }} />;
@@ -6561,7 +5465,7 @@ const VOORRAAD_PAKKETTEN = [
   { key: "italiaans", label: "Italiaans aperitief", ids: ["gin", "campari", "aperol", "sweet_vermouth", "prosecco", "soda_water"] },
   { key: "klassiek", label: "Klassiekers", ids: ["bourbon", "rye", "gin", "cognac", "sweet_vermouth", "dry_vermouth", "angostura", "orange_bitters", "triple_sec", "lemon_juice", "sugar_syrup"] },
 ];
-const FILL_LEVELS = [
+export const FILL_LEVELS = [
   { key: "vol", label: "Vol", fill: 1 },
   { key: "half", label: "Half", fill: 0.5 },
   { key: "bijna", label: "Bijna op", fill: 0.15 },
@@ -7111,7 +6015,7 @@ function VoorraadTab({ allIngredients, recipes, isOwned, voorraad, voorraadAanta
 // scrollpositie als negatieve top-offset is de bekende, wél betrouwbare manier
 // om dat op iOS helemaal dicht te zetten; scrollpositie wordt bij het sluiten
 // weer exact hersteld.
-function useBodyScrollLock() {
+export function useBodyScrollLock() {
   useEffect(() => {
     const scrollY = window.scrollY;
     const body = document.body;
@@ -7147,7 +6051,7 @@ function BodyScrollLock() {
 // een sheet als een systeem-sheet laat voelen i.p.v. een webpagina-modal.
 // Sleep-handlers gaan alleen op de handgreep + header, nooit op de
 // scrollbare inhoud, zodat normaal scrollen door de lijst niet kapotgaat.
-function useSheetDismiss(onClose) {
+export function useSheetDismiss(onClose) {
   const panelRef = useRef(null);
   const [closing, setClosing] = useState(false);
   const drag = useRef({ startY: 0, startT: 0, dragging: false, delta: 0, raf: 0 });
@@ -7229,7 +6133,7 @@ function useSheetDismiss(onClose) {
 
 // Handgreepje bovenaan elke sheet: het vertrouwde iOS-affordance-streepje
 // dat laat zien dat je omlaag kan vegen om te sluiten.
-function SheetGrabber(dragHandlers) {
+export function SheetGrabber(dragHandlers) {
   return (
     <div {...dragHandlers} style={{ display: "flex", justifyContent: "center", padding: "9px 0 3px", flexShrink: 0, touchAction: "none" }}>
       <div style={{ width: 36, height: 4.5, borderRadius: 3, background: BORDER }} />
@@ -7439,7 +6343,7 @@ function useEdgeSwipeBack(onBack) {
 // Laat een scherm dieper in een SecondaryTabScreen (bv. een geopend feest)
 // de ene navigatiebalk bovenaan overnemen — label, titel, terugactie en een
 // knop rechts — i.p.v. een tweede balk eronder te tekenen.
-const NavOverrideContext = createContext(null);
+export const NavOverrideContext = createContext(null);
 
 function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOnBack, children }) {
   const [navOverride, setNavOverride] = useState(null);
@@ -7488,7 +6392,7 @@ function SecondaryTabScreen({ label: baseLabel, title: baseTitle, onBack: baseOn
 // of preview-laag — voor interne detailschermen die al hun eigen terugknop
 // tekenen (een open recept in Recept, een les in Cursus) en alleen de
 // vingerbeweging erbij nodig hebben.
-function EdgeSwipeBackArea({ onBack, children, bleed = true, style }) {
+export function EdgeSwipeBackArea({ onBack, children, bleed = true, style }) {
   const { contentRef, handlers } = useEdgeSwipeBack(onBack);
   return (
     <div ref={contentRef} {...handlers} style={{ ...(bleed ? { ...EDGE_SWIPE_BLEED, minHeight: SWIPE_MIN_HEIGHT } : null), touchAction: "pan-y", ...style }}>
@@ -7504,7 +6408,7 @@ function EdgeSwipeBackArea({ onBack, children, bleed = true, style }) {
 // sluit 'm weer, net als in Mail/Herinneringen. De bestaande knop-met-
 // prullenbak blijft daarnaast gewoon werken; dit is een extra manier, geen
 // vervanging.
-function SwipeToDelete({ onDelete, borderRadius = 0, children }) {
+export function SwipeToDelete({ onDelete, borderRadius = 0, children }) {
   const rowRef = useRef(null);
   const [revealed, setRevealed] = useState(false);
   const ACTION_WIDTH = 78;
@@ -7585,7 +6489,7 @@ function SwipeToDelete({ onDelete, borderRadius = 0, children }) {
 // er in één keer naartoe te springen, voor het winkelmandje-totaal en de
 // cursus-voortgang. Reine CSS kan geen getallen animeren, dus dit is de ene
 // plek in de app met een kleine requestAnimationFrame-lus i.p.v. een CSS-klasse.
-function AnimatedNumber({ value, format }) {
+export function AnimatedNumber({ value, format }) {
   const [display, setDisplay] = useState(value);
   const fromRef = useRef(value);
   const reduceMotion = useMemo(() => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches, []);
@@ -7691,7 +6595,7 @@ function useDropdownMaxHeight(wrapRef, open, fallback = 260) {
   return maxH;
 }
 
-function RecipePicker({ recipes, value, onChange, listId, style }) {
+export function RecipePicker({ recipes, value, onChange, listId, style }) {
   const [draft, setDraft] = useState(null);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -7831,7 +6735,7 @@ function ItemImage({ id, type, photoUrl, size = 50, radius = "50%", tint, filter
   );
 }
 
-function RecipeCircle({ recipe, allIngredients, size = 50, radius = "50%" }) {
+export function RecipeCircle({ recipe, allIngredients, size = 50, radius = "50%" }) {
   const tint = recipeTint(recipe, allIngredients);
   const garnishes = inferGarnishes(recipe, allIngredients);
   return (
@@ -7873,7 +6777,7 @@ function recipeQuickFacts(recipe) {
 // staat hier expliciet (anders erft hij de browser-standaard serif).
 const batchOpener = { current: null };
 
-function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMissing, justAdded, onClose,
+export function RecipeSheet({ recipe, missing, ingredientLabel, allIngredients, onAddMissing, justAdded, onClose,
   onOpenFullRecipe, onAddToFeest, feestChosen, onSound, favoriteRecipeIds, onToggleFavorite, onOpenCheckin, shoppingKeys }) {
   useBodyScrollLock();
   const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
@@ -8065,7 +6969,7 @@ function isOwnedRef(ing, missing) {
   return !missing.includes(ing);
 }
 
-function MatchPill({ pct, label }) {
+export function MatchPill({ pct, label }) {
   return (
     <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
       <span className="glass-chip-dark" style={{ borderRadius: 100, padding: "2px 8px", fontSize: 10.5, fontWeight: 700, whiteSpace: "nowrap" }}>{pct}%{label ? ` ${label}` : ""}</span>
@@ -8623,58 +7527,8 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
   );
 }
 
-// ===== Batch-calculator =====
-// Vervangt de Schaler: een cocktail groter maken voor een groep (Glazen), in
-// een kan voor vandaag (Kan) of vooraf in een fles (Fles), met praktische
-// hoeveelheden, voorraadcheck en batch-tips. Glazen ophogen voor jezelf kan
-// al in het recept zelf.
-const BATCH_BUBBLES = new Set(["tonic", "cola", "ginger_beer", "ginger_ale", "grapefruit_soda", "soda_water", "prosecco", "lemonade", "beer", "stout"]);
-const BATCH_DAIRY = new Set(["heavy_cream", "whipped_cream", "milk", "irish_cream", "butter", "egg_yolk", "advocaat", "coconut_cream"]);
-const BATCH_EGG = new Set(["egg_white", "egg_yolk"]);
-const BATCH_CITRUS = { lemon_juice: { ml: 35, one: "citroen", many: "citroenen" }, lime_juice: { ml: 25, one: "limoen", many: "limoenen" } };
-const BATCH_FRESH = new Set(["lemon_juice", "lime_juice", "orange_juice", "grapefruit_juice", "pineapple_juice", "passion_fruit_puree", "peach_puree", "tomato_juice"]);
-const BATCH_QUICK = [2, 4, 6, 8, 12, 20];
-const BATCH_KAN = [{ ml: 1000, label: "1 L" }, { ml: 1500, label: "1,5 L" }, { ml: 2000, label: "2 L" }];
-const BATCH_FLES = [{ ml: 500, label: "50 cl" }, { ml: 700, label: "70 cl" }, { ml: 1000, label: "1 L" }];
 
-// Kanmaat/Flesmaat in woorden, voor stappen en de deeltekst.
-function batchVolumeLabel(ml) {
-  return ml >= 1000 ? `${String(ml / 1000).replace(".", ",")} L` : `${ml / 10} cl`;
-}
-// Hele ml, boven de 100 ml op 5 ml.
-function roundBatchMl(ml) {
-  return ml >= 100 ? Math.round(ml / 5) * 5 : Math.round(ml);
-}
-function formatBatchAmount(ml, units) {
-  if (units === "cl") return `${formatDutchNumber(ml / 10)} cl`;
-  if (units === "oz") return `${formatDutchNumber(ml / 29.57)} oz`;
-  return `${roundBatchMl(ml)} ml`;
-}
-
-function analyzeBatchRecipe(recipe, allIngredients) {
-  const rows = recipe.ingredients.map(ing => ({ ing, meta: findIngredientMeta(ing, allIngredients) }));
-  const idOf = (r) => r.meta?.id || r.ing.id;
-  const techniques = inferTechniques(recipe.method);
-  const hasEgg = rows.some(r => BATCH_EGG.has(idOf(r)) && !r.ing.optional);
-  const hasEggOptional = rows.some(r => BATCH_EGG.has(idOf(r)));
-  const hasDairy = rows.some(r => BATCH_DAIRY.has(idOf(r)));
-  const hasBubbles = rows.some(r => BATCH_BUBBLES.has(idOf(r)));
-  const hasFresh = rows.some(r => BATCH_FRESH.has(idOf(r)));
-  const hot = recipe.family === "Warme dranken" || rows.some(r => ["hot_water", "hot_coffee", "espresso", "hot_chocolate", "black_tea"].includes(idOf(r)));
-  const stirred = (techniques.includes("stirred") || ["Spirit-forward", "Stirred-down"].includes(recipe.family)) && !techniques.includes("shaken");
-  const shaken = techniques.includes("shaken");
-  // Waarom (niet) in een kan/fles — null = het kan.
-  const blockReason = hasEgg || hasDairy
-    ? "Deze cocktail kun je beter per glas shaken: ei en room horen niet in een batch."
-    : hasBubbles
-      ? "Deze cocktail maak je beter per glas: bubbels worden plat in een kan of fles."
-      : hot ? "Een warme cocktail maak je beter per glas." : null;
-  const kanBlock = blockReason;
-  const flesBlock = blockReason || (hasFresh ? "Vers sap blijft maar ± 4 uur goed, dus niet vooraf in een fles. Een kan voor vandaag kan wel." : null);
-  return { rows, idOf, techniques, hasEgg, hasEggOptional, hasBubbles, hasFresh, stirred, shaken, kanBlock, flesBlock };
-}
-
-function BatchRecipePicker({ recipes, allIngredients, recentRecipeIds, favoriteRecipeIds, currentId, onPick, onClose }) {
+export function BatchRecipePicker({ recipes, allIngredients, recentRecipeIds, favoriteRecipeIds, currentId, onPick, onClose }) {
   useBodyScrollLock();
   const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
   const [query, setQuery] = useState("");
@@ -8740,332 +7594,6 @@ function BatchRecipePicker({ recipes, allIngredients, recentRecipeIds, favoriteR
   ), document.body);
 }
 
-function BatchCalculatorTab({ recipes, ingredientLabel, allIngredients, isOwned, voorraadAantal = {}, recentRecipeIds = [], favoriteRecipeIds = [],
-  shoppingKeys, onAddToShoppingList, onSound, request }) {
-  const [recipeId, setRecipeId] = useState(() => request?.id || recentRecipeIds[0] || recipes[0]?.id);
-  const [mode, setMode] = useState("glazen");
-  const [glasses, setGlasses] = useState(8);
-  const [kanMl, setKanMl] = useState(1500);
-  const [flesMl, setFlesMl] = useState(700);
-  const [units, setUnits] = useState("ml");
-  const [picking, setPicking] = useState(false);
-  const [added, setAdded] = useState(false);
-  const [shareState, setShareState] = useState(null);
-
-  // "Maak een batch" vanuit een recept: die cocktail meteen gekozen.
-  useEffect(() => {
-    if (request?.id) { setRecipeId(request.id); setMode("glazen"); window.scrollTo({ top: 0 }); }
-  }, [request?.nonce]);
-  useEffect(() => { setAdded(false); }, [recipeId, mode, glasses, kanMl, flesMl]);
-
-  const recipe = recipes.find(r => r.id === canonicalRecipeId(recipeId)) || recipes[0];
-  const info = useMemo(() => recipe ? analyzeBatchRecipe(recipe, allIngredients) : null, [recipe, allIngredients]);
-  if (!recipe || !info) return <p style={{ color: MUTED }}>Nog geen recepten.</p>;
-
-  const blocked = mode === "kan" ? info.kanBlock : mode === "fles" ? info.flesBlock : null;
-  const volume = mode === "kan" ? kanMl : flesMl;
-  const technique = info.stirred ? "geroerd" : info.shaken ? "geschud" : info.techniques.includes("build") ? "gebouwd" : null;
-
-  // ---- Hoeveelheden ----
-  // Glazen: recept × N. Kan/Fles: zo geschaald dat alles (incl. water bij
-  // geroerde cocktails, ± 20% verdunning) precies in de kan/fles past.
-  const mlRows = info.rows.filter(r => r.ing.unit === "ml" && !r.ing.optional);
-  const baseMl = mlRows.reduce((s, r) => s + r.ing.amount, 0) || 1;
-  const dilution = mode !== "glazen" && info.stirred ? 0.2 : 0;
-  const scale = mode === "glazen" ? glasses : volume / (baseMl * (1 + dilution));
-  const servings = mode === "glazen" ? glasses : Math.max(1, Math.round(volume / (baseMl * (1 + dilution))));
-  // Per glas schenk je gewoon één portie van het recept (incl. verdunning).
-  const pourMl = mode === "glazen" ? null : roundBatchMl(baseMl * (1 + dilution));
-
-  const lines = info.rows
-    .filter(r => mode === "glazen" || (!BATCH_EGG.has(info.idOf(r)) && !r.ing.optional))
-    .map(r => {
-      const id = info.idOf(r);
-      const isEgg = BATCH_EGG.has(id);
-      const amount = isEgg ? (mode === "glazen" ? glasses : servings) * r.ing.amount : r.ing.amount * scale;
-      const owned = isOwned(r.ing);
-      const bottleMl = r.meta?.bottleMl || (r.meta && !r.meta.unitPrice ? 700 : null);
-      let status, enough, shortMl = 0, practical = null;
-      if (isEgg) {
-        status = mode === "glazen" ? "Niet in de batch" : "Niet in de batch";
-        enough = owned;
-      } else if (!owned) {
-        status = "Niet op voorraad"; enough = false;
-      } else if (r.ing.unit === "ml" && bottleMl && r.meta?.cat !== "Vers") {
-        const count = voorraadAantal[id] ?? 1;
-        const have = count * bottleMl;
-        const countLabel = `${formatDutchNumber(count)} ${count === 1 ? "fles" : "flessen"}`;
-        if (have >= amount) { status = `Je hebt ${countLabel} · genoeg`; enough = true; }
-        else { shortMl = amount - have; status = `Je hebt ${countLabel} · ${roundBatchMl(shortMl)} ml tekort`; enough = false; }
-      } else {
-        status = "Op voorraad"; enough = true;
-      }
-      if (isEgg) practical = mode === "glazen" ? "per glas" : null;
-      else if (BATCH_CITRUS[id] && r.ing.unit === "ml") {
-        const c = BATCH_CITRUS[id]; const n = Math.max(1, Math.ceil(amount / c.ml));
-        practical = `≈ ${n} ${n === 1 ? c.one : c.many}`;
-      } else if (id === "sugar_syrup" || id === "honey_syrup") practical = "of zelf maken";
-      else if (r.ing.unit === "ml" && bottleMl && r.meta?.cat !== "Vers") {
-        const bottles = amount / bottleMl;
-        if (bottles >= 0.4) { const b = Math.max(0.5, Math.round(bottles * 2) / 2); practical = `≈ ${formatDutchNumber(b)} ${b <= 1 ? "fles" : "flessen"}`; }
-      }
-      let amountLabel;
-      if (r.ing.unit === "ml") amountLabel = formatBatchAmount(amount, units);
-      else { const n = r.ing.unit === "dash" ? Math.round(amount) : Math.ceil(amount); amountLabel = `${n} ${unitLabel(r.ing.unit, n)}`; }
-      return { r, id, label: ingredientLabel(r.ing) + (r.ing.optional ? " (optioneel)" : ""), status, enough, practical, amount, amountLabel, isEgg };
-    });
-  const waterMl = dilution > 0 ? volume - lines.filter(l => l.r.ing.unit === "ml").reduce((s, l) => s + roundBatchMl(l.amount), 0) : 0;
-
-  const missing = lines.filter(l => !l.enough && !(l.r.ing.optional));
-  const allOnList = missing.length > 0 && missing.every(l => shoppingKeys?.has(ingredientKey(l.r.ing)));
-  const addMissing = () => {
-    onAddToShoppingList(missing.map(l => ({ ref: l.r.ing, recipeNames: [recipe.name] })));
-    onSound?.("tick");
-    setAdded(true);
-  };
-
-  // ---- Tips / stappen ----
-  const syrup = lines.find(l => l.id === "sugar_syrup" || l.id === "honey_syrup");
-  const tips = [
-    info.hasEggOptional && { icon: Droplet, strong: "Eiwit niet in de batch.", text: "Meng de rest vooraf en shake per glas met één eiwit." },
-    info.hasFresh && { icon: Citrus, strong: "Vers sap", text: "blijft ± 4 uur goed. Pers het op de dag zelf." },
-    syrup && (() => { const half = Math.max(5, Math.round(syrup.amount / 2 / 5) * 5); return syrup.id === "honey_syrup"
-      ? { icon: FlaskRound, strong: "Honingsiroop zelf maken:", text: `${half} g honing + ${half} ml warm water, roeren tot het is opgelost.` }
-      : { icon: FlaskRound, strong: "Suikersiroop zelf maken:", text: `${half} g suiker + ${half} ml heet water, roeren tot het is opgelost.` }; })(),
-    info.hasBubbles && { icon: CupSoda, strong: "Bubbels pas bij het inschenken.", text: "Meng de rest vooraf en vul elk glas pas op het laatst aan." },
-  ].filter(Boolean);
-  const glass = (recipe.glass || "glas").split("(")[0].trim().toLowerCase();
-  const steps = mode === "glazen" ? [] : [
-    `Giet alles${waterMl > 0 ? ", inclusief het water," : ""} in ${mode === "fles" ? `een schone fles van ${batchVolumeLabel(volume)}` : `een kan van ${batchVolumeLabel(volume)}`}.`,
-    mode === "fles"
-      ? "Minimaal 2 uur in de vriezer of koelkast. Goed afgesloten houdbaar tot ± 3 maanden."
-      : info.hasFresh ? "Zet de kan minimaal 1 uur in de koelkast en schenk binnen ± 4 uur (vers sap)." : "Zet de kan minimaal 1 uur in de koelkast.",
-    info.stirred || !info.shaken
-      ? `Schenk ${pourMl} ml per glas over ijs in een ${glass}${recipe.garnish ? ` en werk af: ${recipe.garnish.charAt(0).toLowerCase()}${recipe.garnish.slice(1)}` : "."}`
-      : `Schud per glas ${pourMl} ml kort met ijs en zeef in een ${glass}${recipe.garnish ? `. Afwerking: ${recipe.garnish.charAt(0).toLowerCase()}${recipe.garnish.slice(1)}` : "."}`,
-  ];
-
-  const share = async () => {
-    onSound?.("share");
-    const head = mode === "glazen" ? `${recipe.name} voor ${glasses} glazen` : `${recipe.name}, ${mode === "fles" ? "fles" : "kan"} van ${batchVolumeLabel(volume)} (± ${servings} glazen van ${pourMl} ml)`;
-    const text = [
-      `Batchkaart: ${head}`, "",
-      ...lines.map(l => `• ${l.label}: ${l.amountLabel}${l.isEgg ? " (per glas, niet in de batch)" : ""}`),
-      waterMl > 0 ? `• Water: ${formatBatchAmount(waterMl, units)} (verdunning, vervangt het roeren)` : null,
-      "",
-      ...(mode === "glazen" ? tips.map(t => `– ${t.strong} ${t.text}`) : steps.map((s, i) => `${i + 1}. ${s}`)),
-      "", "Gemaakt met Mijn Thuisbar",
-    ].filter(x => x !== null).join("\n");
-    let result;
-    try {
-      if (isNativeShell) { await Share.share({ title: `Batchkaart ${recipe.name}`, text, dialogTitle: "Deel batchkaart" }); result = "shared"; }
-      else if (navigator.share) { await navigator.share({ title: `Batchkaart ${recipe.name}`, text }); result = "shared"; }
-      else { await navigator.clipboard.writeText(text); result = "copied"; }
-    } catch (e) { result = /cancel|abort/i.test(`${e?.name} ${e?.message}`) ? "cancelled" : "failed"; }
-    if (result === "cancelled") return;
-    setShareState(result);
-    setTimeout(() => setShareState(null), 2500);
-  };
-
-  // ---- Weergave ----
-  const card = { background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD };
-  const seg = (active) => ({
-    flex: 1, minHeight: 40, border: "none", borderRadius: 10, cursor: "pointer", fontFamily: sans, fontSize: 14.5, fontWeight: 700,
-    background: active ? CREAM : "transparent", color: active ? INK : MUTED, boxShadow: active ? "0 1px 4px rgba(43,38,32,0.14)" : "none",
-  });
-  const pill = (active, dark) => ({
-    minWidth: 44, minHeight: 44, padding: "0 14px", borderRadius: 100, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700,
-    background: active ? (dark ? "#FBF6EA" : BOTTLE) : (dark ? "rgba(245,239,230,0.14)" : PAPER_DEEP), color: active ? (dark ? "#132622" : "#FBF6EA") : (dark ? "#F3ECDD" : INK),
-  });
-  const bigRound = (filled) => ({
-    width: 52, height: 52, borderRadius: "50%", border: "none", cursor: "pointer", fontSize: 24, fontWeight: 600, fontFamily: sans,
-    display: "flex", alignItems: "center", justifyContent: "center", background: filled ? BOTTLE : PAPER_DEEP, color: filled ? "#FBF6EA" : INK,
-  });
-  const heading = (text, right) => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, margin: "22px 0 10px" }}>
-      <div style={{ fontFamily: systemFont, fontSize: 20, fontWeight: 700, color: INK }}>{text}</div>
-      {right}
-    </div>
-  );
-
-  return (
-    <div style={{ fontFamily: sans }}>
-      {/* Gekozen cocktail */}
-      <div style={{ ...card, display: "flex", alignItems: "center", gap: 12, padding: 10 }}>
-        <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={60} radius={12} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: serif, fontSize: 19, fontWeight: 700, color: INK, lineHeight: 1.2 }}>{recipe.name}</div>
-          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>{[recipe.family, (recipe.glass || "").split("(")[0].trim(), technique].filter(Boolean).join(" · ")}</div>
-        </div>
-        <button onClick={() => setPicking(true)} className="press-scale" style={{ minHeight: 44, padding: "0 16px", borderRadius: 100, border: "none", background: PAPER_DEEP, color: INK, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Wijzig</button>
-      </div>
-
-      {/* Glazen · Kan · Fles */}
-      <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 13, margin: "14px 0" }}>
-        {[["glazen", "Glazen"], ["kan", "Kan"], ["fles", "Fles"]].map(([k, l]) => (
-          <button key={k} role="tab" aria-selected={mode === k} onClick={() => setMode(k)} style={seg(mode === k)}>{l}</button>
-        ))}
-      </div>
-
-      {mode === "glazen" && (
-        <div style={{ ...card, padding: "16px 14px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 28 }}>
-            <button aria-label="Minder glazen" onClick={() => setGlasses(Math.max(1, glasses - 1))} style={bigRound(false)}>−</button>
-            <div style={{ textAlign: "center", minWidth: 64 }}>
-              <div style={{ fontFamily: serif, fontSize: 44, fontWeight: 700, color: INK, lineHeight: 1 }}>{glasses}</div>
-              <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{glasses === 1 ? "glas" : "glazen"}</div>
-            </div>
-            <button aria-label="Meer glazen" onClick={() => setGlasses(Math.min(200, glasses + 1))} style={bigRound(true)}>+</button>
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
-            {BATCH_QUICK.map(n => <button key={n} onClick={() => setGlasses(n)} aria-pressed={glasses === n} style={pill(glasses === n)}>{n}</button>)}
-          </div>
-        </div>
-      )}
-
-      {mode !== "glazen" && blocked && (
-        <div style={{ ...card, padding: "16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <span style={{ width: 34, height: 34, borderRadius: 10, background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Info size={17} /></span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14.5, color: INK, lineHeight: 1.5 }}>{blocked}</div>
-            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-              <button onClick={() => setMode("glazen")} style={{ ...pill(true), minHeight: 44 }}>Reken per glas</button>
-              {mode === "fles" && !info.kanBlock && <button onClick={() => setMode("kan")} style={pill(false)}>Maak een kan</button>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {mode !== "glazen" && !blocked && (
-        <div style={{ borderRadius: 16, padding: "16px 16px", background: "#1F3A33", color: "#F3ECDD", display: "flex", gap: 14, alignItems: "center", boxShadow: SHADOW_CARD }}>
-          <svg width="40" height="64" viewBox="0 0 40 64" aria-hidden style={{ flexShrink: 0 }}>
-            {mode === "fles" ? (
-              <path d="M15 2h10v12c0 3 9 6 9 16v28a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V30c0-10 9-13 9-16z" fill="none" stroke="#D8B06A" strokeWidth="2.2" strokeLinejoin="round" />
-            ) : (
-              <path d="M6 8h24l-2 6c4 2 8 6 8 14s-4 10-8 12v18a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z M30 20c3 1 5 4 5 8s-2 7-5 8" fill="none" stroke="#D8B06A" strokeWidth="2.2" strokeLinejoin="round" />
-            )}
-            <path d={mode === "fles" ? "M7 36h26v22a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3z" : "M7 30h21v28a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3z"} fill="#B8862E" opacity="0.55" />
-          </svg>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: "#D8B06A" }}>{mode === "fles" ? "Fles vullen" : "Kan vullen"}</div>
-            <div style={{ display: "flex", gap: 6, margin: "8px 0", flexWrap: "wrap" }}>
-              {(mode === "fles" ? BATCH_FLES : BATCH_KAN).map(o => {
-                const active = (mode === "fles" ? flesMl : kanMl) === o.ml;
-                return <button key={o.ml} aria-pressed={active} onClick={() => (mode === "fles" ? setFlesMl(o.ml) : setKanMl(o.ml))} style={pill(active, true)}>{o.label}</button>;
-              })}
-            </div>
-            <div style={{ fontSize: 13.5, color: "#F3ECDD" }}>Goed voor <strong>± {servings} glazen</strong> van {pourMl} ml</div>
-          </div>
-        </div>
-      )}
-
-      {!blocked && (
-        <>
-          {heading(mode === "fles" ? "In de fles" : mode === "kan" ? "In de kan" : "Wat heb je nodig", (
-            <div role="radiogroup" aria-label="Eenheid" style={{ display: "flex", gap: 2, padding: 3, background: PAPER_DEEP, borderRadius: 100 }}>
-              {["ml", "cl", "oz"].map(u => (
-                <button key={u} role="radio" aria-checked={units === u} onClick={() => setUnits(u)} style={{
-                  minWidth: 44, minHeight: 36, borderRadius: 100, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13, fontWeight: 700,
-                  background: units === u ? CREAM : "transparent", color: units === u ? INK : MUTED, boxShadow: units === u ? "0 1px 3px rgba(43,38,32,0.14)" : "none",
-                }}>{u}</button>
-              ))}
-            </div>
-          ))}
-          <div style={{ ...card, overflow: "hidden" }}>
-            {lines.map((l, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
-                <span aria-label={l.enough ? "Genoeg in huis" : "Niet genoeg in huis"} style={{
-                  width: 22, height: 22, borderRadius: "50%", flexShrink: 0, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
-                  background: l.enough ? SAGE : "transparent", border: l.enough ? "none" : `1.5px solid ${BURGUNDY}`,
-                }}>{l.enough && <Check size={13} strokeWidth={3} color={CREAM} />}</span>
-                <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, minHeight: 36 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: INK }}>{l.label}</div>
-                    <div style={{ fontSize: 12.5, marginTop: 1, color: l.enough || l.isEgg ? MUTED : BURGUNDY }}>{l.status}</div>
-                  </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: INK, whiteSpace: "nowrap" }}>{l.amountLabel}</div>
-                    {l.practical && <div style={{ fontSize: 12, color: MUTED, marginTop: 1, whiteSpace: "nowrap" }}>{l.practical}</div>}
-                  </div>
-                </div>
-              </div>
-            ))}
-            {waterMl > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px" }}>
-                <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, background: BOTTLE, color: CREAM, display: "flex", alignItems: "center", justifyContent: "center" }}><Droplet size={12} /></span>
-                <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderTop: `1px solid ${BORDER}` }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: INK }}>Water</div>
-                    <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>Verdunning (± 20%), vervangt het roeren</div>
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: INK, whiteSpace: "nowrap" }}>{formatBatchAmount(waterMl, units)}</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {missing.length > 0 && (
-            added || allOnList ? (
-              <div className={added ? "success-pop" : undefined} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 52, color: SAGE, fontSize: 14.5, fontWeight: 700, marginTop: 10 }}>
-                <Check size={16} strokeWidth={3} /> Op je boodschappenlijst
-              </div>
-            ) : (
-              <button onClick={addMissing} className="press-scale" style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 10, borderRadius: 14, border: "none",
-                background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
-              }}>
-                <ShoppingCart size={17} /> {missing.length === 1 ? `${missing[0].label.replace(" (optioneel)", "")} op boodschappenlijst` : "Zet ontbrekende op boodschappenlijst"}
-              </button>
-            )
-          )}
-
-          {mode === "glazen" && tips.length > 0 && (
-            <>
-              {heading("Tips voor deze batch")}
-              <div style={{ ...card, padding: "2px 14px" }}>
-                {tips.map((t, i) => {
-                  const Icon = t.icon;
-                  return (
-                    <div key={i} style={{ display: "flex", gap: 12, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
-                      <span style={{ width: 30, height: 30, borderRadius: "50%", background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={15} /></span>
-                      <div style={{ fontSize: 14, color: INK, lineHeight: 1.5 }}><strong>{t.strong}</strong> {t.text}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {mode !== "glazen" && (
-            <>
-              {heading("Zo maak je het")}
-              <div style={{ ...card, padding: "2px 14px" }}>
-                {steps.map((s, i) => (
-                  <div key={i} style={{ display: "flex", gap: 12, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
-                    <span style={{ width: 26, height: 26, borderRadius: "50%", border: `1.5px solid ${BRASS}`, color: BRASS, fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxSizing: "border-box" }}>{i + 1}</span>
-                    <div style={{ fontSize: 14, color: INK, lineHeight: 1.5 }}>{s}</div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          <button onClick={share} className="press-scale" style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 18, borderRadius: 14, border: "none",
-            background: "rgba(184,134,46,0.18)", color: INK, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
-          }}>
-            <Share2 size={17} color={BRASS} /> {shareState === "copied" ? "Gekopieerd" : shareState === "shared" ? "Gedeeld" : shareState === "failed" ? "Delen lukte niet" : "Deel batchkaart"}
-          </button>
-        </>
-      )}
-
-      {picking && (
-        <BatchRecipePicker recipes={recipes} allIngredients={allIngredients} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
-          currentId={recipe.id} onPick={(id) => { setRecipeId(id); onSound?.("pop"); }} onClose={() => setPicking(false)} />
-      )}
-    </div>
-  );
-}
 
 // Vers fruit i.p.v. een fles sap: hoeveel sap één vrucht ongeveer geeft,
 // plus een richtprijs per stuk (supermarkt, indicatief).
@@ -10093,9 +8621,10 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const roleInfo = role ? MENU_ROLES[role] : null;
   const techniques = recipe ? inferTechniques(recipe.method) : [];
   const garnishes = recipe ? inferGarnishes(recipe, allIngredients) : null;
+  const { STORIES, STEPS, loaded: textsLoaded } = useRecipeTexts();
   const steps = recipe ? (STEPS[recipe.id] || splitMethodIntoSteps(recipe.method)) : [];
   const story = recipe
-    ? (STORIES[recipe.id] || `Nog geen verhaal bekend over deze cocktail: een ${(recipe.family || "eigen creatie").toLowerCase()} op basis van ${recipe.ingredients[0] ? ingredientLabel(recipe.ingredients[0]) : "jouw eigen ingrediënten"}. Schrijf zelf de anekdote erbij als je 'm serveert!`)
+    ? (STORIES[recipe.id] || (!textsLoaded ? "" : `Nog geen verhaal bekend over deze cocktail: een ${(recipe.family || "eigen creatie").toLowerCase()} op basis van ${recipe.ingredients[0] ? ingredientLabel(recipe.ingredients[0]) : "jouw eigen ingrediënten"}. Schrijf zelf de anekdote erbij als je 'm serveert!`))
     : null;
   const canBatchAhead = recipe && role === "sterk" && techniques.length > 0 && techniques.every(t => ["stirred", "build"].includes(t));
 
@@ -10558,963 +9087,12 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   );
 }
 
-function LessonBlock({ block }) {
-  if (block.type === "h3") return <h3 style={{ fontFamily: systemFont, fontSize: 16.5, color: BOTTLE, margin: "20px 0 8px" }}>{block.text}</h3>;
-  if (block.type === "p") return <p style={{ fontSize: 14.5, color: INK, lineHeight: 1.7, margin: "0 0 12px" }}>{block.text}</p>;
-  if (block.type === "table") {
-    return (
-      <div style={{ overflowX: "auto", margin: "12px 0" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr>{block.headers.map((h, i) => <th key={i} style={{ textAlign: "left", padding: "6px 8px", fontFamily: sans, fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.5, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {block.rows.map((row, ri) => (
-              <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ padding: "6px 8px", borderBottom: `1px solid ${BORDER}`, color: INK }}>{cell}</td>)}</tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-  if (block.type === "box") {
-    const colors = { tip: SAGE, warning: BURGUNDY, history: BRASS }[block.kind] || BRASS;
-    return (
-      <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${colors}`, borderRadius: RADIUS, padding: "12px 15px", margin: "14px 0" }}>
-        <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: colors, marginBottom: 5 }}>{block.label}</div>
-        <p style={{ fontSize: 13, color: INK, margin: 0, lineHeight: 1.55 }}>{block.text}</p>
-      </div>
-    );
-  }
-  if (block.type === "technique-demo") {
-    return <div style={{ margin: "6px 0 16px", maxWidth: 340 }}><TechniqueAnimation technique={block.technique} /></div>;
-  }
-  return null;
-}
 
 // Slagen = minstens 80% goed (4 van 5 per les, 24 van 30 bij de eindtoets).
-const QUIZ_PASS_RATIO = 0.8;
-function shuffledIndexes(n) {
-  const idx = Array.from({ length: n }, (_, i) => i);
-  for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
-  return idx;
-}
+export const QUIZ_PASS_RATIO = 0.8;
 
-// Toets als vast, schermvullend scherm: bovenaan voortgang en sluiten,
-// in het midden één vraag, onderaan altijd op dezelfde plek de knop. Je
-// kunt niet per ongeluk terugscrollen in de les. Na de laatste vraag de
-// score, met opnieuw, terug naar de les of door naar de volgende stap.
-function QuizBlock({ quiz, title = "Vragen", onFinish, onClose, nextAction = null }) {
-  useBodyScrollLock();
-  const [attempt, setAttempt] = useState(0);
-  const [idx, setIdx] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [done, setDone] = useState(false);
-  // Antwoordvolgorde per poging opnieuw gehusseld: de plek van het goede
-  // antwoord verraadt niets, ook niet bij een tweede poging.
-  const orders = useMemo(() => quiz.map(q => shuffledIndexes(q.options.length)), [quiz, attempt]);
-  const bodyRef = useRef(null);
-  useEffect(() => { bodyRef.current?.scrollTo(0, 0); }, [idx, done]);
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
-  const score = quiz.reduce((acc, q, i) => acc + (answers[i] === q.correct ? 1 : 0), 0);
-  const passed = score / quiz.length >= QUIZ_PASS_RATIO;
-  const q = quiz[idx];
-  const picked = answers[idx];
-  const answered = picked !== undefined;
-  const isLast = idx === quiz.length - 1;
-
-  const next = () => {
-    if (isLast) { setDone(true); onFinish(score); }
-    else setIdx(i => i + 1);
-  };
-  const retry = () => { setAnswers({}); setIdx(0); setDone(false); setAttempt(n => n + 1); };
-
-  const footerBtn = (label, onClick, { primary = true, disabled = false } = {}) => (
-    <button onClick={onClick} disabled={disabled} className="press-scale" style={{
-      width: "100%", minHeight: 52, borderRadius: 14, fontFamily: sans, fontSize: 16, fontWeight: 700, cursor: disabled ? "default" : "pointer",
-      border: primary ? "none" : `1px solid ${BORDER}`,
-      background: disabled ? BORDER : primary ? BOTTLE_DARK : "transparent", color: disabled ? MUTED : primary ? CREAM : INK,
-    }}>{label}</button>
-  );
-
-  return createPortal((
-    <div className="push-slide-in" style={{ position: "fixed", inset: 0, zIndex: 45, background: PAPER, color: INK, fontFamily: sans, display: "flex", flexDirection: "column" }}>
-      <div style={{ flexShrink: 0, padding: "calc(env(safe-area-inset-top) + 8px) 20px 10px", maxWidth: 720, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 44 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: MUTED }}>{done ? title : `${title} · vraag ${idx + 1} van ${quiz.length}`}</span>
-          <button onClick={onClose} aria-label="Sluiten" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: PAPER_DEEP, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <X size={18} />
-          </button>
-        </div>
-        <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-          {quiz.map((_, i) => <span key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: done || i < idx || (i === idx && answered) ? BRASS : BORDER }} />)}
-        </div>
-      </div>
-
-      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: "18px 20px 20px", boxSizing: "border-box" }}>
-          {done ? (
-            <div className="success-pop" style={{ padding: 18, borderRadius: 16, background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderLeft: `4px solid ${passed ? SAGE : BURGUNDY}`, marginTop: 20 }}>
-              <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 24, color: passed ? SAGE : BURGUNDY }}>{score} van {quiz.length} goed</div>
-              <p style={{ fontSize: 15, color: INK, margin: "8px 0 0", lineHeight: 1.5 }}>
-                {passed ? "Geslaagd. Dit telt mee voor je rang." : `Je hebt er ${Math.ceil(quiz.length * QUIZ_PASS_RATIO)} goed nodig. Lees de les nog eens en probeer het opnieuw.`}
-              </p>
-            </div>
-          ) : (
-            <>
-              <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: BRASS_TEXT, marginBottom: 8 }}>In de praktijk</div>
-              <p style={{ fontFamily: serif, fontWeight: 700, fontSize: 21, lineHeight: 1.3, color: INK, margin: "0 0 18px" }}>{q.q}</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {orders[idx].map((oi, n) => {
-                  const isSelected = picked === oi;
-                  const isCorrect = oi === q.correct;
-                  const showRight = answered && isCorrect;
-                  const showWrong = answered && isSelected && !isCorrect;
-                  return (
-                    <button key={`${attempt}-${idx}-${oi}`} disabled={answered} onClick={() => setAnswers(prev => ({ ...prev, [idx]: oi }))} style={{
-                      display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 56, textAlign: "left", padding: "10px 14px", boxSizing: "border-box",
-                      borderRadius: 14, cursor: answered ? "default" : "pointer", fontSize: 15, lineHeight: 1.4, fontFamily: sans, color: INK,
-                      background: showRight ? "rgba(92,122,82,0.14)" : showWrong ? "rgba(122,46,42,0.08)" : CREAM,
-                      border: showRight ? `1.5px solid ${SAGE}` : showWrong ? `1.5px solid ${BURGUNDY}` : `1px solid ${BORDER}`,
-                      opacity: answered && !showRight && !showWrong ? 0.6 : 1,
-                    }}>
-                      <span style={{
-                        width: 28, height: 28, borderRadius: "50%", flexShrink: 0, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 12.5, fontWeight: 700, fontFamily: systemFont,
-                        background: showRight ? SAGE : showWrong ? BURGUNDY : "transparent", color: showRight || showWrong ? CREAM : MUTED,
-                        border: showRight || showWrong ? "none" : `1.5px solid ${BORDER}`,
-                      }}>{showRight ? <Check size={14} strokeWidth={3} /> : showWrong ? <X size={14} strokeWidth={3} /> : "ABCD"[n]}</span>
-                      <span style={{ flex: 1 }}>{q.options[oi]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {answered && (
-                <div className="accordion-reveal" style={{ marginTop: 14, padding: "13px 15px", borderRadius: 14, background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderLeft: `4px solid ${picked === q.correct ? SAGE : BURGUNDY}` }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: picked === q.correct ? SAGE : BURGUNDY, marginBottom: 3 }}>{picked === q.correct ? "Goed" : "Niet helemaal"}</div>
-                  <p style={{ fontSize: 14.5, lineHeight: 1.5, margin: 0, color: INK }}>{q.explain}</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      <div style={{ flexShrink: 0, borderTop: `1px solid ${BORDER}`, background: PAPER, padding: "12px 20px calc(env(safe-area-inset-bottom) + 12px)" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
-          {!done ? (
-            footerBtn(isLast ? "Bekijk je score" : "Volgende vraag", next, { disabled: !answered })
-          ) : passed && nextAction ? (
-            <>
-              {footerBtn(nextAction.label, nextAction.onClick)}
-              {footerBtn("Terug naar de les", onClose, { primary: false })}
-            </>
-          ) : (
-            <>
-              {footerBtn(passed ? "Klaar" : "Opnieuw proberen", passed ? onClose : retry)}
-              {footerBtn(passed ? "Nog een keer" : "Terug naar de les", passed ? retry : onClose, { primary: false })}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  ), document.body);
-}
-
-// Eigen illustratie per les in de app-stijl (goud op donkergroen, zelfde
-// beeldtaal als het app-icoon) i.p.v. externe Unsplash-foto's: volledig
-// lokaal, werkt offline en geen licentievragen. Eén icoon per lesonderwerp.
-const LESSON_ICONS = {
-  geschiedenis: Landmark, uitrusting: Wrench, glaswerk: Wine, ijs: Snowflake,
-  gedistilleerd: FlaskRound, "likeuren-bitters": Droplets, vers: Citrus, garnering: Cherry,
-  basistechnieken: Martini, "verdunning-temperatuur": Thermometer, "sour-formule": Scale, finesse: Layers,
-  families: Scale, smaakcombinatie: FlaskRound, ontwerpen: PenTool, menu: ClipboardList,
-  "mise-en-place": ListChecks, "batchen-groepen": Users, gastvrijheid: HeartHandshake, signature: Award,
-  infusies: Leaf, "fat-washing": Droplet, clarificatie: Sparkles, "carbonatie-rook": CloudFog,
-};
-const LESSON_ART_BG = `radial-gradient(ellipse 140% 120% at 25% 10%, #2A4B42, ${BOTTLE_DARK} 75%)`;
-
-function LessonArt({ lesson, variant = "thumb" }) {
-  const Icon = LESSON_ICONS[lesson.id] || GraduationCap;
-  if (variant === "thumb") {
-    return (
-      <div aria-hidden style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, background: LESSON_ART_BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Icon size={20} color="#DDB877" strokeWidth={1.8} />
-      </div>
-    );
-  }
-  return (
-    <div aria-hidden style={{ position: "absolute", inset: 0, background: LESSON_ART_BG, overflow: "hidden" }}>
-      {/* Groot, vaag icoon rechts als achtergrondtextuur. */}
-      <Icon size={190} color="#B8862E" strokeWidth={1} style={{ position: "absolute", right: -30, top: -18, opacity: 0.13 }} />
-      <div style={{ position: "absolute", left: 18, top: 18, width: 64, height: 64, borderRadius: "50%", border: "1.5px solid rgba(184,134,46,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Icon size={30} color="#DDB877" strokeWidth={1.7} />
-      </div>
-    </div>
-  );
-}
-
-// Les in de praktijkopbouw: waarom, de kern, wat je proeft, zo doe je het,
-// een veelgemaakte fout en iets om zelf te maken (met recept en check-in).
-const PRACTICE_TONES = { rood: BURGUNDY, bruin: "#8A6A4A", groen: "#4F6B46" };
-function PracticeLessonBody({ lesson, recipes, allIngredients, onOpenRecipe, onCheckin }) {
-  const label = (text, color = BRASS_TEXT) => (
-    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color, marginBottom: 8, fontFamily: sans }}>{text}</div>
-  );
-  const recipe = lesson.tryIt?.recipeId ? (recipes || []).find(r => r.id === canonicalRecipeId(lesson.tryIt.recipeId)) : null;
-  return (
-    <div style={{ fontFamily: sans }}>
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>
-        {lessonMinutes(lesson)} min lezen
-      </div>
-      <h2 style={{ fontFamily: serif, fontSize: 28, fontWeight: 700, lineHeight: 1.2, color: INK, margin: "6px 0 20px" }}>{lesson.title}</h2>
-
-      {label("Waarom dit ertoe doet")}
-      <p style={{ fontSize: 16, lineHeight: 1.6, color: INK, margin: "0 0 24px" }}>{lesson.intro}</p>
-
-      {label("De kern")}
-      {lesson.core.map((t, i) => <p key={i} style={{ fontSize: 15.5, lineHeight: 1.65, color: INK, margin: i === lesson.core.length - 1 ? "0 0 24px" : "0 0 10px" }}>{t}</p>)}
-
-      {lesson.taste && (
-        <>
-          {label(lesson.taste.title)}
-          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 14px", marginBottom: 24 }}>
-            {lesson.taste.rows.map((r, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "12px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none" }}>
-                <span style={{ flexShrink: 0, width: 78, fontSize: 13.5, fontWeight: 700, color: PRACTICE_TONES[r.tone] || INK }}>{r.label}</span>
-                <span style={{ fontSize: 14.5, lineHeight: 1.45, color: INK }}>{r.text}</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {label("Zo doe je het")}
-      <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 24 }}>
-        {lesson.steps.map((t, i) => (
-          <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <span style={{ width: 26, height: 26, borderRadius: "50%", background: BOTTLE, color: CREAM, fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: systemFont }}>{i + 1}</span>
-            <span style={{ fontSize: 15, lineHeight: 1.55, paddingTop: 2, color: INK }}>{t}</span>
-          </div>
-        ))}
-      </div>
-
-      {lesson.demos?.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
-          {lesson.demos.map(t => (
-            <div key={t} style={{ maxWidth: 340 }}>
-              <TechniqueAnimation technique={t} />
-              <div style={{ fontSize: 13, fontWeight: 700, color: MUTED, textAlign: "center", marginTop: 6 }}>{{ shaken: "Shaken", stirred: "Roeren", muddle: "Muddelen" }[t] || t}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div style={{ padding: "14px 16px", borderRadius: 14, background: PAPER_DEEP, marginBottom: 24 }}>
-        {label("Veelgemaakte fout", BURGUNDY)}
-        <p style={{ fontSize: 14.5, lineHeight: 1.55, margin: 0, color: INK }}>{lesson.mistake}</p>
-      </div>
-
-      {lesson.tryIt && (
-        <>
-          {label("Probeer het zelf")}
-          <div style={{ background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 16, padding: 16, marginBottom: 24 }}>
-            <p style={{ fontSize: 15, lineHeight: 1.55, margin: recipe ? "0 0 14px" : 0 }}>{lesson.tryIt.text}</p>
-            {recipe && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.06)", marginBottom: onCheckin ? 12 : 0 }}>
-                <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} />
-                <span style={{ flex: 1, minWidth: 0, fontFamily: serif, fontSize: 16, fontWeight: 700 }}>{recipe.name}</span>
-                {onOpenRecipe && (
-                  <button onClick={() => onOpenRecipe(recipe.id)} style={{ minHeight: 44, padding: "0 6px", background: "none", border: "none", color: "#DDB877", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>Recept</button>
-                )}
-              </div>
-            )}
-            {recipe && onCheckin && (
-              <button onClick={() => onCheckin(recipe.name)} className="press-scale" style={{ width: "100%", minHeight: 48, borderRadius: 12, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
-                Gemaakt: check in
-              </button>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function LessonView({ lesson, progress, onBack, onComplete, nextLesson, onGoToLesson, onGoToExam, recipes, allIngredients, onOpenRecipe, onCheckin }) {
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizDone, setQuizDone] = useState(false);
-
-  // Binnen Bar → Cursus neemt de les de bovenste navigatiebalk over
-  // ("‹ Cursus · Les 3") i.p.v. een tweede terugknop eronder; in gastmodus
-  // (geen balk) blijft de losse terugknop staan.
-  const setNavOverride = useContext(NavOverrideContext);
-  const onBackRef = useRef(onBack);
-  onBackRef.current = onBack;
-  useEffect(() => {
-    if (!setNavOverride) return;
-    setNavOverride({ label: "Cursus", title: `Les ${lesson.number}`, onBack: () => onBackRef.current() });
-    return () => setNavOverride(null);
-  }, [setNavOverride, lesson.number]);
-
-  return (
-    <EdgeSwipeBackArea onBack={onBack}>
-      {!setNavOverride && (
-        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontFamily: sans }}>
-          <ChevronDown size={14} style={{ transform: "rotate(90deg)" }} /> Terug naar overzicht
-        </button>
-      )}
-
-      <div style={{ position: "relative", height: 150, borderRadius: RADIUS + 6, overflow: "hidden", marginBottom: 20, boxShadow: SHADOW_HERO, border: `1px solid ${BORDER}`, borderBottom: `3px solid ${BRASS}` }}>
-        <LessonArt lesson={lesson} variant="hero" />
-        <div style={{ position: "absolute", left: 18, bottom: 14, fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#D9CBAE" }}>
-          Les {lesson.number} &middot; {COURSE_PARTS.find(p => p.id === lesson.part)?.title}
-        </div>
-      </div>
-      {lesson.format === "praktijk" ? (
-        <PracticeLessonBody lesson={lesson} recipes={recipes} allIngredients={allIngredients} onOpenRecipe={onOpenRecipe} onCheckin={onCheckin} />
-      ) : (
-        <>
-          <h2 style={{ fontFamily: systemFont, fontSize: 27, fontWeight: 700, color: INK, margin: "0 0 14px" }}>{lesson.title}</h2>
-          <p style={{ fontStyle: "italic", color: MUTED, fontSize: 14, borderLeft: `3px solid ${BRASS}`, paddingLeft: 14, margin: "0 0 22px", lineHeight: 1.55 }}>{lesson.intro}</p>
-
-          {lesson.blocks.map((b, i) => <LessonBlock key={i} block={b} />)}
-
-          <div style={{ marginTop: 24, marginBottom: 24, background: BOTTLE, color: CREAM, borderRadius: RADIUS, padding: "16px 18px", boxShadow: SHADOW_CARD }}>
-            <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#D8CFA0", marginBottom: 8 }}>Kernpunten van deze les</div>
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {lesson.takeaways.map((t, i) => <li key={i} style={{ fontSize: 13.5, marginBottom: 5, lineHeight: 1.5 }}>{t}</li>)}
-            </ul>
-          </div>
-        </>
-      )}
-
-      {showQuiz && (
-        <QuizBlock quiz={lesson.quiz} title={`Les ${lesson.number}`}
-          onClose={() => setShowQuiz(false)}
-          onFinish={(score) => { onComplete(score, lesson.quiz.length); setQuizDone(score / lesson.quiz.length >= QUIZ_PASS_RATIO); }}
-          nextAction={nextLesson
-            ? { label: `Volgende les: ${nextLesson.title}`, onClick: () => { setShowQuiz(false); onGoToLesson(nextLesson.id); } }
-            : { label: "Naar de eindtoets", onClick: () => { setShowQuiz(false); onGoToExam(); } }} />
-      )}
-      {(
-        <button onClick={() => setShowQuiz(true)} className="press-scale" style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 8,
-          background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: sans,
-        }}>
-          {quizDone || progress?.completed ? "Vragen nog een keer" : "Naar de vragen"} <ChevronRight size={17} />
-        </button>
-      )}
-
-      {quizDone && (
-        <div style={{ marginTop: 20, paddingTop: 20, borderTop: `1px solid ${BORDER}` }}>
-          {nextLesson ? (
-            <button onClick={() => onGoToLesson(nextLesson.id)} style={{ display: "flex", alignItems: "center", gap: 8, background: BOTTLE, color: CREAM, border: "none", borderRadius: RADIUS, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA }}>
-              Volgende les &middot; {nextLesson.title} <ChevronDown size={15} style={{ transform: "rotate(-90deg)" }} />
-            </button>
-          ) : (
-            <button onClick={onGoToExam} style={{ display: "flex", alignItems: "center", gap: 8, background: BOTTLE, color: CREAM, border: "none", borderRadius: RADIUS, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA }}>
-              <GraduationCap size={16} /> Laatste les gehad &middot; naar de eindtoets
-            </button>
-          )}
-        </div>
-      )}
-    </EdgeSwipeBackArea>
-  );
-}
-
-function FinalExamView({ progress, onBack, onComplete }) {
-  const [started, setStarted] = useState(false);
-
-  return (
-    <EdgeSwipeBackArea onBack={onBack}>
-      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontFamily: sans }}>
-        <ChevronDown size={14} style={{ transform: "rotate(90deg)" }} /> Terug naar overzicht
-      </button>
-
-      <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: MUTED, marginBottom: 6 }}>Eindtoets</div>
-      <h2 style={{ fontFamily: systemFont, fontSize: 27, fontWeight: 700, color: INK, margin: "0 0 14px" }}>Van Basis tot Pro</h2>
-      <p style={{ fontStyle: "italic", color: MUTED, fontSize: 14, borderLeft: `3px solid ${BRASS}`, paddingLeft: 14, margin: "0 0 22px", lineHeight: 1.55 }}>
-        30 vragen, verspreid over alle zes delen: geschiedenis tot en met geavanceerde technieken. Dit is dezelfde stof als de lessen, maar door elkaar en net iets anders gevraagd, om te checken of de kennis ook echt beklijft.
-      </p>
-
-      {progress?.completed && !started && (
-        <div style={{ marginBottom: 20, padding: "14px 16px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD }}>
-          <p style={{ fontSize: 13.5, color: INK, margin: 0 }}>
-            Je beste score tot nu toe: <strong>{progress.bestScore}/{progress.total}</strong>.
-          </p>
-        </div>
-      )}
-
-      {!started ? (
-        <button onClick={() => setStarted(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: BOTTLE, color: CREAM, border: "none", borderRadius: RADIUS, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA }}>
-          <GraduationCap size={16} /> {progress?.completed ? "Nog een keer proberen" : "Start de eindtoets"}
-        </button>
-      ) : (
-        <QuizBlock quiz={FINAL_EXAM} title="Eindtoets" onClose={() => setStarted(false)} onFinish={(score) => onComplete(score, FINAL_EXAM.length)} />
-      )}
-    </EdgeSwipeBackArea>
-  );
-}
-
-// Leestijd van een les, op ~200 woorden per minuut.
-function lessonMinutes(lesson) {
-  const text = [lesson.intro, ...(lesson.blocks || []).map(b => [b.text, b.label, ...(b.rows || []).flat()].filter(Boolean).join(" ")), ...(lesson.takeaways || [])].join(" ");
-  return Math.max(2, Math.round(text.split(/\s+/).length / 200));
-}
-
-function CursusTab({ progress, setProgress, onSound, recipes, allIngredients, onOpenRecipe, onCheckin }) {
-  const [selectedId, setSelectedId] = useState(null);
-  const [examOpen, setExamOpen] = useState(false);
-  // Een les of toets openen begint bovenaan, niet halverwege de lessenlijst.
-  useEffect(() => { window.scrollTo(0, 0); }, [selectedId, examOpen]);
-  const [activeBadgeId, setActiveBadgeId] = useState(null);
-  const [expandedParts, setExpandedParts] = useState({});
-  const lesson = COURSE_LESSONS.find(l => l.id === selectedId) || null;
-  const rank = useMemo(() => computeCourseRank(progress), [progress]);
-  // Een les openen = gestart (rang Leerling), ook als de toets nog niet af is.
-  const openLesson = (id) => {
-    if (!progress._gestart) setProgress({ ...progress, _gestart: true });
-    setSelectedId(id);
-  };
-  const totalLessons = COURSE_LESSONS.length;
-  const completedCount = COURSE_LESSONS.filter(l => progress[l.id]?.completed).length;
-  const allLessonsDone = completedCount === totalLessons;
-  const examProgress = progress.eindtoets;
-  const courseInsights = useMemo(() => computeCourseInsights(progress), [progress]);
-  const unlockedParts = useMemo(() => computeUnlockedParts(progress), [progress]);
-  const isLessonOpen = (l) => !!l && (unlockedParts.has(l.part) || !!progress[l.id]?.completed);
-  // Moment van uitspelen (alle lessen + eindtoets gehaald): één keer vieren.
-  const mastery = computeCourseMastery(progress);
-  const prevMasteredRef = useRef(!!mastery);
-  const [showDiplomaCelebration, setShowDiplomaCelebration] = useState(false);
-  useEffect(() => {
-    if (mastery && !prevMasteredRef.current) { setShowDiplomaCelebration(true); setTimeout(() => onSound("levelup"), 300); }
-    prevMasteredRef.current = !!mastery;
-  }, [!!mastery]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Zelfde fanfare-op-echte-mijlpaal-truc als bij Check-in: alleen geluid als
-  // het niveau of een badge daadwerkelijk verandert door het net afronden van
-  // een les/toets, niet bij elke render.
-  const prevCourseLevelRef = useRef(null);
-  const prevCourseBadgesRef = useRef(null);
-  const [justCompleted, setJustCompleted] = useState(false);
-  useEffect(() => {
-    const unlockedIds = new Set(courseInsights.badges.filter(b => b.unlocked).map(b => b.id));
-    if (prevCourseLevelRef.current !== null && justCompleted) {
-      if (courseInsights.level.level > prevCourseLevelRef.current) {
-        setTimeout(() => onSound("levelup"), 400);
-      } else {
-        const newlyUnlocked = [...unlockedIds].some(id => !prevCourseBadgesRef.current.has(id));
-        if (newlyUnlocked) setTimeout(() => onSound("unlock"), 400);
-      }
-    }
-    prevCourseLevelRef.current = courseInsights.level.level;
-    prevCourseBadgesRef.current = unlockedIds;
-  }, [courseInsights.level.level, courseInsights.badges, justCompleted]);
-
-  const complete = (lessonId, score, total) => {
-    const prev = progress[lessonId];
-    const passedNow = score / total >= QUIZ_PASS_RATIO;
-    // Voltooid = ooit geslaagd; een mislukte poging telt niet meer als "af".
-    setProgress({ ...progress, [lessonId]: { completed: !!prev?.completed || passedNow, bestScore: Math.max(score, prev?.bestScore ?? 0), total } });
-    if (passedNow) onSound("chime");
-    setJustCompleted(true);
-    setTimeout(() => setJustCompleted(false), 3000);
-  };
-
-  // Nieuwe rang (Barback t/m Bartender): één keer vieren. Meester heeft
-  // het diploma-moment hieronder.
-  const prevRankRef = useRef(rank.index);
-  const [rankCelebration, setRankCelebration] = useState(null);
-  useEffect(() => {
-    if (rank.index > prevRankRef.current && rank.index >= 1 && !rank.master) {
-      setRankCelebration(rank.rank);
-      setTimeout(() => onSound("levelup"), 300);
-    }
-    prevRankRef.current = rank.index;
-  }, [rank.index]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const diplomaCelebration = (<>
-    {rankCelebration && (
-      <ConfirmDialog title={`Je bent nu ${rankCelebration.name}`}
-        message={`${rankCelebration.rule}. Je ring op je profiel is voller geworden, en je vrienden zien je nieuwe rang in hun feed.`}
-        confirmLabel="Proost" confirmColor={BOTTLE} cancelLabel="Sluiten"
-        onCancel={() => setRankCelebration(null)} onConfirm={() => setRankCelebration(null)} />
-    )}
-    {showDiplomaCelebration && (
-    <ConfirmDialog title="Gefeliciteerd, je bent Meester"
-      message={`Je hebt alle ${totalLessons} lessen en de eindtoets gehaald. Je ring is nu massief goud, je diploma staat op je profiel en je vrienden zien het in hun feed.`}
-      confirmLabel="Proost" confirmColor={BOTTLE} cancelLabel="Sluiten"
-      onCancel={() => setShowDiplomaCelebration(false)} onConfirm={() => setShowDiplomaCelebration(false)} />
-    )}
-  </>);
-
-  if (examOpen) {
-    return (<>
-      {diplomaCelebration}
-      <FinalExamView progress={examProgress} onBack={() => setExamOpen(false)}
-        onComplete={(score, total) => complete("eindtoets", score, total)} />
-    </>);
-  }
-
-  if (lesson) {
-    const lessonIndex = COURSE_LESSONS.findIndex(l => l.id === lesson.id);
-    // "Volgende les" alleen als die al open is (volgend deel pas na afronden).
-    const nextCandidate = COURSE_LESSONS[lessonIndex + 1] || null;
-    const nextLesson = isLessonOpen(nextCandidate) ? nextCandidate : null;
-    return (
-      <LessonView key={lesson.id} lesson={lesson} progress={progress[lesson.id]}
-        recipes={recipes} allIngredients={allIngredients} onOpenRecipe={onOpenRecipe} onCheckin={onCheckin}
-        onBack={() => setSelectedId(null)}
-        onComplete={(score, total) => complete(lesson.id, score, total)}
-        nextLesson={nextLesson}
-        onGoToLesson={(id) => { if (isLessonOpen(COURSE_LESSONS.find(l => l.id === id))) openLesson(id); }}
-        onGoToExam={() => { if (!allLessonsDone) return; setSelectedId(null); setExamOpen(true); }} />
-    );
-  }
-
-  const nextUp = COURSE_LESSONS.find(l => !progress[l.id]?.completed && isLessonOpen(l)) || null;
-  const currentPartId = nextUp?.part || null;
-  const isPartExpanded = (id) => (expandedParts[id] ?? id === currentPartId);
-  const activeBadge = courseInsights.badges.find(b => b.id === activeBadgeId) || null;
-
-  return (
-    <div>
-      <div style={{
-        display: "flex", alignItems: "center", gap: 16, marginBottom: 14, borderRadius: RADIUS + 4, padding: 16,
-        background: `radial-gradient(ellipse 500px 220px at 15% -20%, #2A4B42, ${BOTTLE_DARK} 75%)`, boxShadow: SHADOW_HERO, color: HEADER_TEXT,
-      }}>
-        <CourseRing size={72} partsDone={rank.partsDone} master={rank.master} dark seal={false}>
-          <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#2A4B42", display: "flex", alignItems: "center", justifyContent: "center", color: "#F1D9A6" }}>
-            {rank.master ? <GraduationCap size={24} strokeWidth={1.8} /> : <span style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 16 }}>{rank.partsDone}/{COURSE_PART_COUNT}</span>}
-          </div>
-        </CourseRing>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#DDB877" }}>Jouw rang</div>
-          <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 22, marginTop: 2 }}>{rank.rank ? rank.rank.name : "Nog geen rang"}</div>
-          <div style={{ fontSize: 12.5, color: "#C9D2CB", marginTop: 3, lineHeight: 1.35 }}>
-            {rank.index < 0 ? "Start je eerste les en word Leerling" : courseRankHint(rank)}
-          </div>
-          <div style={{ height: 5, background: "rgba(255,255,255,0.15)", borderRadius: 3, overflow: "hidden", marginTop: 9 }}>
-            <div style={{ width: `${courseInsights.level.progress * 100}%`, height: "100%", background: BRASS, transition: "width 0.6s ease" }} />
-          </div>
-          <div style={{ fontSize: 11.5, color: "#C9D2CB", marginTop: 4 }}><AnimatedNumber value={courseInsights.xp} /> XP</div>
-        </div>
-      </div>
-
-      {nextUp && (
-        <button onClick={() => openLesson(nextUp.id)} className="press-scale" style={{
-          width: "100%", display: "flex", alignItems: "center", gap: 12, padding: 14, marginBottom: 18, boxSizing: "border-box", textAlign: "left",
-          background: CREAM, border: "none", borderRadius: 14, boxShadow: SHADOW_CARD, cursor: "pointer", fontFamily: sans, color: INK,
-        }}>
-          <LessonArt lesson={nextUp} />
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>
-              {completedCount === 0 ? "Eerste les" : "Volgende les"} · {lessonMinutes(nextUp)} min
-            </span>
-            <span style={{ display: "block", fontFamily: systemFont, fontSize: 16, fontWeight: 700, marginTop: 2 }}>{nextUp.title}</span>
-          </span>
-          <ChevronRight size={18} color={MUTED} style={{ flexShrink: 0 }} />
-        </button>
-      )}
-
-      <div style={{ marginBottom: 22 }}>
-        <SectionLabel>Badges</SectionLabel>
-        <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
-          {courseInsights.badges.map(b => {
-            const Icon = b.icon;
-            const selected = activeBadgeId === b.id;
-            return (
-              <button key={b.id} onClick={() => setActiveBadgeId(selected ? null : b.id)} aria-pressed={selected} style={{
-                border: "none", background: "none", padding: 0, margin: 0, cursor: "pointer", width: 78, flexShrink: 0,
-                color: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, fontFamily: sans,
-              }}>
-                <span style={{
-                  width: 48, height: 48, borderRadius: "50%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
-                  background: b.unlocked ? BOTTLE_DARK : PAPER_DEEP, color: b.unlocked ? "#DDB877" : "#B8A98A",
-                  border: b.unlocked ? `${selected ? 2.5 : 1.5}px solid ${BRASS}` : `1.5px ${selected ? "solid" : "dashed"} ${selected ? BRASS : BORDER}`,
-                }}><Icon size={20} strokeWidth={1.8} /></span>
-                <span style={{ fontSize: 11, textAlign: "center", lineHeight: 1.2, color: b.unlocked ? INK : MUTED, fontWeight: 600 }}>{b.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        {activeBadge && (
-          <div className="accordion-reveal" style={{ marginTop: 10, padding: "11px 13px", background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: INK }}>{activeBadge.label}{activeBadge.unlocked ? "" : " · nog niet behaald"}</div>
-            <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{activeBadge.text}</div>
-          </div>
-        )}
-      </div>
-
-      <SectionLabel>Delen</SectionLabel>
-      <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden", marginBottom: 22 }}>
-        {COURSE_PARTS.map((part, partIndex) => {
-          const lessons = COURSE_LESSONS.filter(l => l.part === part.id);
-          const doneInPart = lessons.filter(l => progress[l.id]?.completed).length;
-          const full = doneInPart === lessons.length;
-          const partOpen = unlockedParts.has(part.id);
-          const prevPart = COURSE_PARTS[partIndex - 1];
-          const expanded = isPartExpanded(part.id);
-          return (
-            <div key={part.id} style={{ borderTop: partIndex > 0 ? `1px solid ${BORDER}` : "none" }}>
-              <button onClick={() => setExpandedParts(e => ({ ...e, [part.id]: !expanded }))} aria-expanded={expanded} style={{
-                width: "100%", display: "flex", alignItems: "center", gap: 12, minHeight: 60, padding: "8px 14px", boxSizing: "border-box",
-                background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK,
-              }}>
-                <span style={{
-                  width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                  background: full ? BRASS : PAPER_DEEP, color: full ? CREAM : MUTED, fontSize: 13, fontWeight: 700, fontFamily: systemFont,
-                }}>{full ? <Check size={15} strokeWidth={3} /> : !partOpen ? <Lock size={13} strokeWidth={2.4} /> : partIndex + 1}</span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 15, fontWeight: 700 }}>{part.title}</span>
-                  <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>
-                    {!partOpen && prevPart ? `Na ${prevPart.title}` : `${doneInPart} van ${lessons.length} lessen`}
-                  </span>
-                </span>
-                <ChevronDown size={16} color={MUTED} style={{ flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }} />
-              </button>
-              {expanded && (
-                <div className="accordion-reveal" style={{ padding: "0 14px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
-                  {lessons.map(l => {
-                    const p = progress[l.id];
-                    const open = isLessonOpen(l);
-                    return (
-                      <button key={l.id} onClick={() => open && openLesson(l.id)} disabled={!open} aria-label={open ? undefined : `${l.title} (vergrendeld)`} style={{
-                        width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left", minHeight: 52, padding: "6px 10px", boxSizing: "border-box",
-                        background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 12, cursor: open ? "pointer" : "default", opacity: open ? 1 : 0.6, fontFamily: sans, color: INK,
-                      }}>
-                        <span style={{
-                          width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                          background: p?.completed ? SAGE : "transparent", border: `1.5px solid ${p?.completed ? SAGE : BORDER}`,
-                        }}>
-                          {p?.completed ? <Check size={13} color={CREAM} strokeWidth={3} /> : !open ? <Lock size={12} color={MUTED} strokeWidth={2.4} /> : <span style={{ fontSize: 11.5, fontWeight: 700, color: MUTED, fontFamily: systemFont }}>{l.number}</span>}
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{l.title}</span>
-                          <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{lessonMinutes(l)} min{p ? ` · beste score ${p.bestScore}/${p.total}` : ""}</span>
-                        </span>
-                        {open && <ChevronRight size={15} color={MUTED} style={{ flexShrink: 0 }} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{
-        marginTop: 10, padding: "20px 22px", borderRadius: RADIUS + 2, boxShadow: SHADOW_HERO,
-        background: BOTTLE, position: "relative", overflow: "hidden",
-      }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 400px 200px at 100% 0%, rgba(255,255,255,0.14), transparent 60%)", pointerEvents: "none" }} />
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.85)", marginBottom: 6 }}>
-            {allLessonsDone ? "Alle lessen voltooid" : `${totalLessons - completedCount} les${totalLessons - completedCount === 1 ? "" : "sen"} nog te gaan`}
-          </div>
-          <h3 style={{ fontFamily: systemFont, fontSize: 21, fontWeight: 700, color: ON_DARK_TEXT, margin: "0 0 8px" }}>Eindtoets: Van Basis tot Pro</h3>
-          <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.9)", margin: "0 0 16px", lineHeight: 1.5, maxWidth: 480 }}>
-            30 vragen door elkaar over alle zes delen. {examProgress?.completed ? `Beste score: ${examProgress.bestScore}/${examProgress.total}.` : allLessonsDone ? "Haal minstens 80% (24 van de 30) en je krijgt je diploma op je profiel." : "Gaat open zodra je alle zes delen hebt afgerond."}
-          </p>
-          <button onClick={() => allLessonsDone && setExamOpen(true)} disabled={!allLessonsDone} style={{ opacity: allLessonsDone ? 1 : 0.55, cursor: allLessonsDone ? "pointer" : "default", display: "flex", alignItems: "center", gap: 6, background: CREAM, color: BOTTLE, border: "none", borderRadius: RADIUS, padding: "10px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
-            {allLessonsDone ? <GraduationCap size={15} /> : <Lock size={14} />} {examProgress?.completed ? "Opnieuw proberen" : "Start de eindtoets"}
-          </button>
-        </div>
-      </div>
-      {diplomaCelebration}
-    </div>
-  );
-}
-
-// Zelfde cosinegelijkenis-score als de persoonlijke "Aanbevolen voor jou"
-// (computeCheckinInsights), hier losgetrokken zodat 'm ook op een
-// opgetelde-groepsvoorkeur (smaaktest-antwoorden) kan draaien i.p.v. op
-// gewogen check-in-geschiedenis van één persoon.
-// Dieper dan een enkele smaakvector: weegt ook wat de groep NIET lust (straft
-// dat af), welke basisdrank het vaakst favoriet is (bonus als een recept die
-// drank bevat), welke cocktails gasten letterlijk noemden (die verdienen
-// sowieso een plek), en — als isOwned wordt meegegeven — hoeveel van de
-// verplichte ingrediënten je al in huis hebt. Alles blijft optelbaar uit
-// dezelfde ruwe antwoorden, geen verzonnen aannames.
-function computeGroupRecommendations(responses, recipes, excludeIds, isOwned) {
-  if (responses.length === 0) return [];
-
-  const vec = { fruitig: 0, zoet: 0, zuur: 0, sterk: 0, bitter: 0 };
-  responses.forEach(r => (r.taste_tags || []).forEach(k => { if (k in vec) vec[k] += 1; }));
-  const strengthValues = responses.map(r => r.strength).filter(s => s != null);
-  if (strengthValues.length > 0) {
-    const avgStrength = strengthValues.reduce((a, b) => a + b, 0) / strengthValues.length;
-    vec.sterk = ((avgStrength - 1) / 4) * responses.length;
-  }
-  const mag = Math.sqrt(Object.values(vec).reduce((s, v) => s + v * v, 0));
-  if (mag === 0) return [];
-
-  const dislikeVec = { fruitig: 0, zoet: 0, zuur: 0, sterk: 0, bitter: 0 };
-  responses.forEach(r => (r.dislike_tags || []).forEach(k => { if (k in dislikeVec) dislikeVec[k] += 1; }));
-
-  const spiritCounts = {};
-  responses.forEach(r => { if (r.favorite_spirit) spiritCounts[r.favorite_spirit] = (spiritCounts[r.favorite_spirit] || 0) + 1; });
-  const topSpiritKey = Object.entries(spiritCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
-  const topSpiritIds = new Set(FAVORITE_SPIRIT_OPTIONS.find(o => o.key === topSpiritKey)?.ids || []);
-
-  const mentionedIds = new Set(responses.flatMap(r => r.favorite_cocktail_ids || []));
-  const excluded = new Set(excludeIds || []);
-  // Nieuwe smaaktest: per ingrediënt hoeveel gasten het lekker / liever niet vinden.
-  const prefs = ingredientPreferenceCounts(responses);
-
-  return recipes
-    .filter(r => !excluded.has(r.id))
-    .map(r => {
-      const rVec = FAMILY_TASTE[r.family] || {};
-      const rMag = Math.sqrt(Object.values(rVec).reduce((s, v) => s + v * v, 0));
-      let dot = 0, dislikeDot = 0;
-      Object.entries(rVec).forEach(([k, w]) => { dot += w * (vec[k] || 0); dislikeDot += w * (dislikeVec[k] || 0); });
-      let tasteScore = rMag > 0 ? (dot / (rMag * mag)) * 100 : 0;
-      const dislikePenalty = rMag > 0 ? (dislikeDot / rMag) * (100 / responses.length) : 0;
-      tasteScore = Math.max(0, tasteScore - dislikePenalty);
-
-      const spiritMatch = topSpiritIds.size > 0 && r.ingredients.some(i => topSpiritIds.has(i.id));
-      const mentioned = mentionedIds.has(r.id);
-      const required = r.ingredients.filter(i => !i.optional);
-      const missingCount = isOwned ? required.filter(i => !isOwned(i)).length : null;
-      const ownedCount = missingCount != null ? required.length - missingCount : null;
-      const matchPct = isOwned && required.length > 0 ? Math.round((ownedCount / required.length) * 100) : null;
-
-      const ingIds = r.ingredients.map(i => i.id);
-      const likeHits = ingIds.reduce((n, id) => n + (prefs.like[id] || 0), 0);
-      const dislikeHits = ingIds.reduce((n, id) => n + (prefs.dislike[id] || 0), 0);
-      const prefScore = Math.min(20, (likeHits / responses.length) * 12) - Math.min(35, (dislikeHits / responses.length) * 25);
-      const score = Math.round(tasteScore * 0.55 + (matchPct != null ? matchPct * 0.25 : 0) + (spiritMatch ? 15 : 0) + (mentioned ? 20 : 0) + prefScore);
-      return { recipe: r, score, matchPct, ownedCount, requiredCount: required.length, mentioned, spiritMatch };
-    })
-    .filter(x => x.score > 0 || x.mentioned)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
-}
-
-// Ingrediënten die typisch niet passen bij een dieetwens — geen sluitende
-// allergieclaim (daarvoor ontbreekt de data), alleen een zachte waarschuwing
-// zodat de host het zelf kan nalopen voor het serveren. Gluten laten we
-// bewust weg: gedistilleerde dranken bevatten na distillatie geen gluten
-// meer, dus daar geeft deze ingrediëntenlijst geen zinnig signaal voor.
-const DIET_CONFLICT_INGREDIENTS = {
-  noten: ["orgeat", "amaretto", "frangelico", "creme_de_noyaux"],
-  lactose: ["heavy_cream", "whipped_cream", "milk", "irish_cream"],
-  vegan: ["heavy_cream", "whipped_cream", "milk", "irish_cream", "egg_white", "egg_yolk", "honey_syrup", "honey_ginger_syrup"],
-  rauw_ei: ["egg_white", "egg_yolk"],
-};
-function getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals) {
-  const ids = new Set(recipe.ingredients.map(i => i.id));
-  const warnings = [];
-  Object.entries(DIET_CONFLICT_INGREDIENTS).forEach(([key, conflictIds]) => {
-    const count = surveyDietaryTotals?.[key] || 0;
-    if (count > 0 && conflictIds.some(id => ids.has(id))) {
-      warnings.push(`${count}x ${DIETARY_META[key]?.label || key}`);
-    }
-  });
-  const rVec = FAMILY_TASTE[recipe.family] || {};
-  const [dominantKey, dominantWeight] = Object.entries(rVec).sort((a, b) => b[1] - a[1])[0] || [];
-  if (dominantKey && dominantWeight >= 0.6 && (surveyDislikeTotals?.[dominantKey] || 0) > 0) {
-    warnings.push(`${surveyDislikeTotals[dominantKey]}x houdt niet van ${(TASTE_META[dominantKey]?.label || dominantKey).toLowerCase()}`);
-  }
-  return warnings;
-}
-
-// Menu/inkoop-berekening voor één feest — losgetrokken uit het
-// detailscherm zodat de feestenlijst 'm ook kan gebruiken voor de
-// voortgangsbalk ("14 te kopen" / "Alles in huis") zonder de hele
-// inkooplijst-UI te dupliceren.
-function computePartyMenu(party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal) {
-  const chosenRecipes = (party.cocktail_ids || []).map(id => recipes.find(r => r.id === canonicalRecipeId(id))).filter(Boolean);
-  const guests = party.guests || 8;
-  const drinksPerGuest = party.drinks_per_guest || 2;
-  const totalDrinks = Math.max(1, guests) * Math.max(1, drinksPerGuest);
-  const n = chosenRecipes.length || 1;
-  const base = Math.floor(totalDrinks / n);
-  const remainder = totalDrinks - base * n;
-  const perRecipeCounts = chosenRecipes.map((_, i) => base + (i < remainder ? 1 : 0));
-
-  const needsMap = new Map();
-  chosenRecipes.forEach((r, i) => {
-    const count = perRecipeCounts[i] || 0;
-    r.ingredients.forEach(ing => {
-      const key = ingredientKey(ing) + "|" + ing.unit;
-      if (!needsMap.has(key)) {
-        needsMap.set(key, { key, label: ingredientLabel(ing), unit: ing.unit, amount: 0, meta: findIngredientMeta(ing, allIngredients), owned: isOwned(ing), ref: ing, recipeNames: new Set() });
-      }
-      needsMap.get(key).amount += ing.amount * count;
-      needsMap.get(key).recipeNames.add(r.name);
-    });
-  });
-  const needs = [...needsMap.values()].map(v => ({ ...v, recipeNames: [...v.recipeNames] })).sort((a, b) => a.label.localeCompare(b.label));
-
-  let totalCost = 0;
-  const rows = needs.map(item => {
-    const { meta, unit, amount, owned, ref } = item;
-    if (owned) {
-      const aantalId = ref.id || meta?.id;
-      const aantal = (aantalId && voorraadAantal[aantalId]) ?? 1;
-      if (meta && meta.bottleMl && meta.bottlePrice && unit !== "dash") {
-        const availableMl = aantal * meta.bottleMl;
-        if (amount <= availableMl) {
-          return { ...item, buyLabel: aantal === 1 ? "al in voorraad" : `al in voorraad (${formatAantal(aantal)} flessen)`, cost: 0 };
-        }
-        const shortfall = amount - availableMl;
-        const bottles = Math.ceil(shortfall / meta.bottleMl);
-        const cost = bottles * meta.bottlePrice;
-        totalCost += cost;
-        return { ...item, buyLabel: `${formatAantal(aantal)} fles${aantal === 1 ? "" : "sen"} in voorraad · ${bottles} bijkopen · ${euro(cost)}`, cost };
-      }
-      return { ...item, buyLabel: aantal === 1 ? "al in voorraad" : `al in voorraad (${formatAantal(aantal)} flessen)`, cost: 0 };
-    }
-    if (meta && meta.bottleMl && meta.bottlePrice) {
-      if (unit === "dash") {
-        totalCost += meta.bottlePrice;
-        return { ...item, buyLabel: `1 fles (${meta.bottleMl} ml)`, cost: meta.bottlePrice };
-      }
-      const bottles = Math.ceil(amount / meta.bottleMl);
-      const cost = bottles * meta.bottlePrice;
-      totalCost += cost;
-      return { ...item, buyLabel: `${bottles} fles${bottles === 1 ? "" : "sen"} (${meta.bottleMl} ml)`, cost };
-    }
-    if (meta && meta.unitPrice) {
-      const stuks = Math.ceil(amount);
-      const cost = stuks * meta.unitPrice;
-      totalCost += cost;
-      return { ...item, buyLabel: `${stuks} stuks`, cost };
-    }
-    return { ...item, buyLabel: "naar smaak", cost: 0 };
-  });
-
-  return { chosenRecipes, perRecipeCounts, totalDrinks, rows, totalCost };
-}
-
-// Voorbereidings-checklist voor één feest — zelfde afgeleide gegevens
-// (glaswerk, garnering, batchbare cocktails) als voorheen inline in het
-// detailscherm, nu ook bruikbaar voor de "x/y voorbereid"-samenvatting op
-// de feestenkaart.
-function computePartyPrepChecklist(chosenRecipes, perRecipeCounts, allIngredients, totalDrinks) {
-  const glasses = new Map();
-  const garnish = new Map();
-  const batchAhead = [];
-  chosenRecipes.forEach((r, i) => {
-    const count = perRecipeCounts[i] || 0;
-    glasses.set(r.glass, (glasses.get(r.glass) || 0) + count);
-    r.ingredients.forEach(ing => {
-      const meta = findIngredientMeta(ing, allIngredients);
-      if (meta && (meta.cat === "Vers" || meta.cat === "Zuivel & room") && !meta.bottleMl) {
-        garnish.set(meta.name, meta.name);
-      }
-    });
-    const techniques = inferTechniques(r.method);
-    const role = getMenuRole(r);
-    if (role === "sterk" && techniques.length > 0 && techniques.every(t => ["stirred", "build"].includes(t))) {
-      batchAhead.push(r.name);
-    }
-  });
-  const kgIjs = Math.round(totalDrinks * 0.15 * 10) / 10;
-  const glassList = [...glasses.entries()];
-  const garnishList = [...garnish.values()];
-
-  const items = [{ id: "boodschappen", group: "dag", label: "Boodschappen doen" }];
-  if (batchAhead.length > 0) items.push({ id: "batchen", group: "dag", label: `Batchen: ${batchAhead.join(", ")}` });
-  items.push({ id: "ijs", group: "2uur", label: `IJs halen (± ${kgIjs} kg)` });
-  if (glassList.length > 0) items.push({ id: "glazen", group: "2uur", label: `Glazen koelen: ${glassList.map(([g, c]) => `${g} (${c}×)`).join(", ")}` });
-  if (garnishList.length > 0) items.push({ id: "garnering", group: "2uur", label: `Garnering klaarzetten: ${garnishList.join(", ")}` });
-  items.push({ id: "menu-delen", group: "aankomst", label: "Menu delen met gasten" });
-  items.push({ id: "eerste-ronde", group: "aankomst", label: "Eerste ronde klaarzetten" });
-  return items;
-}
-
-const KORTE_DAGEN = ["zo", "ma", "di", "wo", "do", "vr", "za"];
-function formatDayShort(date) {
-  return `${KORTE_DAGEN[date.getDay()]} ${date.getDate()} ${KORTE_MAANDEN[date.getMonth()]}`;
-}
-function formatTimeShort(date) {
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
-// Kleine herbruikbare bevestigingsdialoog voor destructieve acties binnen de
-// Feestplanner (smaaktest verwijderen, menu vervangen) — één component i.p.v.
-// 'm twee keer los uit te schrijven.
-// Deelt een gegenereerd bestand (menukaart-afbeelding of -PDF): in de app via
-// het iOS-deelmenu (bestand eerst naar de cache), op het web via de Web Share
-// API met bestanden, anders als download.
-async function shareGeneratedFile({ filename, mime, base64, title }) {
-  try {
-    if (isNativeShell) {
-      const { uri } = await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
-      await Share.share({ title, files: [uri], dialogTitle: title });
-      return "shared";
-    }
-    const bin = atob(base64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const file = new File([bytes], filename, { type: mime });
-    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title }); return "shared"; }
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    return "downloaded";
-  } catch (e) {
-    return /cancel|abort/i.test(`${e?.name} ${e?.message}`) ? "cancelled" : "failed";
-  }
-}
-function bytesToBase64(bytes) {
-  let bin = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(bin);
-}
-
-// Keuze hoe de host het menu deelt: als link, als afbeelding voor een
-// status/story, of als printbare A5-PDF.
-function MenuShareSheet({ busy, onClose, onLink, onStory, onPdf }) {
-  useBodyScrollLock();
-  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
-  const row = (Icon, title, subtitle, onClick) => (
-    <button onClick={onClick} disabled={!!busy} style={{
-      display: "flex", alignItems: "center", gap: 14, width: "100%", minHeight: 60, padding: "10px 4px",
-      background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, textAlign: "left", cursor: busy ? "default" : "pointer", fontFamily: sans, color: INK,
-      opacity: busy && busy !== title ? 0.45 : 1,
-    }}>
-      <span style={{ width: 40, height: 40, borderRadius: "50%", background: PAPER_DEEP, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: BOTTLE }}>
-        <Icon size={18} />
-      </span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 15.5, fontWeight: 700 }}>{busy === title ? "Bezig…" : title}</span>
-        <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 2 }}>{subtitle}</span>
-      </span>
-    </button>
-  );
-  return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-      <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 560, width: "100%", margin: "0 auto", background: PAPER,
-        borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)", fontFamily: sans,
-        padding: "0 20px calc(env(safe-area-inset-bottom) + 18px)",
-      }}>
-        <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ fontSize: 17, fontWeight: 800, color: INK, padding: "2px 4px 8px", touchAction: "none" }}>Menu delen</div>
-        {row(Share2, "Link delen", "Gasten openen de menukaart in hun browser.", onLink)}
-        {row(ImageIcon, "Als afbeelding", "Staand 1080×1920, voor WhatsApp-status of Instagram-story.", onStory)}
-        {row(Printer, "Printversie (A5)", "PDF om te printen en op tafel te zetten.", onPdf)}
-      </div>
-    </div>
-  ), document.body);
-}
-
-function ConfirmDialog({ title, message, cancelLabel = "Annuleer", confirmLabel, confirmColor = BURGUNDY, busy, onCancel, onConfirm }) {
+export function ConfirmDialog({ title, message, cancelLabel = "Annuleer", confirmLabel, confirmColor = BURGUNDY, busy, onCancel, onConfirm }) {
   return createPortal(
     <div role="dialog" aria-modal="true" style={{
       position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center",
@@ -11546,1748 +9124,11 @@ function ConfirmDialog({ title, message, cancelLabel = "Annuleer", confirmLabel,
   );
 }
 
-// iOS-stijl swipe-acties (naar links vegen onthult knoppen) i.p.v. losse
-// icoontjes naast de rij — zelfde imperatieve transform-aanpak (via ref,
-// geen re-render per pixel) als de rand-swipe-terug-gestiek elders in dit
-// bestand.
-function SwipeRevealRow({ onWissel, onVerwijder, children }) {
-  const actionsWidth = (onWissel ? 76 : 0) + (onVerwijder ? 76 : 0);
-  const rowRef = useRef(null);
-  const drag = useRef({ tracking: false, startX: 0, baseX: 0, x: 0 });
-  const [open, setOpen] = useState(false);
 
-  const setX = (x, animated) => {
-    drag.current.x = x;
-    if (rowRef.current) {
-      rowRef.current.style.transition = animated ? "transform 0.22s cubic-bezier(.32,.72,.35,1)" : "none";
-      rowRef.current.style.transform = `translateX(${x}px)`;
-    }
-  };
+ 
 
-  const onTouchStart = (e) => {
-    if (actionsWidth === 0) return;
-    drag.current.tracking = true;
-    drag.current.startX = e.touches[0].clientX;
-    drag.current.startY = e.touches[0].clientY;
-    drag.current.locked = false;
-    drag.current.baseX = open ? -actionsWidth : 0;
-  };
-  const onTouchMove = (e) => {
-    if (!drag.current.tracking) return;
-    const dx = e.touches[0].clientX - drag.current.startX;
-    const dy = e.touches[0].clientY - (drag.current.startY ?? e.touches[0].clientY);
-    // Richting vastleggen: verticaal = gewoon scrollen, horizontaal = vegen
-    // (en dan niet ook de terugveeg-gestiek van het scherm eromheen starten).
-    if (!drag.current.locked) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      if (Math.abs(dy) > Math.abs(dx)) { drag.current.tracking = false; return; }
-      drag.current.locked = true;
-    }
-    e.stopPropagation();
-    const next = Math.max(-actionsWidth, Math.min(0, drag.current.baseX + dx));
-    setX(next, false);
-  };
-  const onTouchEnd = () => {
-    if (!drag.current.tracking) return;
-    drag.current.tracking = false;
-    const shouldOpen = drag.current.x < -actionsWidth / 2;
-    setOpen(shouldOpen);
-    setX(shouldOpen ? -actionsWidth : 0, true);
-  };
-  const close = () => { setOpen(false); setX(0, true); };
 
-  return (
-    <div style={{ position: "relative", borderRadius: 14, overflow: "hidden" }}>
-      <div style={{ position: "absolute", inset: 0, display: "flex", justifyContent: "flex-end" }}>
-        {onWissel && (
-          <button onClick={() => { close(); onWissel(); }} style={{
-            width: 76, minHeight: 44, border: "none", background: BOTTLE, color: CREAM,
-            fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-          }}>
-            <RefreshCw size={14} /> Wissel
-          </button>
-        )}
-        {onVerwijder && (
-          <button onClick={() => { close(); onVerwijder(); }} style={{
-            width: 76, minHeight: 44, border: "none", background: BURGUNDY, color: CREAM,
-            fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-          }}>
-            <Trash2 size={14} /> Verwijder
-          </button>
-        )}
-      </div>
-      <div ref={rowRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
-        style={{ position: "relative", touchAction: "pan-y" }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function FeestplannerTab({ session, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, active,
-  parties, onCreateParty, onUpdateParty, onDeleteParty, openPartyId, onOpenPartyHandled, hostName, recentRecipeIds, favoriteRecipeIds, onOpenMenuAssistent, maAnswersByParty = {} }) {
-  const [selectedPartyId, setSelectedPartyId] = useState(null);
-  // Een feest openen (of terug naar de lijst) begint bovenaan.
-  useEffect(() => { window.scrollTo(0, 0); }, [selectedPartyId]);
-  const [showNewPartySheet, setShowNewPartySheet] = useState(false);
-  const [creatingParty, setCreatingParty] = useState(false);
-  const [confirmDeletePartyId, setConfirmDeletePartyId] = useState(null);
-
-  // Cross-tab "open dit feest direct" (bijv. vanuit Menu-assistent' "gebruik dit
-  // menu") — zelfde pendingRecipeId-patroon als de rest van de app.
-  useEffect(() => {
-    if (openPartyId) { setSelectedPartyId(openPartyId); onOpenPartyHandled(); }
-  }, [openPartyId]);
-
-  const upcoming = useMemo(() => parties.filter(isPartyUpcoming).sort(compareUpcomingParties), [parties]);
-  const past = useMemo(() => parties.filter(p => !isPartyUpcoming(p)).sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at)), [parties]);
-  const selectedParty = selectedPartyId ? parties.find(p => p.id === selectedPartyId) : null;
-
-  const createParty = async (fields) => {
-    setCreatingParty(true);
-    const party = await onCreateParty({ ...fields, cocktail_ids: [], bought_items: [], prep_done: [] });
-    setCreatingParty(false);
-    setShowNewPartySheet(false);
-    if (party) { onSound("pop"); setSelectedPartyId(party.id); }
-  };
-  const deleteParty = () => {
-    onSound("remove");
-    onDeleteParty(confirmDeletePartyId);
-    if (confirmDeletePartyId === selectedPartyId) setSelectedPartyId(null);
-    setConfirmDeletePartyId(null);
-  };
-
-  if (selectedParty) {
-    return (
-      <>
-      <PartyDetailScreen key={selectedParty.id} session={session} party={selectedParty}
-        onUpdateParty={patch => onUpdateParty(selectedParty.id, patch)}
-        onBack={() => setSelectedPartyId(null)} onDelete={() => setConfirmDeletePartyId(selectedParty.id)}
-        recipes={recipes} isOwned={isOwned} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
-        onAddToShoppingList={onAddToShoppingList} voorraadAantal={voorraadAantal} onSound={onSound} onOpenRecipe={onOpenRecipe}
-        hostName={hostName} active={active} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
-        onOpenMenuAssistent={onOpenMenuAssistent ? () => onOpenMenuAssistent(selectedParty.id) : null} maAnswers={maAnswersByParty[selectedParty.id] || null} />
-      {confirmDeletePartyId && (
-        <ConfirmDialog title="Feest verwijderen?" message="Het menu, de inkooplijst en de voorbereiding van dit feest gaan verloren."
-          confirmLabel="Verwijder" onCancel={() => setConfirmDeletePartyId(null)} onConfirm={deleteParty} />
-      )}
-      </>
-    );
-  }
-
-  return (
-    <div>
-      <SectionLabel>Aankomend</SectionLabel>
-      {upcoming.length === 0 && (
-        <div style={{ border: `1px dashed ${BORDER}`, borderRadius: RADIUS, padding: "24px 20px", textAlign: "center", marginBottom: 20 }}>
-          <PartyPopper size={22} color={MUTED} style={{ marginBottom: 8 }} />
-          <p style={{ fontSize: 13, color: MUTED, margin: 0, lineHeight: 1.5 }}>Nog geen feest gepland. Maak er een aan om te beginnen.</p>
-        </div>
-      )}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
-        {upcoming.map(party => (
-          <SwipeRevealRow key={party.id} onVerwijder={() => setConfirmDeletePartyId(party.id)}>
-            <PartyCard party={party} recipes={recipes} allIngredients={allIngredients} isOwned={isOwned}
-              ingredientLabel={ingredientLabel} voorraadAantal={voorraadAantal} onOpen={() => setSelectedPartyId(party.id)} />
-          </SwipeRevealRow>
-        ))}
-      </div>
-
-      <button onClick={() => setShowNewPartySheet(true)} className="press-scale" style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 48,
-        background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: RADIUS, fontSize: 14.5, fontWeight: 700,
-        cursor: "pointer", boxShadow: SHADOW_CTA, marginBottom: 28,
-      }}>
-        <Plus size={16} /> Nieuw feest
-      </button>
-
-      <SectionLabel>Eerder</SectionLabel>
-      {past.length === 0 ? (
-        <div style={{ border: `1px dashed ${BORDER}`, borderRadius: RADIUS, padding: "20px", textAlign: "center" }}>
-          <p style={{ fontSize: 12.5, color: MUTED, margin: 0, lineHeight: 1.5 }}>Nog geen eerdere feesten — afgelopen feesten blijven hier bewaard.</p>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {past.map(party => (
-            <SwipeRevealRow key={party.id} onVerwijder={() => setConfirmDeletePartyId(party.id)}>
-              <PartyCard party={party} recipes={recipes} allIngredients={allIngredients} isOwned={isOwned}
-                ingredientLabel={ingredientLabel} voorraadAantal={voorraadAantal} onOpen={() => setSelectedPartyId(party.id)} compact />
-            </SwipeRevealRow>
-          ))}
-        </div>
-      )}
-
-      {showNewPartySheet && (
-        <PartyFormSheet busy={creatingParty} onClose={() => setShowNewPartySheet(false)} onSubmit={createParty} />
-      )}
-      {confirmDeletePartyId && (
-        <ConfirmDialog title="Feest verwijderen?" message="Het menu, de inkooplijst en de voorbereiding van dit feest gaan verloren."
-          confirmLabel="Verwijder" onCancel={() => setConfirmDeletePartyId(null)} onConfirm={deleteParty} />
-      )}
-    </div>
-  );
-}
-
-function PartyCard({ party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal, onOpen, compact }) {
-  const { chosenRecipes, perRecipeCounts, totalDrinks, rows } = useMemo(
-    () => computePartyMenu(party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal),
-    [party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal]
-  );
-  const prepItems = useMemo(
-    () => computePartyPrepChecklist(chosenRecipes, perRecipeCounts, allIngredients, totalDrinks),
-    [chosenRecipes, perRecipeCounts, allIngredients, totalDrinks]
-  );
-  const teKopen = rows.filter(r => r.cost > 0).length;
-  const prepDone = (party.prep_done || []).filter(id => prepItems.some(i => i.id === id)).length;
-  const menuPct = chosenRecipes.length > 0 ? 100 : 0;
-  const inkoopPct = rows.length > 0 ? Math.round(((rows.length - teKopen) / rows.length) * 100) : 0;
-  const prepPct = prepItems.length > 0 ? Math.round((prepDone / prepItems.length) * 100) : 0;
-  const firstRecipe = chosenRecipes[0];
-  const photo = firstRecipe ? (localItemImageUrl("cocktail", firstRecipe.id) || firstRecipe.image) : null;
-  const whenTimeLine = party.starts_at
-    ? `${formatDayShort(new Date(party.starts_at))} · ${formatTimeShort(new Date(party.starts_at))} · ${party.guests} gasten`
-    : `${party.guests} gasten`;
-
-  return (
-    <button onClick={onOpen} style={{
-      display: "block", width: "100%", textAlign: "left", background: CREAM, border: "none",
-      borderRadius: RADIUS + 4, boxShadow: SHADOW_CARD, cursor: "pointer", padding: 0, overflow: "hidden", fontFamily: sans,
-    }}>
-      {!compact && (
-        <div style={{ position: "relative", height: 130 }}>
-          <img src={photo || feestHeaderImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(19,38,34,0.75), rgba(19,38,34,0.05) 60%)" }} />
-          <span className="glass-chip-dark" style={{ position: "absolute", top: 10, left: 10, borderRadius: 100, padding: "4px 10px", fontSize: 10.5, fontWeight: 700 }}>{formatPartyWhen(party)}</span>
-        </div>
-      )}
-      <div style={{ padding: compact ? "11px 14px" : "14px 16px" }}>
-        {compact && <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, letterSpacing: 0.3 }}>{formatPartyWhen(party)}</span>}
-        <div style={{ fontFamily: serif, fontWeight: 700, fontSize: compact ? 15 : 19, color: INK, marginTop: compact ? 2 : 0 }}>{party.name}</div>
-        <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{whenTimeLine}</div>
-        {!compact && (
-          <>
-            <div style={{ display: "flex", gap: 3, marginTop: 12, height: 4 }}>
-              {[menuPct, inkoopPct, prepPct].map((pct, i) => (
-                <div key={i} style={{ flex: 1, borderRadius: 2, background: BORDER, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: BRASS }} />
-                </div>
-              ))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10.5, color: MUTED, gap: 6 }}>
-              <span>{chosenRecipes.length > 0 ? "Menu klaar" : "Nog geen menu"}</span>
-              <span>{teKopen > 0 ? `${teKopen} te kopen` : "Alles in huis"}</span>
-              <span>{prepItems.length > 0 ? `${prepDone}/${prepItems.length} voorbereid` : "Voorbereiding"}</span>
-            </div>
-          </>
-        )}
-      </div>
-    </button>
-  );
-}
-
-function PartyFormSheet({ initial, busy, onClose, onSubmit, onDelete = null }) {
-  useBodyScrollLock();
-  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
-  const [name, setName] = useState(initial?.name || "");
-  const [date, setDate] = useState(initial?.starts_at ? initial.starts_at.slice(0, 10) : "");
-  const [time, setTime] = useState(initial?.starts_at ? formatTimeShort(new Date(initial.starts_at)) : "20:00");
-  const [guests, setGuests] = useState(initial?.guests || 8);
-  const [drinksPerGuest, setDrinksPerGuest] = useState(initial?.drinks_per_guest || 2);
-  const [address, setAddress] = useState(initial?.address || "");
-  const [showAddress, setShowAddress] = useState(!!initial?.show_address);
-
-  const submit = () => {
-    if (!name.trim()) return;
-    const starts_at = date ? new Date(`${date}T${time || "20:00"}:00`).toISOString() : null;
-    onSubmit({ name: name.trim(), starts_at, guests, drinks_per_guest: drinksPerGuest, address: address.trim() || null, show_address: showAddress && !!address.trim() });
-  };
-
-  const inputStyle = { width: "100%", boxSizing: "border-box", padding: "12px 14px", minHeight: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, fontSize: 15, fontFamily: sans, color: INK };
-
-  return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
-      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-      <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 560, width: "100%", margin: "0 auto", maxHeight: "85vh",
-        background: PAPER, borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)",
-        display: "flex", flexDirection: "column", overflow: "hidden",
-      }}>
-        <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0, touchAction: "none" }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{initial ? "Feest aanpassen" : "Nieuw feest"}</div>
-          <button onClick={close} aria-label="Sluiten" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: "50%", background: PAPER_DEEP, border: "none", cursor: "pointer", color: INK }}>
-            <X size={16} />
-          </button>
-        </div>
-        <div style={{ padding: "18px 20px", overflowY: "auto", overflowX: "hidden" }}>
-          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Naam</label>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="bijv. Najaarsborrel" autoFocus style={{ ...inputStyle, marginBottom: 16 }} />
-
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Datum (optioneel)</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
-            </div>
-            <div style={{ width: 110 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Tijd</label>
-              <input type="time" value={time} onChange={e => setTime(e.target.value)} disabled={!date} style={{ ...inputStyle, background: date ? CREAM : PAPER_DEEP }} />
-            </div>
-          </div>
-
-          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Adres (optioneel)</label>
-          <input value={address} onChange={e => setAddress(e.target.value)} placeholder="bijv. Herengracht 12, Amsterdam" autoComplete="street-address" style={inputStyle} />
-          <div style={{ marginBottom: 16 }}>
-            <MenuToggleRow title="Adres tonen aan gasten" subtitle="Op de gedeelde menukaart en in de agenda-uitnodiging."
-              checked={showAddress && !!address.trim()} onChange={v => setShowAddress(v)} />
-          </div>
-
-          <div style={{ display: "flex", gap: 24, marginBottom: 22, flexWrap: "wrap" }}>
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Aantal gasten</label>
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <button onClick={() => setGuests(g => Math.max(1, g - 1))} style={{ width: 44, height: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>−</button>
-                <div style={{ width: 40, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE }}>{guests}</div>
-                <button onClick={() => setGuests(g => Math.min(100, g + 1))} style={{ width: 44, height: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>+</button>
-              </div>
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Cocktails per gast</label>
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <button onClick={() => setDrinksPerGuest(v => Math.max(1, v - 1))} style={{ width: 44, height: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>−</button>
-                <div style={{ width: 40, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE }}>{drinksPerGuest}</div>
-                <button onClick={() => setDrinksPerGuest(v => Math.min(10, v + 1))} style={{ width: 44, height: 44, borderRadius: RADIUS, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" }}>+</button>
-              </div>
-            </div>
-          </div>
-
-          <button onClick={submit} disabled={!name.trim() || busy} className="press-scale" style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", minHeight: 44,
-            background: BOTTLE_DARK, color: HEADER_TEXT, border: "none", borderRadius: RADIUS, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
-          }}>
-            {busy ? "Bezig…" : initial ? "Opslaan" : "Feest aanmaken"}
-          </button>
-          {onDelete && (
-            <button onClick={onDelete} style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", minHeight: 44, marginTop: 10,
-              background: "none", border: "none", color: BURGUNDY, fontFamily: sans, fontSize: 14.5, fontWeight: 700, cursor: "pointer",
-            }}>
-              <Trash2 size={15} /> Feest verwijderen
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  ), document.body);
-}
-
-function PartyDetailScreen({ session, party, onUpdateParty, onBack, onDelete, recipes, isOwned, ingredientLabel, allIngredients, onAddToShoppingList, voorraadAantal, onSound, onOpenRecipe, hostName, active, recentRecipeIds = [], favoriteRecipeIds = [], onOpenMenuAssistent = null, maAnswers = null }) {
-  const [activeTab, setActiveTab] = useState("menu");
-  const [showEditSheet, setShowEditSheet] = useState(false);
-  const [showSurvey, setShowSurvey] = useState(false);
-  const [shareState, setShareState] = useState(null);
-  const [pickerFor, setPickerFor] = useState(null); // null | index | "new"
-  const [confirmNieuweSuggestie, setConfirmNieuweSuggestie] = useState(false);
-  const [sheetIndex, setSheetIndex] = useState(null);
-  const [justAddedId, setJustAddedId] = useState(null);
-  const [justAddedAll, setJustAddedAll] = useState(false);
-  const [showAlInHuis, setShowAlInHuis] = useState(false);
-  const [showPriceInfo, setShowPriceInfo] = useState(false);
-  const [altOpenKey, setAltOpenKey] = useState(null);
-  const [reminderBusy, setReminderBusy] = useState(false);
-  const [reminderError, setReminderError] = useState(null);
-
-  // Alle feest-eigen state (cocktails, gasten, vinkjes) leeft nu in de
-  // `parties`-rij zelf i.p.v. losse component-state/Preferences, zodat 'm
-  // met een gewone onUpdateParty-call wordt weggeschreven — chosen/setChosen
-  // etc. blijven als lokale namen bestaan zodat de rest van dit scherm
-  // ongewijzigd kan blijven t.o.v. Deel A.
-  const chosen = party.cocktail_ids || [];
-  const setChosen = (next) => onUpdateParty({ cocktail_ids: next });
-  const guests = party.guests || 8;
-  const setGuests = (n) => onUpdateParty({ guests: n });
-  const drinksPerGuest = party.drinks_per_guest || 2;
-  const setDrinksPerGuest = (n) => onUpdateParty({ drinks_per_guest: n });
-  const checkedBuyItems = party.bought_items || [];
-  const toggleBuyChecked = (key) => {
-    onSound("tick");
-    onUpdateParty({ bought_items: checkedBuyItems.includes(key) ? checkedBuyItems.filter(k => k !== key) : [...checkedBuyItems, key] });
-  };
-  const checkedPrep = party.prep_done || [];
-  const togglePrepChecked = (key) => {
-    onSound("tick");
-    onUpdateParty({ prep_done: checkedPrep.includes(key) ? checkedPrep.filter(k => k !== key) : [...checkedPrep, key] });
-  };
-
-  // Smaaktest voor gasten: nu gekoppeld aan DIT feest (party.taste_survey_id)
-  // i.p.v. "de ene lopende test van deze host" — een host kan met Deel B
-  // meerdere feesten (en dus meerdere smaaktests) tegelijk hebben.
-  const myId = session?.user?.id;
-  const [survey, setSurvey] = useState(undefined); // undefined = laden, null = nog geen
-  const [rawSurveyResponses, setSurveyResponses] = useState([]);
-  // Een gast die "Antwoorden aanpassen" gebruikt, stuurt een nieuwe reactie;
-  // per naam telt alleen de nieuwste (de lijst staat al nieuwste-eerst).
-  const surveyResponses = useMemo(() => {
-    const seen = new Set();
-    return rawSurveyResponses.filter(r => {
-      const name = (r.guest_name || "").trim().toLowerCase();
-      if (!name) return true;
-      if (seen.has(name)) return false;
-      seen.add(name);
-      return true;
-    });
-  }, [rawSurveyResponses]);
-  const [mixersAdded, setMixersAdded] = useState(false);
-  const surveyHasAnswers = surveyResponses.some(r => r.answers);
-  const surveySpiritTally = useMemo(() => tallyChoices(surveyResponses, "spirits"), [surveyResponses]);
-  const surveyLiqueurTally = useMemo(() => tallyChoices(surveyResponses, "liqueurs"), [surveyResponses]);
-  const surveyMixerTally = useMemo(() => tallyChoices(surveyResponses, "mixers"), [surveyResponses]);
-  const surveyNotes = useMemo(() => surveyResponses.filter(r => r.answers?.note?.trim()).map(r => ({ id: r.id, name: r.guest_name || "Gast", text: r.answers.note.trim() })), [surveyResponses]);
-  const addSurveyMixersToList = () => {
-    const entries = surveyMixerTally
-      .filter(m => m.like > 0 && !m.key.startsWith(CUSTOM_PREFIX))
-      .map(m => SURVEY_MIXERS.find(o => o.key === m.key)?.ids[0]).filter(Boolean)
-      .map(id => ({ ref: { id }, recipeNames: [] }));
-    if (entries.length === 0) return;
-    onAddToShoppingList(entries);
-    onSound("tick");
-    setMixersAdded(true);
-    setTimeout(() => setMixersAdded(false), 2000);
-  };
-  const [surveyShareState, setSurveyShareState] = useState(null);
-  const [creatingSurvey, setCreatingSurvey] = useState(false);
-
-  const loadSurvey = async () => {
-    if (!party.taste_survey_id) { setSurvey(null); setSurveyResponses([]); return; }
-    const { data } = await supabase.from("party_surveys").select("id, title").eq("id", party.taste_survey_id).maybeSingle();
-    setSurvey(data || null);
-    if (data) {
-      const { data: responses } = await supabase.from("party_survey_responses").select("*").eq("survey_id", data.id).order("created_at", { ascending: false });
-      setSurveyResponses(responses || []);
-    } else {
-      setSurveyResponses([]);
-    }
-  };
-  useEffect(() => { loadSurvey(); }, [party.taste_survey_id]);
-
-  // Live updates: i.p.v. steeds handmatig op "Ververs" te moeten drukken,
-  // druppelen nieuwe reacties er via Supabase Realtime meteen bij binnen
-  // terwijl de host het scherm open heeft staan.
-  useEffect(() => {
-    if (!survey?.id) return;
-    const channel = supabase.channel(`survey-responses-${survey.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "party_survey_responses", filter: `survey_id=eq.${survey.id}` }, (payload) => {
-        setSurveyResponses(prev => prev.some(r => r.id === payload.new.id) ? prev : [payload.new, ...prev]);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [survey?.id]);
-
-  // Automatisch elke 30s verversen zolang dit scherm open is, i.p.v. een
-  // handmatige "Ververs"-knop — stopt zodra je wegnavigeert (active=false).
-  useEffect(() => {
-    if (!active || !survey?.id) return;
-    const interval = setInterval(loadSurvey, 30000);
-    return () => clearInterval(interval);
-  }, [active, survey?.id]);
-
-  const { indicatorRef: surveyPullRef, refreshing: surveyPullRefreshing, handlers: surveyPullHandlers } = usePullToRefresh(loadSurvey);
-
-  const createSurvey = async () => {
-    if (!myId || creatingSurvey) return;
-    setCreatingSurvey(true);
-    const { data } = await supabase.from("party_surveys").insert({ host_user_id: myId, title: party.name }).select().single();
-    setCreatingSurvey(false);
-    if (data) { setSurvey(data); setSurveyResponses([]); onSound("pop"); onUpdateParty({ taste_survey_id: data.id }); }
-  };
-
-  const [confirmDeleteSurvey, setConfirmDeleteSurvey] = useState(false);
-  const [deletingSurvey, setDeletingSurvey] = useState(false);
-  const deleteSurvey = async () => {
-    if (!survey || deletingSurvey) return;
-    setDeletingSurvey(true);
-    const { error } = await supabase.from("party_surveys").delete().eq("id", survey.id);
-    setDeletingSurvey(false);
-    setConfirmDeleteSurvey(false);
-    if (!error) { setSurvey(null); setSurveyResponses([]); onSound("remove"); onUpdateParty({ taste_survey_id: null }); }
-  };
-
-  const shareSurvey = async () => {
-    if (!survey) return;
-    onSound("share");
-    const result = await shareLink({ title: "Mijn Thuisbar: smaaktest", text: "Vul even je cocktailvoorkeuren in voor het feest!", url: publicAppUrl(`smaaktest=${survey.id}&${partyInfoQuery({ title: party.name, host: (hostName || "").split(" ")[0], startsAt: party.starts_at })}`.replace(/&$/, "")) });
-    if (result === "cancelled") return;
-    setSurveyShareState(result);
-    setTimeout(() => setSurveyShareState(null), result === "failed" ? 8000 : 2500);
-  };
-
-  const [suggestionSheetId, setSuggestionSheetId] = useState(null);
-  const [showGuestList, setShowGuestList] = useState(false);
-
-  const surveyTasteTotals = useMemo(() => {
-    const totals = { fruitig: 0, zoet: 0, zuur: 0, bitter: 0 };
-    surveyResponses.forEach(r => (r.taste_tags || []).forEach(k => { if (k in totals) totals[k] += 1; }));
-    return totals;
-  }, [surveyResponses]);
-  const surveyDislikeTotals = useMemo(() => {
-    const totals = { fruitig: 0, zoet: 0, zuur: 0, bitter: 0 };
-    surveyResponses.forEach(r => (r.dislike_tags || []).forEach(k => { if (k in totals) totals[k] += 1; }));
-    return totals;
-  }, [surveyResponses]);
-  const surveyAlcoholFreeCount = useMemo(() => surveyResponses.filter(r => r.alcohol_free).length, [surveyResponses]);
-  const surveyAvgStrength = useMemo(() => {
-    const vals = surveyResponses.map(r => r.strength).filter(s => s != null);
-    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-  }, [surveyResponses]);
-  const surveyDietaryTotals = useMemo(() => {
-    const totals = {};
-    surveyResponses.forEach(r => (r.dietary || []).forEach(k => { totals[k] = (totals[k] || 0) + 1; }));
-    return totals;
-  }, [surveyResponses]);
-  const surveySpiritTotals = useMemo(() => {
-    const totals = {};
-    surveyResponses.forEach(r => { if (r.favorite_spirit) totals[r.favorite_spirit] = (totals[r.favorite_spirit] || 0) + 1; });
-    return Object.entries(totals).sort((a, b) => b[1] - a[1]);
-  }, [surveyResponses]);
-  const surveyMentionedCocktails = useMemo(() => {
-    const ids = [...new Set(surveyResponses.flatMap(r => r.favorite_cocktail_ids || []))];
-    return ids.map(id => recipes.find(r => r.id === canonicalRecipeId(id))?.name).filter(Boolean);
-  }, [surveyResponses, recipes]);
-  const surveyGroupPersonalityKey = useMemo(() => {
-    const entries = Object.entries(surveyTasteTotals).sort((a, b) => b[1] - a[1]);
-    return entries.length > 0 && entries[0][1] > 0 ? entries[0][0] : null;
-  }, [surveyTasteTotals]);
-  const surveyRecommended = useMemo(
-    () => computeGroupRecommendations(surveyResponses, recipes, chosen, isOwned),
-    [surveyResponses, recipes, chosen, isOwned]
-  );
-  // Los van de suggestiekaarten (die het huidige menu uitsluiten): dit is de
-  // volledige ranglijst, gebruikt door "Stel automatisch samen" om in één
-  // keer een heel menu vanaf nul op te bouwen.
-  const surveyRecommendedForCompose = useMemo(
-    () => computeGroupRecommendations(surveyResponses, recipes, [], isOwned),
-    [surveyResponses, recipes, isOwned]
-  );
-  const autoComposeMenu = () => {
-    const top = surveyRecommendedForCompose.slice(0, 6).map(x => x.recipe.id);
-    if (top.length === 0) return;
-    onSound("shuffle");
-    setChosen(top);
-  };
-  const suggestionSheetRecipe = suggestionSheetId ? recipes.find(r => r.id === canonicalRecipeId(suggestionSheetId)) : null;
-  const addMissing = (recipeId, refs) => {
-    onAddToShoppingList(refs);
-    onSound("tick");
-    setJustAddedId(recipeId);
-    setTimeout(() => setJustAddedId(id => (id === recipeId ? null : id)), 1800);
-  };
-  const addAllMissing = (refs) => {
-    onAddToShoppingList(refs);
-    onSound("tick");
-    setJustAddedAll(true);
-    setTimeout(() => setJustAddedAll(false), 1800);
-  };
-
-  const shareMenu = async (ids) => {
-    onSound("share");
-    const names = ids.map(id => recipes.find(r => r.id === canonicalRecipeId(id))?.name).filter(Boolean);
-    // Linkvoorbeeld-afbeelding voor WhatsApp: in de app eerst uploaden naar
-    // Supabase Storage (bucket "menukaarten"). Lukt dat niet (bucket nog niet
-    // aangemaakt, geen netwerk) of duurt het te lang, dan delen we gewoon
-    // zonder; het voorbeeld valt dan terug op de standaardafbeelding. Op het
-    // web slaan we dit over: daar moet het deelmenu direct na de tik openen.
-    let image = "";
-    if (isNativeShell && session?.user?.id) {
-      try {
-        const { party: p, items } = menuCardData();
-        const canvas = await renderMenuOgCanvas({ party: p, items });
-        const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-        const path = `${session.user.id}/${party.id}.png`;
-        const upload = supabase.storage.from("menukaarten").upload(path, blob, { contentType: "image/png", upsert: true });
-        const { error } = await Promise.race([upload, new Promise(res => setTimeout(() => res({ error: "timeout" }), 5000))]);
-        if (!error) image = `${supabase.storage.from("menukaarten").getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
-      } catch { /* zonder voorbeeldafbeelding verder */ }
-    }
-    const query = partyMenuQuery({
-      ids, title: party.name, host: (hostName || "").split(" ")[0], startsAt: party.starts_at,
-      address: party.show_address ? party.address : "", image,
-    });
-    const result = await shareLink({
-      title: party.name || "Mijn Thuisbar: menu", text: "Bekijk het cocktailmenu!", url: publicAppUrl(query),
-      fallbackText: `Het cocktailmenu voor vanavond:\n${names.map(n => `• ${n}`).join("\n")}`,
-    });
-    if (result === "cancelled") return;
-    setShareState(result === "no-url" ? "failed" : result);
-    setTimeout(() => setShareState(null), result === "shared" || result === "copied" ? 2500 : 8000);
-  };
-
-  const maakbaar = useMemo(() => recipes.filter(r => r.ingredients.filter(i => !i.optional).every(i => isOwned(i))), [recipes, isOwned]);
-
-  const pickRandom = (count) => {
-    const pool = [...(maakbaar.length > 0 ? maakbaar : recipes)];
-    const picked = [];
-    while (pool.length > 0 && picked.length < count) {
-      const idx = Math.floor(Math.random() * pool.length);
-      picked.push(pool.splice(idx, 1)[0].id);
-    }
-    return picked;
-  };
-
-  // Een leeg menu mag (geen verplichte cocktail meer); toevoegen of wisselen
-  // gaat via een kiesscherm i.p.v. een los zoekveld in de veegrij — dat werd
-  // daar afgesneden en botste met het vegen.
-  const pickRecipe = (id) => {
-    if (pickerFor === "new") {
-      if (!chosen.includes(id)) { onSound("pop"); setChosen([...chosen, id]); }
-    } else if (pickerFor != null) {
-      const next = chosen.slice(); next[pickerFor] = id; setChosen(next);
-    }
-  };
-  const removeSlot = (i) => { onSound("remove"); setChosen(chosen.filter((_, idx) => idx !== i)); };
-
-  const { chosenRecipes, perRecipeCounts, totalDrinks, rows, totalCost } = useMemo(
-    () => computePartyMenu(party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal),
-    [party, recipes, allIngredients, isOwned, ingredientLabel, voorraadAantal]
-  );
-
-  const toBuy = rows.filter(r => !r.owned && r.cost > 0);
-  // "Van duur naar goedkoop" (nieuw in Deel B) — Al in huis blijft alfabetisch.
-  const teKopenRows = [...rows.filter(r => r.cost > 0)].sort((a, b) => b.cost - a.cost);
-  const alInHuisRows = rows.filter(r => r.cost === 0);
-  const stepperBtn = { width: 32, height: 32, borderRadius: 10, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer" };
-  const stepperValue = { width: 30, textAlign: "center", fontWeight: 700, fontSize: 17, fontFamily: systemFont, color: BOTTLE };
-
-  // Eén recept scoren tegen de groepssmaak (smaaktest) als die er is, anders
-  // tegen hoeveel van de verplichte ingrediënten je al in huis hebt — zelfde
-  // twee signalen als de suggestiekaarten hierboven, nu herbruikt om "houd de
-  // beste N" en een alternatief-zoekopdracht te kunnen scoren.
-  const scoreForGroupOrOwn = (recipe) => {
-    if (surveyResponses.length > 0) {
-      return computeGroupRecommendations(surveyResponses, [recipe], [], isOwned)[0]?.score ?? 0;
-    }
-    const required = recipe.ingredients.filter(i => !i.optional);
-    if (required.length === 0) return 100;
-    return Math.round(((required.length - required.filter(i => !isOwned(i)).length) / required.length) * 100);
-  };
-
-  const guestTiers = guests <= 6 ? { label: "3", target: 3 } : guests <= 12 ? { label: "4", target: 4 } : { label: "5–6", target: 6 };
-  const keepBest = (n) => {
-    onSound("tick");
-    const scored = chosenRecipes.map(r => ({ id: r.id, score: scoreForGroupOrOwn(r) }));
-    scored.sort((a, b) => b.score - a.score);
-    setChosen(scored.slice(0, n).map(x => x.id));
-  };
-
-  // Flessen boven €40 die maar in 1 gekozen cocktail terugkomen: het risico
-  // dat je 'm speciaal voor die ene cocktail moet kopen. Alternatief: een
-  // andere cocktail uit dezelfde familie die de fles niet gebruikt, gekozen
-  // op dezelfde score als hierboven.
-  const expensiveSingleUseRows = teKopenRows.filter(r => (r.meta?.bottlePrice || 0) > 40 && r.recipeNames.length === 1);
-  const findAlternative = (row) => {
-    const usingRecipe = chosenRecipes.find(r => r.name === row.recipeNames[0]);
-    if (!usingRecipe) return null;
-    const costlyId = row.ref?.id;
-    const candidates = recipes.filter(r => r.id !== usingRecipe.id && r.family === usingRecipe.family && !r.ingredients.some(i => i.id === costlyId));
-    if (candidates.length === 0) return null;
-    return candidates.map(r => ({ recipe: r, score: scoreForGroupOrOwn(r) })).sort((a, b) => b.score - a.score)[0].recipe;
-  };
-  const swapForAlternative = (usingRecipeId, altRecipeId) => {
-    onSound("shuffle");
-    setChosen(chosen.map(id => id === usingRecipeId ? altRecipeId : id));
-    setAltOpenKey(null);
-  };
-
-  const prepChecklist = useMemo(
-    () => computePartyPrepChecklist(chosenRecipes, perRecipeCounts, allIngredients, totalDrinks),
-    [chosenRecipes, perRecipeCounts, allIngredients, totalDrinks]
-  );
-  // Tijdsaanduidingen afgeleid van de feestdatum ("vr 11 okt", "18:00") —
-  // zonder datum blijven het gewoon de kale groepslabels.
-  const PREP_GROUPS = useMemo(() => {
-    const dayBefore = party.starts_at ? new Date(new Date(party.starts_at).getTime() - 86400000) : null;
-    const twoHoursBefore = party.starts_at ? new Date(new Date(party.starts_at).getTime() - 2 * 3600000) : null;
-    return [
-      { key: "dag", label: dayBefore ? `Dag ervoor (${formatDayShort(dayBefore)})` : "Dag ervoor" },
-      { key: "2uur", label: twoHoursBefore ? `2 uur ervoor (${formatTimeShort(twoHoursBefore)})` : "2 uur ervoor" },
-      { key: "aankomst", label: party.starts_at ? `Bij aankomst (${formatTimeShort(new Date(party.starts_at))})` : "Bij aankomst" },
-    ];
-  }, [party.starts_at]);
-
-  const toggleReminder = async (next) => {
-    setReminderError(null);
-    if (!next) {
-      cancelPartyReminder(party.id);
-      onUpdateParty({ reminder_enabled: false });
-      return;
-    }
-    setReminderBusy(true);
-    const result = await schedulePartyReminder(party);
-    setReminderBusy(false);
-    if (result === "ok") { onUpdateParty({ reminder_enabled: true }); return; }
-    setReminderError({
-      "no-date": "Stel eerst een datum en tijd in.",
-      "in-past": "Dit tijdstip ligt al in het verleden.",
-      denied: "Je hebt meldingen geweigerd. Zet ze aan bij de systeeminstellingen.",
-      failed: "Aanzetten is niet gelukt. Probeer het nog eens.",
-    }[result] || "Aanzetten is niet gelukt.");
-  };
-  // Bij een latere datumwijziging automatisch herplannen zolang de
-  // herinnering aan staat, zodat 'm niet stilzwijgend achterhaald raakt.
-  useEffect(() => {
-    if (!party.reminder_enabled || !party.starts_at) return;
-    schedulePartyReminder(party).then(result => { if (result !== "ok") onUpdateParty({ reminder_enabled: false }); });
-  }, [party.starts_at]);
-
-  // Eén navigatiebalk: de bovenste balk (van SecondaryTabScreen) toont hier
-  // "‹ Feesten · naam van het feest" met de deelknop, i.p.v. een tweede
-  // balk eronder. Terugvegen gaat daardoor ook naar de feestenlijst.
-  const setNavOverride = useContext(NavOverrideContext);
-  const onBackRef = useRef(onBack);
-  onBackRef.current = onBack;
-  const shareRef = useRef(null);
-  const [showShareSheet, setShowShareSheet] = useState(false);
-  const [shareBusy, setShareBusy] = useState(null);
-  shareRef.current = () => setShowShareSheet(true);
-  const menuCardData = () => {
-    const party_ = { title: party.name, host: (hostName || "").split(" ")[0], startsAt: party.starts_at ? new Date(party.starts_at) : null, address: party.show_address ? party.address : "" };
-    const items = chosenRecipes.map(r => menuCocktailInfo(r, allIngredients, getTasteProfile(r, allIngredients)));
-    return { party: party_, items };
-  };
-  const shareMenuFile = async (kind) => {
-    const label = kind === "story" ? "Als afbeelding" : "Printversie (A5)";
-    setShareBusy(label);
-    onSound("share");
-    let result;
-    try {
-      const { party: p, items } = menuCardData();
-      const base = (party.name || "menu").replace(/[^\w-]+/g, "-").toLowerCase();
-      if (kind === "story") {
-        const canvas = await renderMenuCanvas({ width: 1080, height: 1920, party: p, items });
-        result = await shareGeneratedFile({ filename: `${base}-menukaart.png`, mime: "image/png", base64: canvas.toDataURL("image/png").split(",")[1], title: party.name });
-      } else {
-        const canvas = await renderMenuCanvas({ width: 1748, height: 2480, party: p, items }); // A5 op 300 dpi
-        result = await shareGeneratedFile({ filename: `${base}-menukaart-a5.pdf`, mime: "application/pdf", base64: bytesToBase64(canvasToPdf(canvas)), title: party.name });
-      }
-    } catch { result = "failed"; }
-    setShareBusy(null);
-    if (result === "cancelled") return;
-    setShowShareSheet(false);
-    setShareState(result === "downloaded" ? "copied" : result);
-    setTimeout(() => setShareState(null), result === "failed" ? 8000 : 2500);
-  };
-  useEffect(() => {
-    if (!setNavOverride) return;
-    setNavOverride({
-      label: "Feesten",
-      title: party.name,
-      onBack: () => onBackRef.current(),
-      right: (
-        <button onClick={() => shareRef.current()} onTouchStart={(e) => e.stopPropagation()} title="Deel dit menu" aria-label="Deel dit menu" style={{
-          width: 32, height: 32, borderRadius: "50%", border: `1px solid ${SAGE}`, flexShrink: 0,
-          background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: SAGE,
-        }}>
-          <Share2 size={14} />
-        </button>
-      ),
-    });
-  }, [setNavOverride, party.name]);
-  useEffect(() => () => setNavOverride?.(null), [setNavOverride]);
-
-  return (
-    <div {...surveyPullHandlers} style={{ touchAction: "pan-y" }}>
-      <div ref={surveyPullRef} aria-hidden style={{
-        height: 0, opacity: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
-        marginBottom: 4, color: BOTTLE,
-      }}>
-        <span className={`ptr-icon${surveyPullRefreshing ? " spin-icon" : ""}`} style={{ display: "flex", transition: "transform 0.1s linear" }}>
-          <Martini size={18} strokeWidth={1.8} />
-        </span>
-      </div>
-
-      {shareState && (
-        <p style={{ fontSize: 11.5, color: SAGE, textAlign: "right", margin: "-8px 0 8px" }}>
-          {shareState === "shared" ? "Gedeeld!" : shareState === "copied" ? "Link gekopieerd!" : `Delen mislukt${lastShareError ? ` (${lastShareError})` : ""}`}
-        </p>
-      )}
-
-      {/* Feestkaart als kop: hoe lang nog, naam, datum en gasten, en drie
-          voortgangsbalkjes (menu, inkoop, voorbereiding). Het potlood opent
-          "Feest aanpassen" (ook gasten, drankjes p.p. en verwijderen).
-          Alleen de schakelaar eronder blijft vast staan tijdens scrollen. */}
-      {(() => {
-        const toBuyKeys = teKopenRows.map(r => r.key);
-        const bought = toBuyKeys.filter(k => checkedBuyItems.includes(k)).length;
-        const prepDone = prepChecklist.filter(i => checkedPrep.includes(i.id)).length;
-        const bars = [
-          ["Menu", chosenRecipes.length > 0 ? `${chosenRecipes.length}` : "leeg", chosenRecipes.length > 0 ? 100 : 0],
-          ["Inkoop", toBuyKeys.length ? `${bought}/${toBuyKeys.length}` : "in huis", toBuyKeys.length ? Math.round((bought / toBuyKeys.length) * 100) : (chosenRecipes.length ? 100 : 0)],
-          ["Voorbereid", prepChecklist.length ? `${prepDone}/${prepChecklist.length}` : "–", prepChecklist.length ? Math.round((prepDone / prepChecklist.length) * 100) : 0],
-        ];
-        return (
-          <div style={{ position: "relative", background: BOTTLE_DARK, color: HEADER_TEXT, borderRadius: 20, padding: "18px 18px 16px", borderBottom: `3px solid ${BRASS}`, marginBottom: 14, boxShadow: SHADOW_CARD }}>
-            <button onClick={() => setShowEditSheet(true)} aria-label="Feest aanpassen" className="press-scale" style={{
-              position: "absolute", right: 14, top: 14, width: 38, height: 38, borderRadius: "50%", border: "none", background: "rgba(251,246,234,0.12)",
-              color: HEADER_ACCENT, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-            }}>
-              <Pencil size={16} />
-            </button>
-            <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", color: HEADER_ACCENT, paddingRight: 48 }}>{formatPartyWhen(party)}</div>
-            <div style={{ fontFamily: serif, fontSize: 28, fontWeight: 700, lineHeight: 1.15, marginTop: 4, paddingRight: 48 }}>{party.name || "Mijn feest"}</div>
-            <div style={{ fontSize: 14, color: HEADER_TEXT, marginTop: 6, fontWeight: 600 }}>
-              {party.starts_at ? `${formatDayShort(new Date(party.starts_at))} · ${formatTimeShort(new Date(party.starts_at))} · ` : ""}{guests} {guests === 1 ? "gast" : "gasten"}
-            </div>
-            <div style={{ fontSize: 13, color: HEADER_MUTED, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {totalDrinks} drankjes · ± <AnimatedNumber value={totalCost} format={euro} /> inkoop{party.address ? ` · ${party.address}` : ""}
-            </div>
-            <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-              {bars.map(([label, value, pct]) => (
-                <div key={label} style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ height: 4, borderRadius: 2, background: "rgba(251,246,234,0.16)", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: BRASS, transition: "width 0.4s ease" }} />
-                  </div>
-                  <div style={{ fontSize: 11.5, color: HEADER_MUTED, marginTop: 6, whiteSpace: "nowrap" }}>{label} <strong style={{ color: HEADER_TEXT }}>{value}</strong></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-      <div style={{
-        position: "sticky", top: STICKY_SUBHEADER_TOP, zIndex: 15, background: PAPER,
-        marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, paddingBottom: 12,
-        marginBottom: 18,
-      }}>
-        <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 12 }}>
-          {[["menu", "Menu"], ["inkoop", "Inkoop"], ["voorbereiding", "Voorbereiding"]].map(([id, label]) => (
-            <button key={id} role="tab" aria-selected={activeTab === id} onClick={() => setActiveTab(id)} style={{
-              flex: 1, height: 34, padding: "0 6px", borderRadius: 9, border: "none",
-              background: activeTab === id ? BOTTLE : "transparent", color: activeTab === id ? CREAM : MUTED,
-              fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer",
-            }}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {showEditSheet && (
-        <PartyFormSheet initial={party} onClose={() => setShowEditSheet(false)}
-          onSubmit={fields => { onUpdateParty(fields); setShowEditSheet(false); }}
-          onDelete={onDelete ? () => { setShowEditSheet(false); onDelete(); } : null} />
-      )}
-
-      {activeTab === "menu" && (
-      <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <SectionLabel>Menu ({chosenRecipes.length})</SectionLabel>
-            <button onClick={() => { if (chosen.length > 0) setConfirmNieuweSuggestie(true); else { onSound("shuffle"); setChosen(pickRandom(3)); } }}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: 100, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-              <Shuffle size={13} /> Nieuwe suggestie
-            </button>
-          </div>
-          {chosenRecipes.length > 0 && (
-            <p style={{ fontSize: 11, color: MUTED, margin: "0 0 8px" }}>Veeg naar links om te wisselen of te verwijderen.</p>
-          )}
-          {confirmNieuweSuggestie && (
-            <ConfirmDialog title="Nieuwe suggesties?" message="Hele menu vervangen door nieuwe suggesties?"
-              confirmLabel="Vervang" confirmColor={BRASS}
-              onCancel={() => setConfirmNieuweSuggestie(false)}
-              onConfirm={() => { setConfirmNieuweSuggestie(false); setChosen(pickRandom(chosen.length)); }} />
-          )}
-          {chosenRecipes.length === 0 && (
-            <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, padding: "20px 18px", textAlign: "center", fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>
-              Nog geen cocktails op het menu. Kies er zelf een of tik op Nieuwe suggestie.
-            </div>
-          )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {chosenRecipes.map((r, i) => {
-              const required = r.ingredients.filter(ing => !ing.optional);
-              const missing = required.filter(ing => !isOwned(ing));
-              const warnings = surveyResponses.length > 0 ? getSurveyWarnings(r, surveyDietaryTotals, surveyDislikeTotals) : [];
-              const row = (
-                <div style={{ display: "flex", alignItems: "center", gap: 12, background: CREAM, border: "none", boxShadow: SHADOW_CARD, padding: "10px 12px" }}>
-                  <button onClick={() => setSheetIndex(i)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, minHeight: 44, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: 0, fontFamily: sans }}>
-                    <RecipeCircle recipe={r} allIngredients={allIngredients} size={44} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: missing.length === 0 ? SAGE : MUTED }}>
-                          {missing.length === 0 ? "Alles in huis" : `${missing.length} fles${missing.length === 1 ? "" : "sen"} kopen`}
-                        </span>
-                        <span style={{ fontSize: 11, color: MUTED, flexShrink: 0 }}>· {perRecipeCounts[i]} glazen</span>
-                      </div>
-                      {warnings.length > 0 && (
-                        <div title={warnings.join(", ")} style={{ fontSize: 10.5, color: BURGUNDY, fontWeight: 700, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          <AlertTriangle size={11} strokeWidth={2} style={{ verticalAlign: "-1px" }} aria-hidden="true" /> {warnings.join(" · ")}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                </div>
-              );
-              return (
-                <SwipeRevealRow key={i} onWissel={() => setPickerFor(i)} onVerwijder={() => removeSlot(i)}>
-                  {row}
-                </SwipeRevealRow>
-              );
-            })}
-          </div>
-
-          {showShareSheet && (
-            <MenuShareSheet busy={shareBusy} onClose={() => setShowShareSheet(false)}
-              onLink={() => { setShowShareSheet(false); shareMenu(chosen); }}
-              onStory={() => shareMenuFile("story")} onPdf={() => shareMenuFile("pdf")} />
-          )}
-
-          {chosenRecipes.length > guestTiers.target && (
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(184,134,46,0.08)", border: `1px solid ${BRASS}`, borderRadius: RADIUS, padding: "12px 14px", marginTop: 12 }}>
-              <Sparkles size={15} color={BRASS} style={{ marginTop: 2, flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 13, color: INK, margin: "0 0 8px", lineHeight: 1.5 }}>
-                  Voor {guests} gasten raden we {guestTiers.label} cocktails aan. Je hebt er {chosenRecipes.length}.
-                </p>
-                <button onClick={() => keepBest(guestTiers.target)} className="press-scale" style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, minHeight: 40, background: BOTTLE_DARK, color: HEADER_TEXT,
-                  border: "none", borderRadius: 100, padding: "0 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-                }}>
-                  Houd de beste {guestTiers.target}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <button onClick={() => setPickerFor("new")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "none", border: `1px dashed ${BOTTLE}`, borderRadius: 14, padding: "13px", minHeight: 44, fontSize: 12.5, fontWeight: 700, color: BOTTLE, cursor: "pointer", marginTop: 10 }}>
-            <Plus size={14} /> {chosenRecipes.length === 0 ? "Cocktail kiezen" : "Cocktail toevoegen"}
-          </button>
-          {pickerFor != null && (
-            <BatchRecipePicker recipes={recipes} allIngredients={allIngredients}
-              recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
-              currentId={pickerFor === "new" ? null : chosen[pickerFor]}
-              onPick={pickRecipe} onClose={() => setPickerFor(null)} />
-          )}
-          {/* Hulp bij je menu: smaaktest en Menu-assistent samen in één
-              kaart onder het menu. De smaaktest klapt open bij Bekijk. */}
-          {(() => {
-            const n = surveyResponses.length;
-            const applied = maAnswers?.appliedSurveyCount;
-            const fresh = applied != null && n > applied ? n - applied : 0;
-            const row = ({ icon, title, sub, subColor, action, onClick, first, open }) => (
-              <button onClick={onClick} style={{
-                display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 14px", background: "none", border: "none",
-                borderTop: first ? "none" : `1px solid ${BORDER}`, textAlign: "left", cursor: "pointer", fontFamily: sans,
-              }}>
-                <span style={{ width: 36, height: 36, borderRadius: 11, background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{icon}</span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontWeight: 700, fontSize: 14.5, color: INK }}>{title}</span>
-                  <span style={{ display: "block", fontSize: 12.5, color: subColor || MUTED, marginTop: 1, lineHeight: 1.35 }}>{sub}</span>
-                </span>
-                <span style={{ display: "flex", alignItems: "center", gap: 1, fontSize: 13, fontWeight: 700, color: BOTTLE, flexShrink: 0 }}>
-                  {action}<ChevronRight size={15} strokeWidth={2.4} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 0.2s ease" }} />
-                </span>
-              </button>
-            );
-            return (
-              <div style={{ marginTop: 26 }}>
-                <SectionLabel>Hulp bij je menu</SectionLabel>
-                <div style={{ background: CREAM, borderRadius: 16, boxShadow: SHADOW_CARD, overflow: "hidden" }}>
-                  {row({
-                    first: true, icon: <Users size={17} />, title: "Smaaktest",
-                    sub: survey === undefined ? "Laden…" : survey === null ? "Vraag je gasten vooraf naar hun smaak" : n > 0 ? `${n} reactie${n === 1 ? "" : "s"} binnen` : "Nog geen reacties, deel de link",
-                    action: showSurvey ? "Verberg" : survey === null ? "Maak" : "Bekijk", open: showSurvey,
-                    onClick: () => { onSound("tick"); setShowSurvey(v => !v); },
-                  })}
-                  {onOpenMenuAssistent && row({
-                    icon: <Sparkles size={17} />, title: "Menu-assistent",
-                    sub: fresh > 0 ? `${fresh} nieuwe reactie${fresh === 1 ? "" : "s"} sinds je menu` : n > 0 ? "Stel samen op basis van de smaaktest" : "Een gebalanceerd menu in een paar vragen",
-                    subColor: fresh > 0 ? BRASS_TEXT : null, action: fresh > 0 ? "Opnieuw" : "Start",
-                    onClick: () => { onSound("pop"); onOpenMenuAssistent(); },
-                  })}
-                </div>
-              </div>
-            );
-          })()}
-      {showSurvey && (
-      <div className="accordion-reveal" style={{ background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD, padding: 16, marginTop: 10 }}>
-        {survey === undefined ? null : survey === null ? (
-          <>
-            <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 12px" }}>
-              Stuur een linkje rond zodat gasten hun smaak kunnen doorgeven — daaruit rollen menu-suggesties voor de hele groep.
-            </p>
-            <button onClick={createSurvey} disabled={creatingSurvey} className="press-scale" style={{
-              display: "flex", alignItems: "center", gap: 7, border: `1px dashed ${BOTTLE}`, background: "none", color: BOTTLE,
-              borderRadius: RADIUS, padding: "10px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: sans,
-            }}>
-              <Share2 size={14} /> {creatingSurvey ? "Bezig…" : "Smaaktest aanmaken"}
-            </button>
-          </>
-        ) : (
-          <>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: MUTED }}>
-                <span title="Live: nieuwe reacties verschijnen automatisch" style={{ width: 6, height: 6, borderRadius: "50%", background: SAGE, flexShrink: 0 }} />
-                {surveyResponses.length === 0 ? "Nog geen reacties" : `${surveyResponses.length} reactie${surveyResponses.length === 1 ? "" : "s"} binnen`}
-              </span>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <button onClick={shareSurvey} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${SAGE}`, color: SAGE, borderRadius: 100, padding: "6px 12px", minHeight: 44, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                  <Share2 size={13} /> {surveyShareState === "shared" ? "Gedeeld!" : surveyShareState === "copied" ? "Link gekopieerd!" : surveyShareState === "failed" ? `Delen mislukt${lastShareError ? ` (${lastShareError})` : ""}` : surveyShareState === "no-url" ? "Webadres nog niet ingesteld" : "Deel de link"}
-                </button>
-                <button onClick={() => setConfirmDeleteSurvey(true)} title="Verwijder smaaktest" className="press-scale" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, background: "none", border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 100, cursor: "pointer", flexShrink: 0 }}>
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </div>
-            {confirmDeleteSurvey && (
-              <ConfirmDialog title="Smaaktest verwijderen?" message="De reacties van je gasten gaan verloren."
-                confirmLabel="Verwijder" busy={deletingSurvey}
-                onCancel={() => setConfirmDeleteSurvey(false)} onConfirm={deleteSurvey} />
-            )}
-            {survey && (
-              <p style={{ fontSize: 11, color: MUTED, margin: "-8px 0 14px" }}>Klaar met dit feest? Verwijder de test en maak een nieuwe aan voor de volgende keer.</p>
-            )}
-
-            {surveyResponses.length > 0 && (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  {SURVEY_TASTE_KEYS.map(key => {
-                    const meta = TASTE_META[key];
-                    const pct = Math.round((surveyTasteTotals[key] / surveyResponses.length) * 100);
-                    return (
-                      <div key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                        <span style={{ fontSize: 11.5, color: INK, width: 50, flexShrink: 0 }}>{meta.label}</span>
-                        <div style={{ flex: 1, height: 6, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
-                          <div style={{ height: "100%", borderRadius: 3, background: BRASS, width: `${pct}%` }} />
-                        </div>
-                        <span style={{ fontSize: 10.5, color: MUTED, fontWeight: 700, width: 30, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
-                      </div>
-                    );
-                  })}
-                  {surveyAvgStrength != null && (() => {
-                    const strengthPct = Math.round(((surveyAvgStrength - 1) / 4) * 100);
-                    return (
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                        <span style={{ fontSize: 11.5, color: INK, width: 50, flexShrink: 0 }}>Sterk</span>
-                        <div style={{ flex: 1, height: 6, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
-                          <div style={{ height: "100%", borderRadius: 3, background: BOTTLE, width: `${strengthPct}%` }} />
-                        </div>
-                        <span style={{ fontSize: 10.5, color: MUTED, fontWeight: 700, width: 30, textAlign: "right", flexShrink: 0 }}>{strengthPct}%</span>
-                      </div>
-                    );
-                  })()}
-                  {surveyAlcoholFreeCount > 0 && (
-                    <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-                      {surveyAlcoholFreeCount} van de {surveyResponses.length} wil liever alcoholvrij.
-                    </div>
-                  )}
-                </div>
-
-                {surveySpiritTally.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Sterke drank</div>
-                    {surveySpiritTally.slice(0, 8).map(t => (
-                      <div key={t.key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}>
-                        <span style={{ fontSize: 12, color: INK, width: 84, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.label}</span>
-                        <div style={{ flex: 1, height: 6, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
-                          <div style={{ height: "100%", borderRadius: 3, background: BRASS, width: `${Math.round((t.like / surveyResponses.length) * 100)}%` }} />
-                        </div>
-                        <span style={{ fontSize: 11, color: MUTED, width: 92, textAlign: "right", flexShrink: 0 }}>{t.like} lekker{t.dislike ? ` · ${t.dislike} niet` : ""}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {surveyLiqueurTally.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Likeuren en aperitieven</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {surveyLiqueurTally.map(t => (
-                        <span key={t.key} style={{ display: "inline-flex", alignItems: "center", background: PAPER_DEEP, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: INK, fontWeight: 600 }}>
-                          {t.label}{t.like ? ` ${t.like}` : ""}{t.dislike ? <span style={{ color: BURGUNDY, marginLeft: 4 }}>({t.dislike} niet)</span> : null}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {surveyMixerTally.length > 0 && (
-                  <div style={{ background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "12px 14px", marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: INK }}>Mixers die gasten willen</div>
-                        <div style={{ fontSize: 12, color: MUTED, marginTop: 3, lineHeight: 1.45 }}>
-                          {surveyMixerTally.filter(t => t.like > 0).map(t => `${t.label.toLowerCase()} (${t.like})`).join(", ") || "nog geen"}
-                          {surveyMixerTally.some(t => t.dislike > 0) && <span style={{ color: BURGUNDY }}> · liever niet: {surveyMixerTally.filter(t => t.dislike > 0).map(t => t.label.toLowerCase()).join(", ")}</span>}
-                        </div>
-                      </div>
-                      {surveyMixerTally.some(t => t.like > 0 && !t.key.startsWith(CUSTOM_PREFIX)) && (
-                        <button onClick={addSurveyMixersToList} className="press-scale" style={{ flexShrink: 0, minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontFamily: sans, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                          {mixersAdded ? "Toegevoegd" : "Op inkooplijst"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {surveyNotes.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 4 }}>Opmerkingen voor jou</div>
-                    {surveyNotes.map(n => (
-                      <div key={n.id} style={{ padding: "8px 0", borderTop: `1px solid ${BORDER}` }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 700, color: INK }}>{n.name}</div>
-                        <div style={{ fontSize: 13, color: INK, lineHeight: 1.45, marginTop: 1, whiteSpace: "pre-wrap" }}>{n.text}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {SURVEY_TASTE_KEYS.some(k => surveyDislikeTotals[k] > 0) && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: BURGUNDY, marginBottom: 8 }}>Waar gasten niet van houden</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {SURVEY_TASTE_KEYS.filter(k => surveyDislikeTotals[k] > 0).map(k => (
-                        <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(122,46,42,0.08)", border: `1px solid rgba(122,46,42,0.25)`, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: BURGUNDY, fontWeight: 600 }}>
-                          {TASTE_META[k].label} ({surveyDislikeTotals[k]})
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {Object.keys(surveyDietaryTotals).length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Diëten & allergieën</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {Object.entries(surveyDietaryTotals).map(([k, count]) => (
-                        <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: PAPER_DEEP, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: INK, fontWeight: 600 }}>
-                          {DIETARY_META[k]?.label || k} ({count})
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {surveySpiritTotals.length > 0 && !surveyHasAnswers && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Favoriete sterkedrank</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {surveySpiritTotals.map(([k, count]) => (
-                        <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: PAPER_DEEP, borderRadius: 100, padding: "4px 10px", fontSize: 11.5, color: INK, fontWeight: 600 }}>
-                          {FAVORITE_SPIRIT_OPTIONS.find(o => o.key === k)?.label || k} ({count})
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {surveyMentionedCocktails.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 8 }}>Genoemde favoriete cocktails</div>
-                    <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.6 }}>{surveyMentionedCocktails.join(" · ")}</div>
-                  </div>
-                )}
-
-                {surveyRecommended.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-                      <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, marginBottom: 3 }}>Suggesties voor het menu</div>
-                      <button onClick={autoComposeMenu} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: `1px solid ${BOTTLE}`, color: BOTTLE, borderRadius: 100, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}>
-                        <Sparkles size={12} /> Stel automatisch samen
-                      </button>
-                    </div>
-                    <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>Tik op een kaart voor het recept, of gebruik + om 'm direct toe te voegen.</div>
-                    <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-                      {surveyRecommended.map(({ recipe, score, ownedCount, requiredCount, mentioned, spiritMatch }) => {
-                        const warnings = getSurveyWarnings(recipe, surveyDietaryTotals, surveyDislikeTotals);
-                        return (
-                        <button key={recipe.id} onClick={() => setSuggestionSheetId(recipe.id)} className="press-scale" style={{ width: 132, flexShrink: 0, textAlign: "center", background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 10, position: "relative", cursor: "pointer", fontFamily: sans }}>
-                          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-                            <RecipeCircle recipe={recipe} allIngredients={allIngredients} size={44} />
-                          </div>
-                          <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 12.5, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.25 }}>{recipe.name}</div>
-                          {/* Match-label in de gewone flow i.p.v. absoluut rechtsboven:
-                              daar viel het achter de ronde foto en was het onleesbaar. */}
-                          <MatchPill pct={score} label="match" />
-                          {requiredCount > 0 && (
-                            <div style={{ fontSize: 10.5, color: MUTED, marginTop: 4 }}>{ownedCount} van {requiredCount} ingrediënten in huis</div>
-                          )}
-                          {(mentioned || spiritMatch) && (
-                            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 3, marginTop: 5 }}>
-                              {mentioned && <span style={{ fontSize: 8.5, color: BRASS_TEXT, fontWeight: 700, border: `1px solid ${BRASS}`, borderRadius: 100, padding: "1px 5px" }}>genoemd</span>}
-                              {spiritMatch && <span style={{ fontSize: 8.5, color: SAGE, fontWeight: 700, border: `1px solid ${SAGE}`, borderRadius: 100, padding: "1px 5px" }}>favoriet</span>}
-                            </div>
-                          )}
-                          {warnings.length > 0 && (
-                            <div title={warnings.join(", ")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 5, fontSize: 9.5, color: BURGUNDY, fontWeight: 700 }}>
-                              <AlertTriangle size={11} strokeWidth={2} aria-hidden="true" /> {warnings[0]}
-                            </div>
-                          )}
-                          <div
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => { e.stopPropagation(); onSound("shuffle"); setChosen([...chosen, recipe.id]); }}
-                            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 7, minHeight: 44, fontSize: 11, color: HEADER_TEXT, fontWeight: 700, background: BOTTLE_DARK, border: "none", borderRadius: 10, cursor: "pointer" }}
-                          >
-                            <Plus size={12} /> toevoegen
-                          </div>
-                        </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <button onClick={() => setShowGuestList(v => !v)} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: MUTED, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, fontFamily: sans }}>
-                    <Users size={13} /> Antwoorden per gast {showGuestList ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                  </button>
-                  {showGuestList && (
-                    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-                      {surveyResponses.map(r => (
-                        <div key={r.id} style={{ background: PAPER, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "9px 12px", fontSize: 12, color: INK, lineHeight: 1.5 }}>
-                          <div style={{ fontWeight: 700, marginBottom: 2 }}>{r.guest_name || "Naamloze gast"}</div>
-                          <div style={{ color: MUTED }}>
-                            {(r.taste_tags || []).map(k => TASTE_META[k]?.label).filter(Boolean).join(", ") || "geen smaak opgegeven"}
-                            {r.strength != null && ` · sterkte ${r.strength}/5`}
-                            {r.alcohol_free && " · alcoholvrij"}
-                            {r.favorite_spirit && ` · ${FAVORITE_SPIRIT_OPTIONS.find(o => o.key === r.favorite_spirit)?.label || r.favorite_spirit}`}
-                            {(r.favorite_cocktail_ids || []).length > 0 && ` · favorieten: ${r.favorite_cocktail_ids.map(id => recipes.find(x => x.id === id)?.name).filter(Boolean).join(", ")}`}
-                            {(r.dietary || []).length > 0 && ` · ${r.dietary.map(k => DIETARY_META[k]?.label || k).join(", ")}`}
-                          </div>
-                          {r.answers && (() => {
-                            const groups = ["spirits", "liqueurs", "mixers"];
-                            const like = groups.flatMap(g => (r.answers[g]?.like || []).map(k => choiceLabel(g, k)));
-                            const dislike = groups.flatMap(g => (r.answers[g]?.dislike || []).map(k => choiceLabel(g, k)));
-                            return (
-                              <>
-                                {like.length > 0 && <div style={{ color: INK, marginTop: 3 }}>Lekker: {like.join(", ")}</div>}
-                                {dislike.length > 0 && <div style={{ color: BURGUNDY, marginTop: 2 }}>Liever niet: {dislike.join(", ")}</div>}
-                              </>
-                            );
-                          })()}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </>
-        )}
-      </div>
-      )}
-
-      {suggestionSheetRecipe && (() => {
-        const required = suggestionSheetRecipe.ingredients.filter(ing => !ing.optional);
-        const missing = required.filter(ing => !isOwned(ing));
-        return (
-          <RecipeSheet recipe={suggestionSheetRecipe} missing={missing} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
-            onAddMissing={addMissing} justAdded={justAddedId === suggestionSheetRecipe.id} onClose={() => setSuggestionSheetId(null)}
-            onOpenFullRecipe={onOpenRecipe} onAddToFeest={(id) => { onSound("shuffle"); setChosen([...chosen, id]); }}
-            feestChosen={chosen} onSound={onSound} />
-        );
-      })()}
-
-      </>
-      )}
-
-      {activeTab === "inkoop" && (
-      <>
-          <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-              <ShoppingCart size={15} color={BRASS} />
-              <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: MUTED }}>Inkooplijst</span>
-            </div>
-
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: INK, margin: "4px 0 4px" }}>Te kopen ({teKopenRows.length})</div>
-            {teKopenRows.length === 0 && (
-              <p style={{ fontSize: 12.5, color: SAGE, fontWeight: 600, margin: "0 0 8px" }}>Niets te kopen — alles in huis.</p>
-            )}
-            {teKopenRows.map((row, i) => {
-              const checked = checkedBuyItems.includes(row.key);
-              const expensiveFlag = expensiveSingleUseRows.some(r => r.key === row.key);
-              return (
-                <div key={row.key}>
-                  <button onClick={() => toggleBuyChecked(row.key)} style={{
-                    display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none",
-                    padding: "9px 0", minHeight: 44, borderTop: i === 0 ? "none" : `1px dotted ${BORDER}`, cursor: "pointer", textAlign: "left", fontFamily: sans,
-                  }}>
-                    <span style={{
-                      width: 20, height: 20, borderRadius: "50%", border: `1.5px solid ${checked ? SAGE : BORDER}`,
-                      background: checked ? SAGE : "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                    }}>
-                      {checked && <Check size={13} color={CREAM} strokeWidth={3} />}
-                    </span>
-                    <span style={{ flex: 1, fontSize: 13.5, color: checked ? MUTED : INK, textDecoration: checked ? "line-through" : "none" }}>{row.label}</span>
-                    <span style={{ fontSize: 13, color: checked ? MUTED : INK, fontWeight: 600, textDecoration: checked ? "line-through" : "none", flexShrink: 0 }}>
-                      {row.buyLabel}{row.cost > 0 && !row.buyLabel.includes("€") ? ` · ${euro(row.cost)}` : ""}
-                    </span>
-                  </button>
-                  {expensiveFlag && (() => {
-                    const alt = altOpenKey === row.key ? findAlternative(row) : null;
-                    const usingRecipe = chosenRecipes.find(r => r.name === row.recipeNames[0]);
-                    return (
-                      <div style={{ background: "rgba(122,46,42,0.06)", border: `1px solid rgba(122,46,42,0.2)`, borderRadius: 10, padding: "8px 10px", marginBottom: 8 }}>
-                        <p style={{ fontSize: 11.5, color: BURGUNDY, margin: "0 0 6px", lineHeight: 1.4 }}>
-                          {row.label} ({euro(row.meta.bottlePrice)}) gebruik je maar in 1 cocktail.
-                        </p>
-                        {altOpenKey === row.key ? (
-                          alt ? (
-                            <button onClick={() => swapForAlternative(usingRecipe.id, alt.id)} className="press-scale" style={{
-                              display: "flex", alignItems: "center", gap: 6, minHeight: 40, background: "none", border: `1px solid ${BOTTLE}`,
-                              color: BOTTLE, borderRadius: 100, padding: "0 10px", fontSize: 11.5, fontWeight: 700, cursor: "pointer",
-                            }}>
-                              <RefreshCw size={12} /> Wissel naar {alt.name}
-                            </button>
-                          ) : (
-                            <p style={{ fontSize: 11.5, color: MUTED, margin: 0 }}>Geen vergelijkbaar alternatief gevonden.</p>
-                          )
-                        ) : (
-                          <button onClick={() => setAltOpenKey(row.key)} className="press-scale" style={{
-                            display: "flex", alignItems: "center", gap: 6, minHeight: 40, background: "none", border: `1px solid ${BURGUNDY}`,
-                            color: BURGUNDY, borderRadius: 100, padding: "0 10px", fontSize: 11.5, fontWeight: 700, cursor: "pointer",
-                          }}>
-                            Toon alternatief
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            })}
-
-            {alInHuisRows.length > 0 && (
-              <div style={{ marginTop: 6 }}>
-                <button onClick={() => setShowAlInHuis(v => !v)} className="press-scale" style={{
-                  display: "flex", alignItems: "center", gap: 6, width: "100%", minHeight: 40, background: "none", border: "none",
-                  padding: "6px 0", cursor: "pointer", fontSize: 11.5, fontWeight: 700, color: MUTED, fontFamily: sans,
-                }}>
-                  {showAlInHuis ? <ChevronUp size={13} /> : <ChevronDown size={13} />} Al in huis ({alInHuisRows.length})
-                </button>
-                {showAlInHuis && alInHuisRows.map((row, i) => (
-                  <div key={row.key} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderTop: i === 0 ? "none" : `1px dotted ${BORDER}`, fontSize: 13.5 }}>
-                    <span style={{ color: INK }}>{row.label}</span>
-                    <span style={{ color: SAGE, fontWeight: 600 }}>{row.buyLabel}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 2px", marginTop: 4, borderTop: `1px solid ${BORDER}`, fontSize: 15 }}>
-              <span style={{ fontFamily: systemFont, fontWeight: 700, color: INK }}>Geschatte inkoop</span>
-              <span style={{ fontFamily: systemFont, fontWeight: 700, color: BOTTLE }}><AnimatedNumber value={totalCost} format={euro} /></span>
-            </div>
-            <div style={{ margin: "6px 0 14px" }}>
-              <button onClick={() => setShowPriceInfo(v => !v)} className="press-scale" style={{
-                display: "flex", alignItems: "center", gap: 5, minHeight: 32, background: "none", border: "none", padding: 0,
-                cursor: "pointer", fontSize: 11.5, color: MUTED, fontFamily: sans,
-              }}>
-                Richtprijzen <Info size={12} />
-              </button>
-              {showPriceInfo && (
-                <p style={{ fontSize: 11.5, color: MUTED, margin: "6px 0 0", lineHeight: 1.5 }}>
-                  Prijzen van de voordeligste geschikte fles bij Mitra, Dirck III of Drankgigant (wekelijks gecontroleerd); waar die nog ontbreekt, een richtprijs ({PRICES_UPDATED}). Acties en verzendkosten kunnen het verschil maken. Wat je al in voorraad hebt, telt mee volgens het aantal flessen dat je bij Voorraad instelt. Is dat te weinig voor dit feest, dan berekent de app hoeveel je moet bijkopen.
-                </p>
-              )}
-            </div>
-            {toBuy.length > 0 && (
-              justAddedAll ? (
-                <span className="success-pop" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: SAGE, fontSize: 14, fontWeight: 700, padding: "11px 0" }}>
-                  <Check size={15} strokeWidth={3} /> Toegevoegd aan winkelmandje
-                </span>
-              ) : (
-                <button onClick={() => addAllMissing(toBuy.map(row => ({ ref: row.ref, recipeNames: row.recipeNames })))}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", minHeight: 44, background: BOTTLE, color: "#FBF6EA", border: "none", borderRadius: RADIUS, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA }}>
-                  <ShoppingCart size={15} /> Zet ontbrekende in winkelmandje
-                </button>
-              )
-            )}
-          </div>
-      </>
-      )}
-
-      {activeTab === "voorbereiding" && (
-      <>
-          <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: RADIUS, boxShadow: SHADOW_CARD, padding: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
-              <ClipboardList size={15} color={BRASS} />
-              <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: MUTED }}>Voorbereiding</span>
-            </div>
-            {PREP_GROUPS.map(group => {
-              const items = prepChecklist.filter(item => item.group === group.key);
-              if (items.length === 0) return null;
-              return (
-                <div key={group.key} style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 0.3, marginBottom: 4 }}>{group.label}</div>
-                  {items.map((item, i) => {
-                    const checked = checkedPrep.includes(item.id);
-                    return (
-                      <button key={item.id} onClick={() => togglePrepChecked(item.id)} style={{
-                        display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none",
-                        padding: "8px 0", minHeight: 44, borderTop: i === 0 ? "none" : `1px dotted ${BORDER}`, cursor: "pointer", textAlign: "left", fontFamily: sans,
-                      }}>
-                        <span style={{
-                          width: 20, height: 20, borderRadius: "50%", border: `1.5px solid ${checked ? SAGE : BORDER}`,
-                          background: checked ? SAGE : "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                        }}>
-                          {checked && <Check size={13} color={CREAM} strokeWidth={3} />}
-                        </span>
-                        <span style={{ flex: 1, fontSize: 13.5, color: checked ? MUTED : INK, textDecoration: checked ? "line-through" : "none", lineHeight: 1.4 }}>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 6, paddingTop: 14, borderTop: `1px solid ${BORDER}` }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: INK }}>Herinnering 2 uur van tevoren</div>
-                {!party.starts_at && <div style={{ fontSize: 11.5, color: MUTED, marginTop: 2 }}>Stel eerst een datum en tijd in.</div>}
-                {reminderError && <div style={{ fontSize: 11.5, color: BURGUNDY, marginTop: 2 }}>{reminderError}</div>}
-              </div>
-              <Switch checked={!!party.reminder_enabled} disabled={!party.starts_at || reminderBusy} onChange={toggleReminder} />
-            </div>
-          </div>
-      </>
-      )}
-
-
-      {sheetIndex !== null && chosenRecipes[sheetIndex] && (() => {
-        const r = chosenRecipes[sheetIndex];
-        const required = r.ingredients.filter(ing => !ing.optional);
-        const missing = required.filter(ing => !isOwned(ing));
-        return (
-          <RecipeSheet recipe={r} missing={missing} ingredientLabel={ingredientLabel} allIngredients={allIngredients}
-            onAddMissing={addMissing} justAdded={justAddedId === r.id} onClose={() => setSheetIndex(null)} />
-        );
-      })()}
-    </div>
-  );
-}
-
-// ===== Menu-assistent =====
-// Een optioneel startpunt (eigen cocktails, thema, smaaktest of verras me),
-// daarna zeven vragen die elk over te slaan zijn. Het resultaat zijn drie
-// menu's naast elkaar (veilig, balans, verrassend); per cocktail staat
-// waarom hij gekozen is, en wisselen gebeurt met een keuze uit alternatieven
-// i.p.v. willekeurig. Antwoorden blijven bewaard (useStorage → Preferences).
-const MA_DEFAULTS = {
-  start: null, theme: null, surveyNote: null,
-  count: 4, alcoholvrijCount: 1, guests: 8,
-  variety: true, styles: [],
-  prefs: { spirits: { like: [], dislike: [] }, tastes: { like: [], dislike: [] }, custom: { like: [], dislike: [] } },
-  avoidIds: [],
-  strengths: [], surprise: 30,
-  effort: "werk", gear: { shaker: true, blender: false, crushed: true, eggs: true }, batch: false, noHomemade: false,
-  mustHave: [],
-  maxBottles: 2, budget: "", useUp: [], noBuy: [],
-};
-const MA_NO_LIMIT = 10; // teller op 10 = geen grens aan het aantal flessen
-const MA_QUESTION_COUNT = 7;
-// Wat telt als "fles" bij bijkopen: sterke drank, likeuren en bitters, plus
-// een paar mixers die je los koopt. Sap, frisdrank en citroenen zijn gewone
-// boodschappen en tellen niet mee.
-const MENU_BOTTLE_CATS = new Set(["Sterke drank", "Likeuren & versterkte wijnen", "Bitters"]);
-const MENU_BOTTLE_EXTRA = new Set(["prosecco", "white_wine", "red_wine", "rose_wine", "sake", "peach_schnapps", "beer", "stout", "cider"]);
-// Bekende klassiekers (wat de meeste gasten kennen); de rest telt als
-// "minder bekend" voor het schuifje bekend/verrassend.
-const MENU_CLASSICS = new Set([
-  "whiskey_sour", "daiquiri", "margarita", "pisco_sour", "gimlet", "cosmopolitan", "sidecar", "caipirinha",
-  "amaretto_sour", "gin_tonic", "cuba_libre", "moscow_mule", "paloma", "dark_n_stormy", "mojito", "long_island",
-  "americano", "sex_on_the_beach", "tequila_sunrise", "bloody_mary", "screwdriver", "pimms_cup", "old_fashioned",
-  "negroni", "sazerac", "boulevardier", "mint_julep", "martini", "manhattan", "dirty_martini", "tom_collins",
-  "french_75", "espresso_martini", "kir_royale", "bellini", "mimosa", "gin_fizz", "porn_star_martini",
-  "aperol_spritz", "pina_colada", "mai_tai", "bramble", "zombie", "white_russian", "black_russian",
-  "irish_coffee", "hot_toddy", "mulled_wine", "godfather", "rusty_nail", "brandy_alexander", "grasshopper",
-  "virgin_mojito", "virgin_pina_colada", "virgin_mule", "shirley_temple", "hugo", "blue_lagoon", "rob_roy",
-]);
-const MENU_HOMEMADE_SYRUPS = new Set(["honey_syrup", "honey_ginger_syrup", "raspberry_syrup"]);
-const MENU_FRESH_JUICES = new Set(["lemon_juice", "lime_juice", "orange_juice", "grapefruit_juice", "pineapple_juice", "passion_fruit_puree", "peach_puree", "tomato_juice"]);
-const MENU_CORNER_TITLES = { fris: "Fris en verfrissend", sterk: "Sterk en aromatisch", avontuurlijk: "Avontuurlijk", comfort: "Zacht en romig", alcoholvrij: "Alcoholvrij" };
-const MENU_CORNER_COLORS = { fris: "var(--sage)", sterk: "var(--brass)", avontuurlijk: "var(--burgundy)", comfort: "#8A6A4A", alcoholvrij: "var(--sage)" };
-const MA_STRENGTH_KEYS = { 1: "licht", 2: "middel", 3: "sterk" };
-
-const MA_THEMES = [
-  { key: "gin", label: "Gin-avond", ids: ["gin", "sloe_gin"] },
-  { key: "tiki", label: "Tiki en tropisch", styles: ["tropisch"], families: ["Modern / Tiki"] },
-  { key: "zomer", label: "Zomer", styles: ["fris_zuur", "lang_bruisend", "bubbels"] },
-  { key: "winter", label: "Winter", styles: ["kort_sterk", "romig"], families: ["Warme dranken", "Zuivel & dessert"] },
-  { key: "brunch", label: "Brunch", styles: ["bubbels"], ids: ["prosecco", "orange_juice", "tomato_juice"] },
-  { key: "aperitief", label: "Aperitief", ids: ["campari", "aperol", "sweet_vermouth", "dry_vermouth", "lillet_blanc", "prosecco"] },
-  { key: "na_eten", label: "Na het eten", styles: ["romig"], ids: ["coffee_liqueur", "espresso", "amaretto", "creme_de_cacao"] },
-  { key: "bubbels", label: "Bubbels", styles: ["bubbels"] },
-];
-
-// Smaken uit de smaaktest (SURVEY_TASTES) vertaald naar receptkenmerken.
-const MA_TASTE_IDS = {
-  fruitig: ["orange_juice", "pineapple_juice", "cranberry_juice", "passion_fruit_puree", "passion_fruit_juice", "peach_puree", "raspberry_syrup", "strawberry", "chambord", "creme_de_cassis", "creme_de_mure", "cherry_brandy", "apricot_brandy", "lychee_liqueur", "sour_apple_liqueur", "banana_liqueur", "melon_liqueur", "grenadine"],
-  kruidig: ["ginger_root", "honey_ginger_syrup", "allspice_liqueur", "benedictine", "green_chartreuse", "yellow_chartreuse", "cinnamon_stick", "cloves", "drambuie", "galliano"],
-  rokerig: ["mezcal", "scotch"],
-  pittig: ["chili", "tabasco", "ginger_beer", "ginger_root", "honey_ginger_syrup"],
-  bloemig: ["elderflower_cordial", "creme_de_violette", "lillet_blanc", "orange_flower_water"],
-  citrus: ["lemon_juice", "lime_juice", "grapefruit_juice", "orange_juice"],
-  koffie: ["espresso", "hot_coffee", "coffee_liqueur"],
-  chocolade: ["creme_de_cacao"],
-  munt: ["mint", "creme_de_menthe"],
-  gember: ["ginger_beer", "ginger_ale", "ginger_root", "honey_ginger_syrup", "ginger_wine"],
-};
-function maTasteMatches(f, key) {
-  if (key === "fris_zuur") return f.taste.zuur >= 2;
-  if (key === "zoet") return f.taste.zoet >= 3;
-  if (key === "bitter") return f.taste.bitter >= 2;
-  if (key === "romig") return f.styles.has("romig");
-  if (key === "tropisch") return f.styles.has("tropisch");
-  const ids = MA_TASTE_IDS[key];
-  return !!ids && ids.some(id => f.ids.has(id));
-}
-// Zelf ingetypt ("~Calvados"): zoek in receptnaam en ingrediëntnamen.
-function maCustomMatches(f, key) {
-  const q = key.replace(/^~/, "").trim().toLowerCase();
-  return q.length >= 2 && f.text.includes(q);
-}
-const MA_ALLERGY_IDS = {
-  noten: ["orgeat", "amaretto", "frangelico", "creme_de_noyaux"],
-  lactose: ["heavy_cream", "whipped_cream", "milk", "irish_cream", "butter"],
-  rauw_ei: ["egg_white", "egg_yolk"],
-  vegan: ["heavy_cream", "whipped_cream", "milk", "irish_cream", "butter", "egg_white", "egg_yolk", "honey_syrup", "honey_ginger_syrup"],
-};
-
-function maRecipeStyles(recipe, ids, taste, hasDairy) {
-  const s = new Set();
-  const fam = recipe.family;
-  const has = (...list) => list.some(id => ids.has(id));
-  if (has("prosecco")) s.add("bubbels");
-  if (fam === "Modern / Tiki" || has("coconut_cream", "passion_fruit_puree", "passion_fruit_juice", "falernum", "banana_liqueur") || (has("pineapple_juice") && has("white_rum", "dark_rum"))) s.add("tropisch");
-  if (fam === "Zuivel & dessert" || hasDairy || has("espresso", "coffee_liqueur", "creme_de_cacao", "advocaat")) s.add("romig");
-  if (fam === "Highballs" || has("soda_water", "tonic", "ginger_beer", "ginger_ale", "cola", "lemonade", "grapefruit_soda", "beer")) s.add("lang_bruisend");
-  if (fam === "Sours" || (taste.zuur >= 2 && !s.has("lang_bruisend"))) s.add("fris_zuur");
-  if (fam === "Spirit-forward" || fam === "Stirred-down" || (taste.sterk >= 4 && taste.zuur <= 1)) s.add("kort_sterk");
-  if (s.size === 0) s.add(taste.zuur >= 2 ? "fris_zuur" : "kort_sterk");
-  return s;
-}
-
-function menuRecipeFacts(recipe, allIngredients, isOwned) {
-  const required = recipe.ingredients.filter(i => !i.optional);
-  const metas = recipe.ingredients.map(ing => ({ ing, meta: findIngredientMeta(ing, allIngredients) }));
-  const ids = new Set(metas.map(({ ing, meta }) => meta?.id || ing.id).filter(Boolean));
-  const requiredIds = new Set(required.map(ing => findIngredientMeta(ing, allIngredients)?.id || ing.id));
-  const missing = required.filter(ing => !isOwned(ing));
-  const bottleOf = (ing) => { const m = findIngredientMeta(ing, allIngredients); return m && (MENU_BOTTLE_CATS.has(m.cat) || MENU_BOTTLE_EXTRA.has(m.id)) ? m.id : null; };
-  const bottles = [...new Set(required.map(bottleOf).filter(Boolean))];
-  const missingBottles = [...new Set(missing.map(bottleOf).filter(Boolean))];
-  const techniques = inferTechniques(recipe.method);
-  const hasEgg = requiredIds.has("egg_white") || requiredIds.has("egg_yolk");
-  const hasDairy = [...ids].some(id => ["heavy_cream", "whipped_cream", "milk", "egg_yolk", "irish_cream", "butter"].includes(id));
-  const hasHomemade = [...ids].some(id => MENU_HOMEMADE_SYRUPS.has(id));
-  const hasFreshJuice = required.some(ing => MENU_FRESH_JUICES.has(findIngredientMeta(ing, allIngredients)?.id || ing.id));
-  const hot = [...ids].some(id => ["hot_water", "hot_coffee", "espresso", "hot_chocolate", "black_tea"].includes(id)) || recipe.family === "Warme dranken";
-  // Vooraf te batchen: geen vers sap, ei, room of koffie en niets om te
-  // muddelen/laagjes te gieten. Bruis (tonic, soda) mag: dat gaat er bij
-  // het serveren pas bij.
-  const batchable = !hasFreshJuice && !hasEgg && !hasDairy && !hot && !techniques.some(t => ["muddle", "float_layer", "blend", "dry_shake"].includes(t));
-  const taste = getTasteProfile(recipe, allIngredients);
-  const level = menuStrength(recipe, ing => findIngredientMeta(ing, allIngredients)).level;
-  const styles = maRecipeStyles(recipe, ids, taste, hasDairy);
-  const text = [recipe.name, ...metas.map(({ ing, meta }) => meta?.name || ing.name || "")].join(" ").toLowerCase();
-  const priceOf = (id) => findIngredientMeta({ id }, allIngredients)?.bottlePrice || 20;
-  const missingCost = missingBottles.reduce((s, id) => s + priceOf(id), 0);
-  const baseSpirit = metas.find(({ meta }) => meta?.cat === "Sterke drank")?.meta?.id || null;
-  return {
-    recipe, required, ids, missing, bottles, missingBottles, missingCost, techniques, hasEgg, hasHomemade, batchable,
-    taste, level, alcoholFree: level === 0, styles, text, baseSpirit, classic: MENU_CLASSICS.has(recipe.id),
-    crushed: /crushed/i.test(recipe.method || ""),
-  };
-}
-
-function menuCornerOf(recipe, taste) {
-  const role = getMenuRole(recipe);
-  if (role !== "overig") return role;
-  return taste.sterk >= 4 ? "sterk" : "fris";
-}
-
-// Plekken op het menu. Met variatie: verdeeld over de smaakhoeken; zonder
-// variatie (en met gekozen stijlen): verdeeld over die stijlen.
-const MA_CORNER_ORDER = ["fris", "sterk", "avontuurlijk", "fris", "comfort", "sterk", "avontuurlijk", "fris", "sterk", "comfort"];
-function maSlots(a) {
-  const total = Math.max(1, Math.min(10, a.count));
-  const free = Math.min(a.alcoholvrijCount, total);
-  const n = total - free;
-  const slots = [];
-  const byStyle = !a.variety && a.styles.length > 0;
-  for (let i = 0; i < n; i++) {
-    slots.push(byStyle
-      ? { key: `s${i}`, kind: "style", style: a.styles[i % a.styles.length] }
-      : { key: `s${i}`, kind: "corner", corner: MA_CORNER_ORDER[i % MA_CORNER_ORDER.length] });
-  }
-  for (let i = 0; i < free; i++) slots.push({ key: `af${i}`, kind: "alcoholvrij" });
-  return slots;
-}
-function maSlotMatches(f, slot) {
-  if (slot.kind === "alcoholvrij") return f.alcoholFree;
-  if (f.alcoholFree) return false;
-  if (slot.kind === "style") return f.styles.has(slot.style);
-  if (slot.kind === "corner") return f.corner === slot.corner;
-  return true; // "extra": alles mag
-}
-function maSlotTitle(slot) {
-  if (slot.kind === "alcoholvrij") return "Alcoholvrij";
-  if (slot.kind === "style") return SURVEY_STYLES.find(s => s.key === slot.style)?.label || "";
-  if (slot.kind === "corner") return MENU_CORNER_TITLES[slot.corner] || "";
-  return "Eigen keuze";
-}
-
-// Harde filters: dingen die echt niet mogen of niet kunnen.
-function maPasses(f, a) {
-  const p = a.prefs;
-  const spiritIds = (keys) => keys.flatMap(k => SURVEY_SPIRITS.find(o => o.key === k)?.ids || []);
-  if (spiritIds(p.spirits.dislike).some(id => f.ids.has(id))) return false;
-  if (p.tastes.dislike.some(k => maTasteMatches(f, k))) return false;
-  if (p.custom.dislike.some(k => maCustomMatches(f, k))) return false;
-  if (a.avoidIds.some(id => f.ids.has(id))) return false;
-  if (a.effort === "snel" && (f.required.length > 3 || f.hasEgg || f.hasHomemade || f.techniques.includes("dry_shake") || f.techniques.includes("float_layer"))) return false;
-  if (a.effort === "werk" && (f.required.length > 5 || f.techniques.includes("float_layer"))) return false;
-  if (!a.gear.shaker && f.techniques.some(t => t === "shaken" || t === "dry_shake")) return false;
-  if (!a.gear.blender && f.techniques.includes("blend")) return false;
-  if (!a.gear.crushed && f.crushed) return false;
-  if (!a.gear.eggs && f.hasEgg) return false;
-  if (a.noHomemade && f.hasHomemade) return false;
-  if (!f.alcoholFree && a.strengths.length > 0 && !a.strengths.includes(MA_STRENGTH_KEYS[f.level])) return false;
-  if (f.missingBottles.some(id => a.noBuy.includes(id))) return false;
-  return true;
-}
-
-// Score + korte uitleg ("gin-avond · fris en zuur · in huis").
-function maScore(f, a, ctx) {
-  const reasons = [];
-  const add = (w, t) => reasons.push({ w, t });
-  let score = 0;
-  const p = a.prefs;
-  // Voorraad: ontbrekende flessen kosten geld, ontbrekende boodschappen veel minder.
-  score -= f.missingBottles.length * (ctx.profile === "veilig" ? 3.4 : 2.2);
-  score -= (f.missing.length - f.missingBottles.length) * 0.6;
-  if (f.missing.length === 0) { score += 1.5; add(1, "in huis"); }
-  else if (f.missingBottles.length > 0) add(1.1, `${f.missingBottles.length} fles${f.missingBottles.length === 1 ? "" : "sen"} kopen`);
-  // Voorkeuren.
-  const likedSpirit = p.spirits.like.find(k => (SURVEY_SPIRITS.find(o => o.key === k)?.ids || []).some(id => f.ids.has(id)));
-  if (likedSpirit) { score += 2.5; add(2.6, SURVEY_SPIRITS.find(o => o.key === likedSpirit).label.toLowerCase()); }
-  const likedTastes = p.tastes.like.filter(k => maTasteMatches(f, k));
-  if (likedTastes.length) { score += 1.2 * likedTastes.length; add(1.8, SURVEY_TASTES.find(t => t.key === likedTastes[0])?.label.toLowerCase()); }
-  const likedCustom = p.custom.like.find(k => maCustomMatches(f, k));
-  if (likedCustom) { score += 2.8; add(2.9, likedCustom.replace(/^~/, "").toLowerCase()); }
-  // Thema.
-  const theme = MA_THEMES.find(t => t.key === a.theme);
-  if (theme && ((theme.ids || []).some(id => f.ids.has(id)) || (theme.styles || []).some(s => f.styles.has(s)) || (theme.families || []).includes(f.recipe.family))) {
-    score += 3; add(3, theme.label.toLowerCase());
-  }
-  // Flessen opmaken.
-  const usesUp = a.useUp.find(id => f.ids.has(id));
-  if (usesUp) { score += 3; add(3.2, `maakt de ${(ctx.nameOf(usesUp) || usesUp).toLowerCase()} op`); }
-  // Vooraf te maken.
-  if (a.batch) { if (f.batchable) { score += 2.5; add(2.4, "vooraf te maken"); } else score -= 1; }
-  // Bekend of verrassend.
-  if (ctx.wantUnknown) { if (!f.classic) { score += 2.2; add(1.4, "minder bekend"); } else score -= 0.6; }
-  else if (f.classic) { score += 1.6; add(1.2, "klassieker"); }
-  if (ctx.profile === "veilig" && f.classic) score += 2;
-  if (ctx.profile === "verrassend") { if (!f.classic) score += 2.5; score += (hashString(f.recipe.id + "v") % 100) / 60; }
-  // Afwisseling in sterkte en basisdrank.
-  if (!f.alcoholFree && a.strengths.length > 1 && !ctx.levels.has(f.level)) score += 0.6;
-  score -= f.bottles.filter(b => ctx.menuBottles.has(b)).length * 0.5;
-  // Eigen smaak uit je check-ins.
-  if (ctx.tasteLikes) {
-    const fit = ["zoet", "zuur", "bitter", "sterk"].reduce((s, k) => s + ((ctx.tasteLikes[k] || 0) / 100) * (f.taste[k] / 5), 0);
-    score += fit * 0.8;
-  }
-  // Vaste tie-breaker zodat het menu niet bij elke render verspringt.
-  score += (hashString(f.recipe.id) % 100) / 1000;
-  const why = reasons.sort((x, y) => y.w - x.w).slice(0, 3).map(r => r.t).filter(Boolean).join(" · ");
-  return { score, why };
-}
-
-// Stelt één menu samen. `locks` = slotKey → recept-id (vastgezet, gewisseld
-// of "moet erop"); de rest wordt per plek met de hoogste score gevuld.
-function maBuildMenu({ facts, a, slots, locks, profile, tasteLikes, nameOf, priceOf }) {
-  const byId = new Map(facts.map(f => [f.recipe.id, f]));
-  const chosen = new Map();
-  const used = new Set();
-  const menuBottles = new Set();
-  const missing = new Set();
-  const levels = new Set();
-  const take = (slotKey, f, extra) => {
-    chosen.set(slotKey, { f, ...extra });
-    used.add(f.recipe.id);
-    f.bottles.forEach(b => menuBottles.add(b));
-    f.missingBottles.forEach(b => missing.add(b));
-    levels.add(f.level);
-  };
-  slots.forEach(slot => {
-    const f = locks[slot.key] && byId.get(locks[slot.key]);
-    if (f) take(slot.key, f, { locked: true, why: a.mustHave.includes(f.recipe.id) ? "jij koos hem" : "vastgezet" });
-  });
-  const alcoholic = slots.filter(s => s.kind !== "alcoholvrij").length;
-  const wantUnknownTotal = Math.round(alcoholic * (profile === "veilig" ? 0 : profile === "verrassend" ? Math.max(0.6, a.surprise / 100) : a.surprise / 100));
-  const budget = parseFloat(String(a.budget).replace(",", ".")) || null;
-  const costOf = (set) => [...set].reduce((sum, id) => sum + priceOf(id), 0);
-  slots.forEach(slot => {
-    if (chosen.has(slot.key)) return;
-    const unknownSoFar = [...chosen.values()].filter(c => c.f && !c.f.classic && !c.f.alcoholFree).length;
-    const ctx = { profile, wantUnknown: unknownSoFar < wantUnknownTotal, menuBottles, levels, tasteLikes, nameOf };
-    const fitsBudget = (f) => {
-      const next = new Set([...missing, ...f.missingBottles]);
-      if (a.maxBottles < MA_NO_LIMIT && next.size > a.maxBottles) return false;
-      if (budget != null && costOf(next) > budget) return false;
-      return true;
-    };
-    const pool = facts.filter(f => !used.has(f.recipe.id) && maPasses(f, a) && fitsBudget(f));
-    let candidates = pool.filter(f => maSlotMatches(f, slot));
-    // Niets in deze hoek? Dan iets anders dat wel past (zelfde soort: met of zonder alcohol).
-    if (candidates.length === 0 && slot.kind !== "alcoholvrij") candidates = pool.filter(f => !f.alcoholFree);
-    if (candidates.length === 0) { chosen.set(slot.key, { f: null }); return; }
-    const best = candidates.map(f => ({ f, ...maScore(f, a, ctx) })).sort((x, y) => y.score - x.score)[0];
-    take(slot.key, best.f, { why: best.why });
-  });
-  const items = slots.map(slot => ({ slot, ...(chosen.get(slot.key) || { f: null }) }));
-  return { items, missingBottles: [...missing], cost: costOf(missing) };
-}
-// Alternatieven voor één plek (het wisselvenster), met filters.
-function maAlternatives({ facts, a, slot, current, usedIds, filters, tasteLikes, nameOf }) {
-  const ctx = { profile: "balans", wantUnknown: false, menuBottles: new Set(), levels: new Set(), tasteLikes, nameOf };
-  return facts
-    .filter(f => !usedIds.has(f.recipe.id) && maPasses(f, a))
-    .filter(f => slot.kind === "alcoholvrij" ? f.alcoholFree : !f.alcoholFree)
-    .filter(f => !filters.same || maSlotMatches(f, slot))
-    .filter(f => !filters.inHouse || f.missing.length === 0)
-    .filter(f => !filters.otherBase || !current || f.baseSpirit !== current.baseSpirit)
-    .filter(f => !filters.lighter || !current || f.level < current.level)
-    .map(f => ({ f, ...maScore(f, a, ctx) }))
-    .sort((x, y) => y.score - x.score)
-    .slice(0, 5);
-}
-
-function MenuOptionCard({ selected, onClick, icon, title, subtitle }) {
-  return (
-    <button onClick={onClick} role="radio" aria-checked={selected} className="press-scale" style={{
-      display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 64, boxSizing: "border-box",
-      padding: "12px 14px", marginBottom: 10, textAlign: "left", cursor: "pointer", fontFamily: sans,
-      background: CREAM, borderRadius: 14, border: `1.5px solid ${selected ? BOTTLE : BORDER}`,
-      boxShadow: selected ? "none" : SHADOW_CARD, transition: "border-color 0.15s ease",
-    }}>
-      <span style={{
-        width: 38, height: 38, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-        background: selected ? BOTTLE : PAPER_DEEP, color: selected ? "#F1D9A6" : BRASS, fontFamily: serif, fontWeight: 700, fontSize: 16,
-      }}>{icon}</span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: INK }}>{title}</span>
-        {subtitle && <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>{subtitle}</span>}
-      </span>
-      <span aria-hidden style={{
-        width: 22, height: 22, borderRadius: "50%", flexShrink: 0, boxSizing: "border-box",
-        border: `2px solid ${selected ? BOTTLE : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        {selected && <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOTTLE }} />}
-      </span>
-    </button>
-  );
-}
-
-function MenuToggleRow({ title, subtitle, checked, onChange }) {
+export function MenuToggleRow({ title, subtitle, checked, onChange }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 64, boxSizing: "border-box", padding: "12px 14px", background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, marginTop: 6 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -13299,811 +9140,13 @@ function MenuToggleRow({ title, subtitle, checked, onChange }) {
   );
 }
 
-function MenuBalanceInfo() {
-  return (
-    <div style={{ background: PAPER_DEEP, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 16px", margin: "4px 0 16px" }}>
-      <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: "0 0 8px" }}>
-        Bars bouwen een menu op vier smaakhoeken: <strong>fris &amp; verfrissend</strong>, <strong>sterk &amp; aromatisch</strong>,
-        {" "}<strong>avontuurlijk</strong> en <strong>comfort</strong>, met daarnaast een volwaardige <strong>alcoholvrije</strong> optie.
-        Zo vindt elke gast iets en voelt het menu niet eenzijdig.
-      </p>
-      <p style={{ fontSize: 13.5, color: INK, lineHeight: 1.6, margin: 0 }}>
-        Vuistregels: reken op 2 drankjes per gast het eerste uur en daarna 1 per uur. Geroerde cocktails zonder vers sap of ei
-        kun je vooraf batchen, dan sta je tijdens het feest minder achter de bar.
-      </p>
-    </div>
-  );
-}
-
-// Wisselvenster: vijf alternatieven voor één plek (of, bij "Cocktail
-// toevoegen", voor een extra plek), met filters en zelf zoeken.
-function MaSwapSheet({ title, subtitle, alternatives, filters, setFilters, showFilters, recipes, allIngredients, onPick, onClose }) {
-  useBodyScrollLock();
-  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
-  const chip = (key, label) => {
-    const on = filters[key];
-    return (
-      <button key={key} type="button" aria-pressed={on} onClick={() => setFilters(f => ({ ...f, [key]: !f[key] }))} style={{
-        minHeight: 36, padding: "0 12px", borderRadius: 100, fontFamily: sans, fontSize: 13, cursor: "pointer",
-        background: on ? BOTTLE : PAPER_DEEP, color: on ? "#FBF6EA" : INK, border: `1px solid ${on ? BOTTLE : PAPER_DEEP}`,
-      }}>{label}</button>
-    );
-  };
-  return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-      <div ref={panelRef} className="sheet-slide-in" style={{
-        position: "relative", maxWidth: 560, width: "100%", margin: "0 auto", maxHeight: "88vh", background: PAPER,
-        borderRadius: "20px 20px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: sans,
-      }}>
-        <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "0 18px 8px", touchAction: "none" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: INK }}>{title}</div>
-            {subtitle && <div style={{ fontSize: 13, color: MUTED, marginTop: 3 }}>{subtitle}</div>}
-          </div>
-          <button onClick={close} aria-label="Sluiten" onTouchStart={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginTop: -8, marginRight: -10, background: "none", border: "none", color: INK, cursor: "pointer" }}><X size={18} /></button>
-        </div>
-        <div style={{ overflowY: "auto", overflowX: "hidden", padding: "0 18px calc(env(safe-area-inset-bottom) + 20px)" }}>
-          {showFilters && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "4px 0 12px" }}>
-              {chip("same", "Zelfde soort")}{chip("inHouse", "Alles in huis")}{chip("otherBase", "Andere drank")}{chip("lighter", "Lichter")}
-            </div>
-          )}
-          {alternatives.length === 0 ? (
-            <p style={{ fontSize: 13.5, color: MUTED, margin: "8px 0 14px" }}>Geen alternatieven met deze filters. Zet een filter uit of zoek zelf.</p>
-          ) : (
-            <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 10px 0 12px", marginBottom: 12 }}>
-              {alternatives.map(({ f, why }, i) => (
-                <div key={f.recipe.id} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 68, borderTop: i ? `1px solid ${BORDER}` : "none" }}>
-                  <RecipeCircle recipe={f.recipe} allIngredients={allIngredients} size={40} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 15.5, color: INK }}>{f.recipe.name}</div>
-                    {why && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{why}</div>}
-                    <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2, color: f.missingBottles.length ? BURGUNDY : SAGE }}>
-                      {f.missingBottles.length ? `+${f.missingBottles.length} fles${f.missingBottles.length === 1 ? "" : "sen"} · ± €${Math.round(f.missingCost)}` : f.missing.length ? "Alleen boodschappen" : "Alles in huis"}
-                    </div>
-                  </div>
-                  <button onClick={() => onPick(f.recipe.id)} style={{ minWidth: 56, minHeight: 40, borderRadius: 10, border: "none", background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Kies</button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div style={{ fontSize: 13, fontWeight: 700, color: INK, margin: "4px 0 6px" }}>Zelf zoeken in alle recepten</div>
-          <RecipePicker recipes={recipes} value={null} listId="menu-assistent-zoek" onChange={id => id && onPick(id)} style={{ width: "100%", boxSizing: "border-box" }} />
-        </div>
-      </div>
-    </div>
-  ), document.body);
-}
-
-function MenuAssistentTab({ recipes, isOwned, allIngredients, ingredientLabel, favoriteRecipeIds = [], recentRecipeIds = [], tasteLikes, parties = [], onAddToShoppingList, onUseInFeestplanner, onSound,
-  linkedParty = null, partyAnswers = null, onPartyAnswers, onApplyToParty, onUnlink }) {
-  // Los gebruikt: één set antwoorden. Gekoppeld aan een feest: eigen
-  // antwoorden per feest (bewaard in de app), zodat je gewone instellingen
-  // niet overschreven worden door de smaaktest van een feest.
-  const [globalStored, setGlobalStored] = useStorage("thuisbar-menu-assistent-v2", MA_DEFAULTS);
-  const stored = linkedParty ? (partyAnswers || MA_DEFAULTS) : globalStored;
-  const setStored = linkedParty ? onPartyAnswers : setGlobalStored;
-  const a = {
-    ...MA_DEFAULTS, ...stored,
-    prefs: { ...MA_DEFAULTS.prefs, ...(stored?.prefs || {}) },
-    gear: { ...MA_DEFAULTS.gear, ...(stored?.gear || {}) },
-  };
-  const setAnswer = (patch) => setStored({ ...a, ...patch });
-  const order = a.start === "eigen" ? [6, 1, 2, 3, 4, 5, 7] : [1, 2, 3, 4, 5, 6, 7];
-  // Gekoppeld aan een feest sla je het startscherm over (het startpunt is het feest).
-  const [pos, setPos] = useState(linkedParty ? 1 : 0); // 0 = startpunt, 1..7 = vragen, 8 = resultaat
-  const step = pos >= 1 && pos <= MA_QUESTION_COUNT ? order[pos - 1] : null;
-  const showResult = pos > MA_QUESTION_COUNT;
-  const [tab, setTab] = useState("balans");
-  const [locks, setLocks] = useState({});
-  const [extras, setExtras] = useState([]);
-  const [sheet, setSheet] = useState(null); // slotKey | "__add"
-  const [sheetFilters, setSheetFilters] = useState({ same: true, inHouse: false, otherBase: false, lighter: false });
-  const [customDraft, setCustomDraft] = useState("");
-  const [listAdded, setListAdded] = useState(false);
-  const [shareState, setShareState] = useState(null);
-  const [surveyBusy, setSurveyBusy] = useState(null);
-  const [showAllUseUp, setShowAllUseUp] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
-
-  const goTo = (next) => { setPos(next); setShowInfo(false); window.scrollTo({ top: 0 }); };
-
-  const setNavOverride = useContext(NavOverrideContext);
-  useEffect(() => {
-    if (!setNavOverride) return;
-    if (showResult) {
-      setNavOverride({
-        label: "Vragen", title: "Menu-assistent", onBack: () => goTo(MA_QUESTION_COUNT),
-        right: (
-          <button onClick={() => setShowInfo(v => !v)} aria-label="Hoe werkt een gebalanceerd menu?" style={{ background: "none", border: "none", cursor: "pointer", color: HEADER_ACCENT, display: "flex", alignItems: "center", justifyContent: "flex-end", minWidth: 44, minHeight: 44 }}>
-            <Info size={18} />
-          </button>
-        ),
-      });
-    } else if (pos >= 1 && !(linkedParty && pos === 1)) {
-      // Bij de vragen: terug (knop of vegen) = de vorige vraag, niet meteen
-      // het hele scherm uit.
-      setNavOverride({ label: "Vorige", title: "Menu-assistent", onBack: () => goTo(pos - 1) });
-    } else {
-      setNavOverride(null);
-    }
-  }, [setNavOverride, showResult, pos]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => setNavOverride && setNavOverride(null), [setNavOverride]);
-
-  const facts = useMemo(() => recipes.map(r => {
-    const f = menuRecipeFacts(r, allIngredients, isOwned);
-    return { ...f, corner: menuCornerOf(r, f.taste) };
-  }), [recipes, allIngredients, isOwned]);
-  const factsById = useMemo(() => new Map(facts.map(f => [f.recipe.id, f])), [facts]);
-  const nameOf = (id) => (findIngredientMeta({ id }, allIngredients)?.name || id).split(" (")[0].split(" / ")[0];
-  const priceOf = (id) => findIngredientMeta({ id }, allIngredients)?.bottlePrice || 20;
-
-  // Plekken + wat er vast op staat (moet erop, vastgezet/gewisseld, toegevoegd).
-  const { slots, allLocks } = useMemo(() => {
-    const s = maSlots(a);
-    const mustLocks = {};
-    a.mustHave.forEach(id => {
-      const f = factsById.get(id);
-      if (!f) return;
-      const free = s.filter(x => !mustLocks[x.key]);
-      const target = free.find(x => maSlotMatches(f, x)) || free.find(x => (x.kind === "alcoholvrij") === f.alcoholFree);
-      if (target) mustLocks[target.key] = id;
-      else { const key = `m-${id}`; s.push({ key, kind: "extra" }); mustLocks[key] = id; }
-    });
-    extras.forEach((id, i) => { const key = `x${i}`; s.push({ key, kind: "extra" }); mustLocks[key] = id; });
-    return { slots: s, allLocks: { ...mustLocks, ...locks } };
-  }, [stored, factsById, extras, locks]);
-
-  const menus = useMemo(() => {
-    if (!showResult) return null;
-    const out = {};
-    ["veilig", "balans", "verrassend"].forEach(profile => {
-      out[profile] = maBuildMenu({ facts, a, slots, locks: allLocks, profile, tasteLikes, nameOf, priceOf });
-    });
-    return out;
-  }, [showResult, facts, stored, slots, allLocks, tasteLikes]);
-  const current = menus?.[tab];
-  const picked = current ? current.items.filter(m => m.f) : [];
-
-  const missingRows = useMemo(() => {
-    const map = new Map();
-    picked.forEach(m => m.f.missing.forEach(ing => {
-      const key = ingredientKey(ing);
-      if (!map.has(key)) map.set(key, { ref: ing, label: ingredientLabel(ing), recipeNames: [] });
-      map.get(key).recipeNames.push(m.f.recipe.name);
-    }));
-    return [...map.values()];
-  }, [current]);
-  useEffect(() => { setListAdded(false); }, [tab, missingRows.length]);
-
-  // Flessen uit de voorraad (om op te maken) en flessen die vaak ontbreken.
-  const ownedBottles = useMemo(() => {
-    const used = new Set(facts.flatMap(f => f.bottles));
-    return allIngredients.filter(i => (MENU_BOTTLE_CATS.has(i.cat) || MENU_BOTTLE_EXTRA.has(i.id)) && used.has(i.id) && isOwned({ id: i.id }));
-  }, [facts, allIngredients, isOwned]);
-  const commonMissing = useMemo(() => {
-    const count = {};
-    facts.forEach(f => f.missingBottles.forEach(id => { count[id] = (count[id] || 0) + 1; }));
-    return Object.entries(count).sort((x, y) => y[1] - x[1]).slice(0, 10).map(([id]) => id);
-  }, [facts]);
-  const surveyParties = parties.filter(p => p.taste_survey_id);
-
-  // Smaaktest als startpunt: de antwoorden van de gasten vullen de vragen alvast in.
-  const applySurvey = async (party, base = a) => {
-    const startKey = base.start === "feest" ? "feest" : "smaaktest";
-    setSurveyBusy(party.id);
-    const { data } = await supabase.from("party_survey_responses").select("*").eq("survey_id", party.taste_survey_id).order("created_at", { ascending: false });
-    setSurveyBusy(null);
-    const seen = new Set();
-    const rs = (data || []).filter(r => { const n = (r.guest_name || "").trim().toLowerCase(); if (!n) return true; if (seen.has(n)) return false; seen.add(n); return true; });
-    const n = rs.length;
-    if (n === 0) { setStored({ ...base, start: startKey, surveyNote: `${party.name}: nog geen reacties`, surveyPartyId: party.id, surveyCount: 0 }); return; }
-    const pick = (group) => {
-      const t = tallyChoices(rs, group);
-      const min = Math.max(1, n / 3);
-      return {
-        like: t.filter(x => x.like >= min && x.like > x.dislike).map(x => x.key).filter(k => !k.startsWith(CUSTOM_PREFIX)),
-        dislike: t.filter(x => x.dislike >= min && x.dislike > x.like).map(x => x.key).filter(k => !k.startsWith(CUSTOM_PREFIX)),
-      };
-    };
-    const styleCount = {}, strengthCount = {};
-    rs.forEach(r => {
-      (r.answers?.styles || []).forEach(k => { styleCount[k] = (styleCount[k] || 0) + 1; });
-      if (r.answers?.strength) strengthCount[r.answers.strength] = (strengthCount[r.answers.strength] || 0) + 1;
-    });
-    const avoid = new Set();
-    rs.forEach(r => (r.answers?.allergies || r.dietary || []).forEach(k => (MA_ALLERGY_IDS[k] || []).forEach(id => avoid.add(id))));
-    setStored({
-      ...base,
-      start: startKey,
-      surveyNote: `${party.name} · ${n} reactie${n === 1 ? "" : "s"}`,
-      surveyPartyId: party.id, surveyCount: n,
-      guests: party.guests || base.guests,
-      prefs: { spirits: pick("spirits"), tastes: pick("tastes"), custom: base.prefs.custom },
-      styles: Object.entries(styleCount).filter(([, c]) => c >= n / 3).map(([k]) => k),
-      strengths: ["licht", "middel", "sterk"].filter(k => (strengthCount[k] || 0) >= n / 4),
-      alcoholvrijCount: strengthCount.alcoholvrij ? Math.max(1, base.alcoholvrijCount) : base.alcoholvrijCount,
-      avoidIds: [...avoid],
-    });
-  };
-
-  // Gekoppeld openen: gasten en het huidige menu van het feest gaan mee (de
-  // cocktails die er al op staan worden vaste keuzes), en de smaaktest wordt
-  // telkens opnieuw ingelezen zodat nieuwe reacties meetellen. Je eigen
-  // antwoorden over moeite, gereedschap en budget blijven bewaard.
-  const linkedInitRef = useRef(false);
-  useEffect(() => {
-    if (!linkedParty || linkedInitRef.current) return;
-    linkedInitRef.current = true;
-    const ids = linkedParty.cocktail_ids || [];
-    const base = { ...a, start: "feest", theme: null, guests: linkedParty.guests || a.guests, mustHave: ids, count: Math.min(10, Math.max(a.count, ids.length)) };
-    if (linkedParty.taste_survey_id) applySurvey(linkedParty, base);
-    else setStored({ ...base, surveyNote: null, surveyPartyId: null, surveyCount: 0 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkedParty]);
-  const linkedBanner = linkedParty && (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, background: CREAM, borderRadius: 14, boxShadow: SHADOW_CARD, padding: "10px 12px", marginBottom: 16 }}>
-      <span style={{ width: 32, height: 32, borderRadius: 10, background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><PartyPopper size={16} /></span>
-      <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, lineHeight: 1.35, color: INK }}>
-        Voor <strong>{linkedParty.name || "je feest"}</strong>
-        <span style={{ display: "block", fontSize: 12, color: MUTED }}>
-          {surveyBusy ? "Smaaktest inlezen…" : a.surveyCount > 0 ? `${a.surveyCount} reactie${a.surveyCount === 1 ? "" : "s"} uit de smaaktest verwerkt` : linkedParty.taste_survey_id ? "Nog geen reacties op de smaaktest" : "Zonder smaaktest"}
-        </span>
-      </span>
-      <button onClick={onUnlink} style={{ background: "none", border: "none", color: BOTTLE, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "8px 0 8px 6px", flexShrink: 0 }}>Losmaken</button>
-    </div>
-  );
-
-  const startResult = () => {
-    onSound?.("chime");
-    setLocks({});
-    setTab("balans");
-    goTo(MA_QUESTION_COUNT + 1);
-  };
-
-  // ---------- Kleine bouwstenen (functies, geen componenten: zo houdt
-  // een invoerveld zijn focus tijdens het typen) ----------
-  const stepperRow = (title, sub, value, onMinus, onPlus, label, display) => (
-    <div key={title} style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 72, borderTop: `1px solid ${BORDER}` }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15.5, fontWeight: 700, color: INK }}>{title}</div>
-        {sub && <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{sub}</div>}
-      </div>
-      <button aria-label={`Minder ${label}`} onClick={onMinus} style={stepBtn}>−</button>
-      <span style={{ minWidth: 40, textAlign: "center", fontSize: display ? 14 : 20, fontWeight: 700, color: BOTTLE }}>{display || value}</span>
-      <button aria-label={`Meer ${label}`} onClick={onPlus} style={stepBtn}>+</button>
-    </div>
-  );
-  const prefState = (group, key) => a.prefs[group].like.includes(key) ? "like" : a.prefs[group].dislike.includes(key) ? "dislike" : null;
-  const cyclePref = (group, key) => {
-    const g = a.prefs[group];
-    const like = g.like.filter(k => k !== key), dislike = g.dislike.filter(k => k !== key);
-    if (g.like.includes(key)) dislike.push(key); else if (!g.dislike.includes(key)) like.push(key);
-    setAnswer({ prefs: { ...a.prefs, [group]: { like, dislike } } });
-  };
-  const prefChip = (group, key, label) => {
-    const st = prefState(group, key);
-    return (
-      <button key={group + key} type="button" onClick={() => cyclePref(group, key)}
-        aria-label={`${label}${st === "like" ? ", wel" : st === "dislike" ? ", liever niet" : ""}`} style={{
-          display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44, padding: "0 14px", borderRadius: 100, fontFamily: sans, fontSize: 14.5, cursor: "pointer",
-          ...(st === "like" ? { background: BOTTLE, border: `1px solid ${BOTTLE}`, color: "#FBF6EA" }
-            : st === "dislike" ? { background: "transparent", border: `1px dashed ${MUTED}`, color: MUTED }
-            : { background: CREAM, border: `1px solid ${BORDER}`, color: INK }),
-        }}>
-        {st === "like" && <Check size={14} color="#F1D9A6" strokeWidth={2.6} />}
-        {st === "dislike" && <X size={13} strokeWidth={2.2} />}
-        <span style={{ textDecoration: st === "dislike" ? "line-through" : "none" }}>{label}</span>
-      </button>
-    );
-  };
-  const toggleChip = (key, label, on, onClick) => (
-    <button key={key} type="button" aria-pressed={on} onClick={onClick} style={{
-      display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44, padding: "0 14px", borderRadius: 100, fontFamily: sans, fontSize: 14.5, cursor: "pointer",
-      background: on ? BOTTLE : PAPER_DEEP, color: on ? "#FBF6EA" : INK, border: `1px solid ${on ? BOTTLE : PAPER_DEEP}`,
-    }}>
-      {on && <Check size={14} color="#F1D9A6" strokeWidth={2.6} />}{label}
-    </button>
-  );
-  const sectionLabel = (t) => <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, color: MUTED, margin: "0 0 8px" }}>{t}</div>;
-  const segmented = (options, value, onChange, label) => (
-    <div role="radiogroup" aria-label={label} style={{ display: "flex", padding: 3, borderRadius: 12, background: PAPER_DEEP }}>
-      {options.map(([v, l]) => (
-        <button key={v} role="radio" aria-checked={value === v} onClick={() => onChange(v)} style={{
-          flex: 1, minHeight: 42, border: "none", borderRadius: 9, fontFamily: sans, fontSize: 14, fontWeight: 600, cursor: "pointer",
-          background: value === v ? CREAM : "transparent", color: value === v ? INK : MUTED, boxShadow: value === v ? "0 1px 3px rgba(43,38,32,0.15)" : "none",
-        }}>{l}</button>
-      ))}
-    </div>
-  );
-
-  // ---------- Resultaat ----------
-  if (showResult && current) {
-    const budget = parseFloat(String(a.budget).replace(",", ".")) || null;
-    const makeable = picked.filter(m => m.f.missing.length === 0).length;
-    const batchCount = picked.filter(m => m.f.batchable).length;
-    const drinks = Math.round(a.guests * 2.5);
-    const usedIds = new Set(picked.map(m => m.f.recipe.id));
-    const sheetSlot = sheet === "__add" ? { key: "__add", kind: "extra" } : slots.find(s => s.key === sheet);
-    const sheetCurrent = sheet && sheet !== "__add" ? current.items.find(m => m.slot.key === sheet)?.f : null;
-    const alternatives = sheetSlot ? maAlternatives({ facts, a, slot: sheetSlot, current: sheetCurrent, usedIds, filters: sheet === "__add" ? { same: false } : sheetFilters, tasteLikes, nameOf }) : [];
-    const pickFromSheet = (id) => {
-      onSound?.("pop");
-      if (sheet === "__add") setExtras(x => [...x, id]);
-      else setLocks(l => ({ ...l, [sheet]: id }));
-      setSheet(null);
-    };
-    const toggleLock = (m) => {
-      onSound?.("tick");
-      const id = m.f.recipe.id;
-      if (a.mustHave.includes(id) && allLocks[m.slot.key] === id && !locks[m.slot.key]) { setAnswer({ mustHave: a.mustHave.filter(x => x !== id) }); return; }
-      setLocks(l => { const next = { ...l }; if (next[m.slot.key]) delete next[m.slot.key]; else next[m.slot.key] = id; return next; });
-    };
-    const removeExtra = (slotKey) => {
-      const idx = Number(slotKey.slice(1));
-      setExtras(x => x.filter((_, i) => i !== idx));
-    };
-    const shareMenu = async () => {
-      const names = picked.map(m => m.f.recipe.name);
-      if (names.length === 0) return;
-      onSound?.("share");
-      const text = `Het cocktailmenu voor vanavond:\n${names.map(n => `• ${n}`).join("\n")}`;
-      const url = publicAppUrl(`menu=${picked.map(m => m.f.recipe.id).join(",")}`);
-      const result = await shareLink({ title: "Mijn Thuisbar: menu", text: "Bekijk het cocktailmenu voor vanavond!", url, fallbackText: text });
-      if (result === "cancelled") return;
-      setShareState(result === "no-url" ? "failed" : result);
-      setTimeout(() => setShareState(null), 2500);
-    };
-    const iconBtn = (active) => ({ width: 40, height: 44, border: "none", background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: active ? BRASS : MUTED, padding: 0 });
-
-    return (
-      <div style={{ fontFamily: sans }}>
-        {linkedBanner}
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-          <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.15 }}>Jouw menu</h1>
-          <button onClick={() => goTo(0)} style={{ background: "none", border: "none", color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer", minHeight: 44, padding: "0 0 0 8px" }}>Opnieuw</button>
-        </div>
-        {showInfo && <MenuBalanceInfo />}
-        <div style={{ marginBottom: 12 }}>
-          {segmented([["veilig", "Veilig"], ["balans", "Balans"], ["verrassend", "Verrassend"]], tab, v => { onSound?.("tick"); setTab(v); }, "Kies een menu")}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 14, background: BOTTLE_DARK, color: "#FBF6EA", marginBottom: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>
-              {picked.length} cocktail{picked.length === 1 ? "" : "s"} · {current.missingBottles.length === 0 ? "niets kopen" : `${current.missingBottles.length} fles${current.missingBottles.length === 1 ? "" : "sen"} kopen`}
-            </div>
-            {current.missingBottles.length > 0 && (
-              <div style={{ fontSize: 12.5, color: "#C9D2CB", marginTop: 2 }}>{current.missingBottles.map(id => nameOf(id).toLowerCase()).join(", ")} · ongeveer €{Math.round(current.cost)}</div>
-            )}
-          </div>
-          {budget != null && (
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#F1D9A6", border: "1px solid #F1D9A6", borderRadius: 100, padding: "4px 10px", whiteSpace: "nowrap" }}>
-              {current.cost <= budget ? "binnen budget" : "boven budget"}
-            </span>
-          )}
-        </div>
-
-        <div style={{ background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD, padding: "0 4px 0 10px" }}>
-          {current.items.map((m, i) => {
-            const { slot, f, why } = m;
-            if (!f) {
-              return (
-                <div key={slot.key} style={{ padding: "12px 4px", borderTop: i ? `1px solid ${BORDER}` : "none" }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED }}>{maSlotTitle(slot)}</div>
-                  <div style={{ fontSize: 13.5, color: INK, marginTop: 3, lineHeight: 1.45 }}>Niets gevonden dat bij je antwoorden past. Zet een filter ruimer, verhoog het aantal flessen of kies zelf.</div>
-                  <button onClick={() => setSheet(slot.key)} style={{ marginTop: 4, background: "none", border: "none", color: BOTTLE, fontWeight: 700, fontSize: 13.5, cursor: "pointer", padding: 0, minHeight: 44, fontFamily: sans }}>Zelf kiezen</button>
-                </div>
-              );
-            }
-            const isLocked = !!allLocks[slot.key];
-            const isExtra = slot.kind === "extra" && slot.key.startsWith("x");
-            return (
-              <div key={slot.key} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 72, padding: "8px 0", borderTop: i ? `1px solid ${BORDER}` : "none" }}>
-                <RecipeCircle recipe={f.recipe} allIngredients={allIngredients} size={46} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", color: slot.kind === "corner" ? MENU_CORNER_COLORS[slot.corner] : MUTED }}>{maSlotTitle(slot)}</div>
-                  <div style={{ fontFamily: serif, fontSize: 16.5, fontWeight: 700, color: INK, lineHeight: 1.2, marginTop: 1 }}>{f.recipe.name}</div>
-                  {why && <div style={{ fontSize: 12, color: MUTED, marginTop: 2, lineHeight: 1.35 }}>{why}</div>}
-                  {f.missing.length > 0 && <div style={{ fontSize: 12, fontWeight: 600, color: BURGUNDY, marginTop: 1 }}>Mist: {f.missing.map(ing => ingredientLabel(ing)).join(", ")}</div>}
-                </div>
-                <button onClick={() => { setSheetFilters({ same: true, inHouse: false, otherBase: false, lighter: false }); setSheet(slot.key); }} aria-label={`Wissel ${f.recipe.name}`} style={iconBtn(false)}><Shuffle size={18} /></button>
-                {isExtra ? (
-                  <button onClick={() => removeExtra(slot.key)} aria-label={`${f.recipe.name} weghalen`} style={iconBtn(false)}><X size={18} /></button>
-                ) : (
-                  <button onClick={() => toggleLock(m)} aria-label={isLocked ? `Maak ${f.recipe.name} los` : `Zet ${f.recipe.name} vast`} aria-pressed={isLocked} style={iconBtn(isLocked)}>
-                    <Lock size={17} strokeWidth={isLocked ? 2.4 : 1.8} />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <button onClick={() => setSheet("__add")} style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", minHeight: 46, marginTop: 10, marginBottom: 16,
-          border: "1px dashed #B8A98A", borderRadius: 12, background: "transparent", color: BOTTLE, fontFamily: sans, fontSize: 14.5, fontWeight: 600, cursor: "pointer",
-        }}><Plus size={15} /> Cocktail toevoegen</button>
-
-        <div style={{ background: CREAM, border: "none", borderRadius: 16, boxShadow: SHADOW_CARD, padding: "4px 14px", marginBottom: 16 }}>
-          {[
-            { icon: <Check size={16} strokeWidth={2.4} />, content: <span><strong>{makeable} van {picked.length}</strong> kun je nu maken</span> },
-            missingRows.length > 0 && {
-              icon: <ShoppingCart size={16} />, color: BURGUNDY,
-              content: <span><span style={{ display: "block" }}>Nog nodig</span><span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>{missingRows.map(r => r.label).join(", ")}</span></span>,
-              action: listAdded ? (
-                <span className="success-pop" style={{ display: "flex", alignItems: "center", gap: 4, color: SAGE, fontSize: 13, fontWeight: 700, minHeight: 36 }}><Check size={14} strokeWidth={3} /> Op lijst</span>
-              ) : (
-                <button onClick={() => { onAddToShoppingList(missingRows.map(r => ({ ref: r.ref, recipeNames: r.recipeNames }))); onSound?.("tick"); setListAdded(true); }}
-                  style={{ background: BOTTLE, color: "#FBF6EA", border: "none", borderRadius: 100, padding: "0 14px", minHeight: 36, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: sans, flexShrink: 0 }}>
-                  Op lijst
-                </button>
-              ),
-            },
-            { icon: <Clock size={16} />, content: <span><strong>{batchCount} van {picked.length}</strong> kun je vooraf maken</span> },
-            { icon: <Users size={16} />, content: <span>Voor {a.guests} {a.guests === 1 ? "gast" : "gasten"}: <strong>± {drinks} drankjes</strong></span> },
-          ].filter(Boolean).map((row, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, fontSize: 14, color: INK }}>
-              <span style={{ width: 30, height: 30, borderRadius: 9, background: PAPER_DEEP, color: row.color || SAGE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{row.icon}</span>
-              <div style={{ flex: 1, minWidth: 0, lineHeight: 1.35 }}>{row.content}</div>
-              {row.action}
-            </div>
-          ))}
-        </div>
-
-        <button onClick={() => {
-          onSound?.("chime");
-          const ids = picked.map(m => m.f.recipe.id);
-          if (linkedParty) onApplyToParty(ids, a.surveyCount || 0);
-          else onUseInFeestplanner(ids, a.guests, a.start === "smaaktest" ? a.surveyPartyId : null);
-        }} disabled={picked.length === 0} className="press-scale" style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14,
-          background: BOTTLE_DARK, color: "#FBF6EA", border: "none", fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA, marginBottom: 10,
-        }}>
-          <PartyPopper size={17} /> {linkedParty ? `Zet op het menu van ${linkedParty.name || "je feest"}` : "Naar de feestplanner"}
-        </button>
-        <button onClick={shareMenu} disabled={picked.length === 0} className="press-scale" style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, borderRadius: 14,
-          background: PAPER_DEEP, color: INK, border: "none", fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
-        }}>
-          <Share2 size={17} color={BOTTLE} /> {shareState === "copied" ? "Gekopieerd" : shareState === "shared" ? "Gedeeld" : shareState === "failed" ? "Delen lukte niet" : "Deel menu"}
-        </button>
-
-        {sheet && sheetSlot && (
-          <MaSwapSheet
-            title={sheet === "__add" ? "Cocktail toevoegen" : `Wissel ${sheetCurrent?.recipe.name || ""}`}
-            subtitle={sheet === "__add" ? "Passend bij je antwoorden" : `Plek: ${maSlotTitle(sheetSlot).toLowerCase()}`}
-            alternatives={alternatives} filters={sheetFilters} setFilters={setSheetFilters} showFilters={sheet !== "__add"}
-            recipes={recipes} allIngredients={allIngredients} onPick={pickFromSheet} onClose={() => setSheet(null)} />
-        )}
-      </div>
-    );
-  }
-
-  // ---------- Startpunt en vragen ----------
-  const stepBtn = { width: 44, height: 44, borderRadius: 12, border: `1px solid ${BORDER}`, background: PAPER, color: BOTTLE, fontSize: 20, fontWeight: 700, fontFamily: sans, cursor: "pointer" };
-  let title = "", sub = "", body = null;
-
-  if (pos === 0) {
-    title = "Waar wil je beginnen?";
-    sub = "Niet verplicht. Je kunt dit overslaan en meteen de vragen doen.";
-    const startOpt = (key, icon, t, s) => (
-      <MenuOptionCard key={key} selected={a.start === key} onClick={() => setAnswer({ start: a.start === key ? null : key, ...(key === "verras" && a.start !== key ? { surprise: Math.max(a.surprise, 70), variety: true } : {}) })} icon={icon} title={t} subtitle={s} />
-    );
-    body = (
-      <>
-        {startOpt("eigen", <Pencil size={17} />, "Ik heb al cocktails in gedachten", "Kies er een paar, de assistent vult aan")}
-        {startOpt("thema", <ListChecks size={17} />, "Bouw rond een thema", "Bijvoorbeeld een gin-avond of een zomerse borrel")}
-        {a.start === "thema" && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, margin: "-2px 0 12px" }}>
-            {MA_THEMES.map(t => toggleChip(t.key, t.label, a.theme === t.key, () => setAnswer({ theme: a.theme === t.key ? null : t.key })))}
-          </div>
-        )}
-        {startOpt("smaaktest", <Users size={17} />, "Gebruik de smaaktest", surveyParties.length ? "De antwoorden van je gasten vullen de vragen in" : "Maak eerst een smaaktest aan bij een feest")}
-        {a.start === "smaaktest" && surveyParties.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, margin: "-2px 0 12px" }}>
-            {surveyParties.map(p => toggleChip(p.id, surveyBusy === p.id ? "Bezig…" : p.name, (a.surveyNote || "").startsWith(p.name), () => applySurvey(p)))}
-          </div>
-        )}
-        {a.start === "smaaktest" && a.surveyNote && <p style={{ fontSize: 12.5, color: SAGE, fontWeight: 600, margin: "-4px 0 12px" }}>Ingevuld uit de smaaktest: {a.surveyNote}</p>}
-        {startOpt("verras", <Sparkles size={17} />, "Verras me", "Een gevarieerd menu met minder bekende cocktails")}
-      </>
-    );
-  } else if (step === 1) {
-    title = "Hoeveel cocktails?";
-    sub = "Kies vrij tussen 1 en 10. De alcoholvrije tellen mee.";
-    const advice = a.guests <= 6 ? "3 tot 4" : a.guests <= 15 ? "4 tot 6" : "5 tot 7";
-    body = (
-      <>
-        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 14px", marginTop: -1 }}>
-          <div style={{ marginTop: -1 }}>
-            {stepperRow("Cocktails", "tussen 1 en 10", a.count, () => setAnswer({ count: Math.max(1, a.count - 1), alcoholvrijCount: Math.min(a.alcoholvrijCount, Math.max(1, a.count - 1)) }), () => setAnswer({ count: Math.min(10, a.count + 1) }), "cocktails")}
-            {stepperRow("Waarvan alcoholvrij", "0 tot 3", a.alcoholvrijCount, () => setAnswer({ alcoholvrijCount: Math.max(0, a.alcoholvrijCount - 1) }), () => setAnswer({ alcoholvrijCount: Math.min(3, a.count, a.alcoholvrijCount + 1) }), "alcoholvrij")}
-            {stepperRow("Gasten", "voor de hoeveelheden", a.guests, () => setAnswer({ guests: Math.max(1, a.guests - 1) }), () => setAnswer({ guests: Math.min(100, a.guests + 1) }), "gasten")}
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14, padding: "12px 14px", borderRadius: 12, background: PAPER_DEEP, fontSize: 13.5, lineHeight: 1.45, color: INK }}>
-          <Info size={17} color={BRASS} style={{ flexShrink: 0 }} />
-          <span>Voor {a.guests} {a.guests === 1 ? "gast" : "gasten"} raden we {advice} cocktails aan. Je schenkt er zo'n {Math.round(a.guests * 2.5)}.</span>
-        </div>
-      </>
-    );
-  } else if (step === 2) {
-    title = "Wat voor menu wordt het?";
-    sub = "Variatie verdeelt het menu over fris, sterk, verrassend en zacht. Liever één richting? Zet het uit en kies zelf.";
-    body = (
-      <>
-        <MenuToggleRow title="Zorg voor variatie" subtitle="Van elke soort iets" checked={a.variety} onChange={v => setAnswer({ variety: v })} />
-        {!a.variety && (
-          <>
-            <div style={{ height: 14 }} />
-            {sectionLabel("KIES DE STIJLEN")}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-              {SURVEY_STYLES.map(s => {
-                const on = a.styles.includes(s.key);
-                return (
-                  <button key={s.key} type="button" aria-pressed={on} onClick={() => setAnswer({ styles: on ? a.styles.filter(k => k !== s.key) : [...a.styles, s.key] })} style={{
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "14px 8px 12px", borderRadius: 14,
-                    background: CREAM, border: `1.5px solid ${on ? BOTTLE : BORDER}`, fontFamily: sans, cursor: "pointer",
-                  }}>
-                    <SurveyGlass kind={s.glass} color={on ? "#1F3D36" : "#8A8171"} />
-                    <span style={{ fontSize: 14.5, fontWeight: 700, color: INK }}>{s.label}</span>
-                    <span style={{ fontSize: 12, color: MUTED }}>{s.example.replace(/^zoals een /, "")}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {a.styles.length === 0 && <p style={{ fontSize: 12.5, color: MUTED, margin: "10px 0 0" }}>Geen stijl gekozen? Dan zorgt de assistent toch voor variatie.</p>}
-          </>
-        )}
-      </>
-    );
-  } else if (step === 3) {
-    title = "Drank en smaken";
-    sub = "Tik één keer voor wel, twee keer voor liever niet. Niets aangetikt is ook goed.";
-    const addCustom = () => {
-      const t = customDraft.trim().slice(0, 40);
-      if (!t) return;
-      const key = CUSTOM_PREFIX + t;
-      if (!a.prefs.custom.like.includes(key) && !a.prefs.custom.dislike.includes(key)) {
-        setAnswer({ prefs: { ...a.prefs, custom: { like: [...a.prefs.custom.like, key], dislike: a.prefs.custom.dislike } } });
-      }
-      setCustomDraft("");
-    };
-    const customs = [...a.prefs.custom.like, ...a.prefs.custom.dislike];
-    body = (
-      <>
-        {a.surveyNote && (a.start === "smaaktest" || a.start === "feest") && <p style={{ fontSize: 12.5, color: SAGE, fontWeight: 600, margin: "-8px 0 12px" }}>Ingevuld uit de smaaktest: {a.surveyNote}</p>}
-        {sectionLabel("STERKE DRANK")}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 18 }}>
-          {SURVEY_SPIRITS.map(o => prefChip("spirits", o.key, o.label))}
-        </div>
-        {sectionLabel("SMAKEN")}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-          {SURVEY_TASTES.map(o => prefChip("tastes", o.key, o.label))}
-          {customs.map(k => prefChip("custom", k, k.slice(CUSTOM_PREFIX.length)))}
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <input value={customDraft} onChange={e => setCustomDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
-            placeholder="Iets anders? Bijv. Calvados of lychee" aria-label="Zelf een drank of smaak toevoegen" maxLength={40} enterKeyHint="done"
-            style={{ flex: 1, minWidth: 0, height: 46, boxSizing: "border-box", padding: "0 16px", borderRadius: 100, border: `1px solid ${BORDER}`, background: CREAM, color: INK, fontSize: 16, fontFamily: sans, outline: "none" }} />
-          <button type="button" onClick={addCustom} aria-label="Toevoegen" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, flexShrink: 0, borderRadius: "50%", border: "none", background: BOTTLE, color: "#FBF6EA", cursor: "pointer" }}><Plus size={18} /></button>
-        </div>
-        <p style={{ fontSize: 12.5, color: MUTED, margin: "8px 0 0" }}>De assistent zoekt recepten met wat je toevoegt.</p>
-        {a.avoidIds.length > 0 && (
-          <p style={{ fontSize: 12.5, color: INK, margin: "12px 0 0" }}>
-            Vermeden vanwege allergieën: {[...new Set(a.avoidIds.map(id => nameOf(id).toLowerCase()))].join(", ")}.{" "}
-            <button onClick={() => setAnswer({ avoidIds: [] })} style={{ background: "none", border: "none", color: BOTTLE, fontWeight: 700, cursor: "pointer", padding: 0, fontFamily: sans, fontSize: 12.5 }}>Wissen</button>
-          </p>
-        )}
-      </>
-    );
-  } else if (step === 4) {
-    title = "Hoe sterk mag het zijn?";
-    sub = "Meerdere kiezen mag: dan komt er van elk iets op het menu. Niets gekozen = alles mag.";
-    const levels = [["licht", "Licht", "Gin-Tonic", 1], ["middel", "Middel", "Margarita", 2], ["sterk", "Sterk", "Martini", 3]];
-    const unknown = Math.round((a.count - a.alcoholvrijCount) * a.surprise / 100);
-    body = (
-      <>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 26 }}>
-          {levels.map(([k, l, ex, lv]) => {
-            const on = a.strengths.includes(k);
-            return (
-              <button key={k} type="button" aria-pressed={on} onClick={() => setAnswer({ strengths: on ? a.strengths.filter(x => x !== k) : [...a.strengths, k] })} style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "14px 6px 12px", borderRadius: 14,
-                background: CREAM, border: `1.5px solid ${on ? BOTTLE : BORDER}`, fontFamily: sans, cursor: "pointer", color: INK,
-              }}>
-                <span style={{ display: "inline-flex", gap: 4 }} aria-hidden="true">{[1, 2, 3].map(n => <span key={n} style={{ width: 7, height: 7, borderRadius: "50%", background: n <= lv ? BRASS : BORDER }} />)}</span>
-                <span style={{ fontSize: 14.5, fontWeight: 700 }}>{l}</span>
-                <span style={{ fontSize: 11.5, color: MUTED }}>{ex}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ fontSize: 19, fontWeight: 700, color: INK, marginBottom: 6 }}>Bekend of verrassend?</div>
-        <p style={{ fontSize: 14, lineHeight: 1.5, color: MUTED, margin: "0 0 12px" }}>Hoeveel van het menu mag onbekend zijn voor je gasten?</p>
-        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "14px 14px 12px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, color: INK, marginBottom: 4 }}><span>Alles bekend</span><span>Alles nieuw</span></div>
-          <input type="range" min={0} max={100} step={10} value={a.surprise} onChange={e => setAnswer({ surprise: Number(e.target.value) })} aria-label="Hoeveel van het menu mag onbekend zijn"
-            style={{ width: "100%", accentColor: "#1F3D36", minHeight: 36 }} />
-          <div style={{ fontSize: 13.5, color: INK, marginTop: 2 }}>Ongeveer {unknown} van de {Math.max(0, a.count - a.alcoholvrijCount)} cocktails {unknown === 1 ? "is" : "zijn"} minder bekend.</div>
-        </div>
-      </>
-    );
-  } else if (step === 5) {
-    title = "Hoeveel werk mag het zijn?";
-    sub = "Op een feest sta je liever niet de hele avond te shaken.";
-    const gear = [["shaker", "Shaker"], ["blender", "Blender"], ["crushed", "Crushed ijs"], ["eggs", "Eieren voor schuim"]];
-    body = (
-      <>
-        {segmented([["snel", "Snel"], ["werk", "Mag wat werk"], ["bar", "Achter de bar"]], a.effort, v => setAnswer({ effort: v }), "Moeite")}
-        <div style={{ fontSize: 19, fontWeight: 700, color: INK, margin: "22px 0 10px" }}>Wat heb je in huis?</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 18 }}>
-          {gear.map(([k, l]) => toggleChip(k, l, a.gear[k], () => setAnswer({ gear: { ...a.gear, [k]: !a.gear[k] } })))}
-        </div>
-        <MenuToggleRow title="Vooraf te maken in een kan" subtitle="Cocktails die je van tevoren mengt en koud zet" checked={a.batch} onChange={v => setAnswer({ batch: v })} />
-        <MenuToggleRow title="Geen zelfgemaakte siropen" subtitle="Alleen wat je kant-en-klaar kunt kopen" checked={a.noHomemade} onChange={v => setAnswer({ noHomemade: v })} />
-      </>
-    );
-  } else if (step === 6) {
-    title = "Moeten er cocktails op?";
-    sub = "Zoveel als je wilt, uit alle recepten. De assistent vult de rest aan.";
-    const favs = [...new Set([...favoriteRecipeIds, ...recentRecipeIds])].filter(id => !a.mustHave.includes(id)).map(id => recipes.find(r => r.id === canonicalRecipeId(id))).filter(Boolean).slice(0, 6);
-    body = (
-      <>
-        <RecipePicker recipes={recipes.filter(r => !a.mustHave.includes(r.id))} value={null} listId="menu-assistent-must"
-          onChange={id => id && !a.mustHave.includes(id) && setAnswer({ mustHave: [...a.mustHave, id] })} style={{ width: "100%", boxSizing: "border-box" }} />
-        {a.mustHave.length > 0 && (
-          <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 4px 0 12px", marginTop: 12 }}>
-            {a.mustHave.map((id, i) => {
-              const f = factsById.get(id);
-              if (!f) return null;
-              return (
-                <div key={id} style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 64, borderTop: i ? `1px solid ${BORDER}` : "none" }}>
-                  <RecipeCircle recipe={f.recipe} allIngredients={allIngredients} size={40} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 16, color: INK }}>{f.recipe.name}</div>
-                    <div style={{ fontSize: 12.5, color: f.missingBottles.length ? BURGUNDY : MUTED, marginTop: 1 }}>
-                      {f.missingBottles.length ? `${f.missingBottles.length} fles kopen: ${f.missingBottles.map(b => nameOf(b).toLowerCase()).join(", ")}` : f.missing.length ? "Alleen boodschappen" : "Alles in huis"}
-                    </div>
-                  </div>
-                  <button onClick={() => setAnswer({ mustHave: a.mustHave.filter(x => x !== id) })} aria-label={`${f.recipe.name} verwijderen`} style={{ width: 44, height: 44, border: "none", background: "none", color: MUTED, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} /></button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {favs.length > 0 && (
-          <>
-            <div style={{ height: 16 }} />
-            {sectionLabel("SNEL TOEVOEGEN UIT JE FAVORIETEN")}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-              {favs.map(r => (
-                <button key={r.id} onClick={() => setAnswer({ mustHave: [...a.mustHave, r.id] })} style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44, padding: "0 14px", borderRadius: 100, background: CREAM, border: `1px solid ${BORDER}`, fontFamily: sans, fontSize: 14, color: INK, cursor: "pointer" }}>
-                  <Plus size={13} color={BRASS} /> {r.name}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </>
-    );
-  } else if (step === 7) {
-    title = "Wat wil je bijkopen?";
-    sub = "Alleen flessen tellen mee. Sap, citroenen en frisdrank zijn gewone boodschappen.";
-    const useUpList = showAllUseUp ? ownedBottles : ownedBottles.slice(0, 10);
-    body = (
-      <>
-        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, padding: "0 14px", marginBottom: 18 }}>
-          <div style={{ marginTop: -1 }}>
-            {stepperRow("Maximaal flessen", a.maxBottles >= MA_NO_LIMIT ? "geen grens" : "0 = alleen wat je in huis hebt", a.maxBottles,
-              () => setAnswer({ maxBottles: Math.max(0, a.maxBottles - 1) }), () => setAnswer({ maxBottles: Math.min(MA_NO_LIMIT, a.maxBottles + 1) }), "flessen",
-              a.maxBottles >= MA_NO_LIMIT ? "geen" : null)}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 72, borderTop: `1px solid ${BORDER}` }}>
-            <label htmlFor="ma-budget" style={{ flex: 1 }}>
-              <span style={{ display: "block", fontSize: 15.5, fontWeight: 700, color: INK }}>Budget (optioneel)</span>
-              <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 2 }}>voor de flessen samen</span>
-            </label>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, height: 44, padding: "0 12px", borderRadius: 12, border: `1px solid ${BORDER}`, background: PAPER, width: 100, boxSizing: "border-box" }}>
-              <span style={{ fontSize: 16, color: MUTED }}>€</span>
-              <input id="ma-budget" value={a.budget} onChange={e => setAnswer({ budget: e.target.value.replace(/[^\d,.]/g, "").slice(0, 5) })} inputMode="decimal" placeholder="geen"
-                style={{ width: "100%", border: "none", background: "transparent", fontSize: 17, fontWeight: 700, color: BOTTLE, fontFamily: sans, outline: "none" }} />
-            </div>
-          </div>
-        </div>
-        {ownedBottles.length > 0 && (
-          <>
-            <div style={{ fontSize: 17, fontWeight: 700, color: INK, marginBottom: 4 }}>Flessen om op te maken</div>
-            <p style={{ fontSize: 13.5, color: MUTED, margin: "0 0 10px" }}>Deze krijgen voorrang op het menu.</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 6 }}>
-              {useUpList.map(i => toggleChip(i.id, i.name.split(" (")[0], a.useUp.includes(i.id), () => setAnswer({ useUp: a.useUp.includes(i.id) ? a.useUp.filter(x => x !== i.id) : [...a.useUp, i.id] })))}
-            </div>
-            {ownedBottles.length > 10 && (
-              <button onClick={() => setShowAllUseUp(v => !v)} style={{ background: "none", border: "none", color: BOTTLE, fontFamily: sans, fontSize: 13.5, fontWeight: 700, cursor: "pointer", padding: 0, minHeight: 40 }}>
-                {showAllUseUp ? "Minder tonen" : `Alle ${ownedBottles.length} flessen tonen`}
-              </button>
-            )}
-            <div style={{ height: 12 }} />
-          </>
-        )}
-        {commonMissing.length > 0 && (
-          <>
-            <div style={{ fontSize: 17, fontWeight: 700, color: INK, marginBottom: 4 }}>Liever niet kopen</div>
-            <p style={{ fontSize: 13.5, color: MUTED, margin: "0 0 10px" }}>Flessen die je niet hebt en vaak in recepten zitten.</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-              {commonMissing.map(id => {
-                const on = a.noBuy.includes(id);
-                return (
-                  <button key={id} type="button" aria-pressed={on} onClick={() => setAnswer({ noBuy: on ? a.noBuy.filter(x => x !== id) : [...a.noBuy, id] })} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44, padding: "0 14px", borderRadius: 100, fontFamily: sans, fontSize: 14.5, cursor: "pointer",
-                    ...(on ? { background: "transparent", border: `1px dashed ${MUTED}`, color: MUTED } : { background: CREAM, border: `1px solid ${BORDER}`, color: INK }),
-                  }}>
-                    {on && <X size={13} strokeWidth={2.2} />}<span style={{ textDecoration: on ? "line-through" : "none" }}>{nameOf(id)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </>
-    );
-  }
-
-  const isLast = pos === MA_QUESTION_COUNT;
-  return (
-    <div style={{ fontFamily: sans, display: "flex", flexDirection: "column", minHeight: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 154px)", marginBottom: -62 }}>
-      {linkedBanner}
-      {pos > 0 && (
-        <>
-          <div style={{ display: "flex", gap: 5, marginBottom: 14 }} aria-hidden>
-            {Array.from({ length: MA_QUESTION_COUNT }, (_, i) => (
-              <span key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < pos ? BOTTLE : BORDER, transition: "background 0.2s ease" }} />
-            ))}
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, marginBottom: 6 }}>Vraag {pos} van {MA_QUESTION_COUNT}</div>
-        </>
-      )}
-      <h1 style={{ fontFamily: serif, fontSize: 27, fontWeight: 700, color: INK, margin: 0, lineHeight: 1.2 }}>{title}</h1>
-      <p style={{ fontSize: 14, color: MUTED, margin: "6px 0 20px", lineHeight: 1.45 }}>{sub}</p>
-      <div key={`${pos}-${step}`} className="tab-fade">{body}</div>
-
-      <div className="menu-assist-footer" style={{
-        marginTop: "auto", padding: "18px 0 8px", display: "flex", flexDirection: "column", gap: 4,
-        position: "sticky", bottom: "calc(env(safe-area-inset-bottom) + 80px)", zIndex: 5,
-        background: `linear-gradient(180deg, transparent 0, ${PAPER} 16px)`,
-      }}>
-        <div style={{ display: "flex", gap: 10 }}>
-          {pos > (linkedParty ? 1 : 0) && (
-            <button onClick={() => goTo(pos - 1)} className="press-scale" style={{
-              flex: "0 0 32%", minHeight: 52, borderRadius: 14, border: "none", background: PAPER_DEEP, color: INK,
-              fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer",
-            }}>Terug</button>
-          )}
-          <button onClick={() => (isLast ? startResult() : goTo(pos + 1))} className="press-scale" style={{
-            flex: 1, minHeight: 52, borderRadius: 14, border: "none", background: BOTTLE_DARK, color: "#FBF6EA",
-            fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: SHADOW_CTA,
-          }}>
-            {isLast ? "Stel menu's samen" : "Volgende"}
-          </button>
-        </div>
-        {pos === 0 && (
-          <button onClick={() => { setAnswer({ start: null, theme: null }); goTo(1); }} style={{ minHeight: 44, background: "none", border: "none", color: MUTED, fontFamily: sans, fontSize: 14.5, cursor: "pointer" }}>Overslaan, gewoon beginnen</button>
-        )}
-        {pos > 0 && !isLast && (
-          <button onClick={() => goTo(pos + 1)} style={{ minHeight: 44, background: "none", border: "none", color: MUTED, fontFamily: sans, fontSize: 14.5, cursor: "pointer" }}>Overslaan</button>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // "3.0" voor een heel getal, "3.25"/"3.5"/"3.75" voor een kwart-ster —
 // overal waar een beoordeling getoond wordt, i.p.v. het vaste "{rating}.0"
 // dat alleen bij hele sterren klopte.
 // Beoordelingen en gemiddelden overal hetzelfde: hele getallen zonder
 // decimaal ("4"), anders één decimaal met komma ("3,8" — ook 2.25 → "2,3").
-function formatRating(value) {
+export function formatRating(value) {
   const v = Number(value) || 0;
   if (Number.isInteger(v)) return String(v);
   return v.toFixed(1).replace(".", ",");
@@ -14119,7 +9162,7 @@ function formatDecimal1(value) {
 // Eén notitieregel die vanzelf meegroeit met de tekst — geen zichtbare rand
 // of resize-greep, past bij het vlakke, kaderloze veldontwerp van de
 // check-in-sheet.
-function AutoGrowTextField({ value, onChange, placeholder, bare, onFocus, onBlur, minRows = 1 }) {
+export function AutoGrowTextField({ value, onChange, placeholder, bare, onFocus, onBlur, minRows = 1 }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!ref.current) return;
@@ -14218,7 +9261,7 @@ function RecipeSearchWithPhotos({ recipes, value, onChange, onSelect, allIngredi
   );
 }
 
-const KORTE_MAANDEN = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+export const KORTE_MAANDEN = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
 function formatCheckinDate(iso) {
   const [y, m, d] = iso.split("-").map(Number);
   return `${d} ${KORTE_MAANDEN[m - 1]} ${y}`;
@@ -14228,7 +9271,7 @@ function formatCheckinDate(iso) {
 // toewijzing op basis van het bestaande `family`-veld (geen smaakscheikunde),
 // zodat het smaakprofiel altijd op echte check-in-data is gebaseerd i.p.v.
 // verzonnen cijfers.
-const FAMILY_TASTE = {
+export const FAMILY_TASTE = {
   "Sours": { zuur: 1, fruitig: 1 },
   "Highballs": { fruitig: 1 },
   "Stirred-down": { sterk: 1, bitter: 0.6 },
@@ -14240,7 +9283,7 @@ const FAMILY_TASTE = {
   "Mocktail / alcoholvrij": { fruitig: 0.8 },
   "Warme dranken": { zoet: 0.7 },
 };
-const TASTE_META = {
+export const TASTE_META = {
   fruitig: { emoji: "🍓", label: "Fruitig" },
   zoet: { emoji: "🍬", label: "Zoet" },
   zuur: { emoji: "🍋", label: "Zuur" },
@@ -14627,29 +9670,6 @@ const GROUP_PERSONALITY = {
   bitter: { emoji: "🍂", title: "Bittere virtuozen", text: "Deze groep houdt van een stevige, bittere toets." },
 };
 
-// Smaaktest: "sterk" krijgt hier een eigen schuifje (1-5) i.p.v. een los
-// aan/uit-tagje — geeft meer nuance dan alleen "houdt van sterk: ja/nee".
-const SURVEY_TASTE_KEYS = ["fruitig", "zoet", "zuur", "bitter"];
-
-const DIETARY_META = {
-  noten: { emoji: "🥜", label: "Notenallergie" },
-  lactose: { emoji: "🥛", label: "Lactose-intolerant" },
-  vegan: { emoji: "🌱", label: "Veganistisch" },
-  glutenvrij: { emoji: "🌾", label: "Glutenvrij" },
-  rauw_ei: { emoji: "", label: "Geen rauw ei" },
-};
-
-// Gastvriendelijke, korte lijst i.p.v. de volledige, lange sterkedrank-lijst
-// uit de voorraad — elke optie wijst naar de onderliggende ingrediënt-id's
-// zodat de aanbevelingsscore 'm later kan terugvinden in echte recepten.
-const FAVORITE_SPIRIT_OPTIONS = [
-  { key: "gin", label: "Gin", ids: ["gin"] },
-  { key: "rum", label: "Rum", ids: ["white_rum", "dark_rum", "cachaca"] },
-  { key: "whiskey", label: "Whiskey", ids: ["bourbon", "rye", "scotch", "irish_whiskey"] },
-  { key: "wodka", label: "Wodka", ids: ["vodka"] },
-  { key: "tequila", label: "Tequila / Mezcal", ids: ["tequila_blanco", "mezcal"] },
-  { key: "cognac", label: "Cognac / Brandy", ids: ["cognac", "calvados"] },
-];
 
 const LEVEL_TITLES = [
   "Nieuwsgierige Beginner", "Bar Verkenner", "Smaaktester", "Cocktail Liefhebber",
@@ -14708,19 +9728,9 @@ const COURSE_BADGE_DEFS = [
   { id: "eindtoets-gehaald", icon: GraduationCap, label: "Geslaagd", text: "De eindtoets gehaald met minstens 80%." },
   { id: "perfecte-score", icon: Award, label: "Foutloos", text: "De eindtoets zonder fouten afgerond." },
 ];
-// Deel N gaat pas open als alle lessen van de delen ervóór af zijn. Een les
-// die je al eerder afrondde blijft altijd te openen (oude voortgang).
-function computeUnlockedParts(progress) {
-  const unlocked = new Set();
-  for (const part of COURSE_PARTS) {
-    unlocked.add(part.id);
-    const done = COURSE_LESSONS.filter(l => l.part === part.id).every(l => progress[l.id]?.completed);
-    if (!done) break;
-  }
-  return unlocked;
-}
+
 // "Uitgespeeld" = alle lessen af én de eindtoets gehaald (≥ 80%).
-function computeCourseMastery(progress) {
+export function computeCourseMastery(progress) {
   const allLessons = COURSE_LESSONS.every(l => progress?.[l.id]?.completed);
   const exam = progress?.eindtoets;
   const passed = !!(exam?.completed && exam.bestScore / exam.total >= QUIZ_PASS_RATIO);
@@ -14736,7 +9746,7 @@ const COURSE_RANKS = [
   { id: "bartender", name: "Bartender", rule: "Alle 6 delen afgerond" },
   { id: "meester", name: "Meester", rule: "Eindtoets gehaald: diploma" },
 ];
-const COURSE_PART_COUNT = COURSE_PARTS.length;
+export const COURSE_PART_COUNT = COURSE_PARTS.length;
 function coursePartsDone(progress) {
   return COURSE_PARTS.filter(part => {
     const lessons = COURSE_LESSONS.filter(l => l.part === part.id);
@@ -14754,7 +9764,7 @@ function withRank(index, partsDone, master) {
   return { index, rank: COURSE_RANKS[index] || null, next: COURSE_RANKS[index + 1] || null, partsDone, master };
 }
 // Eigen rang, uit de lokale voortgang.
-function computeCourseRank(progress) {
+export function computeCourseRank(progress) {
   const partsDone = coursePartsDone(progress);
   const started = !!progress?._gestart || COURSE_LESSONS.some(l => progress?.[l.id]);
   const master = !!computeCourseMastery(progress);
@@ -14773,7 +9783,7 @@ function mergeCourseRank(a, b) {
   const best = a.index >= b.index ? a : b;
   return withRank(best.index, Math.max(a.partsDone, b.partsDone), a.master || b.master);
 }
-function courseRankHint(r) {
+export function courseRankHint(r) {
   if (r.master) return "Gediplomeerd: alle delen en de eindtoets";
   if (r.index === 3) return "Haal de eindtoets voor Meester";
   const target = r.index < 1 ? 1 : r.index === 1 ? 3 : COURSE_PART_COUNT;
@@ -14832,7 +9842,7 @@ function MasterHeaderTitle({ number }) {
 // Profielfoto met de cursusring: zes stukken, één per afgerond deel. Met
 // het diploma wordt de ring massief goud, met een zegel rechtsonder.
 // size = totale buitenmaat, zodat hij overal 1-op-1 een Avatar vervangt.
-function CourseRing({ name, photo, size = 84, partsDone = 0, master = false, dark = false, seal = true, children }) {
+export function CourseRing({ name, photo, size = 84, partsDone = 0, master = false, dark = false, seal = true, children }) {
   const big = size >= 60;
   const stroke = big ? 4 : 2.2;
   const gap = big ? 7 : 3.5;
@@ -14992,7 +10002,7 @@ function CourseDiploma({ date, scorePct, isOwn = true }) {
   );
 }
 
-function computeCourseInsights(progress) {
+export function computeCourseInsights(progress) {
   const completedLessons = COURSE_LESSONS.filter(l => progress[l.id]?.completed);
   const examProgress = progress.eindtoets;
   const examPassed = !!(examProgress?.completed && examProgress.bestScore / examProgress.total >= QUIZ_PASS_RATIO);
@@ -15228,43 +10238,9 @@ function computeCheckinInsights(logboek, recipes, allIngredients, isOwned, uniqu
   };
 }
 
-// Vrij ingetypte locatienamen ("Cocktailbar Groningen") hebben geen
-// coördinaten — die zoeken we één keer op via Nominatim (OpenStreetMap) en
-// bewaren we daarna in localStorage, zodat we niet bij elke render (of voor
-// dezelfde plek twee keer) opnieuw het netwerk op hoeven.
-const GEOCODE_CACHE_KEY = "thuisbar-geocode-cache";
-function readGeocodeCache() {
-  try { return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY) || "{}"); } catch { return {}; }
-}
-function writeGeocodeCache(cache) {
-  try { localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(cache)); } catch { /* niet kritiek */ }
-}
-// Groningen als "thuisbasis" van de kaart: default middelpunt én een zachte
-// voorkeur (geen harde begrenzing) bij het zoeken, zodat een kale bar-naam
-// als "De Kroeg" eerder de Groningse tent oplevert dan een gelijknamige
-// ergens anders — een stad erbij typen ("Bar X, Barcelona") werkt gewoon.
-const GRONINGEN = { lat: 53.2194, lon: 6.5665 };
-const GRONINGEN_VIEWBOX = "6.35,53.32,6.80,53.10";
 
-async function geocodeLocation(name) {
-  const key = name.trim().toLowerCase();
-  const cache = readGeocodeCache();
-  if (key in cache) return cache[key];
-  try {
-    const params = new URLSearchParams({ format: "jsonv2", limit: "1", viewbox: GRONINGEN_VIEWBOX, bounded: "0", q: name });
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
-    const data = await res.json();
-    const result = data && data[0] ? { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) } : null;
-    cache[key] = result;
-    writeGeocodeCache(cache);
-    return result;
-  } catch (e) {
-    return null; // netwerkfout: niet cachen, gewoon nog eens proberen bij de volgende keer openen
-  }
-}
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
-}
+export const GRONINGEN_VIEWBOX = "6.35,53.32,6.80,53.10";
+
 
 // Live plek-zoeker (Nominatim) voor het locatieveld bij het inchecken — net
 // als bij Maps typ je een naam en kies je uit echte, bestaande plekken i.p.v.
@@ -15368,214 +10344,6 @@ function PlaceAutocomplete({ value, onChange, placeholder, inline }) {
   );
 }
 
-// Pinnen voor de kaart: alleen locaties waarvan de coördinaten bekend zijn.
-function mapPoints(locations, coords) {
-  return locations.map(loc => {
-    const key = loc.name.trim().toLowerCase();
-    const c = loc.lat != null ? { lat: loc.lat, lon: loc.lon } : coords[key];
-    if (!c) return null;
-    return { key, lat: c.lat, lon: c.lon, title: loc.name, subtitle: `${loc.count} check-in${loc.count === 1 ? "" : "s"}` };
-  }).filter(Boolean);
-}
-
-// Echte, interactieve kaart i.p.v. een gestileerd plaatje — "Thuis" wordt
-// overgeslagen (geen adres om op te zoeken), de rest krijgt een echte pin
-// zodra de coördinaten binnen zijn. Apple Maps (MapKit JS) als dat lukt,
-// anders Leaflet + OpenStreetMap-tegels als terugval.
-function CocktailMap({ locations }) {
-  const mapElRef = useRef(null);
-  const mapRef = useRef(null);
-  const appleRef = useRef(null);
-  const markersRef = useRef(new Map());
-  const [coords, setCoords] = useState({});
-  const { engine, mapkit } = useMapEngine();
-  const points = useMemo(() => mapPoints(locations, coords), [locations, coords]);
-  const pointsKey = points.map(p => `${p.key}:${p.lat}:${p.lon}:${p.subtitle}`).join("|");
-
-  // Alleen nog opzoeken wat geen coördinaten al meekreeg vanuit de plek-
-  // kiezer bij het inchecken (die levert lat/lon meteen mee, net als Maps).
-  const geocodable = useMemo(() => locations.filter(l => l.name.trim().toLowerCase() !== "thuis" && l.lat == null), [locations]);
-  const namesKey = geocodable.map(l => l.name.trim().toLowerCase()).join("|");
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      for (const loc of geocodable) {
-        const key = loc.name.trim().toLowerCase();
-        if (coords[key] !== undefined) continue;
-        const result = await geocodeLocation(loc.name);
-        if (cancelled) return;
-        setCoords(prev => (prev[key] !== undefined ? prev : { ...prev, [key]: result }));
-        await new Promise(r => setTimeout(r, 350));
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namesKey]);
-
-  const [expanded, setExpanded] = useState(false);
-
-  // Apple Maps: bij elke wijziging in de pinnen opnieuw opbouwen (goedkoop,
-  // en zo zit de uitsnede altijd om alle pinnen heen).
-  useEffect(() => {
-    if (engine !== "apple" || !mapElRef.current) return;
-    appleRef.current = createAppleMap(mapkit, mapElRef.current, points, { interactive: false, fallbackCenter: GRONINGEN });
-    return () => { appleRef.current?.destroy(); appleRef.current = null; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine, mapkit, pointsKey]);
-
-  useEffect(() => {
-    if (engine !== "leaflet" || !mapElRef.current || mapRef.current) return;
-    // Dit is alleen nog een niet-interactieve voorvertoning — pinchen/slepen
-    // op deze kleine kaart ving voorheen de scroll-gestiek van de hele pagina
-    // af (Leaflet claimt touch-events zodra 'm interactief is). Alle
-    // gebruikersinteractie staat daarom uit; tikken opent de schermvullende,
-    // wél volledig interactieve kaart hieronder (MapFullscreenSheet).
-    mapRef.current = L.map(mapElRef.current, {
-      attributionControl: true,
-      dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false,
-      boxZoom: false, keyboard: false, tap: false, zoomControl: false,
-    }).setView([GRONINGEN.lat, GRONINGEN.lon], 12);
-    // CARTO's gratis raster-tegels blijken inmiddels achter een verplichte
-    // API-sleutel te zitten (watermark "API KEY REQUIRED" eroverheen, ook op
-    // Voyager) en Esri's gratis alternatieven zijn óf te grijs/kaal (Light
-    // Gray Canvas) óf te druk/topografisch (Street Map) om nog op Apple/
-    // Google Maps te lijken. OpenStreetMap's standaardtegels hebben zelf al
-    // het juiste kleurenregister (blauw water, groene parken, crème wegen)
-    // en zijn nog gewoon gratis zonder sleutel — vrijwel geen filter overheen
-    // nodig, in tegenstelling tot eerst, wat precies het "vage" gevoel gaf.
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>-bijdragers',
-    }).addTo(mapRef.current);
-    // De omliggende kaart (prestaties, statistieken) laadt boven dit kaartje
-    // en kan de layout nog laten schuiven ná deze eerste render, waardoor
-    // Leaflet met een verouderde breedte rekent en grijze vlakken toont.
-    const ro = new ResizeObserver(() => mapRef.current?.invalidateSize());
-    ro.observe(mapElRef.current);
-    setTimeout(() => mapRef.current?.invalidateSize(), 250);
-    return () => { ro.disconnect(); mapRef.current?.remove(); mapRef.current = null; };
-  }, [engine]);
-
-  useEffect(() => {
-    if (engine !== "leaflet" || !mapRef.current) return;
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current.clear();
-    const pinIcon = L.divIcon({
-      className: "",
-      html: `<div style="width:26px;height:32px;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4));"><svg viewBox="0 0 16 20" width="26" height="32"><path d="M8 0C3.6 0 0 3.6 0 8c0 5.5 8 12 8 12s8-6.5 8-12c0-4.4-3.6-8-8-8z" fill="${BRASS}"/><circle cx="8" cy="8" r="3" fill="${BOTTLE_DARK}"/></svg></div>`,
-      iconSize: [26, 32], iconAnchor: [13, 32], popupAnchor: [0, -30],
-    });
-    locations.forEach(loc => {
-      const key = loc.name.trim().toLowerCase();
-      const c = loc.lat != null ? { lat: loc.lat, lon: loc.lon } : coords[key];
-      if (!c) return;
-      const marker = L.marker([c.lat, c.lon], { icon: pinIcon }).addTo(mapRef.current)
-        .bindPopup(`<strong>${escapeHtml(loc.name)}</strong><br/>${loc.count} check-in${loc.count === 1 ? "" : "s"}`);
-      markersRef.current.set(key, marker);
-    });
-  }, [locations, coords, engine]);
-
-  const flyToLocation = (name) => {
-    if (appleRef.current) { appleRef.current.flyTo(name.trim().toLowerCase()); return; }
-    const marker = markersRef.current.get(name.trim().toLowerCase());
-    if (!marker || !mapRef.current) return;
-    mapRef.current.flyTo(marker.getLatLng(), 14, { duration: 0.8 });
-    marker.openPopup();
-  };
-
-  const pending = geocodable.some(l => coords[l.name.trim().toLowerCase()] === undefined);
-
-  return (
-    <div>
-      <button onClick={() => setExpanded(true)} aria-label="Kaart vergroten" style={{
-        display: "block", width: "100%", border: "none", padding: 0, margin: 0, cursor: "pointer", background: "none",
-      }}>
-        {/* key per engine: Leaflet en MapKit krijgen elk een schoon element. */}
-        <div key={engine} ref={mapElRef} className="thuisbar-map" style={{
-          height: 190, borderRadius: "14px 14px 0 0", overflow: "hidden", touchAction: "pan-y", background: PAPER_DEEP,
-          // Apple-voorvertoning: tikken gaat naar de knop (schermvullend openen).
-          pointerEvents: engine === "leaflet" ? undefined : "none",
-        }} />
-      </button>
-      {pending && <div style={{ fontSize: 10.5, color: MUTED, padding: "6px 15px 0" }}>Locaties opzoeken op de kaart…</div>}
-      <div style={{ padding: "13px 15px" }}>
-        {locations.map(loc => {
-          const hasPin = loc.lat != null || !!coords[loc.name.trim().toLowerCase()];
-          return (
-            <button key={loc.name} onClick={() => flyToLocation(loc.name)} disabled={!hasPin} style={{
-              display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between",
-              padding: "6px 0", borderTop: "none", borderLeft: "none", borderRight: "none",
-              borderBottom: `1px dotted ${BORDER}`, background: "none", font: "inherit",
-              cursor: hasPin ? "pointer" : "default", textAlign: "left",
-            }}>
-              <span style={{ fontSize: 12, color: hasPin ? BOTTLE : "#5C5548", fontWeight: hasPin ? 700 : 400, textDecoration: hasPin ? "underline" : "none", textDecorationColor: BORDER, textUnderlineOffset: 3 }}>{loc.name}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: INK }}>{loc.count}</span>
-            </button>
-          );
-        })}
-        <div style={{ marginTop: 11, fontSize: 11, color: MUTED }}>{locations.length} {locations.length === 1 ? "locatie" : "locaties"} bijgehouden</div>
-      </div>
-      {expanded && <MapFullscreenSheet locations={locations} coords={coords} engine={engine} mapkit={mapkit} onClose={() => setExpanded(false)} />}
-    </div>
-  );
-}
-
-// Losse, wél volledig interactieve Leaflet-instantie voor de schermvullende
-// kaart — eigen mount/unmount i.p.v. de niet-interactieve voorvertoning
-// hierboven toggelen, want Leaflet's interactiviteit kun je niet na init
-// meer aan-/uitzetten zonder de hele kaart opnieuw op te bouwen.
-function MapFullscreenSheet({ locations, coords, engine, mapkit, onClose }) {
-  useBodyScrollLock();
-  const elRef = useRef(null);
-  useEffect(() => {
-    if (!elRef.current || engine === "loading") return;
-    if (engine === "apple") {
-      const m = createAppleMap(mapkit, elRef.current, mapPoints(locations, coords), { interactive: true, fallbackCenter: GRONINGEN });
-      return () => m.destroy();
-    }
-    const map = L.map(elRef.current, { attributionControl: true, zoomControl: true }).setView([GRONINGEN.lat, GRONINGEN.lon], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>-bijdragers',
-    }).addTo(map);
-    const pinIcon = L.divIcon({
-      className: "",
-      html: `<div style="width:26px;height:32px;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4));"><svg viewBox="0 0 16 20" width="26" height="32"><path d="M8 0C3.6 0 0 3.6 0 8c0 5.5 8 12 8 12s8-6.5 8-12c0-4.4-3.6-8-8-8z" fill="${BRASS}"/><circle cx="8" cy="8" r="3" fill="${BOTTLE_DARK}"/></svg></div>`,
-      iconSize: [26, 32], iconAnchor: [13, 32], popupAnchor: [0, -30],
-    });
-    const bounds = [];
-    locations.forEach(loc => {
-      const key = loc.name.trim().toLowerCase();
-      const c = loc.lat != null ? { lat: loc.lat, lon: loc.lon } : coords[key];
-      if (!c) return;
-      L.marker([c.lat, c.lon], { icon: pinIcon }).addTo(map)
-        .bindPopup(`<strong>${escapeHtml(loc.name)}</strong><br/>${loc.count} check-in${loc.count === 1 ? "" : "s"}`);
-      bounds.push([c.lat, c.lon]);
-    });
-    if (bounds.length > 0) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-    setTimeout(() => map.invalidateSize(), 60);
-    return () => map.remove();
-  }, [locations, coords, engine, mapkit]);
-
-  return createPortal((
-    <div className="tab-fade" style={{ position: "fixed", inset: 0, zIndex: 40, background: PAPER, display: "flex", flexDirection: "column" }}>
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "calc(env(safe-area-inset-top) + 14px) 16px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
-      }}>
-        <div style={{ fontFamily: systemFont, fontWeight: 700, fontSize: 17, color: INK }}>Jouw cocktailkaart</div>
-        <button onClick={onClose} aria-label="Sluiten" className="press-scale" style={{
-          display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%",
-          border: `1px solid ${BORDER}`, background: CREAM, color: INK, cursor: "pointer",
-        }}>
-          <X size={17} />
-        </button>
-      </div>
-      <div ref={elRef} className="thuisbar-map" style={{ flex: 1 }} />
-    </div>
-  ), document.body);
-}
 
 // Favorieten, meest gebruikte drank en check-ins per maand: gedeeld door
 // je eigen profiel en dat van een vriend (zelfde afleiding uit het logboek).
@@ -17609,484 +12377,7 @@ function VriendenTab({ session, profile, recipes, allIngredients, onSound, activ
   );
 }
 
-// ===== Eigen recepten: nieuw recept =====
-// Ingrediënten, stijl en glas worden gekozen uit wat de app kent (i.p.v.
-// vrij getypt), zodat een eigen recept altijd meetelt bij "Wat kan ik
-// maken", de voorraad en de boodschappenlijst.
-const EIGEN_FAMILIES = [
-  { value: "Sours", label: "Sours" }, { value: "Highballs", label: "Highballs" },
-  { value: "Stirred-down", label: "Stirred-down" }, { value: "Spirit-forward", label: "Spirit-forward" },
-  { value: "Fizz / Flip", label: "Fizz / Flip" }, { value: "Modern / Tiki", label: "Tiki" },
-  { value: "Moderne klassiekers", label: "Moderne klassiekers" }, { value: "Zuivel & dessert", label: "Dessert" },
-  { value: "Warme dranken", label: "Warm" }, { value: "Mocktail / alcoholvrij", label: "Alcoholvrij" },
-];
-const EIGEN_GLASSES = ["Coupe", "Rocks", "Highball", "Champagneflute", "Wijnglas", "Hurricane", "Koperen beker", "Glazen mok", "Julep beker"];
-const EIGEN_GLASS_LABELS = { Champagneflute: "Flute", Wijnglas: "Wijn", "Koperen beker": "Koper", "Glazen mok": "Mok", "Julep beker": "Julep" };
-const EIGEN_TECHNIQUES = [
-  { key: "geschud", label: "Geschud", steps: (g) => ["Doe alles met ijs in de shaker.", "Shake stevig, ± 12 seconden.", `Zeef in een ${g}.`] },
-  { key: "geroerd", label: "Geroerd", steps: (g) => ["Doe alles met ijs in een mengglas.", "Roer rustig 20 tot 30 seconden, tot het goed koud is.", `Zeef in een ${g}.`] },
-  { key: "gebouwd", label: "Gebouwd", steps: () => ["Vul het glas met ijs.", "Schenk de ingrediënten in volgorde in het glas.", "Roer kort door."] },
-  { key: "geblend", label: "Geblend", steps: (g) => ["Doe alles met een schep crushed ijs in de blender.", "Blend ± 20 seconden tot het glad is.", `Schenk in een ${g}.`] },
-];
-const EIGEN_GARNISHES = ["Limoenschijfje", "Citroenzeste", "Sinaasappelzeste", "Cocktailkers", "Takje munt", "Olijf"];
-const EIGEN_UNITS = [{ key: "ml", label: "ml" }, { key: "dash", label: "dash" }, { key: "stuk", label: "stuk" }, { key: "top", label: "top op" }];
-const EIGEN_NEW_CATS = [
-  { cat: "Sterke drank", label: "Sterke drank" }, { cat: "Likeuren & versterkte wijnen", label: "Likeur" }, { cat: "Mixers", label: "Mixer" },
-  { cat: "Vers", label: "Siroop / vers" }, { cat: "Bitters", label: "Bitters" }, { cat: "Zuivel & room", label: "Zuivel" },
-];
-const TOP_OP_ML = 60; // "top op": voor berekeningen ± 60 ml
 
-// Hoe het glas in de laatste stap heet ("Zeef in een gekoelde coupe.").
-const EIGEN_GLASS_PHRASES = {
-  Coupe: "gekoelde coupe", Rocks: "rocksglas met ijs", Highball: "highballglas met ijs", Champagneflute: "gekoelde flute",
-  Wijnglas: "wijnglas met ijs", Hurricane: "hurricaneglas met crushed ijs", "Koperen beker": "koperen beker met ijs",
-  "Glazen mok": "glazen mok", "Julep beker": "julepbeker met crushed ijs",
-};
-function glassWord(glass) { return EIGEN_GLASS_PHRASES[glass] || "gekoeld glas"; }
-function techniqueFromMethod(method) {
-  const t = inferTechniques(method);
-  if (t.includes("blend")) return "geblend";
-  if (t.includes("stirred") && !t.includes("shaken")) return "geroerd";
-  if (t.includes("build") && !t.includes("shaken")) return "gebouwd";
-  return "geschud";
-}
+ 
 
-function IngredientPickerSheet({ allIngredients, isOwned, onPick, onClose }) {
-  useBodyScrollLock();
-  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
-  const [query, setQuery] = useState("");
-  const [chosen, setChosen] = useState(null); // { id } | { newName }
-  const [newCat, setNewCat] = useState(null);
-  const [amount, setAmount] = useState({ amount: 15, unit: "ml" });
-  const [custom, setCustom] = useState(false);
-  const [customAmount, setCustomAmount] = useState("");
-  const q = query.trim().toLowerCase();
-  const results = q ? allIngredients.filter(i => i.name.toLowerCase().includes(q)).slice(0, 12) : [];
-  const exact = q && allIngredients.some(i => i.name.toLowerCase() === q);
-  const quick = [
-    { amount: 10, unit: "ml", label: "10 ml" }, { amount: 15, unit: "ml", label: "15 ml" }, { amount: 22.5, unit: "ml", label: "22,5 ml" },
-    { amount: 30, unit: "ml", label: "30 ml" }, { amount: 45, unit: "ml", label: "45 ml" }, { amount: 1, unit: "dash", label: "dash" }, { amount: TOP_OP_ML, unit: "top", label: "top op" },
-  ];
-  const ready = chosen && (chosen.id || (chosen.newName && newCat)) && (!custom || parseFloat(customAmount.replace(",", ".")) > 0);
-  const submit = () => {
-    if (!ready) return;
-    const amt = custom ? { amount: parseFloat(customAmount.replace(",", ".")), unit: "ml" } : amount;
-    onPick({ ...(chosen.id ? { id: chosen.id } : { newName: chosen.newName, newCat }), ...amt });
-    close();
-  };
-  const chip = (on) => ({ minHeight: 40, padding: "0 14px", borderRadius: 100, cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 600, border: `1px solid ${on ? BOTTLE : PAPER_DEEP}`, background: on ? BOTTLE : PAPER_DEEP, color: on ? "#FBF6EA" : INK });
-  const head = (t) => <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: MUTED, margin: "16px 0 8px" }}>{t}</div>;
 
-  return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
-      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-      <div ref={panelRef} className="sheet-slide-in sheet-max-92" style={{ position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", height: "88vh", background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <SheetGrabber {...dragHandlers} />
-        <div {...dragHandlers} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 20px 10px", touchAction: "none" }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>Ingrediënt kiezen</div>
-          <button onClick={close} onTouchStart={e => e.stopPropagation()} style={{ minHeight: 44, background: "none", border: "none", color: BOTTLE, fontFamily: sans, fontSize: 15, fontWeight: 600, cursor: "pointer", padding: "0 0 0 10px" }}>Annuleer</button>
-        </div>
-        <div data-kb-scope style={{ padding: "0 20px 4px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: PAPER_DEEP, borderRadius: 12, padding: "0 12px" }}>
-            <Search size={16} color={MUTED} />
-            <input autoFocus value={query} onChange={e => { setQuery(e.target.value); setChosen(null); }} placeholder="Zoek een ingrediënt" aria-label="Zoek een ingrediënt" autoCorrect="off"
-              style={{ flex: 1, minHeight: 44, border: "none", outline: "none", background: "transparent", fontFamily: sans, fontSize: 16, color: INK }} />
-          </div>
-        </div>
-        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 20px 16px", WebkitOverflowScrolling: "touch" }}>
-          {results.length > 0 && (<>
-            {head("Uit de app")}
-            <div role="radiogroup" style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 14, overflow: "hidden" }}>
-              {results.map((ing, i) => {
-                const on = chosen?.id === ing.id;
-                return (
-                  <button key={ing.id} role="radio" aria-checked={on} onClick={() => setChosen({ id: ing.id })} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 56, padding: "6px 14px", border: "none", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, background: on ? "rgba(92,122,82,0.14)" : "transparent", cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}><ItemArt ing={ing} /></div>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 15, fontWeight: 600 }}>{ing.name}</span>
-                      <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{ing.cat === CUSTOM_CAT ? "Eigen ingrediënt" : ing.cat} · {isOwned({ id: ing.id }) ? "in huis" : "niet in huis"}</span>
-                    </span>
-                    {on && <Check size={17} color={SAGE} strokeWidth={2.6} />}
-                  </button>
-                );
-              })}
-            </div>
-          </>)}
-          {q && !exact && (<>
-            {head("Niet gevonden?")}
-            <div style={{ background: CREAM, border: `1.5px solid ${chosen?.newName ? BRASS : BORDER}`, borderRadius: 14, padding: "4px 14px 14px" }}>
-              <button onClick={() => setChosen({ newName: query.trim() })} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: sans, color: INK, textAlign: "left" }}>
-                <span style={{ width: 26, height: 26, borderRadius: "50%", background: BOTTLE, color: "#FBF6EA", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Plus size={15} /></span>
-                <span style={{ fontSize: 14.5 }}>Nieuw ingrediënt: <strong>{query.trim()}</strong></span>
-              </button>
-              {chosen?.newName && (<>
-                <div style={{ fontSize: 12.5, color: MUTED, margin: "2px 0 8px" }}>In welke categorie hoort het?</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {EIGEN_NEW_CATS.map(c => <button key={c.cat} onClick={() => setNewCat(c.cat)} aria-pressed={newCat === c.cat} style={chip(newCat === c.cat)}>{newCat === c.cat ? "✓ " : ""}{c.label}</button>)}
-                </div>
-              </>)}
-            </div>
-          </>)}
-          {head("Hoeveelheid")}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {quick.map(o => {
-              const on = !custom && amount.amount === o.amount && amount.unit === o.unit;
-              return <button key={o.label} onClick={() => { setCustom(false); setAmount({ amount: o.amount, unit: o.unit }); }} aria-pressed={on} style={chip(on)}>{o.label}</button>;
-            })}
-            <button onClick={() => setCustom(true)} aria-pressed={custom} style={{ ...chip(custom), color: custom ? "#FBF6EA" : BRASS }}>Anders…</button>
-          </div>
-          {custom && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-              <input value={customAmount} onChange={e => setCustomAmount(e.target.value)} inputMode="decimal" placeholder="Bijv. 20" aria-label="Hoeveelheid in ml"
-                style={{ width: 110, minHeight: 44, borderRadius: 12, border: `1px solid ${BORDER}`, background: CREAM, padding: "0 12px", fontFamily: sans, fontSize: 16, color: INK }} />
-              <span style={{ fontSize: 14, color: MUTED }}>ml</span>
-            </div>
-          )}
-        </div>
-        <div style={{ padding: "12px 20px calc(env(safe-area-inset-bottom) + 14px)", borderTop: `1px solid ${BORDER}` }}>
-          <button onClick={submit} disabled={!ready} className="press-scale" style={{ width: "100%", minHeight: 52, borderRadius: 14, border: "none", background: ready ? BOTTLE_DARK : BORDER, color: ready ? "#FBF6EA" : MUTED, fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: ready ? "pointer" : "default" }}>Voeg toe aan recept</button>
-        </div>
-      </div>
-    </div>
-  ), document.body);
-}
-
-// Eén ingrediëntregel: veeg naar links = verwijderen, lang indrukken = verslepen.
-function EigenIngredientRow({ row, index, count, meta, owned, onChange, onRemove, onMove, dragState, setDragState }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let timer = null, startY = 0, active = false, rowH = 56;
-    const start = (e) => {
-      if (e.target.closest("input,select,button")) return;
-      startY = e.touches[0].clientY; rowH = el.offsetHeight || 56;
-      timer = setTimeout(() => { active = true; hapticFor("tick"); setDragState({ index, dy: 0 }); }, 450);
-    };
-    const move = (e) => {
-      const dy = e.touches[0].clientY - startY;
-      if (!active) { if (Math.abs(dy) > 8) clearTimeout(timer); return; }
-      e.preventDefault(); e.stopPropagation();
-      setDragState({ index, dy });
-    };
-    const end = (e) => {
-      clearTimeout(timer);
-      if (!active) return;
-      active = false;
-      e.stopPropagation();
-      const dy = (e.changedTouches?.[0]?.clientY ?? startY) - startY;
-      const to = Math.max(0, Math.min(count - 1, index + Math.round(dy / rowH)));
-      setDragState(null);
-      if (to !== index) onMove(index, to);
-    };
-    el.addEventListener("touchstart", start, { passive: true });
-    el.addEventListener("touchmove", move, { passive: false });
-    el.addEventListener("touchend", end);
-    el.addEventListener("touchcancel", end);
-    return () => { clearTimeout(timer); el.removeEventListener("touchstart", start); el.removeEventListener("touchmove", move); el.removeEventListener("touchend", end); el.removeEventListener("touchcancel", end); };
-  }, [index, count]);
-  const dragging = dragState?.index === index;
-  const name = meta?.name || row.newName || row.name || "?";
-  const isNew = !!row.newName;
-  const amountText = row.unit === "top" ? "" : (row.amount === "" || row.amount == null ? "" : String(row.amount).replace(".", ","));
-  const content = (
-    <div ref={ref} style={{
-      display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: CREAM,
-      transform: dragging ? `translateY(${dragState.dy}px) scale(1.02)` : "none", boxShadow: dragging ? "0 8px 20px rgba(43,38,32,0.2)" : "none",
-      position: "relative", zIndex: dragging ? 2 : 0, transition: dragging ? "none" : "transform 0.15s ease",
-    }}>
-      <div style={{ width: 36, height: 36, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
-        {meta ? <ItemArt ing={meta} /> : <div style={{ width: "100%", height: "100%", background: "rgba(184,134,46,0.18)", color: BRASS, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>{name[0]?.toUpperCase()}</div>}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginTop: 1 }}>
-          {isNew ? <span style={{ color: BRASS_TEXT, fontWeight: 600 }}>Nieuw ingrediënt · {EIGEN_NEW_CATS.find(c => c.cat === row.newCat)?.label || row.newCat}</span>
-            : owned ? <span style={{ color: SAGE, fontWeight: 600 }}>✓ in huis</span> : <span style={{ color: MUTED }}>niet in huis</span>}
-          <button onClick={() => onChange({ optional: !row.optional })} aria-pressed={!!row.optional} style={{ minHeight: 26, padding: "0 8px", borderRadius: 100, border: `1px solid ${row.optional ? BRASS : BORDER}`, background: row.optional ? "rgba(184,134,46,0.16)" : "transparent", color: row.optional ? BRASS_TEXT : MUTED, fontFamily: sans, fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>optioneel</button>
-        </div>
-      </div>
-      {row.unit !== "top" && (
-        <input value={amountText} onChange={e => onChange({ amount: e.target.value.replace(",", ".") })} inputMode="decimal" aria-label={`Hoeveelheid ${name}`}
-          style={{ width: 52, minHeight: 40, borderRadius: 10, border: "none", background: PAPER_DEEP, textAlign: "center", fontFamily: sans, fontSize: 16, fontWeight: 700, color: INK, padding: 0 }} />
-      )}
-      <label style={{ position: "relative", display: "flex", alignItems: "center", gap: 2, minHeight: 40, padding: "0 10px", borderRadius: 10, background: PAPER_DEEP, fontSize: 13, color: MUTED, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
-        {EIGEN_UNITS.find(u => u.key === row.unit)?.label || row.unit} <ChevronDown size={13} />
-        <select value={row.unit} aria-label={`Eenheid ${name}`} onChange={e => onChange({ unit: e.target.value, ...(e.target.value === "top" ? { amount: TOP_OP_ML } : {}) })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", fontSize: 16 }}>
-          {EIGEN_UNITS.map(u => <option key={u.key} value={u.key}>{u.label}</option>)}
-        </select>
-      </label>
-    </div>
-  );
-  return <SwipeToDelete onDelete={onRemove}>{content}</SwipeToDelete>;
-}
-
-function EigenRecepten({ customRecipes, allIngredients, recipes, isOwned, recentRecipeIds = [], favoriteRecipeIds = [], onSaveRecipe, onRemoveRecipe, onAddToShoppingList, shoppingKeys, onOpenRecipe, onSound }) {
-  const blank = { name: "", family: "", glass: "", rows: [], technique: "geschud", steps: null, garnishes: [], photo: null, editingId: null };
-  const [form, setForm] = useState(blank);
-  const [picker, setPicker] = useState(false);
-  const [fromExisting, setFromExisting] = useState(false);
-  const [preview, setPreview] = useState(null);
-  const [saved, setSaved] = useState(null);
-  const [customGarnish, setCustomGarnish] = useState(null);
-  const [dragState, setDragState] = useState(null);
-  const [photoBusy, setPhotoBusy] = useState(false);
-  const fileRef = useRef(null);
-  const set = (patch) => setForm(f => ({ ...f, ...patch }));
-  const metaOf = (row) => row.id ? allIngredients.find(i => i.id === row.id) : row.name ? allIngredients.find(i => i.name.toLowerCase() === row.name.toLowerCase()) : null;
-  const tech = EIGEN_TECHNIQUES.find(t => t.key === form.technique) || EIGEN_TECHNIQUES[0];
-  const steps = form.steps ?? tech.steps(glassWord(form.glass));
-  const canSave = form.name.trim().length > 0 && form.rows.length >= 2;
-
-  const buildRecipe = (idMap = {}) => {
-    const ingredients = form.rows.map(r => {
-      const amount = r.unit === "top" ? TOP_OP_ML : (parseFloat(r.amount) || 0);
-      const unit = r.unit === "top" ? "ml" : r.unit;
-      const base = r.newName ? (idMap[r.key] ? { id: idMap[r.key] } : { name: r.newName }) : r.id ? { id: r.id } : { name: r.name };
-      return { ...base, amount, unit, ...(r.unit === "top" ? { top: true } : {}), ...(r.optional ? { optional: true } : {}) };
-    });
-    const cleanSteps = steps.map(s => s.trim()).filter(Boolean);
-    return {
-      id: form.editingId || "custom_" + Date.now().toString(36),
-      name: form.name.trim() || "Naamloos recept", family: form.family || "Eigen recept", glass: form.glass || "Naar keuze",
-      ingredients, steps: cleanSteps, method: cleanSteps.join(" ") || "—", garnish: form.garnishes.join(", "),
-      ...(form.photo ? { image: form.photo } : {}),
-    };
-  };
-
-  // Navigatiebalk: titel + "Bewaar" rechts.
-  const setNavOverride = useContext(NavOverrideContext);
-  const saveRef = useRef(null);
-  useEffect(() => {
-    if (!setNavOverride) return;
-    setNavOverride({
-      title: form.editingId ? "Recept bewerken" : "Nieuw recept",
-      right: <button onClick={() => saveRef.current?.()} disabled={!canSave} style={{ minHeight: 44, background: "none", border: "none", padding: "0 0 0 10px", fontFamily: sans, fontSize: 15.5, fontWeight: 800, color: canSave ? BOTTLE : MUTED, opacity: canSave ? 1 : 0.55, cursor: canSave ? "pointer" : "default" }}>Bewaar</button>,
-    });
-  }, [setNavOverride, canSave, form.editingId]);
-  useEffect(() => () => setNavOverride && setNavOverride(null), [setNavOverride]);
-
-  const save = () => {
-    if (!canSave) return;
-    const newOnes = form.rows.filter(r => r.newName).map(r => ({ key: r.key, name: r.newName, cat: r.newCat }));
-    const recipe = onSaveRecipe(newOnes, (idMap) => buildRecipe(idMap));
-    onSound("chime");
-    setSaved(recipe);
-  };
-  saveRef.current = save;
-
-  const startFrom = (id) => {
-    const r = recipes.find(x => x.id === id);
-    if (!r) return;
-    const glass = EIGEN_GLASSES.find(g => normalizeGlass(g) === normalizeGlass(r.glass)) || "";
-    setForm({
-      ...blank, name: `Mijn ${r.name}`, family: EIGEN_FAMILIES.some(f => f.value === r.family) ? r.family : "", glass,
-      rows: r.ingredients.map((ing, i) => ({ key: `r${Date.now()}${i}`, id: findIngredientMeta(ing, allIngredients)?.id || ing.id, name: ing.name, amount: ing.top ? TOP_OP_ML : ing.amount, unit: ing.top ? "top" : ing.unit, optional: !!ing.optional })),
-      technique: techniqueFromMethod(r.method), steps: r.steps || splitMethodIntoSteps(r.method),
-      garnishes: r.garnish ? [r.garnish.replace(/\.$/, "")] : [],
-    });
-    window.scrollTo({ top: 0 });
-  };
-  const editExisting = (r) => { startFrom(r.id); setForm(f => ({ ...f, name: r.name, editingId: r.id, photo: r.image || null })); };
-
-  const addRow = (pick) => set({ rows: [...form.rows, { key: `r${Date.now()}`, ...pick, optional: false }] });
-  const updateRow = (i, patch) => set({ rows: form.rows.map((r, j) => j === i ? { ...r, ...patch } : r) });
-  const moveRow = (from, to) => { const rows = form.rows.slice(); const [x] = rows.splice(from, 1); rows.splice(to, 0, x); set({ rows }); };
-  const setStep = (i, text) => set({ steps: steps.map((s, j) => j === i ? text : s) });
-
-  const handlePhoto = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setPhotoBusy(true);
-    try { set({ photo: await squareJpegDataUrl(file, 800, 0.8) }); }
-    catch (err) { console.warn("Foto laden mislukt:", err); }
-    setPhotoBusy(false);
-  };
-
-  const draft = buildRecipe();
-  const label = (t, extra) => <div style={{ fontSize: 15, fontWeight: 700, color: INK, margin: "22px 0 10px" }}>{t}{extra && <span style={{ fontWeight: 500, color: MUTED }}> {extra}</span>}</div>;
-  const chip = (on) => ({ minHeight: 40, padding: "0 14px", borderRadius: 100, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 600, border: `1px solid ${on ? BOTTLE : PAPER_DEEP}`, background: on ? BOTTLE : PAPER_DEEP, color: on ? "#FBF6EA" : INK });
-  const ingLabel = (ref) => findIngredientMeta(ref, allIngredients)?.name || ref.name || ref.id;
-  const savedMissing = saved ? saved.ingredients.filter(i => !i.optional && !isOwned(i)) : [];
-
-  return (
-    <div style={{ fontFamily: sans }}>
-      <button onClick={() => setFromExisting(true)} className="press-scale" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 60, padding: "8px 14px", borderRadius: 14, border: `1px solid ${BORDER}`, background: CREAM, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK, boxShadow: SHADOW_CARD }}>
-        <span style={{ width: 34, height: 34, borderRadius: 10, background: PAPER_DEEP, color: BOTTLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Layers size={17} /></span>
-        <span style={{ flex: 1 }}>
-          <span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>Begin vanaf een bestaand recept</span>
-          <span style={{ display: "block", fontSize: 12.5, color: MUTED, marginTop: 1 }}>Bijv. de Gimlet overnemen en aanpassen</span>
-        </span>
-        <ChevronRight size={18} color={MUTED} />
-      </button>
-
-      {/* Foto + naam */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 14, marginTop: 18 }}>
-        <button onClick={() => fileRef.current?.click()} disabled={photoBusy} aria-label="Foto maken of kiezen" style={{ position: "relative", width: 92, height: 92, borderRadius: 18, border: "none", padding: 0, overflow: "visible", cursor: "pointer", flexShrink: 0, background: "none" }}>
-          <div style={{ width: 92, height: 92, borderRadius: 18, overflow: "hidden" }}>
-            {form.photo ? <img src={form.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <RecipeCircle recipe={{ ...draft, image: undefined, id: "__concept__" }} allIngredients={allIngredients} size={92} radius={18} />}
-          </div>
-          <span style={{ position: "absolute", right: -6, bottom: -6, width: 32, height: 32, borderRadius: "50%", background: BOTTLE_DARK, border: `3px solid ${PAPER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Camera size={14} color="#FBF6EA" />
-          </span>
-        </button>
-        <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
-        <label style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 12, color: MUTED, marginBottom: 2 }}>Naam</span>
-          <input value={form.name} onChange={e => set({ name: e.target.value })} placeholder="Bijv. Rozemarijn Gimlet" autoCapitalize="words" enterKeyHint="done"
-            style={{ width: "100%", boxSizing: "border-box", minHeight: 48, border: "none", borderBottom: `2px solid ${BOTTLE}`, background: "transparent", outline: "none", fontFamily: serif, fontSize: 24, fontWeight: 700, color: INK, padding: "4px 0" }} />
-        </label>
-      </div>
-
-      {label("Stijl")}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {EIGEN_FAMILIES.map(f => <button key={f.value} onClick={() => set({ family: form.family === f.value ? "" : f.value })} aria-pressed={form.family === f.value} style={chip(form.family === f.value)}>{f.label}</button>)}
-      </div>
-
-      {label("Glas")}
-      <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", margin: "0 -20px", padding: "0 20px 4px" }}>
-        {EIGEN_GLASSES.map(g => {
-          const on = form.glass === g;
-          return (
-            <button key={g} onClick={() => set({ glass: on ? "" : g })} aria-pressed={on} style={{ flexShrink: 0, width: 66, height: 72, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, borderRadius: 14, cursor: "pointer", fontFamily: sans, fontSize: 12, fontWeight: 600, background: CREAM, color: on ? INK : MUTED, border: `1.5px solid ${on ? BOTTLE : BORDER}` }}>
-              <div style={{ height: 36, display: "flex", alignItems: "flex-end" }}><GlassArt glass={g} mono size={22} /></div>
-              {EIGEN_GLASS_LABELS[g] || g}
-            </button>
-          );
-        })}
-      </div>
-
-      {label("Ingrediënten")}
-      <div style={{ background: CREAM, border: "none", borderRadius: 16, overflow: "hidden", boxShadow: SHADOW_CARD }}>
-        {form.rows.map((row, i) => {
-          const meta = row.newName ? null : metaOf(row);
-          return (
-            <div key={row.key || i} style={{ borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
-              <EigenIngredientRow row={row} index={i} count={form.rows.length} meta={meta} owned={meta ? isOwned({ id: meta.id }) : false}
-                onChange={(p) => updateRow(i, p)} onRemove={() => { onSound("remove"); set({ rows: form.rows.filter((_, j) => j !== i) }); }}
-                onMove={moveRow} dragState={dragState} setDragState={setDragState} />
-            </div>
-          );
-        })}
-        <button onClick={() => setPicker(true)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 52, padding: "0 14px", border: "none", borderTop: form.rows.length ? `1px solid ${BORDER}` : "none", background: "none", color: BOTTLE, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
-          <Plus size={18} /> Ingrediënt toevoegen
-        </button>
-      </div>
-      {form.rows.length > 0 && <p style={{ fontSize: 12, color: MUTED, margin: "8px 4px 0" }}>Veeg naar links om te verwijderen · houd vast om te verslepen</p>}
-
-      {label("Techniek")}
-      <div role="radiogroup" style={{ display: "flex", gap: 4, padding: 4, background: PAPER_DEEP, borderRadius: 13 }}>
-        {EIGEN_TECHNIQUES.map(t => {
-          const on = form.technique === t.key;
-          return <button key={t.key} role="radio" aria-checked={on} onClick={() => set({ technique: t.key, steps: null })} style={{ flex: 1, minHeight: 40, border: "none", borderRadius: 10, cursor: "pointer", fontFamily: sans, fontSize: 14, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : MUTED, boxShadow: on ? "0 1px 4px rgba(43,38,32,0.14)" : "none" }}>{t.label}</button>;
-        })}
-      </div>
-      <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, marginTop: 10, padding: "4px 14px" }}>
-        {steps.map((s, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
-            <span style={{ width: 24, height: 24, marginTop: 8, borderRadius: "50%", border: `1.5px solid ${BRASS}`, color: BRASS, fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxSizing: "border-box" }}>{i + 1}</span>
-            <div style={{ flex: 1 }}><AutoGrowTextField bare value={s} onChange={(v) => setStep(i, v)} placeholder="Beschrijf deze stap" /></div>
-            <button onClick={() => set({ steps: steps.filter((_, j) => j !== i) })} aria-label={`Stap ${i + 1} verwijderen`} style={{ width: 36, height: 40, background: "none", border: "none", color: MUTED, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={15} /></button>
-          </div>
-        ))}
-        <button onClick={() => set({ steps: [...steps, ""] })} style={{ display: "flex", alignItems: "center", gap: 6, minHeight: 44, background: "none", border: "none", padding: 0, color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 700, cursor: "pointer" }}><Plus size={16} /> Stap toevoegen</button>
-      </div>
-      <p style={{ fontSize: 12, color: MUTED, margin: "8px 4px 0" }}>Voorgesteld op basis van de techniek · tik op een stap om aan te passen</p>
-
-      {label("Afwerking", "(optioneel)")}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {[...new Set([...EIGEN_GARNISHES, ...form.garnishes])].map(g => {
-          const on = form.garnishes.includes(g);
-          return <button key={g} onClick={() => set({ garnishes: on ? form.garnishes.filter(x => x !== g) : [...form.garnishes, g] })} aria-pressed={on} style={chip(on)}>{on ? "✓ " : ""}{g}</button>;
-        })}
-        {customGarnish === null ? (
-          <button onClick={() => setCustomGarnish("")} style={{ ...chip(false), color: BOTTLE }}>+ Zelf typen</button>
-        ) : (
-          <form onSubmit={e => { e.preventDefault(); const v = customGarnish.trim(); if (v) set({ garnishes: [...form.garnishes, v] }); setCustomGarnish(null); }} style={{ display: "flex", gap: 6 }}>
-            <input autoFocus value={customGarnish} onChange={e => setCustomGarnish(e.target.value)} placeholder="Bijv. takje rozemarijn" enterKeyHint="done"
-              style={{ minHeight: 40, borderRadius: 100, border: `1px solid ${BORDER}`, background: CREAM, padding: "0 14px", fontFamily: sans, fontSize: 16, color: INK, width: 200 }} />
-            <button type="submit" style={{ ...chip(true), minWidth: 44 }}>OK</button>
-          </form>
-        )}
-      </div>
-
-      <button onClick={() => setPreview(draft)} disabled={form.rows.length === 0} className="press-scale" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 52, marginTop: 26, borderRadius: 14, border: "none", background: "rgba(184,134,46,0.18)", color: INK, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: form.rows.length ? "pointer" : "default", opacity: form.rows.length ? 1 : 0.5 }}>
-        <BookOpen size={17} color={BRASS} /> Voorbeeld bekijken
-      </button>
-      {!canSave && <p style={{ fontSize: 12.5, color: MUTED, textAlign: "center", margin: "10px 0 0" }}>Geef je recept een naam en minstens 2 ingrediënten om te bewaren.</p>}
-
-      {customRecipes.length > 0 && (<>
-        {label(`Jouw eigen recepten (${customRecipes.length})`)}
-        <div style={{ background: CREAM, border: "none", boxShadow: SHADOW_CARD, borderRadius: 16, overflow: "hidden" }}>
-          {customRecipes.map((r, i) => (
-            <SwipeToDelete key={r.id} onDelete={() => onRemoveRecipe(r.id)}>
-              <button onClick={() => editExisting(r)} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 58, padding: "6px 14px", border: "none", borderTop: i === 0 ? "none" : `1px solid ${BORDER}`, background: CREAM, cursor: "pointer", textAlign: "left", fontFamily: sans, color: INK }}>
-                <RecipeCircle recipe={r} allIngredients={allIngredients} size={40} radius={10} />
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontFamily: serif, fontSize: 16, fontWeight: 700 }}>{r.name}</span>
-                  <span style={{ display: "block", fontSize: 12.5, color: MUTED }}>{r.family} · {r.glass}</span>
-                </span>
-                <Pencil size={15} color={MUTED} />
-              </button>
-            </SwipeToDelete>
-          ))}
-        </div>
-        <p style={{ fontSize: 12, color: MUTED, margin: "8px 4px 0" }}>Tik om te bewerken · veeg naar links om te verwijderen</p>
-      </>)}
-
-      {picker && <IngredientPickerSheet allIngredients={allIngredients} isOwned={isOwned} onPick={addRow} onClose={() => setPicker(false)} />}
-      {fromExisting && (
-        <BatchRecipePicker recipes={recipes} allIngredients={allIngredients} recentRecipeIds={recentRecipeIds} favoriteRecipeIds={favoriteRecipeIds}
-          currentId={null} onPick={(id) => { startFrom(id); onSound("pop"); }} onClose={() => setFromExisting(false)} />
-      )}
-      {preview && (
-        <RecipeSheet recipe={preview} missing={preview.ingredients.filter(i => !i.optional && !isOwned(i))} ingredientLabel={ingLabel} allIngredients={allIngredients}
-          onAddMissing={() => {}} onSound={onSound} onClose={() => setPreview(null)} />
-      )}
-      {saved && (
-        <EigenSavedSheet recipe={saved} missing={savedMissing} ingLabel={ingLabel} allIngredients={allIngredients} shoppingKeys={shoppingKeys}
-          onAddToList={() => onAddToShoppingList(savedMissing.map(ref => ({ ref, recipeNames: [saved.name] })))}
-          onView={() => { const id = saved.id; setSaved(null); setForm(blank); setTimeout(() => onOpenRecipe(id), 200); }}
-          onAnother={() => { setSaved(null); setForm(blank); window.scrollTo({ top: 0 }); }}
-          onClose={() => { setSaved(null); setForm(blank); }} />
-      )}
-    </div>
-  );
-}
-
-function EigenSavedSheet({ recipe, missing, ingLabel, allIngredients, shoppingKeys, onAddToList, onView, onAnother, onClose }) {
-  useBodyScrollLock();
-  const { panelRef, closing, close, dragHandlers } = useSheetDismiss(onClose);
-  const [added, setAdded] = useState(false);
-  const onList = added || (missing.length > 0 && missing.every(m => shoppingKeys?.has(ingredientKey(m))));
-  return createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
-      <div className="sheet-backdrop-in" onClick={close} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.5)", opacity: closing ? 0 : 1, transition: "opacity 0.22s ease" }} />
-      <div ref={panelRef} className="sheet-slide-in" style={{ position: "relative", maxWidth: 960, width: "100%", margin: "0 auto", background: PAPER, borderRadius: "22px 22px 0 0", boxShadow: "0 -12px 30px rgba(43,38,32,0.25)", padding: "0 20px calc(env(safe-area-inset-bottom) + 16px)" }}>
-        <SheetGrabber {...dragHandlers} />
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", paddingTop: 10 }}>
-          <div className="success-pop" style={{ position: "relative" }}>
-            <div style={{ width: 96, height: 96, borderRadius: 20, overflow: "hidden", boxShadow: SHADOW_CARD }}><RecipeCircle recipe={recipe} allIngredients={allIngredients} size={96} radius={20} /></div>
-            <span style={{ position: "absolute", right: -8, bottom: -8, width: 32, height: 32, borderRadius: "50%", background: SAGE, border: `3px solid ${PAPER}`, display: "flex", alignItems: "center", justifyContent: "center" }}><Check size={16} strokeWidth={3} color="#FBF6EA" /></span>
-          </div>
-          <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 700, marginTop: 16 }}>{recipe.name}</div>
-          <div style={{ fontSize: 14, color: MUTED, marginTop: 4 }}>Opgeslagen · staat nu tussen je recepten</div>
-        </div>
-        {missing.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18, padding: "12px 14px", borderRadius: 14, background: "rgba(122,46,42,0.10)" }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: BURGUNDY }}>Mist nog: {missing.map(ingLabel).join(", ")}</div>
-              <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Zelf maken of op je lijst zetten</div>
-            </div>
-            {onList ? <span className={added ? "success-pop" : undefined} style={{ display: "flex", alignItems: "center", gap: 4, color: SAGE, fontSize: 13, fontWeight: 700, flexShrink: 0 }}><Check size={14} strokeWidth={3} /> Op lijst</span>
-              : <button onClick={() => { onAddToList(); setAdded(true); }} style={{ minHeight: 40, padding: "0 16px", borderRadius: 100, border: "none", background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Op lijst</button>}
-          </div>
-        )}
-        <button onClick={onView} className="press-scale" style={{ width: "100%", minHeight: 52, marginTop: 22, borderRadius: 14, border: "none", background: BOTTLE_DARK, color: "#FBF6EA", fontFamily: sans, fontSize: 15.5, fontWeight: 700, cursor: "pointer" }}>Bekijk recept</button>
-        <button onClick={onAnother} className="press-scale" style={{ width: "100%", minHeight: 52, marginTop: 10, borderRadius: 14, border: "none", background: "rgba(184,134,46,0.18)", color: INK, fontFamily: sans, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Nog een recept toevoegen</button>
-      </div>
-    </div>
-  ), document.body);
-}

@@ -9,6 +9,9 @@ export default defineConfig({
   root: __dirname,
   plugins: [react()],
   build: {
+    // Afbeeldingen nooit als tekst in de JavaScript stoppen: als losse
+    // bestanden laden ze pas als ze in beeld komen, en start de app sneller.
+    assetsInlineLimit: 0,
     rollupOptions: {
       // Losse pagina's: /privacy en /voorwaarden (links voor App Store Connect).
       input: {
