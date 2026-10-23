@@ -135,6 +135,61 @@ async function drawCheckin({ entry, recipe, who, metPlek, metNotitie }) {
   }
 }
 
+// ---------- Recept ----------
+// Receptkaart: foto boven, daaronder naam, ingrediënten met hoeveelheden en
+// (optioneel) de stappen. Past alles niet, dan stoppen de stappen netjes.
+async function drawRecipe({ card, showSteps }) {
+  await fontsReady();
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = DARK; ctx.fillRect(0, 0, W, H);
+  const photoH = showSteps ? 760 : 980;
+  const photo = await loadImage(card.photo);
+  if (photo) cover(ctx, photo, 0, 0, W, photoH);
+  let g = ctx.createLinearGradient(0, 0, 0, photoH);
+  g.addColorStop(0, "rgba(14,25,23,0.35)"); g.addColorStop(0.2, "rgba(14,25,23,0)"); g.addColorStop(0.6, "rgba(14,25,23,0.2)"); g.addColorStop(1, DARK);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, photoH);
+  const left = 80, maxW = W - 160;
+  let y = photoH - 150;
+  ctx.fillStyle = GOLD; ctx.font = '700 32px "Inter", sans-serif';
+  spaced(ctx, `RECEPT · ${card.servings} ${card.servings === 1 ? "GLAS" : "GLAZEN"}`, left, y, 4);
+  ctx.font = '700 120px "Playfair Display", serif'; ctx.fillStyle = LIGHT;
+  const nameLines = wrap(ctx, card.name, maxW, 2);
+  y += 120; nameLines.forEach((l, i) => ctx.fillText(l, left, y + i * 124)); y += (nameLines.length - 1) * 124;
+  if (card.meta) { y += 62; ctx.font = '400 36px "Inter", sans-serif'; ctx.fillStyle = "#B9C3BD"; ctx.fillText(card.meta, left, y); }
+  y += 50;
+  // Ingrediënten
+  const rowH = card.rows.length > 7 ? 66 : 76;
+  for (const r of card.rows) {
+    y += rowH;
+    ctx.font = '400 44px "Inter", sans-serif'; ctx.fillStyle = LIGHT;
+    ctx.fillText(wrap(ctx, r.label, maxW - 260, 1)[0], left, y);
+    ctx.font = '700 44px "Inter", sans-serif'; ctx.fillStyle = GOLD; ctx.textAlign = "right";
+    ctx.fillText(r.amount, left + maxW, y); ctx.textAlign = "left";
+    ctx.fillStyle = "rgba(251,246,234,0.12)"; ctx.fillRect(left, y + 24, maxW, 2);
+  }
+  if (card.swapNote) { y += 64; ctx.font = 'italic 500 34px "Playfair Display", serif'; ctx.fillStyle = SOFT; ctx.fillText(wrap(ctx, card.swapNote, maxW, 1)[0], left, y); }
+  // Stappen, zolang ze passen boven de voet.
+  const bottom = H - 230;
+  if (showSteps && card.steps.length) {
+    y += 76; ctx.font = '700 30px "Inter", sans-serif'; ctx.fillStyle = GOLD; spaced(ctx, "BEREIDING", left, y, 4); y += 18;
+    ctx.font = '400 38px "Inter", sans-serif';
+    for (let i = 0; i < card.steps.length; i++) {
+      const lines = wrap(ctx, card.steps[i], maxW - 64, 3);
+      if (y + 54 * lines.length > bottom) break;
+      y += 54;
+      ctx.fillStyle = GOLD; ctx.font = '700 38px "Inter", sans-serif'; ctx.fillText(`${i + 1}.`, left, y);
+      ctx.fillStyle = "#E6E0D2"; ctx.font = '400 38px "Inter", sans-serif';
+      lines.forEach((l, k) => ctx.fillText(l, left + 64, y + k * 52)); y += (lines.length - 1) * 52 + 10;
+    }
+  }
+  ctx.fillStyle = "rgba(232,201,142,0.35)"; ctx.fillRect(left, H - 200, maxW, 2);
+  await brand(ctx, left, H - 120);
+  ctx.font = '400 30px "Inter", sans-serif'; ctx.fillStyle = "#9FAAA4"; ctx.textAlign = "right";
+  ctx.fillText("Geniet met mate · 18+", left + maxW, H - 118); ctx.textAlign = "left";
+  try { return c.toDataURL("image/png"); } catch { return card.photo ? drawRecipe({ card: { ...card, photo: null }, showSteps }) : null; }
+}
+
 // ---------- Jaar / maand ----------
 export function periodStats({ logboek, recipes, allIngredients, voorraadCount, period, year: forYear = null }) {
   const now = new Date();
@@ -317,6 +372,103 @@ export function ShareCheckinSheet({ entry, recipe, who, onClose, onShareText = n
         {onShareText && (
           <button onClick={onShareText} style={{ display: "block", width: "100%", marginTop: 8, minHeight: 40, border: "none", background: "none", color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Of deel als tekst met een link</button>
         )}
+      </div>
+    </div>
+  ), document.body);
+}
+
+// Recept delen: als afbeelding (receptkaart) of als link naar een webpagina.
+// build({ servings, withSwap }) levert de inhoud (komt uit het receptscherm).
+export function ShareRecipeSheet({ build, initialServings = 1, hasSwap = false, swapLabel = "", onShareLink, onCopyText, onClose }) {
+  useBodyScrollLock();
+  const [mode, setMode] = useState("afbeelding");
+  const [servings, setServings] = useState(initialServings);
+  const [withSwap, setWithSwap] = useState(hasSwap);
+  const [showSteps, setShowSteps] = useState(true);
+  const [src, setSrc] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState(null);
+  const card = useMemo(() => build({ servings, withSwap }), [build, servings, withSwap]);
+  useEffect(() => {
+    if (mode !== "afbeelding") return undefined;
+    let cancelled = false; setSrc(null);
+    drawRecipe({ card, showSteps }).then(url => { if (!cancelled) setSrc(url); });
+    return () => { cancelled = true; };
+  }, [card, showSteps, mode]);
+  const flash = (t) => { setStatus(t); setTimeout(() => setStatus(null), 2500); };
+  const shareImg = async () => {
+    if (!src || busy) return; setBusy(true);
+    try { await shareImage(src, `${card.id}-recept.png`, card.name); } finally { setBusy(false); }
+  };
+  const shareUrl = async () => {
+    if (busy) return; setBusy(true);
+    try { const r = await onShareLink(card); if (r === "copied") flash("Link gekopieerd"); else if (r === "failed") flash("Delen is niet gelukt"); } finally { setBusy(false); }
+  };
+  const copy = async () => { const r = await onCopyText(card); flash(r === "copied" ? "Recept gekopieerd" : r === "failed" ? "Kopiëren is niet gelukt" : null); };
+  const row = (label, sub, control) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderTop: `1px solid ${BORDER}` }}>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 14.5, fontWeight: 600, color: INK }}>{label}</span>
+        {sub && <span style={{ display: "block", fontSize: 12, color: MUTED, marginTop: 1 }}>{sub}</span>}
+      </span>
+      {control}
+    </div>
+  );
+  const stepBtn = (label, onClick, disabled) => (
+    <button onClick={onClick} disabled={disabled} aria-label={label === "−" ? "Minder glazen" : "Meer glazen"} style={{ width: 34, height: 34, borderRadius: 10, border: `1px solid ${BORDER}`, background: CREAM, color: BOTTLE, fontWeight: 700, fontSize: 17, cursor: "pointer", opacity: disabled ? 0.4 : 1 }}>{label}</button>
+  );
+  const seg = (id, label) => (
+    <button key={id} onClick={() => setMode(id)} aria-pressed={mode === id} style={{
+      flex: 1, minHeight: 36, borderRadius: 9, border: "none", cursor: "pointer", fontFamily: sans, fontSize: 13.5, fontWeight: 700,
+      background: mode === id ? CREAM : "transparent", color: mode === id ? BOTTLE_DARK : MUTED, boxShadow: mode === id ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+    }}>{label}</button>
+  );
+  return createPortal((
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", flexDirection: "column", justifyContent: "flex-end", fontFamily: sans, color: INK }}>
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(20,16,10,0.55)" }} />
+      <div className="sheet-slide-in" style={{ position: "relative", maxWidth: 560, width: "100%", margin: "0 auto", background: PAPER, borderRadius: "22px 22px 0 0", padding: "12px 18px calc(env(safe-area-inset-bottom) + 18px)", maxHeight: "94dvh", overflowY: "auto", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ flex: 1, fontFamily: serif, fontSize: 19, fontWeight: 700 }}>Recept delen</div>
+          <button onClick={onClose} aria-label="Sluiten" style={{ width: 38, height: 38, borderRadius: "50%", border: "none", background: CREAM, boxShadow: SHADOW_CARD, color: INK, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={17} /></button>
+        </div>
+        <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 12, background: PAPER_DEEP, marginBottom: 10 }}>
+          {seg("afbeelding", "Afbeelding")}{seg("link", "Link")}
+        </div>
+        {mode === "afbeelding" ? (
+          <>
+            <PreviewFrame src={src} />
+            {row("Aantal glazen", null, (
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {stepBtn("−", () => setServings(n => Math.max(1, n - 1)), servings <= 1)}
+                <strong style={{ minWidth: 18, textAlign: "center" }}>{servings}</strong>
+                {stepBtn("+", () => setServings(n => Math.min(24, n + 1)), servings >= 24)}
+              </span>
+            ))}
+            {row("Bereiding tonen", null, <Switch checked={showSteps} onChange={setShowSteps} />)}
+          </>
+        ) : (
+          <div style={{ background: CREAM, borderRadius: 14, padding: 12, marginBottom: 10, display: "flex", gap: 12, alignItems: "center", boxShadow: SHADOW_CARD }}>
+            {card.photo && <img src={card.photo} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>{card.name}</div>
+              <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.35 }}>
+                {card.link ? "Opent als webpagina, ook zonder de app." : "Eigen recepten kun je niet als link delen. Deel hem als afbeelding of als tekst."}
+              </div>
+            </div>
+          </div>
+        )}
+        {hasSwap && row("Met mijn vervanger", swapLabel, <Switch checked={withSwap} onChange={setWithSwap} />)}
+        <div style={{ marginTop: 10 }}>
+          {mode === "afbeelding" ? <ShareButton busy={busy || !src} onClick={shareImg} /> : (
+            <button onClick={shareUrl} disabled={busy || !card.link} className="press-scale" style={{
+              width: "100%", minHeight: 52, borderRadius: 16, border: "none", background: BOTTLE_DARK, color: HEADER_TEXT, fontFamily: sans,
+              fontSize: 15.5, fontWeight: 800, cursor: card.link ? "pointer" : "default", opacity: busy || !card.link ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}><Share2 size={18} /> Link delen</button>
+          )}
+          <button onClick={copy} style={{ display: "block", width: "100%", marginTop: 6, minHeight: 42, border: "none", background: "none", color: BOTTLE, fontFamily: sans, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+            {status || "Kopieer als tekst"}
+          </button>
+        </div>
       </div>
     </div>
   ), document.body);

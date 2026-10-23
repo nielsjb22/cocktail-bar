@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useMemo, useEffect, useRef, useLayoutEffect, createContext, useContext, useId, Fragment } from "react";
+import { lazy, Suspense, useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect, createContext, useContext, useId, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { Preferences } from "@capacitor/preferences";
 import { subscribe, noteLocalChange, startSync, stopSync } from "./cloudState.js";
@@ -7,7 +7,7 @@ import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
-import { AlertTriangle, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Citrus, ListChecks, Award, Droplet, GlassWater, Hand, ListOrdered, CupSoda, Clock, ShieldCheck, Play, Copy, LayoutGrid, Rows2 } from "lucide-react";
+import { AlertTriangle, Martini, Check, Star, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, X, ShoppingCart, Shuffle, Sparkles, Pencil, BookOpen, ClipboardList, Refrigerator, Scale, PartyPopper, NotebookPen, FlaskConical, GraduationCap, Lock, RotateCcw, Share2, ExternalLink, MoreHorizontal, Heart, Camera, MapPin, Users, UserPlus, UserCheck, UserX, LogOut, Bell, MessageCircle, Send, Home, User, Settings, Flag, Flame, Globe, Target, Wine, Info, Landmark, Citrus, ListChecks, Award, Droplet, GlassWater, Hand, ListOrdered, CupSoda, Clock, ShieldCheck, Play, Copy, LayoutGrid, Rows2, Share as ShareIcon } from "lucide-react";
 import { buildIngredientIndex, searchIngredients, unusedHint, normalizeTerm } from "./ingredientSearch";
 import { PRIVACY_BIJGEWERKT, PRIVACY_INTRO, PRIVACY_SECTIES, privacyContactTekst } from "./privacyPolicy";
 import { VOORWAARDEN_VERSIE, VOORWAARDEN_BIJGEWERKT, VOORWAARDEN_INTRO, VOORWAARDEN_SECTIES, voorwaardenContactTekst } from "./termsOfUse";
@@ -58,9 +58,11 @@ const MenuAssistentTab = lazyScreen(() => import("./features/MenuAssistent.jsx")
 const BatchCalculatorTab = lazyScreen(() => import("./features/BatchCalculator.jsx"), "BatchCalculatorTab");
 const GuestSurveyView = lazyScreen(() => import("./features/GuestViews.jsx"), "GuestSurveyView");
 const GuestMenuView = lazyScreen(() => import("./features/GuestViews.jsx"), "GuestMenuView");
+const GuestRecipeView = lazyScreen(() => import("./features/GuestViews.jsx"), "GuestRecipeView");
 const CursusTab = lazyScreen(() => import("./features/Cursus.jsx"), "CursusTab");
 const BartenderScreen = lazyScreen(() => import("./features/Bartender.jsx"), "BartenderScreen");
 const BottleScanSheet = lazyScreen(() => import("./features/BottleScan.jsx"), "BottleScanSheet");
+const ShareRecipeSheet = lazyScreen(() => import("./features/Delen.jsx"), "ShareRecipeSheet");
 const RecognizeSheet = lazyScreen(() => import("./features/CocktailHerkennen.jsx"), "RecognizeSheet");
 const InsightsAdminScreen = lazyScreen(() => import("./features/Beheer.jsx"), "InsightsAdminScreen");
 const ReportsAdminScreen = lazyScreen(() => import("./features/Beheer.jsx"), "ReportsAdminScreen");
@@ -2155,6 +2157,7 @@ export default function ThuisbarApp() {
     Preferences.set({ key: "thuisbar-age-verified", value: "true" });
   };
   const [surveyId] = useState(() => new URLSearchParams(window.location.search).get("smaaktest"));
+  const [guestRecipeId] = useState(() => new URLSearchParams(window.location.search).get("recept"));
   const [guestMenuIds] = useState(() => {
     const q = new URLSearchParams(window.location.search).get("menu");
     return q ? q.split(",").filter(Boolean) : null;
@@ -2904,13 +2907,14 @@ export default function ThuisbarApp() {
     return () => { Promise.resolve(h).then(x => x?.remove?.()); };
   }, []);
 
-  const firstScreenReady = ageVerified === false || (ageVerified === true && (guestMenuIds || surveyId || session !== undefined));
+  const firstScreenReady = ageVerified === false || (ageVerified === true && (guestMenuIds || surveyId || guestRecipeId || session !== undefined));
   useEffect(() => { if (firstScreenReady) hideNativeSplash(); }, [firstScreenReady]);
 
   if (ageVerified === undefined) return <div style={{ minHeight: "100%", background: BOTTLE_DARK }} />;
   if (!ageVerified) return <AgeGateScreen onConfirm={confirmAge} />;
   if (guestMenuIds) return <GuestMenuView recipeIds={guestMenuIds} />;
   if (surveyId) return <GuestSurveyView surveyId={surveyId} />;
+  if (guestRecipeId) return <GuestRecipeView recipeId={guestRecipeId} />;
   if (session === undefined) return <div style={{ minHeight: "100%", background: `radial-gradient(ellipse 900px 500px at 50% -10%, #2A4B42, ${BOTTLE_DARK} 70%)` }} />;
   if (passwordRecovery) return <PasswordRecoveryScreen onDone={() => setPasswordRecovery(false)} />;
   if (session && !termsAccepted && !termsFromSignup) return <TermsGateScreen onAccept={() => acceptTerms()} onSignOut={signOut} busy={termsBusy} error={termsError} />;
@@ -6685,6 +6689,13 @@ function OwnedMark({ owned, optional, size = 20 }) {
     <span aria-label={optional ? "Optioneel, niet in huis" : "Ontbreekt"} style={{ width: size, height: size, borderRadius: "50%", boxSizing: "border-box", border: `2px ${optional ? "dashed" : "solid"} ${optional ? BORDER : BURGUNDY}`, flexShrink: 0, display: "inline-block" }} />
   );
 }
+// Ingrediëntnaam midden in een zin: "triple sec", maar merken ("Campari",
+// "Grand Marnier") houden hun hoofdletter.
+export function nameInSentence(label, id) {
+  if (!label) return "";
+  if (INFO_MERKNAMEN.has(id) || /[A-Z]/.test(label.slice(1))) return label;
+  return label.charAt(0).toLowerCase() + label.slice(1);
+}
 // Recept met de gekozen vervangers erin: ingrediënt, hoeveelheid en de
 // namen in bereiding en afwerking. Het origineel blijft bewaard in `vervangt`.
 function baseIngredientName(label) {
@@ -6729,7 +6740,7 @@ function SubstituteCard({ ing, subs, allIngredients, ingredientLabel, servings, 
   return (
     <li style={{ margin: "2px 0 8px", padding: "12px 13px", borderRadius: 16, border: `1.5px solid ${BRASS}`, background: CREAM, borderBottom: `1.5px solid ${BRASS}` }}>
       <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: BRASS_TEXT, marginBottom: 4 }}>
-        Geen {baseIngredientName(ingredientLabel(ing)).toLowerCase()}? {owned.length ? "Dit kan ook" : "Dit kan ook, als je het hebt"}
+        Geen {nameInSentence(baseIngredientName(ingredientLabel(ing)), ing.id)}? {owned.length ? "Dit kan ook" : "Dit kan ook, als je het hebt"}
       </div>
       {owned.map((s, k) => {
         const amt = scaleAmount(substituteAmount(ing.amount, ing.unit, s.factor), ing.unit, servings);
@@ -6753,7 +6764,7 @@ function SubstituteCard({ ing, subs, allIngredients, ingredientLabel, servings, 
       {other.length > 0 && (
         <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.45, padding: owned.length ? "8px 0 2px" : "4px 0 2px", borderTop: owned.length ? `1px solid ${BORDER}` : "none" }}>
           {owned.length ? "Of, als je het hebt: " : ""}{other.map((s, k) => (
-            <span key={s.id}>{k ? (k === other.length - 1 ? " of " : ", ") : ""}<strong style={{ color: INK }}>{name(s.id).toLowerCase()}</strong></span>
+            <span key={s.id}>{k ? (k === other.length - 1 ? " of " : ", ") : ""}<strong style={{ color: INK }}>{nameInSentence(name(s.id), s.id)}</strong></span>
           ))}{other.length === 1 && !owned.length ? ` (${other[0].zin.charAt(0).toLowerCase()}${other[0].zin.slice(1).replace(/\.$/, "")})` : ""}.
         </div>
       )}
@@ -7675,7 +7686,7 @@ function MakenTab({ backLabel = "Ontdekken", onOpenVoorraad = null, recipes, isO
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: 15.5, fontWeight: 600, color: INK }}>{recipe.name}</div>
                       <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>
-                        {missing.map((m, k) => `${k ? "; " : ""}${ingredientLabel({ id: swaps[k].id })} in plaats van ${ingredientLabel(m).toLowerCase()}`).join("")}
+                        {missing.map((m, k) => `${k ? "; " : ""}${ingredientLabel({ id: swaps[k].id })} in plaats van ${nameInSentence(ingredientLabel(m), m.id)}`).join("")}
                       </div>
                     </div>
                     <ChevronRight size={18} color={MUTED} style={{ flexShrink: 0 }} />
@@ -9043,6 +9054,44 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
   const garnishes = recipe ? inferGarnishes(recipe, allIngredients) : null;
   const { STORIES, STEPS, loaded: textsLoaded } = useRecipeTexts();
   const steps = recipe ? (STEPS[recipe.id] ? STEPS[recipe.id].map(t => swapIngredientText(t, recipe.swapPairs)) : splitMethodIntoSteps(recipe.method)) : [];
+  // Recept delen: de inhoud voor kaart, link en tekst (met of zonder vervanger).
+  const [shareOpen, setShareOpen] = useState(false);
+  useEffect(() => { setShareOpen(false); }, [selectedId]);
+  const buildShareCard = useCallback(({ servings: n, withSwap }) => {
+    const r = withSwap ? recipe : baseRecipe;
+    const amount = (ing) => {
+      if (ing.top && n === 1) return "top op";
+      const v = scaleAmount(ing.amount, ing.unit, n);
+      return `${formatDutchNumber(v)} ${unitLabel(ing.unit, v)}`;
+    };
+    const rows = r.ingredients.map(ing => ({ label: `${ingredientLabel(ing)}${ing.optional ? " (optioneel)" : ""}`, amount: amount(ing), brand: INFO_MERKNAMEN.has(ing.id) || /[A-Z]/.test(ingredientLabel(ing).slice(1)) }));
+    let steps = STEPS[r.id] ? STEPS[r.id].map(t => swapIngredientText(t, r.swapPairs)) : splitMethodIntoSteps(r.method);
+    if (!STEPS[r.id] && r.garnish) steps = [...steps, `Garnering: ${r.garnish}`];
+    steps = steps.map(t => scaleStepText(t, n));
+    const swaps = withSwap ? Object.entries(vervangers?.[baseRecipe.id] || {}) : [];
+    const swapNote = swaps.length ? `Met ${r.ingredients.filter(i => i.vervangt).map(i => `${ingredientLabel(i)} in plaats van ${nameInSentence(ingredientLabel(i.vervangt), i.vervangt.id)}`).join(" en ")}` : "";
+    const photo = localItemImageUrl("cocktail", baseRecipe.id) || baseRecipe.image || null;
+    // Link alleen voor recepten uit de app (eigen recepten bestaan niet op het web).
+    const isAppRecipe = RECIPES.some(x => x.id === baseRecipe.id);
+    const q = new URLSearchParams({ recept: baseRecipe.id });
+    if (n > 1) q.set("g", String(n));
+    if (swaps.length) q.set("v", swaps.map(([a, b]) => `${a}.${b}`).join(","));
+    q.set("t", baseRecipe.name);
+    if (photo && photo.startsWith("/assets/")) q.set("i", photo);
+    const link = isAppRecipe ? publicAppUrl(q.toString().replace(/%2C/g, ",").replace(/%2F/g, "/")) : null;
+    const text = [
+      `${r.name} (${n} ${n === 1 ? "glas" : "glazen"})`, "",
+      "Ingrediënten", ...rows.map(x => `- ${x.amount} ${x.brand ? x.label : x.label.charAt(0).toLowerCase() + x.label.slice(1)}`),
+      ...(swapNote ? [swapNote] : []), "",
+      "Bereiding", ...steps.map((t, i) => `${i + 1}. ${t}`),
+      ...(link ? ["", `Recept uit Mijn Thuisbar: ${link}`] : []),
+    ].join("\n");
+    return { id: baseRecipe.id, name: r.name, meta: [r.family, r.glass].filter(Boolean).join(" · "), rows, steps, swapNote, photo, link, text, servings: n };
+  }, [recipe, baseRecipe, vervangers, ingredientLabel, STEPS]);
+  const copyRecipeText = async (card) => {
+    try { await navigator.clipboard.writeText(card.text); return "copied"; }
+    catch { return shareText({ title: card.name, text: card.text }); }
+  };
   const story = recipe
     ? (STORIES[recipe.id] || (!textsLoaded ? "" : `Nog geen verhaal bekend over deze cocktail: een ${(recipe.family || "eigen creatie").toLowerCase()} op basis van ${recipe.ingredients[0] ? ingredientLabel(recipe.ingredients[0]) : "jouw eigen ingrediënten"}. Schrijf zelf de anekdote erbij als je 'm serveert!`))
     : null;
@@ -9345,6 +9394,12 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
             ) : (
               <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 500px 260px at 100% 0%, rgba(255,255,255,0.14), transparent 60%)", pointerEvents: "none" }} />
             )}
+            <button onClick={() => { onSound("pop"); setShareOpen(true); }} aria-label="Recept delen" className="glass-chip" style={{
+              position: "absolute", top: 16, right: 62, zIndex: 2, width: 36, height: 36, borderRadius: "50%", padding: 0,
+              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: ON_DARK_TEXT,
+            }}>
+              <ShareIcon size={16} />
+            </button>
             <button onClick={() => { onSound("pop"); onToggleFavorite(recipe.id); }} aria-label={favoriteRecipeIds.includes(recipe.id) ? "Verwijder uit favorieten" : "Bewaar als favoriet"}
               className={favoriteRecipeIds.includes(recipe.id) ? "" : "glass-chip"} style={{
               position: "absolute", top: 16, right: 16, zIndex: 2, width: 36, height: 36, borderRadius: "50%", padding: 0,
@@ -9440,7 +9495,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                     <span style={{ flex: 1, minWidth: 0, color: owned ? INK : BURGUNDY, fontWeight: owned ? 400 : 600 }}>
                       {ingredientLabel(ing)}
                       <span style={{ display: "block", fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 1 }}>
-                        in plaats van {orig.top && servings === 1 ? "" : `${formatDutchNumber(origScaled)} ${unitLabel(orig.unit, origScaled)} `}{ingredientLabel(orig).toLowerCase()}
+                        in plaats van {orig.top && servings === 1 ? "" : `${formatDutchNumber(origScaled)} ${unitLabel(orig.unit, origScaled)} `}{nameInSentence(ingredientLabel(orig), orig.id)}
                       </span>
                       {ing.zin && <span style={{ display: "block", fontSize: 12, color: MUTED, fontWeight: 400, marginTop: 2, lineHeight: 1.4 }}>{ing.zin}</span>}
                     </span>
@@ -9464,7 +9519,7 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
                 {subs.length > 0 && (
                   <SubstituteCard ing={ing} subs={subs} allIngredients={allIngredients} ingredientLabel={ingredientLabel} servings={servings} last={last}
                     onUse={(sub) => { onSound("pop"); setSwap(ing.id, sub.id); }}
-                    onAsk={onAskBartender ? () => onAskBartender(`Ik wil een ${baseRecipe.name} maken, maar ik heb geen ${ingredientLabel(ing).toLowerCase()}. Wat kan ik uit mijn voorraad gebruiken in plaats daarvan, en hoeveel?`) : null} />
+                    onAsk={onAskBartender ? () => onAskBartender(`Ik wil een ${baseRecipe.name} maken, maar ik heb geen ${nameInSentence(ingredientLabel(ing), ing.id)}. Wat kan ik uit mijn voorraad gebruiken in plaats daarvan, en hoeveel?`) : null} />
                 )}
                 </Fragment>
               );
@@ -9567,6 +9622,12 @@ function VerhaalTab({ recipes, ingredientLabel, allIngredients, isOwned, recentR
               <Play size={17} fill="currentColor" /> Ik ga maken
             </button>
           </div>
+          {shareOpen && (
+            <ShareRecipeSheet build={buildShareCard} initialServings={servings} hasSwap={swapCount > 0}
+              swapLabel={recipe.ingredients.filter(i => i.vervangt).map(i => `${ingredientLabel(i)} in plaats van ${nameInSentence(ingredientLabel(i.vervangt), i.vervangt.id)}`).join("; ")}
+              onShareLink={(card) => shareLink({ title: card.name, text: `${card.name}: zo maak je hem`, url: card.link })}
+              onCopyText={copyRecipeText} onClose={() => setShareOpen(false)} />
+          )}
           {bereidOpen && (
             <BereidModus recipe={recipe} ingredientLabel={ingredientLabel} allIngredients={allIngredients} initialServings={servings}
               onClose={() => setBereidOpen(false)} onCheckin={onOpenCheckin} onSound={onSound} />

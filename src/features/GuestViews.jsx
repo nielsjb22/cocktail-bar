@@ -9,7 +9,7 @@ import { RECIPES, canonicalRecipeId, INGREDIENTS } from "../recipes.js";
 import { isNative as isNativeShell } from "../native";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
-import { BrandMark, PUBLIC_WEB_URL, SurveyGlass, getTasteProfile, useMatchBodyBackground } from "../ThuisbarApp.jsx";
+import { BrandMark, PUBLIC_WEB_URL, SurveyGlass, getTasteProfile, useMatchBodyBackground, applySubstitutes, nameInSentence, localItemImageUrl, useRecipeTexts, splitMethodIntoSteps, swapIngredientText, formatDutchNumber, unitLabel, PAPER, CREAM, INK, MUTED, BORDER, BOTTLE, BOTTLE_DARK, serif, sans } from "../ThuisbarApp.jsx";
 
 // Gedeelde menukaart (de link die gasten krijgen): donker, gecentreerd, zonder
 // kaders. Het menu ligt vast; gasten kiezen niets. Feestnaam, host, datum en
@@ -457,4 +457,85 @@ function GuestSurveyView({ surveyId }) {
 // Nog geen App Store-pagina: de footer van de menukaart linkt dan naar de webversie.
 const APP_STORE_URL = "";
 
-export { GuestSurveyView, GuestMenuView };
+// Gedeeld recept (?recept=id&g=glazen&v=origineel.vervanger,…): leesbaar
+// zonder account of app, met onderaan een weg naar de app.
+function GuestRecipeView({ recipeId }) {
+  useMatchBodyBackground("#F3ECDD");
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  const servings = Math.min(24, Math.max(1, parseInt(params.get("g") || "1", 10) || 1));
+  const swaps = useMemo(() => Object.fromEntries((params.get("v") || "").split(",").map(x => x.split(".")).filter(x => x.length === 2 && x[0] && x[1])), [params]);
+  const label = (ing) => INGREDIENTS.find(i => i.id === ing.id)?.name || ing.name || ing.id;
+  const base = RECIPES.find(r => r.id === canonicalRecipeId(recipeId)) || null;
+  const recipe = useMemo(() => applySubstitutes(base, swaps, label), [base, swaps]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { STEPS } = useRecipeTexts();
+  useEffect(() => { if (recipe) document.title = `${recipe.name} · Mijn Thuisbar`; }, [recipe]);
+  if (!recipe) {
+    return (
+      <div style={{ minHeight: "100vh", background: PAPER, fontFamily: sans, color: INK, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+        <div><div style={{ fontFamily: serif, fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Recept niet gevonden</div>
+          <a href={window.location.pathname} style={{ color: BOTTLE, fontWeight: 700 }}>Naar Mijn Thuisbar</a></div>
+      </div>
+    );
+  }
+  const photo = localItemImageUrl("cocktail", recipe.id) || recipe.image;
+  const scale = (ing) => {
+    if (ing.top && servings === 1) return "top op";
+    const v = ing.unit === "ml" ? Math.round(ing.amount * servings * 10) / 10 : ing.unit === "stuk" ? Math.ceil(ing.amount * servings) : Math.round(ing.amount * servings);
+    return `${formatDutchNumber(v)} ${unitLabel(ing.unit, v)}`;
+  };
+  let steps = STEPS[recipe.id] ? STEPS[recipe.id].map(t => swapIngredientText(t, recipe.swapPairs)) : splitMethodIntoSteps(recipe.method);
+  if (!STEPS[recipe.id] && recipe.garnish) steps = [...steps, `Garnering: ${recipe.garnish}`];
+  if (servings > 1) steps = steps.map(t => t.replace(/\b(\d+(?:,\d+)?)\s+(ml)\b/g, (m, q) => `${formatDutchNumber(parseFloat(q.replace(",", ".")) * servings)} ml`));
+  const swapped = recipe.ingredients.filter(i => i.vervangt);
+  const sectionLabel = { fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: MUTED, margin: "22px 0 8px" };
+  return (
+    <div style={{ minHeight: "100vh", background: PAPER, fontFamily: sans, color: INK, paddingBottom: 130 }}>
+      <div style={{ position: "relative", height: 300, background: BOTTLE_DARK, overflow: "hidden" }}>
+        {photo && <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(19,38,34,0.55), rgba(19,38,34,0) 30%, rgba(19,38,34,0) 55%, rgba(19,38,34,0.92))" }} />
+        <div style={{ position: "absolute", top: "calc(env(safe-area-inset-top) + 16px)", left: 18, display: "flex", alignItems: "center", gap: 8, color: "#DDB877", fontSize: 11.5, fontWeight: 700, letterSpacing: 1 }}>
+          <BrandMark width={22} /> MIJN THUISBAR
+        </div>
+        <div style={{ position: "absolute", left: 20, right: 20, bottom: 16, color: "#FBF6EA", maxWidth: 640, margin: "0 auto" }}>
+          <h1 style={{ fontFamily: serif, fontSize: 36, fontWeight: 700, margin: 0, lineHeight: 1.1 }}>{recipe.name}</h1>
+          <div style={{ fontSize: 13.5, color: "#D9D2C2", marginTop: 4 }}>{[recipe.family, recipe.glass].filter(Boolean).join(" · ")}</div>
+        </div>
+      </div>
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 20px" }}>
+        <div style={sectionLabel}>Ingrediënten · {servings} {servings === 1 ? "glas" : "glazen"}</div>
+        <div style={{ background: CREAM, borderRadius: 14, padding: "2px 14px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+          {recipe.ingredients.map((ing, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "11px 0", borderTop: i ? `1px dotted ${BORDER}` : "none", fontSize: 15.5 }}>
+              <span>{label(ing)}{ing.optional ? " (optioneel)" : ""}</span>
+              <strong style={{ color: BOTTLE, whiteSpace: "nowrap" }}>{scale(ing)}</strong>
+            </div>
+          ))}
+        </div>
+        {swapped.length > 0 && (
+          <div style={{ fontSize: 13, color: MUTED, marginTop: 8, lineHeight: 1.45 }}>
+            Met {swapped.map(i => `${label(i)} in plaats van ${nameInSentence(label(i.vervangt), i.vervangt.id)}`).join(" en ")}.
+          </div>
+        )}
+        <div style={sectionLabel}>Bereiding</div>
+        <ol style={{ margin: 0, paddingLeft: 22, fontSize: 15.5, lineHeight: 1.65 }}>
+          {steps.map((t, i) => <li key={i} style={{ marginBottom: 6 }}>{t}</li>)}
+        </ol>
+        <p style={{ fontSize: 12.5, color: MUTED, marginTop: 22 }}>Geniet met mate. Alleen voor 18+.</p>
+      </div>
+      <a href={window.location.pathname} style={{
+        position: "fixed", left: 16, right: 16, bottom: "calc(env(safe-area-inset-bottom) + 18px)", maxWidth: 608, margin: "0 auto",
+        display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", borderRadius: 18, background: BOTTLE_DARK, color: "#FBF6EA",
+        textDecoration: "none", boxShadow: "0 10px 30px -8px rgba(0,0,0,0.5)",
+      }}>
+        <span style={{ flexShrink: 0 }}><BrandMark width={40} /></span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontWeight: 700, fontSize: 14.5 }}>Mijn Thuisbar</span>
+          <span style={{ display: "block", fontSize: 12, color: "#B9C3BD" }}>Zie wat jij kunt maken met je eigen flessen</span>
+        </span>
+        <span style={{ background: "#E8C98E", color: "#132622", fontWeight: 800, fontSize: 13, padding: "9px 12px", borderRadius: 10 }}>Open</span>
+      </a>
+    </div>
+  );
+}
+
+export { GuestSurveyView, GuestMenuView, GuestRecipeView };

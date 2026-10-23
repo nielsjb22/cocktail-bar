@@ -1,4 +1,4 @@
-// Linkvoorbeeld (Open Graph) voor een gedeeld feestmenu.
+// Linkvoorbeeld (Open Graph) voor een gedeeld feestmenu of recept.
 //
 // WhatsApp/iMessage voeren geen JavaScript uit, dus de meta-tags moeten al in
 // de HTML staan die Netlify serveert. Deze edge function draait alleen voor
@@ -33,18 +33,27 @@ function setMeta(html, attr, key, value) {
 export default async (request, context) => {
   const url = new URL(request.url);
   const params = url.searchParams;
-  if (!params.get("menu")) return; // gewone pagina: niets aanpassen
+  const isRecipe = !!params.get("recept");
+  if (!params.get("menu") && !isRecipe) return; // gewone pagina: niets aanpassen
 
   const response = await context.next();
   if (!(response.headers.get("content-type") || "").includes("text/html")) return response;
   let html = await response.text();
 
-  const title = params.get("t") || "Het menu van vanavond";
-  const description = describe(params) || "Het cocktailmenu van vanavond";
-  // Alleen een afbeelding uit de eigen Supabase-bucket overnemen.
   const img = params.get("i") || "";
-  const image = /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/public\/menukaarten\//i.test(img)
-    ? img : `${url.origin}/og-menu.png`;
+  let title, description, image;
+  if (isRecipe) {
+    // Gedeeld recept: naam (t) en de receptfoto uit de app zelf (i = /assets/…).
+    title = params.get("t") || "Een cocktailrecept";
+    description = "Zo maak je hem: ingrediënten en bereiding, via Mijn Thuisbar";
+    image = /^\/assets\/[\w.-]+\.(webp|png|jpe?g)$/i.test(img) ? `${url.origin}${img}` : `${url.origin}/og-menu.png`;
+  } else {
+    title = params.get("t") || "Het menu van vanavond";
+    description = describe(params) || "Het cocktailmenu van vanavond";
+    // Alleen een afbeelding uit de eigen Supabase-bucket overnemen.
+    image = /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/public\/menukaarten\//i.test(img)
+      ? img : `${url.origin}/og-menu.png`;
+  }
 
   html = html.replace(/<title>[^<]*<\/title>/i, `<title>${esc(title)}</title>`);
   html = setMeta(html, "property", "og:title", title);
