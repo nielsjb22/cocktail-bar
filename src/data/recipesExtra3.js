@@ -16,9 +16,14 @@ export const INGREDIENTS_3 = [
   { id: "ice_tea", name: "IJsthee", cat: "Mixers", bottleMl: 1500, bottlePrice: 1.8 },
   { id: "black_tea", name: "Zwarte thee (vers gezet)", cat: "Mixers", bottleMl: 1000, bottlePrice: 0.5 },
   { id: "hot_chocolate", name: "Warme chocolademelk", cat: "Mixers", bottleMl: 1000, bottlePrice: 2 },
+  { id: "pear_syrup", name: "Perensiroop", cat: "Vers", bottleMl: 250, bottlePrice: 4 },
+  { id: "frozen_strawberries", name: "Diepvriesaardbeien", cat: "Vers", unitPrice: 0.12 },
 ];
 
 export const RECIPES_3 = [
+  // Op verzoek toegevoegd
+  { id: "strawberry_daiquiri", name: "Strawberry Daiquiri", family: "Modern / Tiki", glass: "Coupe", ingredients: [ml("white_rum", 75), stuk("frozen_strawberries", 8), ml("lime_juice", 15), ml("brown_sugar", 20), stuk("strawberry", 1, true)], garnish: "Een verse aardbei op de rand.", method: "Blend de rum, diepvriesaardbeien, limoensap en rietsuiker met 5 ijsblokjes tot een gladde, dikke slush. Schenk in een gekoeld glas en garneer met een verse aardbei." },
+  { id: "raspberry_mint_flip", name: "Raspberry Mint Flip", family: "Fizz / Flip", glass: "Coupe", ingredients: [ml("chambord", 30), ml("aperol", 30), ml("lemon_juice", 20), ml("pear_syrup", 15), stuk("mint", 7), stuk("egg_yolk", 1)], garnish: "Een takje munt en een framboos.", method: "Klap de munt kort tussen je handen en doe hem met de rest in de shaker. Dry shake zonder ijs, shake daarna stevig met ijs en zeef dubbel in een gekoelde coupe." },
   // Portie 3: populair en Nederlands
   { id: "pisang_jus", name: "Pisang Ambon Jus", family: "Highballs", glass: "Highball", ingredients: [ml("pisang_ambon", 50), ml("orange_juice", 150)], garnish: "Een schijfje sinaasappel.", method: "Bouw over ijs en roer kort." },
   { id: "pisang_lemon", name: "Pisang Lemon", family: "Highballs", glass: "Highball", ingredients: [ml("pisang_ambon", 50), ml("lemonade", 150)], garnish: "Een schijfje citroen.", method: "Bouw over ijs en roer kort." },

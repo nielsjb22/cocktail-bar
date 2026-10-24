@@ -2907,6 +2907,15 @@
     "niveau": "illustratie"
   },
   {
+    "id": "raspberry_mint_flip",
+    "type": "cocktail",
+    "bestand": "raspberry_mint_flip.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
     "id": "red_cloud",
     "type": "cocktail",
     "bestand": "red_cloud.webp",
@@ -3400,6 +3409,15 @@
     "maker": "Piotr Arnoldes",
     "licentie": "Pexels License",
     "niveau": "passend"
+  },
+  {
+    "id": "strawberry_daiquiri",
+    "type": "cocktail",
+    "bestand": "strawberry_daiquiri.webp",
+    "bronUrl": "https://www.pexels.com/photo/close-up-photo-of-strawberry-cocktail-9410221/",
+    "maker": "Maria Dempsey",
+    "licentie": "Pexels License",
+    "niveau": "exact"
   },
   {
     "id": "strawberry_lemonade",
@@ -4509,6 +4527,15 @@
     "niveau": "illustratie"
   },
   {
+    "id": "frozen_strawberries",
+    "type": "drank",
+    "bestand": "frozen_strawberries.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
     "id": "galliano",
     "type": "drank",
     "bestand": "galliano.webp",
@@ -4926,6 +4953,15 @@
     "id": "peach_schnapps",
     "type": "drank",
     "bestand": "peach_schnapps.webp",
+    "bronUrl": "",
+    "maker": "",
+    "licentie": "",
+    "niveau": "illustratie"
+  },
+  {
+    "id": "pear_syrup",
+    "type": "drank",
+    "bestand": "pear_syrup.webp",
     "bronUrl": "",
     "maker": "",
     "licentie": "",

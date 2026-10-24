@@ -1,6 +1,8 @@
 // Verhalen en bereidingsstappen bij recipesExtra3.js (los geladen, zie recipeTexts.js).
 
 export const STORIES_3 = {
+  strawberry_daiquiri: "De bevroren daiquiri werd beroemd in de jaren dertig in bar El Floridita in Havana, waar barman Constante Ribalaigua hem met fijngemalen ijs maakte. Later kwamen er aardbeien bij, en met de opkomst van de blender werd de Strawberry Daiquiri vooral in de jaren zeventig en tachtig een vaste zomerklassieker. Dit recept is gebaseerd op dat van Allerhande (Albert Heijn): met diepvriesaardbeien hoef je bijna geen ijs toe te voegen en blijft hij lekker dik.",
+  raspberry_mint_flip: "Een moderne huiscreatie die je op cocktailkaarten tegenkomt, zonder vast standaardrecept. Een flip is van oudsher een drankje met een heel ei of eidooier, waardoor hij romig en zijdezacht wordt. Hier gaat dat samen met frambozenlikeur, de lichte bitterheid van Aperol, frisse citroen en munt, en een zachte peer op de achtergrond.",
   pisang_jus: "Pisang Ambon is een Nederlandse likeur van Lucas Bols, sinds 1948 op de markt en gebaseerd op een oud Indonesisch recept. De naam verwijst naar de Ambonbanaan, genoemd naar het eiland Ambon in de Molukken. De felgroene kleur maakte hem in de jaren zeventig en tachtig tot een vaste waarde in Nederlandse cafés en op feestjes. Met sinaasappelsap wordt hij een zoete, tropische longdrink.",
   pisang_lemon: "De andere klassieke manier om Pisang Ambon te drinken in Nederland: met citroenlimonade. Zo blijft de drank mooi groen en wordt hij iets frisser dan met jus d'orange. Een echte jaren-tachtig-feestdrank die nog steeds op veel verjaardagen opduikt.",
   passoa_jus: "Passoã is een passievruchtlikeur die in 1986 eerst in de Benelux op de markt kwam, met een felrode fles en een tropische uitstraling; pas in 1994 volgde de rest van de wereld. In Nederland en België werd 'Passoã-jus' een van de populairste manieren om hem te drinken. Zoet, fruitig en heel makkelijk te maken.",
@@ -69,6 +71,8 @@ export const STORIES_3 = {
 };
 
 export const STEPS_3 = {
+  strawberry_daiquiri: ["Doe 75 ml witte rum, 8 diepvriesaardbeien (ongeveer 110 g), 15 ml limoensap (een halve limoen) en 20 ml rietsuiker of bruine suiker in de blender.", "Voeg 5 ijsblokjes toe en blend tot een gladde, dikke slush.", "Schenk in een gekoelde coupe.", "Garneer met een verse aardbei op de rand."],
+  raspberry_mint_flip: ["Klap 7 muntblaadjes kort tussen je handen en doe ze in de shaker.", "Voeg 30 ml Chambord, 30 ml Aperol, 20 ml citroensap, 15 ml perensiroop en 1 eidooier toe.", "Shake 15 seconden zonder ijs, zodat het ei opschuimt.", "Shake daarna stevig met ijs en zeef dubbel in een gekoelde coupe.", "Garneer met een takje munt en een framboos."],
   pisang_jus: ["Vul een highball met ijs.", "Schenk er 50 ml Pisang Ambon in.", "Top met 150 ml sinaasappelsap en roer kort.", "Garneer met een schijfje sinaasappel."],
   pisang_lemon: ["Vul een highball met ijs.", "Schenk er 50 ml Pisang Ambon in.", "Top met 150 ml citroenlimonade en roer kort.", "Garneer met een schijfje citroen."],
   passoa_jus: ["Vul een highball met ijs.", "Schenk er 50 ml passievruchtlikeur in.", "Top met 150 ml sinaasappelsap en roer kort.", "Garneer met een halve passievrucht of een schijfje sinaasappel."],

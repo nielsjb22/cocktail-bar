@@ -152,6 +152,8 @@ const SPECS = {
   white_wine: { shape: "wine", liquid: "#EEDC90", glass: "#D8E0B8", cap: "#B8862E" },
   suze: { shape: "liqueur", liquid: "#E8D23A", glass: "#EDE6B8", cap: "#1F3A6A" },
   vanilla_syrup: { shape: "syrup", liquid: "#EADBB0", glass: "#E8E2D0", cap: "#5A3A1E" },
+  pear_syrup: { shape: "syrup", liquid: "#E2D88E", glass: "#E8E6CC", cap: "#5A6A2A" },
+  frozen_strawberries: { shape: "strawberry" },
   kiwi: { shape: "kiwi" },
   watermelon: { shape: "watermelon" },
   lemongrass: { shape: "lemongrass" },

@@ -51,7 +51,7 @@ const COLORS = {
   sugar_syrup: ["#F4F1E8", 0.1, 0], honey_syrup: ["#E3A93A", 0.6, 0.1], honey_ginger_syrup: ["#E0A040", 0.6, 0.2],
   raspberry_syrup: ["#B0123A", 3, 0], grenadine: ["#B0102A", 3.5, 0], orgeat: ["#F1E9D8", 0.6, 0.8], agave_nectar: ["#E0B050", 0.4, 0],
   elderflower_cordial: ["#F0E6B0", 0.3, 0], vanilla_syrup: ["#E8D2A0", 0.3, 0], brown_sugar: ["#A0622A", 0.8, 0],
-  worcestershire: ["#3A1A0A", 4, 0], tabasco: ["#C8281C", 4, 0], strawberry: ["#D8203A", 1.6, 0.6], watermelon: ["#F0506A", 1.4, 0.6],
+  worcestershire: ["#3A1A0A", 4, 0], tabasco: ["#C8281C", 4, 0], strawberry: ["#D8203A", 1.6, 0.6], frozen_strawberries: ["#D8203A", 1.6, 0.6], pear_syrup: ["#E8DFA0", 0.4, 0.1], watermelon: ["#F0506A", 1.4, 0.6],
   kiwi: ["#8CB83A", 1.2, 0.6], cucumber: ["#C8E0A0", 0.3, 0.3], irish_cream: ["#C9A27A", 2, 1], creme_de_noyaux: ["#E8506A", 2.5, 0],
   banana_liqueur: ["#F2D84A", 1.5, 0], melon_liqueur: ["#7ACB3A", 3, 0], lemonade: ["#F4EEC0", 0.4, 0.5], limoncello: ["#EAD43A", 1.6, 0.6],
   licor_43: ["#E8B83A", 1.4, 0], bitter_lemon: ["#F2EDC0", 0.4, 0.6], energy_drink: ["#E8D86A", 0.8, 0], pisang_ambon: ["#5ABF3A", 3, 0],

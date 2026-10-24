@@ -134,6 +134,8 @@ export const INGREDIENT_ALIASES = {
   tabasco: ["Tabasco", "hot sauce", "pepersaus"],
   chili: ["rode peper", "spaanse peper", "chilipeper", "jalapeño", "jalapeno", "chili"],
   ginger_root: ["gember", "verse gember", "gemberwortel", "ginger"],
+  pear_syrup: ["perensiroop", "peren siroop", "pear syrup", "Monin Peer", "Monin Pear"],
+  frozen_strawberries: ["diepvriesaardbeien", "diepvries aardbeien", "bevroren aardbeien", "frozen strawberries"],
   strawberry: ["aardbeien", "aardbei", "strawberry", "strawberries"],
   cucumber: ["komkommer", "cucumber"],
   kiwi: ["kiwi's", "kiwi"],

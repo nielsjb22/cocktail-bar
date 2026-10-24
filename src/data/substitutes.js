@@ -23,6 +23,8 @@ export const SUBSTITUTES = {
     ["honey_syrup", 1, "Met een honingtoon in plaats van agave."],
   ],
   vanilla_syrup: [["sugar_syrup", 1, "Zelfde zoetheid, zonder vanille."]],
+  pear_syrup: [["sugar_syrup", 1, "Zelfde zoetheid, zonder de peer."]],
+  frozen_strawberries: [["strawberry", 1, "Verse aardbeien: blend met een extra handje ijs, anders wordt hij te dun."]],
   grenadine: [
     ["raspberry_syrup", 1, "Fruitiger en naar framboos, met bijna dezelfde kleur."],
     ["creme_de_cassis", 0.75, "Donkerder en naar zwarte bes, met een beetje alcohol."],

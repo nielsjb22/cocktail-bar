@@ -145,6 +145,8 @@ export const INGREDIENT_INFO = {
   tabasco: { zin: "Pittige saus van rode peper en azijn.", smaak: ["pittig", "zuur"], bewaren: "Kast, lang houdbaar." },
   chili: { zin: "Verse rode peper, voor pit.", smaak: ["pittig", "fris"], tip: "<b>Begin met een dun plakje.</b> De hitte verschilt per peper; zonder zaadjes is hij milder.", bewaren: "Koelkast, een week of twee." },
   ginger_root: { zin: "Verse gemberwortel, pittig en fris.", smaak: ["pittig", "fris", "warm"], bewaren: "Koelkast, of in de vriezer: bevroren raspt hij zelfs makkelijker." },
+  pear_syrup: { zin: "Suikersiroop met peer: zacht, fruitig en zoet.", smaak: ["peer", "zoet", "fruitig"], bewaren: "Zelfgemaakt in de koelkast, ongeveer twee weken. Gekocht: kijk op de fles.", vervangen: "Meng suikersiroop half om half met perensap, of gebruik gewone suikersiroop.", tip: "<b>Zelf maken.</b> Kook 100 ml water met 100 g suiker en een peer in stukjes 10 minuten zachtjes, laat afkoelen en zeef." },
+  frozen_strawberries: { zin: "Bevroren aardbeien: ideaal voor de blender, want ze maken je drankje meteen koud en dik.", smaak: ["aardbei", "zoet", "fruitig"], bewaren: "In de vriezer; ontdooi ze niet als je ze blendt.", vervangen: "Verse aardbeien met een extra handje ijs." },
   strawberry: { zin: "Verse aardbei, als garnering of gemuddeld.", smaak: ["zoet", "fruitig"], bewaren: "Koelkast, pas vlak voor gebruik wassen." },
   cucumber: { zin: "Verse komkommer, voor een frisse, groene smaak.", smaak: ["fris", "groen"], bewaren: "Koelkast, aangesneden met folie over de snijkant." },
   cinnamon_stick: { zin: "Pijpje kaneel als garnering of om mee te roeren.", smaak: ["warm", "zoet", "kruidig"], bewaren: "Kast, goed afgesloten." },
